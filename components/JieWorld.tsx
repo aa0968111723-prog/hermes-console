@@ -13,8 +13,8 @@ const CONV_KEY = "jie.convs";
 const FACE_KEY = "jie.face";
 
 const STARTERS = [
-  { t: "想文案", d: "第一段可用口號" },
-  { t: "做海報", d: "海報 brief 要點" },
+  { t: "想文案", d: "先寫一段能用的句子" },
+  { t: "做海報", d: "整理第一張海報要點" },
   { t: "切分鏡", d: "把想法切成鏡頭" },
   { t: "列出專案", d: "用 GitHub 看目錄，不要回印密鑰" }
 ];
@@ -84,6 +84,13 @@ export default function JieWorld() {
     setOpen(false);
     setTab("chat");
   }
+  function newChat() {
+    const id = `c${Date.now()}`;
+    setConvs((all) => [{ id, title: "新對話", messages: [] }, ...all]);
+    setCid(id);
+    setTab("chat");
+    setOpen(false);
+  }
   async function onFace(file?: File) {
     if (!file) return;
     const data = await loadFace(file);
@@ -102,7 +109,7 @@ export default function JieWorld() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           baseUrl: apiUrl, apiKey, model: "hermes-agent",
-          messages: [{ role: "system", content: "你是「倢的創作小天地」裡的助手 Hermes。倢是會跑的核心小精靈。大腦是 Hermes，第一隻手是 GitHub。繁體中文、活漏短句。不要回印密鑰。不要假裝你是倢。" }, ...next]
+          messages: [{ role: "system", content: "你是「倢的創作小天地」的助手。倢是會跑的小精靈。大腦是 Hermes，第一隻手是 GitHub。用繁體中文、短句。不要回印密鑰。不要假裝你是倢本人。" }, ...next]
         })
       });
       if (!res.ok || !res.body) {
@@ -136,16 +143,15 @@ export default function JieWorld() {
   return (
     <div className="app">
       <div className="sky" aria-hidden>
-        <i className="spark s1" /><i className="spark s2" /><i className="spark s3" /><i className="spark s4" />
         <div className="jie">{face ? <img src={face} alt="" /> : "倢"}</div>
         <i className="orb g" /><i className="orb c" /><i className="orb i" /><i className="orb d" />
       </div>
       <header className="topbar">
         <div>
           <div className="brand">倢的創作小天地</div>
-          <div className="sub">{ready ? "Hermes 已連 · 隊伍就緒" : "先開圖鑑袋填網域"}</div>
+          <div className="sub">{ready ? "Hermes 已連" : "先開抽屜填網域"}</div>
         </div>
-        <button className="iconbtn" onClick={() => setOpen((v) => !v)}>{open ? "關袋" : "圖鑑袋"}</button>
+        <button className="iconbtn" onClick={() => setOpen((v) => !v)}>{open ? "關閉" : "抽屜"}</button>
       </header>
       <main className="main">
         {tab === "chat" && (
@@ -153,8 +159,8 @@ export default function JieWorld() {
             <div className="thread" ref={logRef}>
               {messages.length === 0 ? (
                 <div className="empty">
-                  <h1>出發前，今天跑哪條路？</h1>
-                  <p>倢在跑。四顆球是隊伍幫手。</p>
+                  <h1>今天想做什麼？</h1>
+                  <p>直接打字。倢在旁邊。</p>
                   <div className="suggestions">
                     {STARTERS.map((s) => <button key={s.t} onClick={() => send(s.t)}>{s.t}<small>{s.d}</small></button>)}
                   </div>
@@ -172,10 +178,10 @@ export default function JieWorld() {
             </div>
             <div className="composer-wrap">
               <form className="composer" onSubmit={(e) => { e.preventDefault(); send(); }}>
-                <textarea rows={1} value={input} placeholder="對話框：跟倢說…" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-                <button className={busy ? "send busy" : "send"} type="submit" disabled={busy || !input.trim()}>{busy ? "…" : "▶"}</button>
+                <textarea rows={1} value={input} placeholder={ready ? "傳訊息…" : "先開抽屜填 Hermes 網域"} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+                <button className={busy ? "send busy" : "send"} type="submit" disabled={busy || !input.trim()}>{busy ? "…" : "↑"}</button>
               </form>
-              <div className="hint">對話框 · 腦 Hermes · 手 GitHub</div>
+              <div className="hint">腦是 Hermes，手是 GitHub</div>
             </div>
           </>
         )}
@@ -187,18 +193,21 @@ export default function JieWorld() {
         {tab === "settings" && (
           <div className="thread"><div className="thread-inner sheet">
             <div className="field"><label>倢的圖</label><input type="file" accept="image/*" onChange={(e) => onFace(e.target.files?.[0])} /></div>
-            <div className="field"><label>根網域</label><input value={apiUrl} placeholder="https://xxxx.zeabur.app" onChange={(e) => setApiUrl(e.target.value)} /></div>
-            <div className="field"><label>API Key</label><input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} /></div>
+            <div className="field"><label>根網域（不要加 /v1/chat/completions）</label><input value={apiUrl} placeholder="https://xxxx.zeabur.app" onChange={(e) => setApiUrl(e.target.value)} /></div>
+            <div className="field"><label>API Server Key</label><input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} /></div>
             <button className="primary" onClick={save}>儲存</button>
           </div></div>
         )}
       </main>
       <aside className={open ? "drawer open" : "drawer"}>
         <div className="sheet">
-          <button className="card" onClick={() => { setTab("chat"); setOpen(false); }}><h3>對話</h3><p>底欄對話框</p></button>
-          <button className="card" onClick={() => { const id = `c${Date.now()}`; setConvs((all) => [{ id, title: "新對話", messages: [] }, ...all]); setCid(id); setTab("chat"); setOpen(false); }}><h3>新出發</h3><p>換一條路</p></button>
-          <button className="card" onClick={() => { setTab("projects"); setOpen(false); }}><h3>圖鑑袋</h3><p>GitHub 專案</p></button>
+          <button className="card" onClick={() => { setTab("chat"); setOpen(false); }}><h3>聊天</h3><p>回到門</p></button>
+          <button className="card" onClick={newChat}><h3>新對話</h3><p>開一扇新的</p></button>
+          <button className="card" onClick={() => { setTab("projects"); setOpen(false); }}><h3>專案</h3><p>GitHub 目錄</p></button>
           <button className="card" onClick={() => { setTab("settings"); setOpen(false); }}><h3>設定</h3><p>圖、網域、Key</p></button>
+          {convs.slice(0, 8).map((c) => (
+            <button key={c.id} className="card" onClick={() => { setCid(c.id); setTab("chat"); setOpen(false); }}><h3>{c.title}</h3></button>
+          ))}
         </div>
       </aside>
     </div>
