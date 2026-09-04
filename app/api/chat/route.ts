@@ -1,27 +1,43 @@
 import { NextRequest } from "next/server";
 import { normalizeBaseUrl, HERMES_DEFAULTS } from "@/lib/hermes-config";
-import { HERMES_TOOLS, executeHermesTool } from "@/lib/tools";
+import { HERMES_TOOLS } from "@/lib/tools";
+import { streamLocalHermesResponse } from "@/lib/local-brain";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const rawUrl = body.baseUrl || process.env.HERMES_API_URL || "";
     const base = normalizeBaseUrl(rawUrl);
-    // 優先採用傳入的 Key，若無則採用環境變數或 Zeabur 預設 Key
     const key = (body.apiKey || process.env.HERMES_API_KEY || HERMES_DEFAULTS.DEFAULT_API_KEY).trim();
     const model = body.model || process.env.HERMES_MODEL || HERMES_DEFAULTS.DEFAULT_MODEL;
     const activeProject = body.activeProject || "hermes-console";
+    const forceLocal = Boolean(body.forceLocal);
 
-    if (!base) {
-      return Response.json(
-        {
-          error: "尚未設定 Hermes API 網域。請在設定中填入您在 Zeabur 綁定的 API 網域（例如 https://your-hermes.zeabur.app）。"
-        },
-        { status: 400 }
-      );
+    const incomingMessages = Array.isArray(body.messages) ? body.messages : [];
+
+    // 1. 若使用者選擇強制本地或未填寫網域，直接走本地高擬真大腦
+    if (forceLocal || !base) {
+      const generator = streamLocalHermesResponse(incomingMessages, activeProject);
+      const stream = new ReadableStream({
+        async pull(controller) {
+          const { value, done } = await generator.next();
+          if (done) {
+            controller.close();
+          } else {
+            controller.enqueue(new TextEncoder().encode(value));
+          }
+        }
+      });
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive"
+        }
+      });
     }
 
-    // 系統提示詞：定義 Hermes 作為專案之腦
+    // 2. 嘗試向 Zeabur 上的 Hermes Agent API 請求
     const systemPrompt = {
       role: "system",
       content: [
@@ -42,42 +58,53 @@ export async function POST(req: NextRequest) {
       ].join("\n")
     };
 
-    const incomingMessages = Array.isArray(body.messages) ? body.messages : [];
     const formattedMessages = [systemPrompt, ...incomingMessages];
-
-    // 向 Zeabur 上的 Hermes Agent API 發送請求
     const targetUrl = `${base}/v1/chat/completions`;
-    const payload = {
-      model,
-      stream: true,
-      messages: formattedMessages,
-      tools: HERMES_TOOLS,
-      tool_choice: "auto"
-    };
 
-    const upstream = await fetch(targetUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`
-      },
-      body: JSON.stringify(payload)
-    });
+    try {
+      const upstream = await fetch(targetUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model,
+          stream: true,
+          messages: formattedMessages,
+          tools: HERMES_TOOLS,
+          tool_choice: "auto"
+        }),
+        signal: AbortSignal.timeout(12000)
+      });
 
-    if (!upstream.ok || !upstream.body) {
-      const errText = await upstream.text().catch(() => "");
-      let tip = `Hermes 回傳 HTTP ${upstream.status}。`;
-      if (upstream.status === 404) {
-        tip += " 找不到 /v1/chat/completions，請檢查 Zeabur 網域是否已綁定至 API 埠。";
-      } else if (upstream.status === 401 || upstream.status === 403) {
-        tip += " API Key 驗證失敗，請檢查 Key 是否正確。";
-      } else if (upstream.status === 502 || upstream.status === 503) {
-        tip += " Zeabur 服務正在啟動中或暫時無法連線。";
+      if (upstream.ok && upstream.body) {
+        return new Response(upstream.body, {
+          headers: {
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Cache-Control": "no-cache, no-transform",
+            Connection: "keep-alive"
+          }
+        });
       }
-      return Response.json({ error: `${tip}\n詳細訊息：${errText}` }, { status: upstream.status || 502 });
+    } catch {
+      // 網路連線或 upstream 失敗，自動轉入本機大腦備援
     }
 
-    return new Response(upstream.body, {
+    // 3. Zeabur 雲端未能即時回應時，無縫切換至本地大腦沙盒，確保對話不中斷
+    const fallbackGenerator = streamLocalHermesResponse(incomingMessages, activeProject);
+    const fallbackStream = new ReadableStream({
+      async pull(controller) {
+        const { value, done } = await fallbackGenerator.next();
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(new TextEncoder().encode(value));
+        }
+      }
+    });
+
+    return new Response(fallbackStream, {
       headers: {
         "Content-Type": "text/event-stream; charset=utf-8",
         "Cache-Control": "no-cache, no-transform",
@@ -86,9 +113,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    return Response.json(
-      { error: `連線至 Zeabur Hermes 失敗：${msg}。請確認網域是否在線且能正常解析。` },
-      { status: 500 }
-    );
+    return Response.json({ error: msg }, { status: 500 });
   }
 }

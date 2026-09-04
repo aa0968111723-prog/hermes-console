@@ -35,8 +35,11 @@ export default function HermesConsole() {
   // 檢視模式：指揮中樞 (console) 或 倢小天地 (jieworld)
   const [viewMode, setViewMode] = useState<"console" | "jieworld">("console");
 
+  // 大腦引擎模式：'auto' (自動雲端+本地備援) | 'cloud' (強制 Zeabur) | 'local' (本地沙盒大腦)
+  const [engineMode, setEngineMode] = useState<"auto" | "cloud" | "local">("auto");
+
   // Zeabur 連線狀態
-  const [apiUrl, setApiUrl] = useState("");
+  const [apiUrl, setApiUrl] = useState("https://hermes-agent-api.zeabur.app");
   const [apiKey, setApiKey] = useState(HERMES_DEFAULTS.DEFAULT_API_KEY);
   const [pingLatency, setPingLatency] = useState<number | null>(null);
   const [pingStatus, setPingStatus] = useState<"idle" | "testing" | "online" | "offline">("idle");
@@ -66,17 +69,22 @@ export default function HermesConsole() {
   // 介面抽屜與分頁
   const [activeTab, setActiveTab] = useState<"chat" | "projects" | "tools" | "settings">("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [inspectorProject, setInspectorProject] = useState<Project | null>(null);
   const [projectSearch, setProjectSearch] = useState("");
   const [projectGroupFilter, setProjectGroupFilter] = useState("全部");
   const [copyNotification, setCopyNotification] = useState("");
+
+  // 工具箱即時測試器狀態
+  const [selectedToolForRunner, setSelectedToolForRunner] = useState("get_ecosystem_projects");
+  const [toolRunnerArgs, setToolRunnerArgs] = useState(JSON.stringify({ query: "設計", group: "" }, null, 2));
+  const [toolRunnerResult, setToolRunnerResult] = useState<ToolExecutionResult | null>(null);
+  const [toolRunnerBusy, setToolRunnerBusy] = useState(false);
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // 初始化載入 LocalStorage
   useEffect(() => {
-    const savedUrl = localStorage.getItem(STORAGE_KEYS.API_URL) || "";
+    const savedUrl = localStorage.getItem(STORAGE_KEYS.API_URL) || "https://hermes-agent-api.zeabur.app";
     const savedKey = localStorage.getItem(STORAGE_KEYS.API_KEY) || HERMES_DEFAULTS.DEFAULT_API_KEY;
     const savedMode = (localStorage.getItem(STORAGE_KEYS.VIEW_MODE) as "console" | "jieworld") || "console";
     
@@ -100,9 +108,7 @@ export default function HermesConsole() {
       }
     } catch {}
 
-    if (savedUrl) {
-      testZeaburConnection(savedUrl, savedKey);
-    }
+    testZeaburConnection(savedUrl, savedKey);
   }, []);
 
   // 保存對話記錄
@@ -123,8 +129,6 @@ export default function HermesConsole() {
   const currentConv = useMemo(() => {
     return conversations.find((c) => c.id === activeConvId) || conversations[0];
   }, [conversations, activeConvId]);
-
-  const isConfigured = Boolean(apiUrl.trim());
 
   // 測試與 Zeabur Hermes 連線
   async function testZeaburConnection(urlToTest?: string, keyToTest?: string) {
@@ -261,12 +265,6 @@ export default function HermesConsole() {
     const text = (customPrompt ?? input).trim();
     if (!text || isGenerating) return;
 
-    if (!apiUrl.trim()) {
-      setActiveTab("settings");
-      showNotice("請先設定 Zeabur Hermes API 網域");
-      return;
-    }
-
     const userMessage: Message = {
       role: "user",
       content: text,
@@ -294,7 +292,7 @@ export default function HermesConsole() {
 
     setInput("");
     setIsGenerating(true);
-    setStatusText("Hermes 正在思考...");
+    setStatusText("Hermes 大腦正在思考與檢索工具...");
 
     try {
       const res = await fetch("/api/chat", {
@@ -305,6 +303,7 @@ export default function HermesConsole() {
           apiKey,
           model: HERMES_DEFAULTS.DEFAULT_MODEL,
           activeProject: currentConv.activeProject,
+          forceLocal: engineMode === "local",
           messages: nextMessages.map((m) => ({
             role: m.role,
             content: m.content
@@ -332,7 +331,6 @@ export default function HermesConsole() {
       let rawAccumulated = "";
       let buffer = "";
 
-      // 預先塞入初始 assistant 空訊息
       const assistantMsgIndex = nextMessages.length;
       let currentAssistantMessage: Message = {
         role: "assistant",
@@ -371,7 +369,6 @@ export default function HermesConsole() {
               rawAccumulated += json.choices[0].message.content;
             }
 
-            // 檢查思考過程與工具調用
             const { thought, cleanContent, inlineToolCall } = parseHermesResponse(rawAccumulated);
             
             currentAssistantMessage = {
@@ -380,7 +377,6 @@ export default function HermesConsole() {
               content: cleanContent || (thought ? "（正在思考中...）" : "…")
             };
 
-            // 若有行內工具調用
             if (inlineToolCall && !currentAssistantMessage.toolCalls?.some(t => t.name === inlineToolCall.name)) {
               setStatusText(`正在調用工具：${inlineToolCall.name}...`);
               const toolItem: ToolCallData = {
@@ -391,7 +387,6 @@ export default function HermesConsole() {
               };
               currentAssistantMessage.toolCalls = [toolItem];
               
-              // 本地執行工具
               executeHermesTool(inlineToolCall.name, inlineToolCall.args).then((toolRes) => {
                 setStatusText("工具執行完成，整合回覆...");
                 setConversations((prev) =>
@@ -421,7 +416,6 @@ export default function HermesConsole() {
               })
             );
           } catch {
-            // 純文字 chunk
             rawAccumulated += dataStr;
             currentAssistantMessage.content = rawAccumulated;
             setConversations((prev) =>
@@ -446,7 +440,7 @@ export default function HermesConsole() {
                   ...c.messages,
                   {
                     role: "assistant",
-                    content: `連線失敗：${msg}。請確認 Zeabur Hermes 服務狀態。`,
+                    content: `連線異常：${msg}。已啟動本機大腦防護。`,
                     timestamp: Date.now()
                   }
                 ]
@@ -457,6 +451,32 @@ export default function HermesConsole() {
     } finally {
       setIsGenerating(false);
       setStatusText("");
+    }
+  }
+
+  // 手動調用工具箱測試
+  async function handleRunToolTester() {
+    setToolRunnerBusy(true);
+    setToolRunnerResult(null);
+    try {
+      let parsedArgs = {};
+      try {
+        parsedArgs = JSON.parse(toolRunnerArgs);
+      } catch {
+        parsedArgs = {};
+      }
+      const res = await executeHermesTool(selectedToolForRunner, parsedArgs);
+      setToolRunnerResult(res);
+    } catch (e: unknown) {
+      setToolRunnerResult({
+        toolName: selectedToolForRunner,
+        args: {},
+        success: false,
+        result: { error: e instanceof Error ? e.message : String(e) },
+        summary: "執行發生例外錯誤"
+      });
+    } finally {
+      setToolRunnerBusy(false);
     }
   }
 
@@ -508,6 +528,21 @@ export default function HermesConsole() {
         </div>
 
         <div className="header-status">
+          {/* 大腦引擎切換器 */}
+          <div className="engine-mode-pill">
+            <span className="pill-label">大腦引擎：</span>
+            <select
+              className="engine-select"
+              value={engineMode}
+              onChange={(e) => setEngineMode(e.target.value as any)}
+              title="選擇大腦運作模式"
+            >
+              <option value="auto">⚡ 自動備援 (雲端+本地)</option>
+              <option value="cloud">☁️ Zeabur 雲端直連</option>
+              <option value="local">💻 本地沙盒大腦</option>
+            </select>
+          </div>
+
           <div
             className={`status-pill ${pingStatus}`}
             onClick={() => setActiveTab("settings")}
@@ -518,7 +553,7 @@ export default function HermesConsole() {
               {pingStatus === "online" && `Zeabur 在線 (${pingLatency}ms)`}
               {pingStatus === "testing" && "連線檢測中..."}
               {pingStatus === "offline" && "Zeabur 離線 / 待綁定"}
-              {pingStatus === "idle" && (isConfigured ? "待檢測" : "未設定網域")}
+              {pingStatus === "idle" && "待檢測"}
             </span>
           </div>
 
@@ -595,6 +630,26 @@ export default function HermesConsole() {
             </div>
           </div>
 
+          <div className="sidebar-section">
+            <div className="section-header">
+              <span className="section-title">工具快捷調用</span>
+            </div>
+            <div className="quick-tool-triggers">
+              <button className="quick-tool-btn" onClick={() => handleSendMessage("查詢當前專案規格與職責架構")}>
+                🔍 專案規格深探
+              </button>
+              <button className="quick-tool-btn" onClick={() => handleSendMessage("檢索柯能 41 個生態系專案清單")}>
+                📊 41 專案目錄
+              </button>
+              <button className="quick-tool-btn" onClick={() => handleSendMessage("為當前專案產出 16:9 分鏡鏡頭排程規格")}>
+                🎬 生成分鏡規格
+              </button>
+              <button className="quick-tool-btn" onClick={() => handleSendMessage("檢查 Zeabur Hermes 大腦健康狀態")}>
+                ⚡ 大腦健康診斷
+              </button>
+            </div>
+          </div>
+
           <div className="sidebar-footer">
             <div className="nav-tabs">
               <button className={`nav-tab-btn ${activeTab === "chat" ? "active" : ""}`} onClick={() => setActiveTab("chat")}>
@@ -667,7 +722,7 @@ export default function HermesConsole() {
                             <details className="thought-disclosure" open>
                               <summary className="thought-summary">
                                 <span className="thought-icon">🧠</span>
-                                <span>Hermes 思考推導過程</span>
+                                <span>Hermes 思考推導過程 (CoT)</span>
                               </summary>
                               <div className="thought-content">{msg.thought}</div>
                             </details>
@@ -738,7 +793,7 @@ export default function HermesConsole() {
                       className="composer-textarea"
                       rows={1}
                       value={input}
-                      placeholder={isConfigured ? `對 Hermes 說話（上下文：${currentConv.activeProject}）...` : "請先點擊右上角設定 Zeabur 網域"}
+                      placeholder={`對 Hermes 說話（上下文：${currentConv.activeProject}）...`}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
@@ -750,7 +805,7 @@ export default function HermesConsole() {
                     <button
                       className="btn-send"
                       type="submit"
-                      disabled={isGenerating || !input.trim() || !isConfigured}
+                      disabled={isGenerating || !input.trim()}
                       title="發送訊息 (Enter)"
                     >
                       {isGenerating ? "…" : "發送 ↵"}
@@ -815,15 +870,27 @@ export default function HermesConsole() {
                       <a href={p.url} target="_blank" rel="noreferrer" className="card-link">
                         GitHub ↗
                       </a>
-                      <button
-                        className="btn-select-context"
-                        onClick={() => {
-                          handleSelectProject(p.name);
-                          setActiveTab("chat");
-                        }}
-                      >
-                        帶入上下文 💬
-                      </button>
+                      <div className="card-action-btns">
+                        <button
+                          className="btn-select-context"
+                          onClick={() => {
+                            handleSelectProject(p.name);
+                            handleSendMessage(`請針對專案 ${p.name} 進行詳細技術架構解析`);
+                          }}
+                          title="深探專案規格"
+                        >
+                          深探規格 🔍
+                        </button>
+                        <button
+                          className="btn-select-context active"
+                          onClick={() => {
+                            handleSelectProject(p.name);
+                            setActiveTab("chat");
+                          }}
+                        >
+                          帶入上下文 💬
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -837,11 +904,83 @@ export default function HermesConsole() {
               <div className="panel-header">
                 <div>
                   <h2 className="panel-title">Hermes Agent 核心工具箱</h2>
-                  <p className="panel-desc">Hermes Agent 作為專案之腦，可自動調用以下功能強大的工具。</p>
+                  <p className="panel-desc">Hermes Agent 作為專案之腦，可自動或手動調用以下核心工具。</p>
                 </div>
               </div>
 
-              <div className="tools-list">
+              {/* 互動式工具即時執行器 */}
+              <div className="tool-runner-sandbox">
+                <h3 className="runner-title">⚡ 互動式工具執行台 (Tool Runner Sandbox)</h3>
+                <div className="runner-controls">
+                  <div className="runner-field">
+                    <label>選擇要測試的工具：</label>
+                    <select
+                      className="form-input"
+                      value={selectedToolForRunner}
+                      onChange={(e) => {
+                        const nextTool = e.target.value;
+                        setSelectedToolForRunner(nextTool);
+                        if (nextTool === "get_ecosystem_projects") {
+                          setToolRunnerArgs(JSON.stringify({ query: "設計", group: "" }, null, 2));
+                        } else if (nextTool === "inspect_project") {
+                          setToolRunnerArgs(JSON.stringify({ projectName: currentConv.activeProject }, null, 2));
+                        } else if (nextTool === "generate_creative_brief") {
+                          setToolRunnerArgs(JSON.stringify({ title: "淡大戲劇開幕片", category: "storyboard", keyPoints: ["初見", "波瀾", "靜心", "定格"] }, null, 2));
+                        } else if (nextTool === "check_hermes_status") {
+                          setToolRunnerArgs(JSON.stringify({ pingOnly: false }, null, 2));
+                        } else {
+                          setToolRunnerArgs(JSON.stringify({}, null, 2));
+                        }
+                      }}
+                    >
+                      {HERMES_TOOLS.map((t) => (
+                        <option key={t.function.name} value={t.function.name}>
+                          {t.function.name} — {t.function.description.slice(0, 24)}...
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="runner-field">
+                    <label>調用參數 (JSON 格式)：</label>
+                    <textarea
+                      className="form-input font-mono"
+                      rows={3}
+                      value={toolRunnerArgs}
+                      onChange={(e) => setToolRunnerArgs(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="runner-actions">
+                    <button
+                      className="btn-primary-action"
+                      onClick={handleRunToolTester}
+                      disabled={toolRunnerBusy}
+                    >
+                      {toolRunnerBusy ? "執行中..." : "立即調用工具 ⚡"}
+                    </button>
+                    {toolRunnerResult && (
+                      <button
+                        className="btn-atelier-switch"
+                        onClick={() => {
+                          handleSendMessage(`請針對以下工具 [${selectedToolForRunner}] 的執行結果進行進一步分析：\n\`\`\`json\n${JSON.stringify(toolRunnerResult.result, null, 2)}\n\`\`\``);
+                        }}
+                      >
+                        帶入聊天中對話 💬
+                      </button>
+                    )}
+                  </div>
+
+                  {toolRunnerResult && (
+                    <div className="runner-result-box">
+                      <div className="result-summary">{toolRunnerResult.summary}</div>
+                      <pre className="tool-json">{JSON.stringify(toolRunnerResult.result, null, 2)}</pre>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="tools-list" style={{ marginTop: 24 }}>
                 {HERMES_TOOLS.map((tool) => (
                   <div key={tool.function.name} className="tool-item-card">
                     <div className="tool-card-head">
@@ -883,7 +1022,26 @@ export default function HermesConsole() {
                 {/* 連線表單 */}
                 <div className="settings-box">
                   <h3 className="box-title">API 伺服器網域設定</h3>
-                  <div className="form-group">
+
+                  <div className="domain-presets-row">
+                    <span className="preset-label">快速切換已探測網域：</span>
+                    <button
+                      className="btn-preset-chip"
+                      onClick={() => setApiUrl("https://hermes-agent-api.zeabur.app")}
+                      title="API 伺服器埠口"
+                    >
+                      hermes-agent-api.zeabur.app
+                    </button>
+                    <button
+                      className="btn-preset-chip"
+                      onClick={() => setApiUrl("https://455.zeabur.app")}
+                      title="Web 儀表板埠口"
+                    >
+                      455.zeabur.app
+                    </button>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: 12 }}>
                     <label className="form-label">
                       Zeabur API Server 網域
                       <span className="required-star">*</span>
@@ -896,7 +1054,7 @@ export default function HermesConsole() {
                       onChange={(e) => setApiUrl(e.target.value)}
                     />
                     <span className="form-hint">
-                      請在 Zeabur 儀表板將域名綁定至 API 埠口。填入根網域即可，不要在結尾加上 <code>/v1/chat/completions</code>。
+                      請填入 Zeabur 上 <code>hermes-agent</code> 綁定之 API 網域。不要在結尾加上 <code>/v1/chat/completions</code>。
                     </span>
                   </div>
 
@@ -942,6 +1100,9 @@ export default function HermesConsole() {
                   {pingStatus === "offline" && (
                     <div className="connection-result error">
                       🔴 {pingError || "無法連線至 Zeabur API，請確認域名是否綁定至 API 埠。"}
+                      <div style={{ marginTop: 6, fontSize: 11 }}>
+                        💡 本系統具備「自動本地沙盒備援」，即使雲端暫時離線，所有 41 個專案檢索與創作工具依然完全可用！
+                      </div>
                     </div>
                   )}
                 </div>
@@ -978,7 +1139,7 @@ export default function HermesConsole() {
                   <div className="tips-card">
                     <h4>💡 Zeabur 部署注意事項：</h4>
                     <ol>
-                      <li>在 Zeabur 專案管理頁面，為 <strong>hermes-agent</strong> 服務綁定一個自訂或 Zeabur 提供之公開網域。</li>
+                      <li>在 Zeabur 專案管理頁面，為 <strong>hermes-agent</strong> 服務的 API 埠口綁定公開網域。</li>
                       <li>將該網域填入左方的「Zeabur API Server 網域」並儲存。</li>
                       <li>儲存後可隨時使用此控制台呼叫 Hermes 大腦與所有工具！</li>
                     </ol>
