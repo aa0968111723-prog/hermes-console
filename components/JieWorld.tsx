@@ -13,9 +13,9 @@ const CONV_KEY = "jie.convs";
 const FACE_KEY = "jie.face";
 
 const STARTERS = [
-  { t: "寫文案", d: "一段可用的創作文案" },
-  { t: "海報 brief", d: "第一張海報要點" },
-  { t: "分鏡", d: "把想法切成鏡頭" },
+  { t: "想文案", d: "第一段可用口號" },
+  { t: "做海報", d: "海報 brief 要點" },
+  { t: "切分鏡", d: "把想法切成鏡頭" },
   { t: "列出專案", d: "用 GitHub 看目錄，不要回印密鑰" }
 ];
 
@@ -102,11 +102,11 @@ export default function JieWorld() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           baseUrl: apiUrl, apiKey, model: "hermes-agent",
-          messages: [{ role: "system", content: "你是柏能的創作助手 Hermes，工作室「倘的創作小天地」。倘是畫面小精靈。繁體中文短句。可調用 GitHub。不要回印密鑰。不要假裝你是倘。" }, ...next]
+          messages: [{ role: "system", content: "你是「倢的創作小天地」裡的助手 Hermes。倢是會跑的核心小精靈。大腦是 Hermes，第一隻手是 GitHub。繁體中文、活漏短句。不要回印密鑰。不要假裝你是倢。" }, ...next]
         })
       });
       if (!res.ok || !res.body) {
-        patch([...next, { role: "assistant", content: (await res.text()) || "倘還連不上 Hermes" }]);
+        patch([...next, { role: "assistant", content: (await res.text()) || "還連不上 Hermes" }]);
         return;
       }
       const reader = res.body.getReader();
@@ -136,15 +136,16 @@ export default function JieWorld() {
   return (
     <div className="app">
       <div className="sky" aria-hidden>
-        <div className="jie">{face ? <img src={face} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} /> : "倘"}</div>
+        <i className="spark s1" /><i className="spark s2" /><i className="spark s3" /><i className="spark s4" />
+        <div className="jie">{face ? <img src={face} alt="" /> : "倢"}</div>
         <i className="orb g" /><i className="orb c" /><i className="orb i" /><i className="orb d" />
       </div>
       <header className="topbar">
         <div>
-          <div className="brand">倘的創作小天地</div>
-          <div className="sub">{ready ? "Hermes 已連" : "先開抽屉填網域"}</div>
+          <div className="brand">倢的創作小天地</div>
+          <div className="sub">{ready ? "Hermes 已連 · 隊伍就緒" : "先開圖鑑袋填網域"}</div>
         </div>
-        <button className="iconbtn" onClick={() => setOpen((v) => !v)}>{open ? "關" : "抽"}</button>
+        <button className="iconbtn" onClick={() => setOpen((v) => !v)}>{open ? "關袋" : "圖鑑袋"}</button>
       </header>
       <main className="main">
         {tab === "chat" && (
@@ -152,8 +153,8 @@ export default function JieWorld() {
             <div className="thread" ref={logRef}>
               {messages.length === 0 ? (
                 <div className="empty">
-                  <h1>今天想做什麼作品？</h1>
-                  <p>倘在跑。小球是幫手。</p>
+                  <h1>出發前，今天跑哪條路？</h1>
+                  <p>倢在跑。四顆球是隊伍幫手。</p>
                   <div className="suggestions">
                     {STARTERS.map((s) => <button key={s.t} onClick={() => send(s.t)}>{s.t}<small>{s.d}</small></button>)}
                   </div>
@@ -162,7 +163,7 @@ export default function JieWorld() {
                 <div className="thread-inner">
                   {messages.map((m, i) => (
                     <div key={i} className={m.role === "user" ? "row-msg user" : "row-msg"}>
-                      {m.role === "assistant" ? <div className="avatar">{face ? <img src={face} alt="倘" /> : "倘"}</div> : null}
+                      {m.role === "assistant" ? <div className="avatar">{face ? <img src={face} alt="" /> : "倢"}</div> : null}
                       <div className={m.role === "user" ? "bubble user" : "bubble"}>{m.content}</div>
                     </div>
                   ))}
@@ -171,10 +172,10 @@ export default function JieWorld() {
             </div>
             <div className="composer-wrap">
               <form className="composer" onSubmit={(e) => { e.preventDefault(); send(); }}>
-                <textarea rows={1} value={input} placeholder="跟倘說…" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-                <button className="send" type="submit" disabled={busy || !input.trim()}>{busy ? "…" : "↑"}</button>
+                <textarea rows={1} value={input} placeholder="對話框：跟倢說…" onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+                <button className={busy ? "send busy" : "send"} type="submit" disabled={busy || !input.trim()}>{busy ? "…" : "▶"}</button>
               </form>
-              <div className="hint">大腦是 Hermes。專案在抽屉。</div>
+              <div className="hint">對話框 · 腦 Hermes · 手 GitHub</div>
             </div>
           </>
         )}
@@ -185,7 +186,7 @@ export default function JieWorld() {
         )}
         {tab === "settings" && (
           <div className="thread"><div className="thread-inner sheet">
-            <div className="field"><label>倘的圖</label><input type="file" accept="image/*" onChange={(e) => onFace(e.target.files?.[0])} /></div>
+            <div className="field"><label>倢的圖</label><input type="file" accept="image/*" onChange={(e) => onFace(e.target.files?.[0])} /></div>
             <div className="field"><label>根網域</label><input value={apiUrl} placeholder="https://xxxx.zeabur.app" onChange={(e) => setApiUrl(e.target.value)} /></div>
             <div className="field"><label>API Key</label><input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} /></div>
             <button className="primary" onClick={save}>儲存</button>
@@ -194,8 +195,9 @@ export default function JieWorld() {
       </main>
       <aside className={open ? "drawer open" : "drawer"}>
         <div className="sheet">
-          <button className="card" onClick={() => { setTab("chat"); setOpen(false); }}><h3>聊天</h3><p>跟倘說</p></button>
-          <button className="card" onClick={() => { setTab("projects"); setOpen(false); }}><h3>專案抽屉</h3><p>GitHub 目錄</p></button>
+          <button className="card" onClick={() => { setTab("chat"); setOpen(false); }}><h3>對話</h3><p>底欄對話框</p></button>
+          <button className="card" onClick={() => { const id = `c${Date.now()}`; setConvs((all) => [{ id, title: "新對話", messages: [] }, ...all]); setCid(id); setTab("chat"); setOpen(false); }}><h3>新出發</h3><p>換一條路</p></button>
+          <button className="card" onClick={() => { setTab("projects"); setOpen(false); }}><h3>圖鑑袋</h3><p>GitHub 專案</p></button>
           <button className="card" onClick={() => { setTab("settings"); setOpen(false); }}><h3>設定</h3><p>圖、網域、Key</p></button>
         </div>
       </aside>
