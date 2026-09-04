@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "俶的創作小天地",
-  description: "俶與柏能的創作小天地，大腦是 Hermes"
+  title: "倞的創作小天地",
+  description: "倞與 Hermes 的手機創作聊天桌"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
