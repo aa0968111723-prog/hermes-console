@@ -4,7 +4,8 @@
   --muted: #7a6f62;
   --teal: #2f6d73;
   --pigment: #c56a32;
-  --gold: #d7c39a;
+  --gold: #e2c36a;
+  --red: #d24b3a;
   --panel: #ebe4d6;
 }
 * { box-sizing: border-box; }
@@ -25,13 +26,39 @@ a { color: var(--teal); }
 }
 .brand { font-weight: 650; letter-spacing: .12em; }
 .sub { font-size: 12px; opacity: .75; }
-.logo, .avatar, .hero {
+.logo, .avatar, .hero, .avatar.bot {
   width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
-  border: 1px solid var(--gold); box-shadow: 0 0 0 6px rgba(215,195,154,.25);
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 4px var(--red), 0 8px 18px rgba(42,36,28,.18);
+  background: #fff6de;
 }
-.hero { width: 108px; height: 108px; }
-.logo.fallback, .avatar.letter, .hero.letter {
-  display: grid; place-items: center; background: #1f4c51;
+.hero {
+  width: 120px; height: 120px; position: relative;
+  animation: bob 3.2s ease-in-out infinite;
+}
+.logo, .avatar, .avatar.bot { animation: bob 3.6s ease-in-out infinite; }
+.hero::after, .empty::before {
+  content: "✦";
+  position: absolute;
+  color: var(--gold);
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+.empty { position: relative; }
+.empty::before { left: 18%; top: 18%; font-size: 18px; }
+.hero::after { right: -6px; top: 8px; font-size: 14px; }
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: .25; transform: scale(.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(18deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero, .logo, .avatar, .avatar.bot, .empty::before, .hero::after { animation: none; }
+}
+.logo.fallback, .avatar.letter, .hero.letter, .avatar.bot {
+  display: grid; place-items: center; font-weight: 700;
 }
 .newchat, .nav button, .convs button {
   background: transparent; border: 0; color: #f6f1e6; text-align: left; padding: 8px 4px;
