@@ -21,7 +21,7 @@ export default function SillyWorld() {
   const [projectOpen, setProjectOpen] = useState(false);
   const [selected, setSelected] = useState<OrbId | null>("water");
   const [draft, setDraft] = useState("");
-  const [greeting, setGreeting] = useState(copy.greeting);
+  const [greeting, setGreeting] = useState<string>(copy.greeting);
   const [flying, setFlying] = useState(false);
   const [panel, setPanel] = useState<"palette" | "star" | "wand" | null>(null);
   const [burst, setBurst] = useState(0);
