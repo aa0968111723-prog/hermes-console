@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hermes Console",
-  description: "柏能 / Bruce 的 Hermes Agent 駐駛艙"
+  title: "倒的創作小天地",
+  description: "倒與 Hermes 的手機創作聊天桌",
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
