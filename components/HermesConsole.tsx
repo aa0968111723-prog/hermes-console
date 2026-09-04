@@ -32,7 +32,7 @@ export type Conversation = {
 };
 
 export default function HermesConsole() {
-  // 檢視模式：指揮中樞 (console) 或 倢小天地 (jieworld)
+  // 檢視模式：指揮中樞 (console) 或可自訂創作桌 (jieworld，保留既有儲存值相容性)
   const [viewMode, setViewMode] = useState<"console" | "jieworld">("console");
 
   // 大腦引擎模式：'auto' (自動雲端+本地備援) | 'cloud' (強制 Zeabur) | 'local' (本地沙盒大腦)
@@ -495,17 +495,17 @@ export default function HermesConsole() {
 
   const allGroups = ["全部", "控制台", "創作系統", "設計", "學校社團", "代理", "作品集"];
 
-  // 若使用者切換到「倢小天地」粉彩靈感模式
+  // 可自訂創作桌：保留主控制台的連線、專案上下文與工具能力
   if (viewMode === "jieworld") {
     return (
       <div className="jieworld-wrapper">
         <div className="mode-bar">
-          <span>🌸 倢的創作小天地</span>
+          <span>創作桌 · 高自訂創作模式</span>
           <button className="btn-mode-toggle" onClick={() => { setViewMode("console"); localStorage.setItem(STORAGE_KEYS.VIEW_MODE, "console"); }}>
-            切換至 Hermes 指揮中樞 ⚡
+            返回 Hermes 指揮中樞
           </button>
         </div>
-        <JieWorld />
+        <JieWorld initialApiUrl={apiUrl} initialApiKey={apiKey} activeProject={currentConv.activeProject} />
       </div>
     );
   }
@@ -567,9 +567,9 @@ export default function HermesConsole() {
           <button
             className="btn-atelier-switch"
             onClick={() => { setViewMode("jieworld"); localStorage.setItem(STORAGE_KEYS.VIEW_MODE, "jieworld"); }}
-            title="切換至倢小天地靈感模式"
+            title="切換至高自訂創作桌"
           >
-            🌸 小天地
+            創作桌
           </button>
           <button className="btn-primary-action" onClick={() => handleNewConversation(currentConv.activeProject)}>
             + 新對話
