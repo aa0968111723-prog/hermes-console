@@ -1,3 +1,7 @@
 "use client";
 
-export { default } from "@/components/JieWorld";
+import HermesConsole from "@/components/HermesConsole";
+
+export default function Page() {
+  return <HermesConsole />;
+}
