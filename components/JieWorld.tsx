@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { PROJECTS } from "@/lib/catalog";
 
 type Tab = "chat" | "projects" | "settings";
@@ -160,7 +161,7 @@ export default function JieWorld() {
               {messages.length === 0 ? (
                 <div className="empty">
                   <h1>今天想做什麼？</h1>
-                  <p>直接打字。倢在旁邊。</p>
+                  <p>直接打字。倢在旁邊。或去 <Link href="/create">創作小天地</Link></p>
                   <div className="suggestions">
                     {STARTERS.map((s) => <button key={s.t} onClick={() => send(s.t)}>{s.t}<small>{s.d}</small></button>)}
                   </div>
@@ -203,6 +204,7 @@ export default function JieWorld() {
         <div className="sheet">
           <button className="card" onClick={() => { setTab("chat"); setOpen(false); }}><h3>聊天</h3><p>回到門</p></button>
           <button className="card" onClick={newChat}><h3>新對話</h3><p>開一扇新的</p></button>
+          <Link className="card" href="/create" onClick={() => setOpen(false)}><h3>創作小天地</h3><p>粉彩互動舞台</p></Link>
           <button className="card" onClick={() => { setTab("projects"); setOpen(false); }}><h3>專案</h3><p>GitHub 目錄</p></button>
           <button className="card" onClick={() => { setTab("settings"); setOpen(false); }}><h3>設定</h3><p>圖、網域、Key</p></button>
           {convs.slice(0, 8).map((c) => (
