@@ -38,7 +38,12 @@ export default memo(function MessageBody({ text }: { text: string }) {
             </a>
           ),
           table: ({ children }) => (
-            <div className="table-scroll">
+            <div
+              className="table-scroll"
+              role="region"
+              aria-label="表格，可水平捲動"
+              tabIndex={0}
+            >
               <table>{children}</table>
             </div>
           ),

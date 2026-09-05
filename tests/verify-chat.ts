@@ -77,7 +77,11 @@ const fixture = createServer(async (req, res) => {
             JSON.stringify({
               model: "contract-fixture",
               choices: [
-                { delta: { content: "【契約測試串流】不是實機回覆。" } },
+                {
+                  delta: {
+                    content: "【契約測試串流】不是實機回覆。\n\n".repeat(25),
+                  },
+                },
               ],
             }) +
             "\n\n",
@@ -165,6 +169,14 @@ try {
   await page.getByLabel("密碼", { exact: true }).fill(password);
   await page.getByRole("button", { name: "進入工作區" }).click();
   const textarea = page.getByRole("textbox", { name: "訊息", exact: true });
+  await page
+    .locator('input[type="file"]')
+    .setInputFiles({
+      name: "branch-reference.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("契約測試附件，分支必須保留。"),
+    });
+  await expect(page.locator(".upload-chip")).toContainText("已保存");
   await textarea.fill("隔離契約：長任務穿越背景監測週期");
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();
   await expect(
@@ -175,9 +187,25 @@ try {
     "契約測試串流",
     { timeout: 15000 },
   );
+  await page.locator(".conversation-scroll").evaluate((el) => {
+    el.scrollTop = 0;
+  });
+  await expect(
+    page.getByRole("button", { name: "回到最新訊息" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "執行紀錄", exact: true }),
   ).toBeVisible({ timeout: 15000 });
+  assert.ok(
+    await page
+      .locator(".conversation-scroll")
+      .evaluate((el) => el.scrollTop < 100),
+    "incoming output must not move someone reading older messages",
+  );
+  await page.getByRole("button", { name: "回到最新訊息" }).click();
+  await expect(
+    page.getByRole("button", { name: "回到最新訊息" }),
+  ).not.toBeVisible();
   assert.equal(calls, 1);
   const tasks = await (await context.request.get(base + "/api/tasks")).json();
   assert.equal(
@@ -186,6 +214,23 @@ try {
     "live Next bundles must share the worker registry",
   );
   assert.equal(tasks.tasks[0].usage.totalTokens, null);
+  await page
+    .getByRole("button", { name: "編輯並建立分支", exact: true })
+    .click();
+  await expect(textarea).toHaveValue("隔離契約：長任務穿越背景監測週期");
+  await expect(page.locator(".upload-chip")).toContainText(
+    "branch-reference.txt",
+  );
+  const branched = await (
+    await context.request.get(base + "/api/workspace")
+  ).json();
+  assert.equal(branched.conversations.length, 2);
+  assert.equal(
+    branched.conversations.find((c: { parentId?: string }) => !c.parentId)
+      .messages.length,
+    2,
+    "branch must preserve original user and assistant messages",
+  );
   mode = "runs";
   await context.request.post(base + "/api/health", {
     headers: { Origin: base },
@@ -225,7 +270,7 @@ try {
   assert.ok(!logs.includes(password));
   assert.ok(!logs.includes(fixtureKey));
   console.log(
-    "PASS: full browser -> Console -> contract server long stream, reload, native run persistence across actual Console process restart, real stop HTTP, no duplicate submission. NOT Zeabur live validation.",
+    "PASS: full browser -> Console -> contract server long stream, read without forced scrolling, reload, attachment-preserving branch, native run persistence across actual Console process restart, real stop HTTP, no duplicate submission. NOT Zeabur live validation.",
   );
 } finally {
   await browser.close();

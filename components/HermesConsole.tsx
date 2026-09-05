@@ -30,8 +30,20 @@ import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
 import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
+import {
+  emptyDraft,
+  useComposerDraft,
+  type ComposerDraft,
+  type Upload,
+} from "./useComposerDraft";
+import {
+  readPreference,
+  writePreference,
+  removeLegacyPreference,
+} from "@/lib/client/storage";
 
 type Project = { id: string; name: string };
+type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
 type Workspace = {
   conversations: Conversation[];
   projects: Project[];
@@ -46,13 +58,6 @@ type Preferences = {
   turtle: boolean;
   animation: boolean;
   turtleSize: number;
-};
-type Upload = {
-  key: string;
-  file: File;
-  progress: number;
-  error: string | null;
-  material?: Material;
 };
 const DEFAULT_PREFS: Preferences = {
   font: 16,
@@ -111,8 +116,17 @@ async function api<T>(
     cache: "no-store",
     headers: body ? { "Content-Type": "application/json" } : undefined,
     body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(30_000),
+  }).catch(() => {
+    throw new Error(
+      method === "GET"
+        ? "暫時無法取得資料，請檢查連線後重試。"
+        : "未收到操作結果。請先查看已保存的任務或素材，再決定是否重試。",
+    );
   });
-  const data = await response.json();
+  if (response.status === 401 && path !== "auth")
+    window.dispatchEvent(new Event("hermes-session-expired"));
+  const data = await response.json().catch(() => ({}));
   if (!response.ok)
     throw new Error(data.error?.message || "操作失敗，請稍後重試。");
   return data as T;
@@ -136,26 +150,46 @@ export default function HermesConsole() {
   const [settingsTab, setSettingsTab] = useState("外觀");
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [preview, setPreview] = useState<Material | null>(null);
-  const [text, setText] = useState("");
+  const draftScope = activeId
+    ? "conversation:" + activeId
+    : "project:" + project;
+  const {
+    text,
+    setText,
+    uploads,
+    setUploads,
+    references,
+    setReferences,
+    draft,
+    replaceDraft,
+    clearDrafts,
+  } = useComposerDraft(draftScope);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [offline, setOffline] = useState(false);
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
   const [hydrated, setHydrated] = useState(false);
-  const [uploads, setUploads] = useState<Upload[]>([]);
-  const [references, setReferences] = useState<string[]>([]);
   const [legacy, setLegacy] = useState(false);
   const [newProject, setNewProject] = useState("");
   const [refURL, setRefURL] = useState("");
   const [refTitle, setRefTitle] = useState("");
   const [search, setSearch] = useState("");
   const [jump, setJump] = useState(false);
-  const [remoteHistory, setRemoteHistory] = useState<Array<{
-    role: string;
-    content: string;
-    name?: string;
-  }> | null>(null);
+  const [historySnapshot, setHistorySnapshot] = useState<{
+    conversationId: string | null;
+    messages: RemoteHistory;
+  } | null>(null);
+  const remoteHistory =
+    historySnapshot?.conversationId === activeId
+      ? historySnapshot.messages
+      : null;
+  function setRemoteHistory(messages: RemoteHistory | null) {
+    // A late history response may only be shown for the conversation that requested it.
+    setHistorySnapshot(
+      messages ? { conversationId: activeId, messages } : null,
+    );
+  }
   const dialog = useRef<HTMLDialogElement>(null);
   const mobileNav = useRef<HTMLDialogElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
@@ -198,11 +232,10 @@ export default function HermesConsole() {
       "hermes.apiKey.session",
       "hermes.baseUrl",
     ]) {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
+      removeLegacyPreference(key);
     }
     try {
-      const saved = JSON.parse(localStorage.getItem("hermes.ui.v2") || "{}");
+      const saved = JSON.parse(readPreference("hermes.ui.v2") || "{}");
       setPrefs({
         ...DEFAULT_PREFS,
         font: [14, 16, 18, 20].includes(saved.font) ? saved.font : 16,
@@ -214,14 +247,14 @@ export default function HermesConsole() {
           ? saved.turtleSize
           : 100,
       });
-      setLegacy(!!localStorage.getItem("hermes.conversations"));
+      setLegacy(!!readPreference("hermes.conversations"));
     } catch {}
     setHydrated(true);
     api("auth")
       .then(async () => {
         setAuth("member");
         const workspace = await loadWorkspace();
-        const saved = localStorage.getItem("hermes.active.v2");
+        const saved = readPreference("hermes.active.v2");
         const conv = workspace.conversations.find((c) => c.id === saved);
         if (conv) {
           setActiveId(conv.id);
@@ -231,8 +264,19 @@ export default function HermesConsole() {
       .catch(() => setAuth("guest"));
   }, [loadWorkspace]);
   useEffect(() => {
-    if (hydrated) localStorage.setItem("hermes.ui.v2", JSON.stringify(prefs));
+    if (hydrated) writePreference("hermes.ui.v2", JSON.stringify(prefs));
   }, [prefs, hydrated]);
+  useEffect(() => {
+    const expire = () => {
+      setAuth("guest");
+      setPanel(null);
+      setDrawer(false);
+      setOffline(false);
+      setError("登入已到期，請重新登入。此分頁的未送出草稿仍保留。");
+    };
+    window.addEventListener("hermes-session-expired", expire);
+    return () => window.removeEventListener("hermes-session-expired", expire);
+  }, []);
   useEffect(() => {
     if (auth !== "member") return;
     api<Health>("health")
@@ -261,15 +305,51 @@ export default function HermesConsole() {
     };
     void poll();
     const timer = setInterval(poll, 3000);
+    const disconnected = () => setOffline(true);
     window.addEventListener("online", poll);
+    window.addEventListener("offline", disconnected);
     document.addEventListener("visibilitychange", poll);
     return () => {
       stopped = true;
       clearInterval(timer);
       window.removeEventListener("online", poll);
+      window.removeEventListener("offline", disconnected);
       document.removeEventListener("visibilitychange", poll);
     };
   }, [auth, refresh]);
+  useEffect(() => {
+    const textarea = input.current;
+    if (!textarea) return;
+    const resize = () => {
+      textarea.style.height = "auto";
+      const limit = Math.max(
+        66,
+        Math.min(
+          190,
+          (window.visualViewport?.height || window.innerHeight) * 0.28,
+        ),
+      );
+      textarea.style.height = Math.min(textarea.scrollHeight, limit) + "px";
+      textarea.style.overflowY =
+        textarea.scrollHeight > limit ? "auto" : "hidden";
+    };
+    resize();
+    let previousWidth = textarea.parentElement?.clientWidth;
+    const observer = new ResizeObserver(() => {
+      const width = textarea.parentElement?.clientWidth;
+      if (width !== previousWidth) {
+        previousWidth = width;
+        resize();
+      }
+    });
+    // Observe the parent width, not the textarea whose height we update.
+    if (textarea.parentElement) observer.observe(textarea.parentElement);
+    window.visualViewport?.addEventListener("resize", resize);
+    return () => {
+      observer.disconnect();
+      window.visualViewport?.removeEventListener("resize", resize);
+    };
+  }, [text, auth, nav]);
   useEffect(() => {
     const viewport = window.visualViewport;
     const update = () =>
@@ -307,29 +387,30 @@ export default function HermesConsole() {
     [],
   );
   function selectConversation(conv: Conversation) {
+    if (busy) return;
+    setRemoteHistory(null);
     setActiveId(conv.id);
     setProject(conv.projectId);
     setNav("chat");
     setDrawer(false);
-    setText("");
-    setUploads([]);
-    setReferences([]);
-    localStorage.setItem("hermes.active.v2", conv.id);
+    setError("");
+    writePreference("hermes.active.v2", conv.id);
   }
   function fresh() {
+    if (busy) return;
+    setRemoteHistory(null);
     setActiveId(null);
     setNav("chat");
     setDrawer(false);
-    setText("");
-    setUploads([]);
-    setReferences([]);
-    localStorage.removeItem("hermes.active.v2");
+    setError("");
+    writePreference("hermes.active.v2", null);
     input.current?.focus();
   }
   async function createConversation(
     title: string,
     parentId?: string,
     beforeMessageId?: string,
+    initialDraft: ComposerDraft = draft,
   ) {
     const result = await api<{ conversation: Conversation }>(
       "conversations",
@@ -341,8 +422,11 @@ export default function HermesConsole() {
         beforeMessageId,
       },
     );
+    replaceDraft("conversation:" + result.conversation.id, initialDraft);
+    setRemoteHistory(null);
+    if (!parentId) replaceDraft(draftScope, emptyDraft());
     setActiveId(result.conversation.id);
-    localStorage.setItem("hermes.active.v2", result.conversation.id);
+    writePreference("hermes.active.v2", result.conversation.id);
     await loadWorkspace();
     return result.conversation;
   }
@@ -373,11 +457,10 @@ export default function HermesConsole() {
         result.task,
         ...previous.filter((t) => t.id !== result.task.id),
       ]);
-      setText("");
-      setUploads([]);
-      setReferences([]);
+      replaceDraft("conversation:" + conv.id, emptyDraft());
       requestKey.current = null;
       await refresh();
+      input.current?.focus();
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -403,8 +486,14 @@ export default function HermesConsole() {
         activeConv.title + " · 分支",
         activeConv.id,
         messageId,
+        {
+          text: content,
+          uploads: [],
+          references:
+            activeConv.messages.find((m) => m.id === messageId)?.attachments ||
+            [],
+        },
       );
-      setText(content);
       setNav("chat");
       setPanel(null);
       setNotice("已建立分支，原對話完整保留。修改內容後再送出。");
@@ -461,15 +550,22 @@ export default function HermesConsole() {
           ),
         );
     };
-    const fail = (message: string) =>
+    const fail = (message: string) => {
+      pendingXHR.current.delete(key);
       setUploads((old) =>
         old.map((u) => (u.key === key ? { ...u, error: message } : u)),
       );
+    };
+    xhr.timeout = 120_000;
+    xhr.ontimeout = () => fail("上傳逾時，請移除或重試。");
+    xhr.onabort = () => pendingXHR.current.delete(key);
     xhr.onerror = () => fail("上傳中斷，請重試。");
     xhr.onload = () => {
       pendingXHR.current.delete(key);
       try {
         const result = JSON.parse(xhr.responseText);
+        if (xhr.status === 401)
+          window.dispatchEvent(new Event("hermes-session-expired"));
         if (xhr.status >= 400) {
           fail(result.error?.message || "上傳失敗");
           return;
@@ -481,7 +577,7 @@ export default function HermesConsole() {
               : u,
           ),
         );
-        void loadWorkspace();
+        void loadWorkspace().catch(() => {});
       } catch {
         fail("回應格式錯誤，請重試。");
       }
@@ -490,7 +586,7 @@ export default function HermesConsole() {
   }
   async function importLegacy() {
     try {
-      const raw = localStorage.getItem("hermes.conversations");
+      const raw = readPreference("hermes.conversations");
       if (!raw) return;
       const result = await api<{ imported: number; notice: string }>(
         "conversations",
@@ -518,7 +614,7 @@ export default function HermesConsole() {
           Hermes<small>龜龜創作助手</small>
         </span>
       </div>
-      <button className="new-chat" onClick={fresh}>
+      <button className="new-chat" onClick={fresh} disabled={busy}>
         <Plus size={19} />
         開啟新對話
         <Pencil size={16} />
@@ -564,6 +660,7 @@ export default function HermesConsole() {
       </div>
       <button
         className={"project-row " + (project === "personal" ? "selected" : "")}
+        disabled={busy}
         onClick={() => {
           setProject("personal");
           fresh();
@@ -576,6 +673,7 @@ export default function HermesConsole() {
         <button
           key={p.id}
           className={"project-row " + (project === p.id ? "selected" : "")}
+          disabled={busy}
           onClick={() => {
             setProject(p.id);
             fresh();
@@ -595,6 +693,7 @@ export default function HermesConsole() {
           .map((c) => (
             <button
               key={c.id}
+              disabled={busy}
               aria-current={activeId === c.id ? "true" : undefined}
               onClick={() => selectConversation(c)}
               title={c.title}
@@ -717,6 +816,7 @@ export default function HermesConsole() {
       <dialog
         ref={mobileNav}
         className="mobile-nav"
+        aria-label="工作區導覽"
         onCancel={() => setDrawer(false)}
         onClick={(e) => {
           if (e.target === e.currentTarget) setDrawer(false);
@@ -798,21 +898,22 @@ export default function HermesConsole() {
           >
             <span>
               {error ||
-                notice ||
                 (offline
                   ? "連線中斷，顯示上次已知資料。後端任務不會因關閉頁面而假裝停止。"
-                  : "")}
+                  : notice)}
             </span>
-            <button
-              className="icon-button"
-              aria-label="關閉提示"
-              onClick={() => {
-                setError("");
-                setNotice("");
-              }}
-            >
-              <X size={16} />
-            </button>
+            {!offline && (
+              <button
+                className="icon-button"
+                aria-label="關閉提示"
+                onClick={() => {
+                  setError("");
+                  setNotice("");
+                }}
+              >
+                <X size={16} />
+              </button>
+            )}
           </div>
         )}
         {nav === "chat" ? (
@@ -896,7 +997,9 @@ export default function HermesConsole() {
                       >
                         <div className="message-byline">
                           {message.role === "user" ? "你" : "Hermes"}
-                          <time>{time(message.createdAt)}</time>
+                          <time dateTime={message.createdAt}>
+                            {time(message.createdAt)}
+                          </time>
                           {message.provenance === "legacy_unverified" && (
                             <span>舊資料 · 未驗證</span>
                           )}
@@ -1019,6 +1122,16 @@ export default function HermesConsole() {
               </div>
             </div>
             <div className="composer-area">
+              <span
+                className="sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {currentTask
+                  ? "Hermes 任務：" + taskLabels[currentTask.state]
+                  : ""}
+              </span>
               {jump && (
                 <button
                   className="jump-button"
@@ -1077,6 +1190,7 @@ export default function HermesConsole() {
                             <button
                               type="button"
                               aria-label="重試上傳"
+                              disabled={busy}
                               onClick={() => uploadFile(u.file, u.key)}
                             >
                               <RefreshCw size={16} />
@@ -1085,6 +1199,7 @@ export default function HermesConsole() {
                           <button
                             type="button"
                             aria-label="移除附件"
+                            disabled={busy}
                             onClick={() => {
                               pendingXHR.current.get(u.key)?.abort();
                               setUploads((old) =>
@@ -1105,6 +1220,7 @@ export default function HermesConsole() {
                           <button
                             type="button"
                             aria-label="移除參考"
+                            disabled={busy}
                             onClick={() =>
                               setReferences((old) =>
                                 old.filter((x) => x !== id),
@@ -1124,6 +1240,8 @@ export default function HermesConsole() {
                     maxLength={20_000}
                     placeholder="說說你的想法，或加入參考素材…"
                     aria-label="訊息"
+                    aria-describedby="composer-hint"
+                    readOnly={busy}
                     onChange={(e) => setText(e.target.value)}
                     onCompositionStart={() => {
                       composing.current = true;
@@ -1152,8 +1270,10 @@ export default function HermesConsole() {
                       type="file"
                       accept="image/png,image/jpeg,image/webp,text/plain"
                       multiple
+                      disabled={busy}
                       onChange={(e) => {
                         const files = Array.from(e.target.files || []);
+                        e.target.value = "";
                         if (
                           files.length + uploads.length + references.length >
                           4
@@ -1162,13 +1282,14 @@ export default function HermesConsole() {
                           return;
                         }
                         files.forEach((file) => uploadFile(file));
-                        e.target.value = "";
                       }}
                     />
                     <button
                       className="icon-button"
                       type="button"
                       aria-label="上傳圖片或文字檔"
+                      disabled={busy}
+                      title="PNG、JPG、WebP 或 TXT；每個檔案最多 8 MB，每則訊息最多四個附件"
                       onClick={() => uploadInput.current?.click()}
                     >
                       <Plus size={23} />
@@ -1176,6 +1297,7 @@ export default function HermesConsole() {
                     <button
                       className="composer-label"
                       type="button"
+                      disabled={busy}
                       onClick={() => setNav("materials")}
                     >
                       <ImagePlus size={17} />
@@ -1209,8 +1331,10 @@ export default function HermesConsole() {
                   </div>
                 </form>
               </div>
-              <p className="composer-footnote">
-                請核對重要資訊與素材權利。
+              <p className="composer-footnote" id="composer-hint">
+                {text || uploads.length || references.length
+                  ? "草稿暫存於此分頁，重新整理將清除。"
+                  : "請核對重要資訊與素材權利。"}
                 <span>Enter 送出 · Shift + Enter 換行</span>
               </p>
             </div>
@@ -1273,6 +1397,7 @@ export default function HermesConsole() {
                   <article className="material-card" key={m.id}>
                     <button
                       className="material-preview"
+                      aria-label={"預覽素材：" + m.title}
                       onClick={() => {
                         setPreview(m);
                         setPanel("preview");
@@ -1292,6 +1417,7 @@ export default function HermesConsole() {
                     </p>
                     <button
                       className="text-button"
+                      disabled={busy}
                       onClick={() => {
                         if (references.length + uploads.length >= 4) {
                           setError("每則訊息最多四個附件。");
@@ -1449,6 +1575,7 @@ export default function HermesConsole() {
       <dialog
         ref={dialog}
         className="detail-dialog"
+        aria-labelledby="detail-panel-title"
         onCancel={() => setPanel(null)}
         onClick={(e) => {
           if (e.target === e.currentTarget) setPanel(null);
@@ -1456,7 +1583,7 @@ export default function HermesConsole() {
       >
         <div className="panel-content">
           <header className="panel-header">
-            <h2>
+            <h2 id="detail-panel-title">
               {panel === "settings"
                 ? "工作區設定"
                 : panel === "preview"
@@ -1478,317 +1605,362 @@ export default function HermesConsole() {
           )}
           {panel === "settings" ? (
             <>
-              <div className="setting-tabs">
+              <div
+                className="setting-tabs"
+                role="tablist"
+                aria-label="設定分類"
+                onKeyDown={(event) => {
+                  if (
+                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
+                      event.key,
+                    )
+                  )
+                    return;
+                  const tabs = Array.from(
+                    event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                      '[role="tab"]',
+                    ),
+                  );
+                  const index = tabs.indexOf(
+                    document.activeElement as HTMLButtonElement,
+                  );
+                  const next =
+                    event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? tabs.length - 1
+                        : (index +
+                            (event.key === "ArrowRight" ? 1 : -1) +
+                            tabs.length) %
+                          tabs.length;
+                  event.preventDefault();
+                  tabs[next]?.focus();
+                  tabs[next]?.click();
+                }}
+              >
                 {["外觀", "連線", "記憶", "使用量", "專案"].map((tab) => (
                   <button
                     key={tab}
-                    aria-pressed={settingsTab === tab}
+                    role="tab"
+                    id={"setting-tab-" + tab}
+                    aria-controls="setting-panel"
+                    aria-selected={settingsTab === tab}
+                    tabIndex={settingsTab === tab ? 0 : -1}
                     onClick={() => setSettingsTab(tab)}
                   >
                     {tab}
                   </button>
                 ))}
               </div>
-              {settingsTab === "外觀" ? (
-                <div className="settings-stack">
-                  <p className="muted">
-                    固定明亮介面。外觀偏好只儲存在此瀏覽器。
-                  </p>
-                  <label>
-                    文字大小
-                    <select
-                      value={prefs.font}
-                      onChange={(e) =>
-                        setPrefs({ ...prefs, font: Number(e.target.value) })
-                      }
-                    >
-                      {[14, 16, 18, 20].map((n) => (
-                        <option key={n} value={n}>
-                          {n} px
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    閱讀寬度
-                    <select
-                      value={prefs.width}
-                      onChange={(e) =>
-                        setPrefs({ ...prefs, width: Number(e.target.value) })
-                      }
-                    >
-                      {[680, 780, 920].map((n) => (
-                        <option key={n} value={n}>
-                          {n} px
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="check-row">
-                    <input
-                      type="checkbox"
-                      checked={prefs.compact}
-                      onChange={(e) =>
-                        setPrefs({ ...prefs, compact: e.target.checked })
-                      }
-                    />
-                    緊湊訊息間距
-                  </label>
-                  <label className="check-row">
-                    <input
-                      type="checkbox"
-                      checked={prefs.turtle}
-                      onChange={(e) =>
-                        setPrefs({ ...prefs, turtle: e.target.checked })
-                      }
-                    />
-                    顯示龜龜
-                  </label>
-                  <label className="check-row">
-                    <input
-                      type="checkbox"
-                      checked={prefs.animation}
-                      onChange={(e) =>
-                        setPrefs({ ...prefs, animation: e.target.checked })
-                      }
-                    />
-                    輕柔動畫（尊重系統減少動畫設定）
-                  </label>
-                  <label>
-                    龜龜大小
-                    <select
-                      value={prefs.turtleSize}
-                      onChange={(e) =>
-                        setPrefs({
-                          ...prefs,
-                          turtleSize: Number(e.target.value),
-                        })
-                      }
-                    >
-                      {[72, 100, 128].map((n) => (
-                        <option key={n} value={n}>
-                          {n} px
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button onClick={() => setPrefs(DEFAULT_PREFS)}>
-                    重設外觀
-                  </button>
-                </div>
-              ) : settingsTab === "連線" ? (
-                <div className="settings-stack">
-                  <h3>Hermes</h3>
-                  <p>{health?.message || "尚未取得狀態。"}</p>
-                  <dl className="facts">
-                    <dt>服務可達</dt>
-                    <dd>
-                      {health?.reachable === null || !health
-                        ? "未知"
-                        : health.reachable
-                          ? "是"
-                          : "否"}
-                    </dd>
-                    <dt>憑證驗證</dt>
-                    <dd>
-                      {health?.credential === "valid"
-                        ? "有效"
-                        : health?.credential === "invalid"
-                          ? "無效"
-                          : "尚未確認"}
-                    </dd>
-                    <dt>Agent 執行</dt>
-                    <dd>
-                      {health?.agent === "verified" ? "已有成功任務" : "未驗證"}
-                    </dd>
-                    <dt>最後連線檢查</dt>
-                    <dd>{health ? time(health.checkedAt) : "未知"}</dd>
-                  </dl>
-                  <button
-                    onClick={async () => {
-                      setBusy(true);
-                      try {
-                        setHealth(await api<Health>("health", "POST", {}));
-                        const result = await api<{
-                          integrations: Integration[];
-                        }>("integrations");
-                        setIntegrations(result.integrations);
-                      } catch (e) {
-                        setError((e as Error).message);
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                    disabled={busy}
-                  >
-                    <RefreshCw size={16} />
-                    {busy ? "驗證中…" : "重新驗證連線"}
-                  </button>
-                  <p className="muted">
-                    網址、金鑰只在後端設定。此處不收集或顯示金鑰。
-                  </p>
-                  <h3>Canva Connect 授權</h3>
-                  <p>
-                    {canvaConfigured
-                      ? "後端已設定 OAuth；請登入 Canva 並確認所需權限。"
-                      : "後端尚未設定 Canva OAuth。也可沿用 Hermes 已有的 Canva 設計 MCP。"}
-                  </p>
-                  <button
-                    disabled={!canvaConfigured}
-                    onClick={async () => {
-                      try {
-                        const result = await api<{ url: string }>(
-                          "canva",
-                          "POST",
-                          { action: "authorize" },
-                        );
-                        window.location.assign(result.url);
-                      } catch (e) {
-                        setError((e as Error).message);
-                      }
-                    }}
-                  >
-                    前往 Canva 授權 <ExternalLink size={16} />
-                  </button>
-                  <label>
-                    尋找工具與技能
-                    <input
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="搜尋名稱或用途"
-                    />
-                  </label>
-                  {integrations
-                    .filter((i) =>
-                      (i.name + " " + i.detail + " " + i.tools.join(" "))
-                        .toLowerCase()
-                        .includes(search.toLowerCase()),
-                    )
-                    .map((i) => (
-                      <details className="integration" key={i.id}>
-                        <summary>
-                          <strong>{i.name}</strong>
-                          <span className="badge">
-                            {connectionLabels[i.state]}
-                          </span>
-                        </summary>
-                        <p>{i.detail}</p>
-                        <p>{i.evidence || "尚無執行驗證證據。"}</p>
-                        <small>
-                          最後驗證：
-                          {i.verifiedAt ? time(i.verifiedAt) : "未驗證"}
-                        </small>
-                        <ul>
-                          {i.requirements.map((value) => (
-                            <li key={value}>{value}</li>
-                          ))}
-                        </ul>
-                        {!!i.tools.length && (
-                          <p>已宣告工具：{i.tools.join("、")}</p>
-                        )}
-                      </details>
-                    ))}
-                  {(health?.skills || [])
-                    .filter((s) =>
-                      (s.name + s.description)
-                        .toLowerCase()
-                        .includes(search.toLowerCase()),
-                    )
-                    .map((s) => (
-                      <details key={s.name}>
-                        <summary>{s.name}</summary>
-                        <p>{s.description}</p>
-                      </details>
-                    ))}
-                </div>
-              ) : settingsTab === "記憶" ? (
-                <div className="settings-stack">
-                  <h3>記憶與會話</h3>
-                  <p>{data.memory.scope}</p>
-                  <p className="muted">
-                    未取得可驗證的記憶管理介面，不提供假同步、假刪除或本地記憶清單。Console
-                    對話歷史與 Hermes 長期記憶是不同資料。
-                  </p>
-                  <button
-                    disabled={!activeConv?.hermesSessionId}
-                    onClick={async () => {
-                      try {
-                        const result = await api<{
-                          remoteHistory: typeof remoteHistory;
-                        }>("conversations?id=" + activeId);
-                        setRemoteHistory(result.remoteHistory);
-                        if (!result.remoteHistory)
-                          setNotice("部署版本不支援會話歷史查詢。");
-                      } catch (e) {
-                        setError((e as Error).message);
-                      }
-                    }}
-                  >
-                    讀取目前 Hermes 會話歷史
-                  </button>
-                  {remoteHistory?.map((m, i) => (
-                    <details key={i}>
-                      <summary>
-                        {m.role}
-                        {m.name ? " · " + m.name : ""}
-                      </summary>
-                      <MessageBody text={m.content} />
-                    </details>
-                  ))}
-                  {legacy && (
-                    <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
-                  )}
-                </div>
-              ) : settingsTab === "使用量" ? (
-                <div className="settings-stack">
-                  <p>
-                    僅顯示 Hermes
-                    回傳的統計。未知費用不是零，也不推測外部工具費用。
-                  </p>
-                  {tasks.map((t) => (
-                    <details key={t.id}>
-                      <summary>{t.input.slice(0, 40)}</summary>
-                      <Usage task={t} />
-                    </details>
-                  ))}
-                  {!tasks.length && (
-                    <p className="muted">尚無任務使用量資料。</p>
-                  )}
-                </div>
-              ) : (
-                <div className="settings-stack">
-                  <p>
-                    目前有 {data.projects.length}{" "}
-                    個自訂專案；不包含預設個人工作區。
-                  </p>
-                  <form
-                    onSubmit={async (e) => {
-                      e.preventDefault();
-                      try {
-                        await api("workspace", "POST", { name: newProject });
-                        setNewProject("");
-                        await loadWorkspace();
-                      } catch (e) {
-                        setError((e as Error).message);
-                      }
-                    }}
-                  >
+              <div
+                role="tabpanel"
+                id="setting-panel"
+                aria-labelledby={"setting-tab-" + settingsTab}
+                tabIndex={0}
+              >
+                {settingsTab === "外觀" ? (
+                  <div className="settings-stack">
+                    <p className="muted">
+                      固定明亮介面。外觀偏好只儲存在此瀏覽器。
+                    </p>
                     <label>
-                      新增專案
+                      文字大小
+                      <select
+                        value={prefs.font}
+                        onChange={(e) =>
+                          setPrefs({ ...prefs, font: Number(e.target.value) })
+                        }
+                      >
+                        {[14, 16, 18, 20].map((n) => (
+                          <option key={n} value={n}>
+                            {n} px
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      閱讀寬度
+                      <select
+                        value={prefs.width}
+                        onChange={(e) =>
+                          setPrefs({ ...prefs, width: Number(e.target.value) })
+                        }
+                      >
+                        {[680, 780, 920].map((n) => (
+                          <option key={n} value={n}>
+                            {n} px
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="check-row">
                       <input
-                        required
-                        maxLength={80}
-                        value={newProject}
-                        onChange={(e) => setNewProject(e.target.value)}
+                        type="checkbox"
+                        checked={prefs.compact}
+                        onChange={(e) =>
+                          setPrefs({ ...prefs, compact: e.target.checked })
+                        }
+                      />
+                      緊湊訊息間距
+                    </label>
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={prefs.turtle}
+                        onChange={(e) =>
+                          setPrefs({ ...prefs, turtle: e.target.checked })
+                        }
+                      />
+                      顯示龜龜
+                    </label>
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={prefs.animation}
+                        onChange={(e) =>
+                          setPrefs({ ...prefs, animation: e.target.checked })
+                        }
+                      />
+                      輕柔動畫（尊重系統減少動畫設定）
+                    </label>
+                    <label>
+                      龜龜大小
+                      <select
+                        value={prefs.turtleSize}
+                        onChange={(e) =>
+                          setPrefs({
+                            ...prefs,
+                            turtleSize: Number(e.target.value),
+                          })
+                        }
+                      >
+                        {[72, 100, 128].map((n) => (
+                          <option key={n} value={n}>
+                            {n} px
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button onClick={() => setPrefs(DEFAULT_PREFS)}>
+                      重設外觀
+                    </button>
+                  </div>
+                ) : settingsTab === "連線" ? (
+                  <div className="settings-stack">
+                    <h3>Hermes</h3>
+                    <p>{health?.message || "尚未取得狀態。"}</p>
+                    <dl className="facts">
+                      <dt>服務可達</dt>
+                      <dd>
+                        {health?.reachable === null || !health
+                          ? "未知"
+                          : health.reachable
+                            ? "是"
+                            : "否"}
+                      </dd>
+                      <dt>憑證驗證</dt>
+                      <dd>
+                        {health?.credential === "valid"
+                          ? "有效"
+                          : health?.credential === "invalid"
+                            ? "無效"
+                            : "尚未確認"}
+                      </dd>
+                      <dt>Agent 執行</dt>
+                      <dd>
+                        {health?.agent === "verified"
+                          ? "已有成功任務"
+                          : "未驗證"}
+                      </dd>
+                      <dt>最後連線檢查</dt>
+                      <dd>{health ? time(health.checkedAt) : "未知"}</dd>
+                    </dl>
+                    <button
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          setHealth(await api<Health>("health", "POST", {}));
+                          const result = await api<{
+                            integrations: Integration[];
+                          }>("integrations");
+                          setIntegrations(result.integrations);
+                        } catch (e) {
+                          setError((e as Error).message);
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                      disabled={busy}
+                    >
+                      <RefreshCw size={16} />
+                      {busy ? "驗證中…" : "重新驗證連線"}
+                    </button>
+                    <p className="muted">
+                      網址、金鑰只在後端設定。此處不收集或顯示金鑰。
+                    </p>
+                    <h3>Canva Connect 授權</h3>
+                    <p>
+                      {canvaConfigured
+                        ? "後端已設定 OAuth；請登入 Canva 並確認所需權限。"
+                        : "後端尚未設定 Canva OAuth。也可沿用 Hermes 已有的 Canva 設計 MCP。"}
+                    </p>
+                    <button
+                      disabled={!canvaConfigured}
+                      onClick={async () => {
+                        try {
+                          const result = await api<{ url: string }>(
+                            "canva",
+                            "POST",
+                            { action: "authorize" },
+                          );
+                          window.location.assign(result.url);
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      前往 Canva 授權 <ExternalLink size={16} />
+                    </button>
+                    <label>
+                      尋找工具與技能
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="搜尋名稱或用途"
                       />
                     </label>
-                    <button className="primary">
-                      <Plus size={16} />
-                      建立專案
+                    {integrations
+                      .filter((i) =>
+                        (i.name + " " + i.detail + " " + i.tools.join(" "))
+                          .toLowerCase()
+                          .includes(search.toLowerCase()),
+                      )
+                      .map((i) => (
+                        <details className="integration" key={i.id}>
+                          <summary>
+                            <strong>{i.name}</strong>
+                            <span className="badge">
+                              {connectionLabels[i.state]}
+                            </span>
+                          </summary>
+                          <p>{i.detail}</p>
+                          <p>{i.evidence || "尚無執行驗證證據。"}</p>
+                          <small>
+                            最後驗證：
+                            {i.verifiedAt ? time(i.verifiedAt) : "未驗證"}
+                          </small>
+                          <ul>
+                            {i.requirements.map((value) => (
+                              <li key={value}>{value}</li>
+                            ))}
+                          </ul>
+                          {!!i.tools.length && (
+                            <p>已宣告工具：{i.tools.join("、")}</p>
+                          )}
+                        </details>
+                      ))}
+                    {(health?.skills || [])
+                      .filter((s) =>
+                        (s.name + s.description)
+                          .toLowerCase()
+                          .includes(search.toLowerCase()),
+                      )
+                      .map((s) => (
+                        <details key={s.name}>
+                          <summary>{s.name}</summary>
+                          <p>{s.description}</p>
+                        </details>
+                      ))}
+                  </div>
+                ) : settingsTab === "記憶" ? (
+                  <div className="settings-stack">
+                    <h3>記憶與會話</h3>
+                    <p>{data.memory.scope}</p>
+                    <p className="muted">
+                      未取得可驗證的記憶管理介面，不提供假同步、假刪除或本地記憶清單。Console
+                      對話歷史與 Hermes 長期記憶是不同資料。
+                    </p>
+                    <button
+                      disabled={!activeConv?.hermesSessionId}
+                      onClick={async () => {
+                        try {
+                          const result = await api<{
+                            remoteHistory: typeof remoteHistory;
+                          }>("conversations?id=" + activeId);
+                          setRemoteHistory(result.remoteHistory);
+                          if (!result.remoteHistory)
+                            setNotice("部署版本不支援會話歷史查詢。");
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      讀取目前 Hermes 會話歷史
                     </button>
-                  </form>
-                </div>
-              )}
+                    {remoteHistory?.map((m, i) => (
+                      <details key={i}>
+                        <summary>
+                          {m.role}
+                          {m.name ? " · " + m.name : ""}
+                        </summary>
+                        <MessageBody text={m.content} />
+                      </details>
+                    ))}
+                    {legacy && (
+                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
+                    )}
+                  </div>
+                ) : settingsTab === "使用量" ? (
+                  <div className="settings-stack">
+                    <p>
+                      僅顯示 Hermes
+                      回傳的統計。未知費用不是零，也不推測外部工具費用。
+                    </p>
+                    {tasks.map((t) => (
+                      <details key={t.id}>
+                        <summary>{t.input.slice(0, 40)}</summary>
+                        <Usage task={t} />
+                      </details>
+                    ))}
+                    {!tasks.length && (
+                      <p className="muted">尚無任務使用量資料。</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="settings-stack">
+                    <p>
+                      目前有 {data.projects.length}{" "}
+                      個自訂專案；不包含預設個人工作區。
+                    </p>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        try {
+                          await api("workspace", "POST", { name: newProject });
+                          setNewProject("");
+                          await loadWorkspace();
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      <label>
+                        新增專案
+                        <input
+                          required
+                          maxLength={80}
+                          value={newProject}
+                          onChange={(e) => setNewProject(e.target.value)}
+                        />
+                      </label>
+                      <button className="primary">
+                        <Plus size={16} />
+                        建立專案
+                      </button>
+                    </form>
+                  </div>
+                )}
+              </div>
               <footer className="settings-footer">
                 <button
                   onClick={async () => {
@@ -1799,8 +1971,17 @@ export default function HermesConsole() {
                       setData(EMPTY);
                       setTasks([]);
                       setHealth(null);
-                      setText("");
+                      for (const xhr of pendingXHR.current.values())
+                        xhr.abort();
+                      pendingXHR.current.clear();
+                      clearDrafts();
+                      setWorkflows([]);
+                      setRemoteHistory(null);
+                      setPreview(null);
+                      setNotice("");
+                      setError("");
                       setActiveId(null);
+                      writePreference("hermes.active.v2", null);
                     } catch (e) {
                       setError((e as Error).message);
                     }

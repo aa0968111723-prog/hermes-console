@@ -17,8 +17,10 @@ export function turtleState(task: Task | undefined, offline: boolean) {
     return { id: "waiting", label: "等待 Hermes 確認停止" };
   if (task.state === "cancelled") return { id: "idle", label: "任務已停止" };
   const tool = task.events.filter((e) => !!e.toolName).at(-1);
-  if (tool && !["completed", "failed"].includes(tool.status)) {
-    return /search|browse|fetch|extract/.test(tool.toolName || "")
+  if (tool?.status === "waiting_user")
+    return { id: "waiting", label: "工具正在等待你的確認" };
+  if (tool && ["running", "queued"].includes(tool.status)) {
+    return /search|browse|fetch|extract/i.test(tool.toolName || "")
       ? { id: "searching", label: "Hermes 正在查找資料" }
       : { id: "tool", label: "Hermes 正在操作工具" };
   }

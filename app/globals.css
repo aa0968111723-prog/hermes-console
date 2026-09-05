@@ -78,7 +78,9 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
-summary:focus-visible {
+summary:focus-visible,
+select:focus-visible,
+[tabindex="0"]:focus-visible {
   outline: 3px solid #356b45;
   outline-offset: 3px;
 }
@@ -684,6 +686,9 @@ nav button[aria-current="page"] {
   max-height: 190px;
   outline: 0;
 }
+.composer textarea[readonly] {
+  color: var(--muted);
+}
 .composer textarea::placeholder {
   color: #75816e;
 }
@@ -1005,7 +1010,8 @@ dialog::backdrop {
   display: flex;
   gap: 3px;
   overflow: auto;
-  padding-bottom: 16px;
+  padding: 4px 4px 16px;
+  margin: -4px -4px 0;
 }
 .setting-tabs button {
   white-space: nowrap;
@@ -1014,7 +1020,7 @@ dialog::backdrop {
   background: transparent;
   padding: 9px 12px;
 }
-.setting-tabs button[aria-pressed="true"] {
+.setting-tabs button[aria-selected="true"] {
   background: #e5eedb;
   color: #315839;
   font-weight: 600;

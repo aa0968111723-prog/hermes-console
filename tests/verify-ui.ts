@@ -180,13 +180,172 @@ try {
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);
+
+  // Detail polish: named dialogs, keyboard tab navigation, and focus return.
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const settingsButton = page.getByRole("button", { name: "外觀設定" });
+  await settingsButton.click();
+  const settings = page.getByRole("dialog", { name: "工作區設定" });
+  await expect(settings).toBeVisible();
+  await page.getByRole("tab", { name: "外觀", exact: true }).focus();
+  await page.keyboard.press("End");
+  await expect(
+    page.getByRole("tab", { name: "專案", exact: true }),
+  ).toBeFocused();
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("專案");
+  await page.keyboard.press("Home");
+  await expect(
+    page.getByRole("tab", { name: "外觀", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await page.screenshot({
+    path: join(output, "settings-desktop.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: join(output, "settings-mobile-390.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.keyboard.press("Escape");
+  await expect(settings).not.toBeVisible();
+  await expect(settingsButton).toBeFocused();
+
+  // Real backend conversations; unsent drafts are private, tab-memory only.
+  for (const title of ["草稿分流 A", "草稿分流 B"]) {
+    const result = await context.request.post(base + "/api/conversations", {
+      headers: { Origin: base },
+      data: { title, projectId: "personal" },
+    });
+    assert.equal(result.status(), 201);
+  }
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
+  await textarea.fill("A 尚未送出的內容");
+  let releaseUpload!: () => void;
+  const uploadGate = new Promise<void>((resolve) => {
+    releaseUpload = resolve;
+  });
+  await page.route("**/api/materials?projectId=personal", async (route) => {
+    const response = await route.fetch(); // Actual Console upload, only its delivery is delayed.
+    await uploadGate;
+    await route.fulfill({ response });
+  });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "draft-a.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("真實上傳的測試附件"),
+  });
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
+  releaseUpload();
+  await expect(textarea).toHaveValue("");
+  await expect(page.locator(".upload-chip")).toHaveCount(0);
+  await textarea.fill("B 獨立草稿");
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
+  await expect(textarea).toHaveValue("A 尚未送出的內容");
+  await expect(page.locator(".upload-chip")).toContainText("draft-a.txt");
+  await expect(page.locator(".upload-chip")).toContainText("已保存");
+  await page.unroute("**/api/materials?projectId=personal");
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
+  await expect(textarea).toHaveValue("B 獨立草稿");
+
+  await context.request.post(base + "/api/workspace", {
+    headers: { Origin: base },
+    data: { name: "獨立專案草稿" },
+  });
+  await page.getByRole("button", { name: "獨立專案草稿", exact: true }).click();
+  await expect(textarea).toHaveValue("");
+  await textarea.fill("只屬於這個專案的新對話草稿");
+  await page.getByRole("button", { name: "個人工作區", exact: true }).click();
+  await expect(textarea).toHaveValue("");
+  await page.getByRole("button", { name: "獨立專案草稿", exact: true }).click();
+  await expect(textarea).toHaveValue("只屬於這個專案的新對話草稿");
+  await page.getByRole("button", { name: "個人工作區", exact: true }).click();
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
+  await expect(textarea).toHaveValue("B 獨立草稿");
+
+  // Textarea grows, stays bounded when the visible viewport shrinks, and shrinks again.
+  const originalHeight = (await textarea.boundingBox())!.height;
+  await textarea.fill(
+    Array.from(
+      { length: 30 },
+      (_, i) => `第 ${i + 1} 行，較長的活動文案。`,
+    ).join("\n"),
+  );
+  assert.ok((await textarea.boundingBox())!.height > originalHeight);
+  await page.setViewportSize({ width: 390, height: 400 });
+  const sendSmall = await page
+    .getByRole("button", { name: "送出訊息", exact: true })
+    .boundingBox();
+  assert.ok(sendSmall && sendSmall.y + sendSmall.height <= 400);
+  assert.ok((await textarea.boundingBox())!.height <= 113);
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
+  await textarea.fill("重新登入後仍保留的草稿");
+  assert.ok((await textarea.boundingBox())!.height < 100);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
+  // Cookie expiration is not reported as a network outage, and re-auth keeps this tab's draft.
+  await context.clearCookies();
+  await expect(page.getByRole("button", { name: "進入工作區" })).toBeVisible({
+    timeout: 10000,
+  });
+  await expect(page.locator('.login-card [role="alert"]')).toContainText(
+    "登入已到期",
+  );
+  await page.getByLabel("帳號", { exact: true }).fill("ui-validation-owner");
+  await page.getByLabel("密碼", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "進入工作區" }).click();
+  await expect(textarea).toHaveValue("重新登入後仍保留的草稿");
+  await settingsButton.click();
+  await page.getByRole("button", { name: "登出工作區" }).click();
+  await page.getByLabel("帳號", { exact: true }).fill("ui-validation-owner");
+  await page.getByLabel("密碼", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "進入工作區" }).click();
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
+  await expect(textarea).toHaveValue("");
+  await expect(page.locator(".upload-chip")).toHaveCount(0);
+
+  // Storage may be denied by browser policy; it must not crash login or preferences.
+  const restricted = await browser.newContext();
+  // Literal browser code avoids tsx's function-name helper leaking into serialization.
+  await restricted.addInitScript({
+    content: `for (const method of ["getItem", "setItem", "removeItem"]) {
+    Object.defineProperty(Storage.prototype, method, { value: function () { throw new DOMException("Storage denied", "SecurityError"); } });
+  }`,
+  });
+  const restrictedPage = await restricted.newPage();
+  restrictedPage.on("pageerror", (e) => errors.push(e.message));
+  await restrictedPage.goto(base);
+  await assert.rejects(
+    restrictedPage.evaluate("localStorage.getItem('probe')"),
+    /Storage denied/,
+  );
+  await restrictedPage
+    .getByLabel("帳號", { exact: true })
+    .fill("ui-validation-owner");
+  await restrictedPage.getByLabel("密碼", { exact: true }).fill(password);
+  await restrictedPage.getByRole("button", { name: "進入工作區" }).click();
+  await expect(
+    restrictedPage.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toBeVisible();
+  await restrictedPage.getByRole("button", { name: "外觀設定" }).click();
+  await restrictedPage
+    .getByRole("combobox", { name: /文字大小/ })
+    .selectOption("20");
+  await expect(
+    restrictedPage.getByRole("combobox", { name: /文字大小/ }),
+  ).toHaveValue("20");
+  await restricted.close();
   assert.deepEqual(errors, []);
   assert.ok(
     !serverOutput.includes(password),
     "plaintext password leaked to logs",
   );
   console.log(
-    "PASS: real-browser auth, protected API, light-only, reduced motion, IME, Shift+Enter, 4 widths, touch/send bounds, mascot bounds/hide, drawer, persisted reference. External services NOT verified.",
+    "PASS: real-browser auth/expiry, protected API, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, logout clearing, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
 } finally {
