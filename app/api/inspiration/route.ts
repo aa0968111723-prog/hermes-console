@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { ApiError, authenticate, jsonBody, respond, route } from "@/lib/server/security";
 import {
-  ingestUrl,
   inspirationSearchPlan,
   instagramResearchLimits,
   listInspiration,
@@ -9,18 +8,24 @@ import {
 } from "@/lib/server/inspiration";
 import { searchInspiration, resolveInspirationUrl } from "@/lib/server/inspiration/engine";
 import { providerHealth } from "@/lib/server/inspiration/providers";
+import { syncSheetsInspiration } from "@/lib/server/inspiration/sheets-sync";
+
 export const runtime = "nodejs";
+
 export const GET = route(async (req) => {
   authenticate(req);
   const projectId = new URL(req.url).searchParams.get("projectId") || undefined;
+  const sync = await syncSheetsInspiration();
   return respond({
     items: listInspiration(projectId),
     instagram: instagramResearchLimits(),
     pinterest: pinterestResearchLimits(),
     plan: inspirationSearchPlan("幫我找靈感"),
     providers: providerHealth(),
+    sheetsSync: sync,
   });
 });
+
 export const POST = route(async (req) => {
   authenticate(req, true);
   const body = z
