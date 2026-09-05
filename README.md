@@ -1,40 +1,32 @@
-# Hermes Console (柯能中央大腦控制台)
+# Hermes Creative Intelligence
 
-柯能 / Bruce 的中央大腦 Hermes Agent 控制中樞與對話前端，深度連接 Zeabur 雲端服務。
+明亮、免登入的單一工作區。開啟網址即可與 Hermes 對話。Hermes 執行工具；Console 保存會話對應、任務與素材，不另建模板大腦。
 
-## 🌟 核心功能
+## 啟動
 
-1. **深度連接 Zeabur Hermes Agent**：
-   - 伺服器端點：`/v1/chat/completions` (SSE 即時串流支援)
-   - API Server Key：可透過 `.env` 環境變數 `HERMES_API_KEY` 或前端設定面板配置
-   - 管理儀表板帳號：`admin` / 密碼透過環境變數 `HERMES_DASHBOARD_PASS` 配置
-   - 連線健康檢測與 Ping 延遲回報。
-2. **全套生態系工具箱 (Full Tool Use)**：
-   - `get_ecosystem_projects`：即時檢索 41 個專案目錄與狀態。
-   - `inspect_project`：查詢指定專案之架構細節與 GitHub 儲存庫。
-   - `get_zeabur_dashboard_info`：調閱 Zeabur 儀表板連接資訊。
-   - `check_hermes_status`：大腦在線狀態與工具管線檢測。
-   - `generate_creative_brief`：產出 16:9 分鏡鏡頭與海報視覺規格。
-   - `run_text_transform`：繁體中文切句、分鏡鏡頭拆解編號。
-3. **雙工作區模式**：
-   - **指揮中樞 (Console Cockpit)**：專業工程指揮艙，支援專案上下文、思維推導 (CoT)、工具調用追蹤與歷史對話管理。
-   - **創作小天地 (Jie's Atelier)**：粉彩靈感模式，包含倢的互動舞台。
+需要 Node.js 22.13+，建議 Node.js 24 LTS。此版本支援零登入、任務持久化與 Hermes 雙引擎備援。
 
-## 🚀 快速啟動
+1. **深度連接 Zeabur Hermes Agent**：支援 `/v1/chat/completions` SSE 即時串流與本地雙引擎備援。
+2. **全套生態系與 MCP 整合**：淡江大學校園生態 MCP、Canva 草稿藍圖、萬象靈感引擎與 Audience Twin 受眾雙生模擬。
+3. **零登入安全工作區 (No-Login Single Workspace)**：免登入開啟即用，具備嚴格的 CSRF、Same-Origin 與速率限制防護。
 
-```bash
-# 1. 安裝依賴
-npm install
+1. `npm ci`
+2. 複製 `.env.example` 到 `.env.local`，依註解設定。
+3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。
+4. `npm run dev`；正式環境使用 `npm run build` 與 `npm start`。
 
-# 2. 開發模式
-npm run dev
+# No Login
 
-# 3. 生產編譯
-npm run build
-```
+開啟網站即可使用。不需要帳號、密碼、註冊或 session 登入閘。資料寫入固定後端 namespace `workspace`，不會在介面顯示。
 
-## 🛠️ Zeabur 連線指引
+若把 Console 網域直接暴露在公開 Internet，任何知道網址的人都可能消耗 Hermes／MCP 資源。請使用可選的部署層保護（Zeabur private networking、reverse proxy、Cloudflare Access、VPN、IP allowlist），不要在 Console UI 恢復登入。
 
-1. 在 Zeabur 專案管理面板，為 `hermes-agent` 服務綁定一個公開網域（例如 `https://hermes-agent.zeabur.app`）。
-2. 在 Hermes Console 右上角點擊「Zeabur 連線設定」，填入該網域並點擊「儲存連線設定」。
-3. 點擊「即時 Ping 測試」確認連線顯示 🟢 綠燈即可全面啟動 Hermes 大腦！
+## 重要安全操作
+
+之前提交過的金鑰與管理密碼必須在部署端撤銷／更換。移除现行檔案不會清除 Git 歷史、快取或既有部署，也不代表憑證已撤銷。此分支不重寫歷史，不強制推送，不自動部署。
+
+後端只使用管理者設定的 HTTPS 目標，拒絕重導向與瀏覽器傳入的服務網址或金鑰。Console 密碼不會提供給 Hermes。
+
+## 驗證與限制
+
+請參閱 `docs/DELIVERY.md`。契約測試使用明確隔離的測試伺服器，不是 Zeabur／Canva 實機整合驗證。

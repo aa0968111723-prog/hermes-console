@@ -1,6 +1,6 @@
-import { normalizeBaseUrl, HERMES_DEFAULTS } from "../../hermes-config.ts";
-import { HERMES_TOOLS, executeHermesTool } from "../../tools.ts";
-import { streamLocalHermesResponse, type ChatMessage } from "../../local-brain.ts";
+import { normalizeBaseUrl, HERMES_DEFAULTS } from "../integrations/truth-status";
+import { HERMES_TOOLS, executeHermesTool } from "./tools";
+import { streamLocalHermesResponse, type ChatMessage } from "./local-brain";
 import { getAgentProfile, type AgentProfile } from "./registry.ts";
 import { getOrCreateSessionContext, type SessionContext } from "./session.ts";
 import { recordUsage } from "./usage.ts";

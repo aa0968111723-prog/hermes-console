@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { searchMemories, listMemories, addMemory } from "@/lib/server/hermes";
+import { NextRequest, NextResponse } from "next/server";
+import { searchMemories, listMemories, addMemory } from "@/lib/server/hermes/memory";
 import { verifySameOrigin } from "@/lib/server/security";
 
 export async function GET(req: NextRequest) {

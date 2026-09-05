@@ -1,4 +1,4 @@
-import { normalizeBaseUrl, HERMES_DEFAULTS } from "../../hermes-config.ts";
+import { normalizeBaseUrl, HERMES_DEFAULTS } from "../integrations/truth-status";
 import { validateSsrfSafeUrl } from "../security.ts";
 import { listAgentProfiles } from "./registry.ts";
 

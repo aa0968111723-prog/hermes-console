@@ -1,5 +1,5 @@
-﻿import { NextResponse } from "next/server";
-import { listAgentProfiles } from "@/lib/server/hermes";
+import { NextResponse } from "next/server";
+import { listAgentProfiles } from "@/lib/server/hermes/registry";
 
 export async function GET() {
   const profiles = listAgentProfiles();

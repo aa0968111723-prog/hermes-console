@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { probeHermesCapabilities } from "@/lib/server/hermes";
+import { NextRequest, NextResponse } from "next/server";
+import { probeHermesCapabilities } from "@/lib/server/hermes/discovery";
 import { checkRateLimit } from "@/lib/server/security";
 
 export async function POST(req: NextRequest) {

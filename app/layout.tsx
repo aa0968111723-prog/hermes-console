@@ -1,13 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hermes Console — 柯能中央大腦控制台",
-  description: "深度連接 Zeabur Hermes Agent 伺服器，柯能生態系 41 專案對話與工具中樞"
+  title: "Hermes Creative Intelligence",
+  description: "與 Hermes 一起，把活動想法整理成有來源、可接續的創作。",
+};
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#FAFCF8",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
-  children
+  children,
 }: {
   children: React.ReactNode;
 }) {

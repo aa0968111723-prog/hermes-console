@@ -9,12 +9,14 @@ interface Props {
   initialPrompt?: string;
   onSelectProject?: (proj: string) => void;
   onSendChatMessage?: (msg: string) => void;
+  onBack?: () => void;
 }
 
 export default function CreativeIntelligenceView({
   initialPrompt = "幫我做給淡江大學大一新生看的禪學社茶會網宣",
   onSelectProject,
-  onSendChatMessage
+  onSendChatMessage,
+  onBack
 }: Props) {
   const [prompt, setPrompt] = useState(initialPrompt);
   const [activeProject, setActiveProject] = useState("tku-zen-agent");

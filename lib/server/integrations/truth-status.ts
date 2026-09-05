@@ -1,5 +1,14 @@
-﻿import { normalizeBaseUrl, HERMES_DEFAULTS } from "../../hermes-config.ts";
 import { getWorkspaceCanvaToken } from "../canva-auth.ts";
+
+export function normalizeBaseUrl(raw?: string): string {
+  if (!raw) return "";
+  return raw.replace(/\/v1\/?$/, "").replace(/\/+$/, "");
+}
+
+export const HERMES_DEFAULTS = {
+  DEFAULT_MODEL: "hermes-agent",
+  DEFAULT_API_KEY: ""
+};
 
 export type IntegrationTruthStatus =
   | "Connected"
