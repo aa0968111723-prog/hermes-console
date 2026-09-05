@@ -1,10 +1,10 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { runCreativeIntelligencePipeline } from "@/lib/server/creative-workflow/pipeline.ts";
-import { verifySameOrigin, checkRateLimit } from "@/lib/server/security.ts";
+import { requireWriteOrigin, checkRateLimit } from "@/lib/server/security.ts";
 
 export async function POST(req: NextRequest) {
   // 1. 同源寫入防護
-  const originCheck = verifySameOrigin(req);
+  const originCheck = requireWriteOrigin(req);
   if (!originCheck.ok) {
     return NextResponse.json({ error: originCheck.reason }, { status: 403 });
   }

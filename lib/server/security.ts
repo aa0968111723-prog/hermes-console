@@ -201,6 +201,22 @@ export function checkOrigin(request: Request) {
       "來源驗證失敗，請重新載入工作區。",
     );
 }
+
+/** Write-route origin gate used by no-login Next handlers. */
+export function requireWriteOrigin(request: Request): { ok: boolean; reason?: string } {
+  const configured = process.env.CONSOLE_ORIGIN;
+  if (configured) {
+    try {
+      if (request.headers.get("origin") !== new URL(configured).origin) {
+        return { ok: false, reason: "來源驗證失敗，請重新載入工作區。" };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, reason: "來源驗證失敗，請重新載入工作區。" };
+    }
+  }
+  return verifySameOrigin(request as NextRequest);
+}
 export function authenticate(request: Request, mutation = false): string {
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);

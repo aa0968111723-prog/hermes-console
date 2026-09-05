@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { probeHermesCapabilities } from "@/lib/server/hermes/discovery";
-import { checkRateLimit } from "@/lib/server/security";
+import { checkRateLimit, requireWriteOrigin } from "@/lib/server/security";
 
 export async function POST(req: NextRequest) {
+  const originCheck = requireWriteOrigin(req);
+  if (!originCheck.ok) {
+    return NextResponse.json({ error: originCheck.reason }, { status: 403 });
+  }
   const clientIp = req.headers.get("x-forwarded-for") || "127.0.0.1";
   const rate = checkRateLimit(`probe_${clientIp}`, 30, 60000);
   if (!rate.allowed) {

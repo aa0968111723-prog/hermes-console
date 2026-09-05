@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { simulateAudienceReaction } from "@/lib/server/audience-twin/engine.ts";
 import { runReverseThinkingEvaluation } from "@/lib/server/audience-twin/reverse-thinking.ts";
 import { wantsReverseThinking } from "@/lib/server/audience.ts";
-import { verifySameOrigin, checkRateLimit } from "@/lib/server/security.ts";
+import { requireWriteOrigin, checkRateLimit } from "@/lib/server/security.ts";
 
 export async function POST(req: NextRequest) {
-  const originCheck = verifySameOrigin(req);
+  const originCheck = requireWriteOrigin(req);
   if (!originCheck.ok) {
     return NextResponse.json({ error: originCheck.reason }, { status: 403 });
   }

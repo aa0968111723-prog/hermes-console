@@ -344,7 +344,7 @@ export function probePinterestStatus(): IntegrationCheckResult {
 /**
  * 取得全域整合狀態報告
  */
-export async function getAllIntegrationsReport(options?: {
+export async function getAllIntegrationsReport(_options?: {
   rawUrl?: string;
   apiKey?: string;
 }): Promise<{
@@ -352,8 +352,9 @@ export async function getAllIntegrationsReport(options?: {
   integrations: IntegrationCheckResult[];
   overallHealth: "healthy" | "partial_ready" | "needs_attention";
 }> {
+  void _options;
   const [hermes, canva, tku, instagram, pinterest] = await Promise.all([
-    probeZeaburHermesStatus(options?.rawUrl, options?.apiKey),
+    probeZeaburHermesStatus(),
     Promise.resolve(probeCanvaStatus()),
     probeTamkangMcpStatus(),
     Promise.resolve(probeInstagramStatus()),

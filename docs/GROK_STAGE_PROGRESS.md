@@ -1,52 +1,50 @@
 # Grok Staged Long-Run Progress
 
 ## Current Phase
-Phase 9 complete locally; next is Phase 10.
+Phase 10 complete locally; next is Phase 11.
 
 ## Observed Main SHA
 `d24da9c85a2f5fd1362b3407c0be15fa99293ac6`
 
 ## Observed PR #10 SHA
-`ae9b3b6` Phase 8 Canva workflow; this checkpoint adds Phase 9 safe social publishing.
+`ff8d4ac` Phase 9 safe publishing; this checkpoint hardens no-login integration security.
 
 ## Latest Antigravity findings reviewed
-- Cycle 1–2 Hermes/MCP truthful probes remain RESOLVED.
-- MCP `publish_social_campaign` returned `published: true` in sandbox and confirmPublish fabricated `ig_live_` ids when ENABLE_LIVE_PUBLISH was on. Phase 9 never auto-posts to Meta Graph (irreversible); sandbox is `published: false` / `livePosted: false`.
+- Cycle 1: client-supplied probe URL/key was a SECURITY RISK; `/api/hermes/probe` already rejects it. `/api/integrations/status` still accepted `baseUrl`/`apiKey`. Phase 10 rejects those and ignores them in `getAllIntegrationsReport`.
 
 ### Classification
 | Finding | Class | Status |
 | --- | --- | --- |
-| Sandbox `published: true` | FAKE-STATE | Phase 9: `describeMcpSandboxPublish` livePosted=false |
-| Fabricated live Graph media ids | FAKE-STATE | Phase 9: queued sandbox even if ENABLE_LIVE_PUBLISH |
-| Meta Graph live publish | EXTERNAL BLOCKER | Needs user OAuth; adapters/tests/degraded UX shipped |
+| Client-supplied probe URL/key | SECURITY RISK | Phase 10: status + probe reject client credentials; report uses env only |
+| Missing origin on Next write handlers | SECURITY RISK | Phase 10: `requireWriteOrigin` when CONSOLE_ORIGIN is set |
 
 ## Completed
-- Phase 0–8 as previously committed (`a40c2d6` … `ae9b3b6`).
-- Phase 9 safe social publishing workflow: `prepareSafeSocialPublish` (confirmation, no autoRetry); creative pipelines attach workflow; MCP sandbox confirm does not claim a live post.
+- Phase 0–9 as previously committed (`a40c2d6` … `ff8d4ac`).
+- Phase 10 no-login security: GET workspace/health/inspiration/personas without login; writes need matching Origin; probe/status reject client Hermes URL/key; `confirmed=true` still insufficient for publish.
 
 ## Verified
-- `prepareSafeSocialPublish` always `published: false`, `livePosted: false`, `requiresConfirmation: true`.
-- Thin pipeline `publish.enabled` remains false here; `social.publish` is false.
-- MCP confirm after token: `published: false`, `mode: sandbox_simulation`.
-- `npm test` 124/124; `typecheck`; `check:secrets`.
+- GET APIs 200 without login cookies.
+- Attacker Origin → 403 on probe/simulate/publish.
+- Status GET/POST with apiKey/baseUrl → 400.
+- Integration report not Connected from client destinations.
+- `npm test` 130/130; `typecheck`; `check:secrets`.
 
 ## Still partial
 - Live Hermes session history/search still unsupported until `/api/sessions`.
-- Canva live design create/export blocked on user OAuth.
-- Meta Graph / Instagram live publish blocked on OAuth (EXTERNAL BLOCKER).
-- No-login integration security hardening (Phase 10).
+- Canva / Meta live actions blocked on OAuth.
+- Mobile creative workspace simplification (Phase 11).
 
 ## External blockers
 - Live Hermes named profiles and scoped keys.
 - `TKU_MCP_URL` live endpoint.
 - Canva user OAuth.
-- **Meta Graph / Instagram publish OAuth** (Phase 9 degraded UX shipped).
+- Meta Graph / Instagram publish OAuth.
 - Pinterest official API.
 
 ## Tests run
-- `npm test`: 124/124 pass
+- `npm test`: 130/130 pass
 - `npm run typecheck`: pass
-- `npm run check:secrets`: PASS, 219 files
+- `npm run check:secrets`: PASS, 220 files
 
 ## Tests failed
 None.
@@ -56,17 +54,17 @@ None.
 - Previously pasted secrets remain compromised; not copied into code.
 
 ## Files modified
-- `lib/server/publish/safe-workflow.ts`
-- `lib/server/publish.ts`
-- `lib/server/mcp/registry.ts`
-- `lib/server/creative/pipeline.ts`
-- `lib/server/creative-workflow/pipeline.ts`
-- `tests/phase4_mcp_inspiration.test.ts`
-- `tests/phase9_safe_publish.test.ts`
+- `lib/server/security.ts`
+- `lib/server/integrations/truth-status.ts`
+- `app/api/integrations/status/route.ts`
+- `app/api/hermes/probe/route.ts`
+- `app/api/creative/pipeline/route.ts`
+- `app/api/audience-twin/simulate/route.ts`
+- `tests/phase10_nologin_security.test.ts`
 - `docs/GROK_STAGE_PROGRESS.md`
 
 ## Commit
-`feat: add safe social publishing workflow`
+`test: harden no-login integration security`
 
 ## Next Phase
-Phase 10 — test: harden no-login integration security.
+Phase 11 — refactor: simplify mobile creative workspace experience.
