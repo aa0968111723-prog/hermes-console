@@ -1,11 +1,12 @@
 import { searchMemories } from "../hermes/memory.ts";
 import { queryTkuCalendar, queryTkuVenues, getTkuZenClubProfile } from "../mcp/tamkang-adapter.ts";
 import { searchInspirations } from "../inspiration/engine.ts";
-import { simulateAudienceReaction, resolveContextDomain } from "../audience-twin/engine.ts";
+import { resolveContextDomain } from "../audience-twin/engine.ts";
 import type { AudienceScore, AudienceSimulationResult } from "../audience-twin/types.ts";
 import { generateConfirmationToken } from "../mcp/registry.ts";
-import { getRawDirectionsForDomain, getSocialLogisticsForDomain } from "./directions.ts";
+import { getSocialLogisticsForDomain } from "./directions.ts";
 import { researchInstagramTrends, type InstagramResearchReport } from "../social/instagram-research.ts";
+import { runResearchAudienceDirectionWorkflow } from "../creative/research-direction-workflow.ts";
 
 export interface CreativeDirection {
   id: string;
@@ -53,6 +54,13 @@ export interface CreativePipelineResult {
     toolTarget: string;
   };
   instagramResearch?: InstagramResearchReport;
+  research?: ReturnType<typeof runResearchAudienceDirectionWorkflow>["research"];
+  researchAudienceWorkflow?: {
+    domain: string;
+    connected: string[];
+    method: "ai_heuristic";
+    topDirectionId: string;
+  };
 }
 
 export async function runCreativeIntelligencePipeline(
@@ -62,6 +70,10 @@ export async function runCreativeIntelligencePipeline(
   const project = options?.activeProject || "tku-zen-agent";
   const domain = resolveContextDomain(userQuery, project);
   const logistics = getSocialLogisticsForDomain(domain);
+  const workflow = runResearchAudienceDirectionWorkflow({
+    prompt: userQuery,
+    projectId: project,
+  });
 
   // 1. 檢索校園記憶
   const relevantMemories = searchMemories(userQuery, project).map((m) => ({
@@ -70,27 +82,22 @@ export async function runCreativeIntelligencePipeline(
     content: m.content
   }));
 
-  // 2. 調用校園 MCP 適配器 (若為淡江脈絡提供在地日曆與場地)
-  const calendarEvent = await queryTkuCalendar(2);
-  const venues = await queryTkuVenues();
-  const clubProfile = getTkuZenClubProfile();
+  // 2. 校園研究：淡江才呼叫 Tamkang adapter；其他領域用 domain research bundle
+  const calendarEvent =
+    domain === "tamkang"
+      ? await queryTkuCalendar(2)
+      : { source: "console_notes", mcpVerified: false, note: "非淡江脈絡，未呼叫 Tamkang MCP" };
+  const venues = domain === "tamkang" ? await queryTkuVenues() : { source: "console_notes", mcpVerified: false };
+  const clubProfile = domain === "tamkang" ? getTkuZenClubProfile() : { source: "console_notes", mcpVerified: false };
 
   // 3. 調用靈感引擎
   const searchKeyword = domain === "ntu" ? "臺大" : domain === "tamkang" ? "淡水" : "校園";
   const inspirations = searchInspirations(searchKeyword, domain);
 
-  // 4. 建構動態差異化策略創意方向
-  const rawDirections = getRawDirectionsForDomain(domain);
-
-  // 5. 針對每個方向執行 Audience Twin 受眾雙生模擬與評分
-  const directions: CreativeDirection[] = rawDirections.map((dir) => {
-    const simulation = simulateAudienceReaction(
-      dir.title,
-      dir.coreInsight,
-      dir.visualConcept,
-      dir.hook,
-      project
-    );
+  // 4–5. 研究摘要 → 受眾模擬 → 方向排序（同一套 workflow）
+  const directions: CreativeDirection[] = workflow.ranked.map((item) => {
+    const dir = item.raw;
+    const simulation = item.simulation;
 
     const canvaBlueprint = {
       title: `${dir.title} (Canva 1080x1350)`,
@@ -180,8 +187,7 @@ export async function runCreativeIntelligencePipeline(
     };
   });
 
-  // 排序選出最佳方向
-  const sorted = [...directions].sort((a, b) => b.audienceScores.overallScore - a.audienceScores.overallScore);
+  const sorted = directions;
   const topDirection = sorted[0];
 
   // 產生敏感發布確認 Token
@@ -229,6 +235,13 @@ export async function runCreativeIntelligencePipeline(
       actionName: "發布 Instagram 網宣與同步至 Canva",
       toolTarget: "publish_social_campaign"
     },
-    instagramResearch: researchInstagramTrends({ domain, topic: userQuery })
+    instagramResearch: researchInstagramTrends({ domain, topic: userQuery }),
+    research: workflow.research,
+    researchAudienceWorkflow: {
+      domain: workflow.domain,
+      connected: [...workflow.connected],
+      method: "ai_heuristic",
+      topDirectionId: workflow.topDirection.raw.id,
+    },
   };
 }

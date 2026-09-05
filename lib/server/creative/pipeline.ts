@@ -4,7 +4,6 @@ import { wantsReverseThinking } from "../audience";
 import { runReverseThinkingEvaluation } from "../audience-twin/reverse-thinking";
 import { debateFromEvaluations } from "../audience/debate";
 import { searchInspiration } from "../inspiration/engine";
-import { researchBundle } from "../research/providers";
 import { canvaStatus } from "../canva";
 import { WORKSPACE_OWNER } from "../security";
 import {
@@ -20,6 +19,7 @@ import {
 import { socialDrafts } from "./social";
 import { routeToolsets } from "../projects/router";
 import { instagramPublishStatus } from "../publish";
+import { runResearchAudienceDirectionWorkflow } from "./research-direction-workflow";
 
 function directionsFor(prompt: string): RankableDirection[] {
   if (/攝影/.test(prompt))
@@ -78,15 +78,28 @@ export function runCreativeIntelligence(input: {
   tamkangReachable?: boolean;
 }) {
   const projectId = input.projectId || "personal";
-  const research = researchBundle({
+  const workflow = runResearchAudienceDirectionWorkflow({
     prompt: input.prompt,
-    mcpReachable: input.tamkangReachable,
+    projectId,
+    tamkangReachable: input.tamkangReachable,
   });
+  const research = workflow.research;
   const profile = buildProfile({
     projectId,
-    institution: /台大/.test(input.prompt) ? "國立臺灣大學" : "淡江大學",
-    location: /台大/.test(input.prompt) ? "公館" : "淡水",
-    name: /台大/.test(input.prompt) ? "台大大一新生" : "淡江大一新生",
+    institution:
+      workflow.domain === "ntu"
+        ? "國立臺灣大學"
+        : workflow.domain === "general"
+          ? "大專院校"
+          : "淡江大學",
+    location:
+      workflow.domain === "ntu" ? "公館" : workflow.domain === "general" ? "校園" : "淡水",
+    name:
+      workflow.domain === "ntu"
+        ? "台大大一新生"
+        : workflow.domain === "general"
+          ? "大一新生"
+          : "淡江大一新生",
   });
   const graph = contextGraph(profile.institution);
   const directions = directionsFor(input.prompt);
@@ -155,5 +168,12 @@ export function runCreativeIntelligence(input: {
           location: profile.location,
         })
       : null,
+    researchAudienceWorkflow: {
+      domain: workflow.domain,
+      connected: [...workflow.connected],
+      method: "ai_heuristic" as const,
+      topDirectionId: workflow.topDirection.raw.id,
+      rankedCount: workflow.ranked.length,
+    },
   };
 }
