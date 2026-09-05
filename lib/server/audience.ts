@@ -86,10 +86,17 @@ export function buildTwin(input: {
   };
 }
 
+export function reverseThinkingTriggers(text: string): string[] {
+  const hits: string[] = [];
+  if (/反向想|反向思考|倒過來想/.test(text)) hits.push("reverse_prompt");
+  if (/站在.+角度|從受眾|目標客群角度/.test(text)) hits.push("audience_angle");
+  if (/如果我是/.test(text)) hits.push("if_i_were");
+  if (/路人會不會滑掉|會不會滑掉|會被滑掉/.test(text)) hits.push("swipe_risk");
+  return hits;
+}
+
 export function wantsReverseThinking(text: string) {
-  return /反向想|站在.+角度|如果我是|路人會不會滑掉|會不會滑掉|目標客群角度/.test(
-    text,
-  );
+  return reverseThinkingTriggers(text).length > 0;
 }
 
 export function clampScore(value: number) {

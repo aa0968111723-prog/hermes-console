@@ -1,50 +1,44 @@
 # Grok Staged Long-Run Progress
 
 ## Current Phase
-Phase 5 complete locally; next is Phase 6.
+Phase 6 complete locally; next is Phase 7.
 
 ## Observed Main SHA
-`7efcc06142a770f218a150f241354fd8fcda245f` (PR #11 merged)
+`d24da9c85a2f5fd1362b3407c0be15fa99293ac6`
 
 ## Observed PR #10 SHA
-`1fc63c1` Phase 4 truthful inspiration pipeline; this checkpoint adds Phase 5 Audience Twin grounding.
+`cf10e40` Phase 5 Audience Twin grounding; this checkpoint adds Phase 6 reverse thinking and simulated evaluation.
 
 ## Latest Antigravity findings reviewed
-- Cycle 1 (Hermes API): 404-as-online RESOLVED; static 7 profiles labeled `console_role`.
-- Cycle 2 (Tamkang/MCP): HTTP 200 ≠ Verified; local notes `console_notes`.
-- Inspiration (Phase 4): palettes labeled `console_fixture`; no live fetch.
-- Audience Twin: named personas 小涵/阿倫/廷宇/小琪/V導 were STATIC and presented without fixture labels; fake “survey” source tags treated dwell-time lifts as evidence. Phase 5 labels personas `console_fixture` + `ai_heuristic`; evidence requires official URL / console_notes / console_spec.
+- Cycle 1–2 Hermes/MCP truthful probes remain RESOLVED.
+- Inspiration palettes labeled `console_fixture` (Phase 4).
+- Personas labeled console fixtures; evidence grounded (Phase 5).
+- Reverse thinking was a boolean only; evaluation engines were not connected. Phase 6 adds bystander-first reverse pass + heuristic envelope, no conversionRate.
 
 ### Classification
 | Finding | Class | Status |
 | --- | --- | --- |
 | 404 treated as Hermes online | VERIFIED BUG | RESOLVED |
-| `0.0.0.0` SSRF | SECURITY RISK | RESOLVED |
-| 7 Agent Profiles hardcoded as live Hermes | STATIC | RESOLVED (Phase 1) |
-| Curated palettes as live web/IG trends | STATIC / FAKE | RESOLVED (Phase 4) |
-| Personas 小涵/阿倫/廷宇/小琪/V導 | STATIC | Phase 5: `sourceKind: console_fixture`, simulation=true, method=ai_heuristic |
-| Fake survey/dwell-time as evidence | STATIC / FAKE | Phase 5: official_web / console_notes / console_spec only; lifts are hypotheses |
-| `腳踏車` classified as NTU | STATIC | Phase 5: generic bike text stays `general` |
+| Personas 小涵/阿倫/廷宇/小琪/V導 | STATIC | RESOLVED (Phase 5 console_fixture) |
+| Fake survey/dwell-time as evidence | STATIC / FAKE | RESOLVED (Phase 5) |
+| Reverse thinking was prompt-flag only | PARTIAL | Phase 6: `runReverseThinkingEvaluation` bystander-first, `ai_heuristic` |
+| Evaluation claimed live metrics | STATIC / FAKE | Phase 6: swipeRisk heuristic; no conversionRate |
 
 ## Completed
-- Phase 0 truthful integration baseline (`a40c2d6`).
-- Phase 1 Hermes control plane (`a231f50`).
-- Phase 2 memory/usage/task telemetry (`fc75d22`).
-- Phase 3 verified MCP routing (`5a6d61f`, `46c1725`).
-- Phase 4 truthful universal inspiration pipeline (`1fc63c1`).
-- Phase 5 Audience Twin contextual and evidence grounded: personas labeled console fixtures; facts carry `sourceKind`/`sourceUrl`/`liveFetch: false`; Tamkang/NTU official web sources; simulation envelope `method: ai_heuristic`.
+- Phase 0–5 as previously committed (`a40c2d6` … `cf10e40`).
+- Phase 6 audience reverse thinking and simulated evaluation: reverse-order personas (bystander → skeptic → freshman → peer → director); connects `simulateAudienceReaction` + `evaluateArtifact`; `/api/audience` action `reverse`; simulate route optional reverse pass; creative pipeline attaches reverse thinking only when prompted.
 
 ## Verified
-- Default Hermes works when named profiles are absent.
-- Inspiration search does not claim Instagram/Pinterest full-site search.
-- Audience Twin personas are not live respondents.
-- Evidence facts for Tamkang include `https://www.tku.edu.tw/`; NTU includes `https://www.ntu.edu.tw/` and 椰林大道/醉月湖 without 克難坡 leak.
-- Dwell-time and conversion-lift claims are hypotheses.
-- `npm test` 104/104; `typecheck`; `check:secrets`.
+- `wantsReverseThinking("路人會不會滑掉")` still true.
+- Reverse perspectives start with bystander; method `ai_heuristic`; personas `console_fixture`.
+- Envelope has no `conversionRate`.
+- NTU reverse pass does not leak 克難坡/福園.
+- Pipeline without reverse prompt leaves `reverseThinking: null`.
+- `npm test` 109/109; `typecheck`; `check:secrets`.
 
 ## Still partial
 - Live Hermes session history/search still unsupported until `/api/sessions`.
-- Reverse-thinking / simulated evaluation workflow (Phase 6).
+- Research → audience → creative direction workflow (Phase 7).
 - Tamkang local notes labeled `console_notes` until live MCP verify.
 - Instagram/Pinterest remain Partial until official OAuth + API.
 
@@ -56,9 +50,9 @@ Phase 5 complete locally; next is Phase 6.
 - Pinterest official API.
 
 ## Tests run
-- `npm test`: 104/104 pass
+- `npm test`: 109/109 pass
 - `npm run typecheck`: pass
-- `npm run check:secrets`: PASS, 211 files
+- `npm run check:secrets`: PASS, 213 files
 
 ## Tests failed
 None.
@@ -68,15 +62,16 @@ None.
 - Previously pasted secrets remain compromised; not copied into code.
 
 ## Files modified
-- `lib/server/audience-twin/types.ts`
-- `lib/server/audience-twin/engine.ts`
-- `lib/server/research/providers.ts`
-- `app/api/audience-twin/personas/route.ts`
-- `tests/phase5_audience_twin.test.ts`
+- `lib/server/audience.ts`
+- `lib/server/audience-twin/reverse-thinking.ts`
+- `lib/server/creative/pipeline.ts`
+- `app/api/audience/route.ts`
+- `app/api/audience-twin/simulate/route.ts`
+- `tests/phase6_reverse_thinking.test.ts`
 - `docs/GROK_STAGE_PROGRESS.md`
 
 ## Commit
-`feat: make Audience Twin contextual and evidence grounded`
+`feat: add audience reverse thinking and simulated evaluation`
 
 ## Next Phase
-Phase 6 — add audience reverse thinking and simulated evaluation.
+Phase 7 — connect research audience and creative direction workflow.

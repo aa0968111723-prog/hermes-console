@@ -13,6 +13,7 @@ import {
   evaluationEnvelope,
 } from "@/lib/server/audience/evaluation";
 import { debateFromEvaluations } from "@/lib/server/audience/debate";
+import { runReverseThinkingEvaluation } from "@/lib/server/audience-twin/reverse-thinking";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   authenticate(req);
@@ -29,7 +30,7 @@ export const POST = route(async (req) => {
   authenticate(req, true);
   const body = z
     .object({
-      action: z.enum(["twin", "score", "debate", "evaluate", "profile"]),
+      action: z.enum(["twin", "score", "debate", "evaluate", "profile", "reverse"]),
       label: z.string().max(120).optional(),
       institution: z.string().max(80).optional(),
       location: z.string().max(80).optional(),
@@ -64,6 +65,19 @@ export const POST = route(async (req) => {
       simulation: true,
       method: "ai_heuristic",
     });
+  }
+  if (body.action === "reverse") {
+    return respond(
+      runReverseThinkingEvaluation({
+        prompt: body.title || body.copy || body.label || "反向思考",
+        conceptTitle: body.title || body.label || "未命名概念",
+        description: body.copy,
+        copyExcerpt: body.copy,
+        projectId: body.projectId,
+        institution: body.institution,
+        location: body.location,
+      }),
+    );
   }
   if (body.action === "evaluate") {
     const profile = buildProfile({

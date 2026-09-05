@@ -1,5 +1,7 @@
 import { buildProfile, contextGraph } from "../audience/engine";
 import { evaluateArtifact, evaluationEnvelope } from "../audience/evaluation";
+import { wantsReverseThinking } from "../audience";
+import { runReverseThinkingEvaluation } from "../audience-twin/reverse-thinking";
 import { debateFromEvaluations } from "../audience/debate";
 import { searchInspiration } from "../inspiration/engine";
 import { researchBundle } from "../research/providers";
@@ -142,5 +144,16 @@ export function runCreativeIntelligence(input: {
     }),
     tools: routeToolsets(input.prompt),
     publish: instagramPublishStatus(),
+    reverseThinking: wantsReverseThinking(input.prompt)
+      ? runReverseThinkingEvaluation({
+          prompt: input.prompt,
+          conceptTitle: selected.title,
+          description: selected.copy,
+          copyExcerpt: selected.copy,
+          projectId,
+          institution: profile.institution,
+          location: profile.location,
+        })
+      : null,
   };
 }
