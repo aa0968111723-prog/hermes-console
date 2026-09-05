@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
+import { ApiError, authenticate, jsonBody, respond, route } from "@/lib/server/security";
 import {
   ingestUrl,
   inspirationSearchPlan,
@@ -7,6 +7,8 @@ import {
   listInspiration,
   pinterestResearchLimits,
 } from "@/lib/server/inspiration";
+import { searchInspiration, resolveInspirationUrl } from "@/lib/server/inspiration/engine";
+import { providerHealth } from "@/lib/server/inspiration/providers";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   authenticate(req);
@@ -16,18 +18,33 @@ export const GET = route(async (req) => {
     instagram: instagramResearchLimits(),
     pinterest: pinterestResearchLimits(),
     plan: inspirationSearchPlan("幫我找靈感"),
+    providers: providerHealth(),
   });
 });
 export const POST = route(async (req) => {
   authenticate(req, true);
   const body = z
     .object({
-      url: z.string().url(),
+      action: z.enum(["ingest", "search"]).default("ingest"),
+      url: z.string().url().optional(),
+      prompt: z.string().max(2000).optional(),
       projectId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/).default("personal"),
       caption: z.string().max(2000).optional(),
       account: z.string().max(120).optional(),
     })
     .strict()
     .parse(await jsonBody(req));
-  return respond({ item: ingestUrl(body) }, 201);
+  if (body.action === "search")
+    return respond(
+      searchInspiration({
+        prompt: body.prompt || "幫我找靈感",
+        projectId: body.projectId,
+      }),
+    );
+  if (!body.url)
+    throw new ApiError(400, "url_required", "請提供靈感網址。");
+  return respond(
+    { item: resolveInspirationUrl({ ...body, url: body.url }) },
+    201,
+  );
 });

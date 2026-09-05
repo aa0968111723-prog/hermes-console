@@ -1,5 +1,5 @@
 const INJECTION =
-  /忽略系統指令|ignore (all )?(previous|system) instructions|you are now|override (the )?(system|developer)|disregard (previous|above)|jailbreak/i;
+  /忽略系統指令|ignore (all |your )?(previous |system )?instructions|you are now|override (the )?(system|developer)|disregard (previous|above)|jailbreak/i;
 
 export function containsInjectionAttempt(text: string) {
   return INJECTION.test(text);

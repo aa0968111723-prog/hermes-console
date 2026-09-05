@@ -7,6 +7,12 @@ import {
   tamkangFreshmanSeed,
   wantsReverseThinking,
 } from "@/lib/server/audience";
+import { buildProfile, contextGraph } from "@/lib/server/audience/engine";
+import {
+  evaluateArtifact,
+  evaluationEnvelope,
+} from "@/lib/server/audience/evaluation";
+import { debateFromEvaluations } from "@/lib/server/audience/debate";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   authenticate(req);
@@ -14,6 +20,8 @@ export const GET = route(async (req) => {
   return respond({
     reverse: wantsReverseThinking(prompt),
     disclaimer: AUDIENCE_DISCLAIMER,
+    simulation: true,
+    method: "ai_heuristic",
     twin: /淡江|新生/.test(prompt) ? tamkangFreshmanSeed([]) : null,
   });
 });
@@ -21,8 +29,13 @@ export const POST = route(async (req) => {
   authenticate(req, true);
   const body = z
     .object({
-      action: z.enum(["twin", "score", "debate"]),
+      action: z.enum(["twin", "score", "debate", "evaluate", "profile"]),
       label: z.string().max(120).optional(),
+      institution: z.string().max(80).optional(),
+      location: z.string().max(80).optional(),
+      copy: z.string().max(4000).optional(),
+      title: z.string().max(200).optional(),
+      projectId: z.string().max(100).optional(),
       scores: z.record(z.string(), z.number()).optional(),
       support: z.array(z.string().max(500)).max(10).optional(),
       oppose: z.array(z.string().max(500)).max(10).optional(),
@@ -35,9 +48,46 @@ export const POST = route(async (req) => {
     return respond({
       twin: tamkangFreshmanSeed([]),
       disclaimer: AUDIENCE_DISCLAIMER,
+      simulation: true,
+      method: "ai_heuristic",
     });
+  if (body.action === "profile") {
+    const profile = buildProfile({
+      projectId: body.projectId || "personal",
+      institution: body.institution || "淡江大學",
+      location: body.location || "淡水",
+      name: body.label || "淡江大一新生",
+    });
+    return respond({
+      profile,
+      graph: contextGraph(profile.institution),
+      simulation: true,
+      method: "ai_heuristic",
+    });
+  }
+  if (body.action === "evaluate") {
+    const profile = buildProfile({
+      projectId: body.projectId || "personal",
+      institution: body.institution || "淡江大學",
+      location: body.location || "淡水",
+      name: body.label || "淡江大一新生",
+    });
+    const roles = evaluateArtifact({
+      profile,
+      copy: body.copy || "",
+      title: body.title,
+    });
+    return respond({
+      ...evaluationEnvelope(roles),
+      debate: debateFromEvaluations(roles),
+    });
+  }
   if (body.action === "score")
-    return respond(normalizeScores(body.scores || {}));
+    return respond({
+      ...normalizeScores(body.scores || {}),
+      simulation: true,
+      method: "ai_heuristic",
+    });
   return respond(
     debateSummary({
       support: body.support || [],

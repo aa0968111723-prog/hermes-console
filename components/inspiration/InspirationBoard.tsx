@@ -11,7 +11,10 @@ export default function InspirationBoard({
   return (
     <section className="inspiration-board">
       <h1>靈感</h1>
-      <p className="muted">{notice}</p>
+      <p className="muted">
+        {notice ||
+          "統一靈感引擎：未授權時不搜尋完整 Instagram／Pinterest。"}
+      </p>
       {!items.length && <p className="quiet">貼上 IG／Pinterest／網址，或直接在對話說「幫我找靈感」。</p>}
       <ul>
         {items.map((item) => (
