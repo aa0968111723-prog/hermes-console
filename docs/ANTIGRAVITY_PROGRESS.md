@@ -167,6 +167,35 @@
    - `npm run check:secrets`：199 檔案零洩漏。
    - `npm run build`：Next.js 43/43 靜態與動態路由編譯零錯誤。
 
+## 週期 8 (Iteration 8) 全管線跨校園領域解耦、靈感庫動態適配與子任務無地標洩漏加固
+
+針對 Phase 6, 7, 8, 9 之全管線跨校園適配，完成以下 4 大核心加固：
+
+1. **多領域策略方向庫與社群活動細節獨立模組 (`lib/server/creative-workflow/directions.ts`)**：
+   - 建立 `TAMKANG_DIRECTIONS`（淡江克難坡/福園）、`NTU_DIRECTIONS`（臺大椰林大道/醉月湖）、`GENERAL_DIRECTIONS`（通用大專適應期/選課綠洲）。
+   - 實作 `getRawDirectionsForDomain(domain)` 與 `getSocialLogisticsForDomain(domain)`，將活動地點（淡江活動中心/臺大活大/通用教室）、時間、費用、Canva 底部膠囊標籤與專屬社群標籤（如 `#臺灣大學` `#椰林日常` vs `#淡江大學` `#克難坡日常`）徹底解耦。
+   - 保留淡江預設行為，100% 向後相容現有測試與呼叫合約。
+
+2. **萬象靈感引擎跨校園與當代學誌美學擴充 (`lib/server/inspiration/engine.ts`)**：
+   - 新增 `insp_ntu_yelin_minimal`（臺大椰林・醉月湖畔極簡野餐微光風格）與 `insp_campus_editorial_zen`（當代青年學誌・低飽和留白社團風格）。
+   - 升級 `searchInspirations(keyword?, domain?)`，支援依校園脈絡領域精準過濾專屬色彩與排版靈感。
+
+3. **9 大子任務編排器與端對端管線動態在地化 (`lib/server/orchestrator/task-orchestrator.ts`, `lib/server/creative-workflow/pipeline.ts`)**：
+   - 子任務 1（`memory_retrieval`）：動態適配校園記憶地標（臺大椰林大道/醉月湖 vs 淡江克難坡/福園），客觀證據與推論假設完全隔離，杜絕非淡江情境之地標洩漏。
+   - 子任務 2（`mcp_campus_research`）：動態適配調研標題、場地特性（活大多功能室 vs 淡江 B307）與來源出處。
+   - 子任務 3（`inspiration_search`）：依領域調用專屬靈感風格。
+   - 子任務 4 & 5：採用動態 `rawDirections` 與 `logistics`，Canva 第 6 層與 IG 文案內文/標籤動態注入。
+   - 子任務 8（`social_caption_draft`）：動態產出校園專屬標籤庫摘要。
+   - `pipeline.ts`：自動指派 `assignedProfile`（`ntu` 臺大校園脈絡專家 / `tku` 淡江校園脈絡專家 / `general` 大專青年脈絡專家）。
+
+4. **全新跨領域單元測試與端對端管線驗證**：
+   - 在 `tests/phase6_7_8_workflow.test.ts` 新增「測試 4: 跨校園領域全管線端對端驅動測試 (NTU Context)」。
+   - 在 `tests/phase9_orchestrator_truth.test.ts` 新增「測試 3: 跨校園領域 9 大子任務編排動態適配 (NTU Context)」。
+   - 驗證社群標籤、Canva 標籤、內文痛點精準匹配，且無任何淡江地標字樣洩漏。
+   - `npm test`：49/49 測試全數通過（100% Pass）。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：200 檔案零洩漏。
+
 ---
 
 ## 關鍵資安規範
@@ -174,3 +203,4 @@
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+

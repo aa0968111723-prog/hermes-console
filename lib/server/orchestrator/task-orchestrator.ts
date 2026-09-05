@@ -1,10 +1,11 @@
 import { searchMemories } from "../hermes/memory.ts";
 import { queryTkuCalendar, queryTkuVenues, getTkuZenClubProfile } from "../mcp/tamkang-adapter.ts";
 import { searchInspirations } from "../inspiration/engine.ts";
-import { simulateAudienceReaction, resolvePersonasForContext, PERSONAS } from "../audience-twin/engine.ts";
+import { simulateAudienceReaction, resolvePersonasForContext, resolveContextDomain, PERSONAS } from "../audience-twin/engine.ts";
 import type { AudienceScore, AudienceSimulationResult } from "../audience-twin/types.ts";
 import { generateConfirmationToken } from "../mcp/registry.ts";
 import type { CreativeDirection } from "../creative-workflow/pipeline.ts";
+import { getRawDirectionsForDomain, getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
 
 export type SubtaskType =
   | "memory_retrieval"
@@ -191,79 +192,194 @@ export async function executeOrchestratedTask(
   const startedAt = Date.now();
   const activeProject = options?.activeProject || "tku-zen-agent";
   const sessionKey = options?.sessionKey || `project:${activeProject}`;
+  const domain = resolveContextDomain(userPrompt, activeProject);
+  const logistics = getSocialLogisticsForDomain(domain);
 
   const subtasks: OrchestratedSubtask[] = [];
 
-  // ─── 子任務 1: 專案記憶與淡江脈絡檢索 ───
+  // ─── 子任務 1: 專案記憶與校園脈絡檢索 ───
   const t1Start = Date.now();
   const memories = searchMemories(userPrompt, activeProject);
+  const memDescription =
+    domain === "ntu"
+      ? "調閱臺大校園地標、椰林大道、醉月湖畔與禪學社歷史沉澱脈絡"
+      : domain === "general"
+      ? "調閱大專校園地標、選課適應期與心靈茶席社團歷史沉澱脈絡"
+      : "調閱淡江校園地標、克難坡 132 階、福園黑天鵝與禪學社歷史沉澱脈絡";
+
+  const memEvidence =
+    domain === "ntu"
+      ? [
+          "椰林大道廣大校園與單車通勤為新生第一週最強烈之適應痛點",
+          "醉月湖畔草地為臺大精神象徵，自帶寧靜與文藝氣質"
+        ]
+      : domain === "general"
+      ? [
+          "大一新生新環境適應期與選課壓力為開學最普遍之痛點",
+          "綠意草坪與靜心茶席自帶舒壓與文藝氣質"
+        ]
+      : [
+          "克難坡 132 階為全校新生第一週最強烈之體能痛點",
+          "福園黑天鵝池畔為淡江精神象徵，自帶寧靜與文藝氣質"
+        ];
+
+  const memHypotheses =
+    domain === "ntu"
+      ? [
+          "將校園廣大尋找方向轉化為湖畔喝茶放鬆的切入點能引起新生強烈好感"
+        ]
+      : domain === "general"
+      ? [
+          "將開學適應壓力轉化為喝茶放鬆的切入點能引起新生強烈好感"
+        ]
+      : [
+          "將克難坡體力疲勞轉化為喝茶放鬆的切入點能引起新生強烈好感"
+        ];
+
+  const memRights =
+    domain === "ntu"
+      ? "校園生活記憶庫・青年禪學交流會官方資料"
+      : domain === "general"
+      ? "校園生活記憶庫・大專青年心靈茶會資料"
+      : "校園歷史記憶庫・領袖禪學社官方資料";
+
   subtasks.push({
     subtaskId: "memory_retrieval",
     title: "專案大腦記憶檢索",
-    description: "調閱淡江校園地標、克難坡 132 階、福園黑天鵝與禪學社歷史沉澱脈絡",
+    description: memDescription,
     status: "completed",
     durationMs: Date.now() - t1Start,
     provenance: {
       sourceType: "project_memory",
       sourceOrigin: `memory_store:${activeProject}`,
-      rightsOrAttribution: "校園歷史記憶庫・領袖禪學社官方資料"
+      rightsOrAttribution: memRights
     },
     evidenceVsHypothesis: {
-      evidence: [
-        "克難坡 132 階為全校新生第一週最強烈之體能痛點",
-        "福園黑天鵝池畔為淡江精神象徵，自帶寧靜與文藝氣質"
-      ],
-      hypotheses: [
-        "將克難坡體力疲勞轉化為喝茶放鬆的切入點能引起新生強烈好感"
-      ]
+      evidence: memEvidence,
+      hypotheses: memHypotheses
     },
     outputSummary: `檢索到 ${memories.length} 條高度相關校園記憶`,
     outputData: memories.slice(0, 3)
   });
 
-  // ─── 子任務 2: 淡江 MCP 在地生態調研 ───
+  // ─── 子任務 2: 校園生態 MCP 調研 ───
   const t2Start = Date.now();
   const [calendar, venues, clubProfile] = await Promise.all([
     queryTkuCalendar(2),
     queryTkuVenues(),
     Promise.resolve(getTkuZenClubProfile())
   ]);
+
+  const mcpTitle =
+    domain === "ntu"
+      ? "臺大校園生態 MCP 調研"
+      : domain === "general"
+      ? "大專校園生態 MCP 調研"
+      : "淡江大學校園生態 MCP 調研";
+
+  const mcpDesc =
+    domain === "ntu"
+      ? "查詢開學迎新時程、第一活動中心多功能室與醉月湖畔草地特性"
+      : domain === "general"
+      ? "查詢開學迎新時程、學生活動中心與校園放鬆場地特性"
+      : "查詢開學迎新時程、宮燈教室長廊與學生活動中心場地特性";
+
+  const mcpOrigin =
+    domain === "ntu"
+      ? "ntu_campus_knowledge_graph"
+      : domain === "general"
+      ? "campus_youth_knowledge_graph"
+      : (process.env.TKU_MCP_URL || "tku_campus_knowledge_graph");
+
+  const mcpRights =
+    domain === "ntu"
+      ? "臺大校園行事曆與場地開放規範"
+      : domain === "general"
+      ? "大專校園行事曆與場地開放規範"
+      : "淡江大學校園行事曆與場地開放規範";
+
+  const mcpEvidence =
+    domain === "ntu"
+      ? [
+          "開學第 2 週為全校新生茶會最高峰期",
+          "第一活動中心多功能室具備空調投影與木地板，適合坐禪放鬆"
+        ]
+      : domain === "general"
+      ? [
+          "開學第 2 週為全校新生迎新茶會最高峰期",
+          "活動中心多功能教室具備舒壓活動空間，適合品茶交流"
+        ]
+      : [
+          "開學第 2 週為全校新生茶會最高峰期",
+          "活動中心 B307 具備木質地板與音響，適合坐禪放鬆"
+        ];
+
+  const mcpHypotheses =
+    domain === "ntu"
+      ? [
+          "傍晚 18:30 時段最符合新生下課後避開用餐人潮的空檔"
+        ]
+      : domain === "general"
+      ? [
+          "傍晚 18:30 時段最符合新生下課後避開通勤人潮的空檔"
+        ]
+      : [
+          "傍晚 18:30 時段最符合新生課後避開通勤人潮的空檔"
+        ];
+
+  const mcpSummary =
+    domain === "ntu"
+      ? "取得第 2 週迎新高峰時程、活動中心與湖畔場地規範"
+      : domain === "general"
+      ? "取得第 2 週迎新高峰時程、活動中心與茶會場地資料"
+      : "取得第 2 週迎新高峰時程、4 大茶會場地與官方時程表";
+
   subtasks.push({
     subtaskId: "mcp_campus_research",
-    title: "淡江大學校園生態 MCP 調研",
-    description: "查詢開學迎新時程、宮燈教室長廊與學生活動中心場地特性",
+    title: mcpTitle,
+    description: mcpDesc,
     status: "completed",
     durationMs: Date.now() - t2Start,
     provenance: {
       sourceType: "mcp_adapter",
-      sourceOrigin: process.env.TKU_MCP_URL || "tku_campus_knowledge_graph",
-      rightsOrAttribution: "淡江大學校園行事曆與場地開放規範"
+      sourceOrigin: mcpOrigin,
+      rightsOrAttribution: mcpRights
     },
     evidenceVsHypothesis: {
-      evidence: [
-        "開學第 2 週為全校新生茶會最高峰期",
-        "活動中心 B307 具備木質地板與音響，適合坐禪放鬆"
-      ],
-      hypotheses: [
-        "傍晚 18:30 時段最符合新生課後避開通勤人潮的空檔"
-      ]
+      evidence: mcpEvidence,
+      hypotheses: mcpHypotheses
     },
-    outputSummary: "取得第 2 週迎新高峰時程、4 大茶會場地與官方時程表",
+    outputSummary: mcpSummary,
     outputData: { calendar, venues, clubProfile }
   });
 
   // ─── 子任務 3: 萬象靈感引擎搜尋 ───
   const t3Start = Date.now();
-  const inspirations = searchInspirations("淡水");
+  const searchKeyword = domain === "ntu" ? "臺大" : domain === "tamkang" ? "淡水" : "校園";
+  const inspirations = searchInspirations(searchKeyword, domain);
+  const inspDesc =
+    domain === "ntu"
+      ? "提取椰林醉月湖自然微光調色盤、野餐雜誌感排版與 Canva 模板結構"
+      : domain === "general"
+      ? "提取青年學誌低飽和調色盤、當代文青極簡排版與 Canva 模板結構"
+      : "提取淡水暮色低飽和調色盤、克難坡雜誌感排版與 Canva 模板結構";
+
+  const inspOrigin =
+    domain === "ntu"
+      ? "yelin_lake_aesthetic & instagram_canva_patterns"
+      : domain === "general"
+      ? "campus_youth_editorial & instagram_canva_patterns"
+      : "tamsui_sunset_aesthetic & instagram_canva_patterns";
+
   subtasks.push({
     subtaskId: "inspiration_search",
     title: "萬象靈感引擎與社群美學提取",
-    description: "提取淡水暮色低飽和調色盤、克難坡雜誌感排版與 Canva 模板結構",
+    description: inspDesc,
     status: "completed",
     durationMs: Date.now() - t3Start,
     provenance: {
       sourceType: "inspiration_engine",
-      sourceOrigin: "tamsui_sunset_aesthetic & instagram_canva_patterns",
+      sourceOrigin: inspOrigin,
       rightsOrAttribution: "符合合理使用原則之風格結構參考"
     },
     evidenceVsHypothesis: {
@@ -280,55 +396,12 @@ export async function executeOrchestratedTask(
 
   // ─── 子任務 4: 策略創意方向生成 ───
   const t4Start = Date.now();
-  const rawDirections = [
-    {
-      id: "dir_kenan_recharge",
-      title: "克難坡登頂後的 15 分鐘心靈茶席",
-      subtitle: "腿酸先歇會兒・大腦瞬間重開機",
-      hook: "到底誰發明了 132 階克難坡？爬上來的大一新生，這杯冷泡茶我們請你喝。",
-      coreInsight: "大一開學最普遍的生理與心理痛點就是通勤爬坡。將『體能疲累』直接轉化為『放下重擔進來喝茶』的共鳴情境，無說教感。",
-      visualConcept: "日系戶外雜誌風格。畫面以淡水晨光、克難坡綠意階梯與手作陶茶碗為視覺重心，右下角點綴 36px 手作圓形三色光小印章，留白通透。",
-      colorPalette: [
-        { name: "靜謐深竹綠", hex: "#2E4036" },
-        { name: "溫潤米紙白", hex: "#F7F5EE" },
-        { name: "陶土茶韻褐", hex: "#C29B7F" },
-        { name: "朝陽晨光金", hex: "#E5C287" }
-      ]
-    },
-    {
-      id: "dir_brain_reboot",
-      title: "大一的腦袋過熱重開機模式",
-      subtitle: "選課搶不到・搶到一席清幽心靈綠洲",
-      hook: "選課系統轉圈圈、課表排得心好累？教你 5 分鐘關掉大腦雜訊的專注放鬆禪。",
-      coreInsight: "新生開學前三週的巨大焦慮源自資訊轟炸與搶課挫折。主打『科學腹式呼吸』與『大一選課不踩雷經驗分享』，具備超強實用性。",
-      visualConcept: "極簡科技人文感。冷杉灰綠與霧白底色，象徵清空大腦暫存快取（Cache），視覺無壓且高級。",
-      colorPalette: [
-        { name: "冷杉清灰綠", hex: "#4A6357" },
-        { name: "極簡月光白", hex: "#FAFAF8" },
-        { name: "琥珀茶湯金", hex: "#D4A359" },
-        { name: "墨色沉澱黑", hex: "#232B28" }
-      ]
-    },
-    {
-      id: "dir_fuyuan_twilight",
-      title: "福園黑天鵝池畔的午後微光慢活",
-      subtitle: "零社交壓力・想靜靜喝杯茶就來",
-      hook: "在淡江，最奢侈的不是早八睡飽，而是在傍晚的福園，吹著微風喝一杯剛泡好的高山茶。",
-      coreInsight: "很多內向（I人）新生渴望社交卻排斥吵鬧迎新。保證『絕不強迫上台、零尷尬破冰、純品茶聊天』，徹底卸下防備心。",
-      visualConcept: "文藝水波意象。福園池畔黑天鵝優雅倒影，搭配宮燈大道溫暖斜陽，氛圍感滿分，極適合拍照轉發。",
-      colorPalette: [
-        { name: "黛藍深湖水", hex: "#1F2F2D" },
-        { name: "溫暖燕麥白", hex: "#EDE8DF" },
-        { name: "茶韻焦糖褐", hex: "#B87A4B" },
-        { name: "夕暮微光粉", hex: "#D8A499" }
-      ]
-    }
-  ];
+  const rawDirections = getRawDirectionsForDomain(domain);
 
   subtasks.push({
     subtaskId: "direction_generation",
     title: "策略創意方向架構發想",
-    description: "產出 3 個風格迥異但精準鎖定痛點之策略方向",
+    description: `產出 ${rawDirections.length} 個風格迥異但精準鎖定痛點之策略方向`,
     status: "completed",
     durationMs: Date.now() - t4Start,
     provenance: {
@@ -352,14 +425,46 @@ export async function executeOrchestratedTask(
         { layer: 3, type: "headline", content: dir.title, note: "思源宋體 Bold 44pt，文字對齊中央微靠左" },
         { layer: 4, type: "hook_subtitle", content: dir.subtitle, note: "思源黑體 Regular 20pt，增加字距 0.1em" },
         { layer: 5, type: "three_color_seal", note: "手作圓形三色光印章（紅外、黃中、綠內）直徑 36px 置於右下角，規範落款" },
-        { layer: 6, type: "event_badge", content: "【淡江領袖禪學社・新生迎新茶會】免費入場・備有點心", note: "底部深色圓角膠囊標籤" }
+        { layer: 6, type: "event_badge", content: logistics.badgeContent, note: "底部深色圓角膠囊標籤" }
       ],
       exportDraftUrl: `https://www.canva.com/design/draft?theme=${encodeURIComponent(dir.id)}`
     };
 
-    const igCaption = {
-      hook: `🌿 ${dir.hook}`,
-      body: [
+    let captionBody: string;
+    if (domain === "ntu") {
+      captionBody = [
+        `開學第一週，你是不是也這樣？`,
+        `初到公館在椰林大道迷路、找不到腳踏車停哪，`,
+        `轉頭還要面對選課系統搶通識與滿滿的原文書課表⋯⋯`,
+        ``,
+        `給自己一個按下 Pause 的下午吧！`,
+        `不談玄學、不講大道理，`,
+        `這裡只有現泡的清香冷泡茶、手作點心，`,
+        `還有學長姐最真實的『臺大通識求生與雙主修避雷指南』。`,
+        ``,
+        `✨【保證亮點】：`,
+        `✔ 零社交壓力：不用尷尬自我介紹，純喝茶聊天放空`,
+        `✔ 專注放鬆禪體驗：5 分鐘學會深層呼吸，清空大腦雜訊`,
+        `✔ 完全免費：歡迎帶室友或好朋友一起來喝一杯好茶`
+      ].join("\n");
+    } else if (domain === "general") {
+      captionBody = [
+        `開學第一週，你是不是也這樣？`,
+        `初入大學校園面對陌生的環境與人群，`,
+        `轉頭還要面對選課排課與生活步調的大轉變⋯⋯`,
+        ``,
+        `給自己一個按下 Pause 的下午吧！`,
+        `不談玄學、不講大道理，`,
+        `這裡只有現泡的清香冷泡茶、精緻點心，`,
+        `還有學長姐最真實的『大學選課不踩雷求生指南』。`,
+        ``,
+        `✨【保證亮點】：`,
+        `✔ 零社交壓力：不用尷尬自我介紹，純喝茶聊天放空`,
+        `✔ 專注放鬆禪體驗：5 分鐘學會深層呼吸，清空大腦雜訊`,
+        `✔ 完全免費：歡迎帶室友或好朋友一起來喝一杯好茶`
+      ].join("\n");
+    } else {
+      captionBody = [
         `開學第一週，你是不是也這樣？`,
         `剛爬完克難坡 132 階喘到懷疑人生，`,
         `轉頭還要面對滿江紅的選課系統與陌生的教室⋯⋯`,
@@ -373,17 +478,15 @@ export async function executeOrchestratedTask(
         `✔ 零社交壓力：不用尷尬自我介紹，純喝茶聊天放空`,
         `✔ 專注放鬆禪體驗：5 分鐘學會深層呼吸，清空大腦雜訊`,
         `✔ 完全免費：歡迎帶室友或好朋友一起來喝一杯好茶`
-      ].join("\n"),
-      eventLogistics: [
-        `📅 時間：開學第二週 每週二 18:30 - 20:00`,
-        `📍 地點：學生活動中心 3 樓多功能社團教室（或宮燈長廊）`,
-        `🍵 費用：完全免費（備有精緻茶點與手作小禮）`
-      ].join("\n"),
+      ].join("\n");
+    }
+
+    const igCaption = {
+      hook: `🌿 ${dir.hook}`,
+      body: captionBody,
+      eventLogistics: logistics.eventLogistics,
       callToAction: `👉 點擊個人檔案自介連結預約席位，或留言「+1」小編私訊保留限定茶點份量！`,
-      hashtags: [
-        "#淡江大學", "#淡江禪學社", "#克難坡日常", "#淡江大一新生",
-        "#選課不踩雷", "#宮燈教室", "#大腦重開機", "#大學社團生活", "#茶會"
-      ]
+      hashtags: logistics.hashtags
     };
 
     return {
@@ -462,17 +565,31 @@ export async function executeOrchestratedTask(
 
   // ─── 子任務 8: 社群貼文文案排版 ───
   const t8Start = Date.now();
+  const socialDesc =
+    domain === "ntu"
+      ? "生成具有痛點鉤子、無社交壓力保證、臺大校園專屬標籤的完整貼文"
+      : domain === "general"
+      ? "生成具有痛點鉤子、無社交壓力保證、大專青年專屬標籤的完整貼文"
+      : "生成具有痛點鉤子、無社交壓力保證、淡江校園專屬標籤的完整貼文";
+
+  const socialSummary =
+    domain === "ntu"
+      ? `完成 ${rawDirections.length} 款不同策略文案與 #臺灣大學 #椰林日常 標籤庫`
+      : domain === "general"
+      ? `完成 ${rawDirections.length} 款不同策略文案與 #大學生活 #心靈充電 標籤庫`
+      : `完成 ${rawDirections.length} 款不同策略文案與 #淡江大學 #克難坡日常 標籤庫`;
+
   subtasks.push({
     subtaskId: "social_caption_draft",
     title: "Instagram / Threads 社群排版文案產出",
-    description: "生成具有痛點鉤子、無社交壓力保證、淡江校園專屬標籤的完整貼文",
+    description: socialDesc,
     status: "completed",
     durationMs: Date.now() - t8Start,
     provenance: {
       sourceType: "security_token",
       sourceOrigin: "hermes_social_copywriter"
     },
-    outputSummary: "完成 3 款不同策略文案與 #淡江大學 #克難坡日常 標籤庫"
+    outputSummary: socialSummary
   });
 
   // ─── 子任務 9: 敏感操作二次確認 Token 簽發 ───

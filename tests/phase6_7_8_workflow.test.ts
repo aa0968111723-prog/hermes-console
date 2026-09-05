@@ -128,6 +128,24 @@ async function testPipeline() {
   // 安全二次確認 Token 檢驗
   assert.ok(result.actionConfirmation.token.startsWith("conf_"), "應準備敏感發布確認 Token");
   console.log("  ✓ 全管線端對端驅動完成！包含記憶檢索、MCP、Inspiration、Canva 藍圖與二次確認");
+
+  // 4. 跨領域全管線端對端測試 (NTU Context)
+  console.log("▶ 測試 4: 跨校園領域全管線端對端驅動測試 (NTU Context)");
+  const ntuResult = await runCreativeIntelligencePipeline(
+    "幫我做給臺灣大學大一新生看的野餐茶會網宣",
+    { activeProject: "ntu" }
+  );
+
+  assert.strictEqual(ntuResult.assignedProfile.id, "ntu", "Profile 應自動指派為臺大校園脈絡專家");
+  assert.strictEqual(ntuResult.assignedProfile.name, "臺大校園脈絡專家");
+  assert.ok(ntuResult.directions.length >= 3, "應產生 3 個以上臺大專屬策略方向");
+  assert.ok(ntuResult.topDirection.canvaBlueprint.layers[5].content?.includes("臺大"), "Canva 底部標籤應為臺大迎新");
+  assert.ok(ntuResult.topDirection.igCaption.hashtags.includes("#臺灣大學"), "IG 標籤應包含 #臺灣大學");
+  assert.ok(ntuResult.topDirection.igCaption.hashtags.includes("#椰林日常"), "IG 標籤應包含 #椰林日常");
+  assert.ok(!ntuResult.topDirection.igCaption.hashtags.includes("#淡江大學"), "IG 標籤嚴禁洩漏 #淡江大學");
+  assert.ok(!ntuResult.topDirection.igCaption.hashtags.includes("#克難坡日常"), "IG 標籤嚴禁洩漏 #克難坡日常");
+  assert.ok(ntuResult.topDirection.igCaption.body.includes("椰林大道"), "IG 內文應包含椰林大道痛點");
+  console.log("  ✓ 跨校園領域端對端管線驗證通過！無地標洩漏，圖層與社群標籤精確適配");
 }
 
 testPipeline().then(() => {
@@ -136,3 +154,4 @@ testPipeline().then(() => {
   console.error("測試失敗:", err);
   process.exit(1);
 });
+

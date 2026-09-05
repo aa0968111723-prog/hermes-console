@@ -64,6 +64,38 @@ export const CURATED_INSPIRATIONS: CuratedInspirationItem[] = [
     typographySuggestion: "細明宋體搭配寬鬆字距（Letter-spacing: 0.15em），呼吸感極強。",
     tags: ["極簡主義", "水波倒影", "高級留白", "Canva推薦"],
     rightsNote: "相容於 Canva 商業免費模板結構授權"
+  },
+  {
+    id: "insp_ntu_yelin_minimal",
+    type: "social_aesthetic",
+    title: "臺大椰林・醉月湖畔極簡野餐微光風格",
+    description: "結合臺大椰林大道開闊感與醉月湖畔午後草地野餐氛圍。強調通透自然光影、微風草皮綠與米白留白，營造無壓自在社交場景。",
+    visualMood: "通透・湖畔微風・自在・無壓",
+    colorPalette: [
+      { name: "椰林深青綠", hex: "#2A4736" },
+      { name: "醉月湖水碧", hex: "#5C8276" },
+      { name: "溫潤米紙白", hex: "#F6F4ED" },
+      { name: "晨曦活力金", hex: "#D9A84E" }
+    ],
+    typographySuggestion: "大標題使用思源宋體 Bold 44pt，副標題搭配思源黑體 Regular 20pt，視覺層次分明。",
+    tags: ["臺大", "椰林大道", "醉月湖", "草地野餐", "自然光影"],
+    rightsNote: "原創設計風格參考・無第三方版權爭議"
+  },
+  {
+    id: "insp_campus_editorial_zen",
+    type: "web_trend",
+    title: "當代青年學誌・低飽和留白社團風格",
+    description: "針對大專院校青年族群打造之當代文藝排版。以深茶綠、溫暖燕麥白與陶土褐為核心色盤，50% 以上留白呼吸感，消除視覺疲勞。",
+    visualMood: "極簡・文青・放鬆・呼吸感",
+    colorPalette: [
+      { name: "冷杉灰綠", hex: "#4A6357" },
+      { name: "溫暖燕麥白", hex: "#EDE8DF" },
+      { name: "陶土茶韻褐", hex: "#B87A4B" },
+      { name: "暮光杏仁金", hex: "#E2C391" }
+    ],
+    typographySuggestion: "以思源宋體做為視覺焦點，搭配手作圓形三色光 36px 邊角落款。",
+    tags: ["校園生活", "青年學誌", "低飽和度", "極簡排版", "茶席放鬆"],
+    rightsNote: "開放共創設計風格・CC0 概念"
   }
 ];
 
@@ -141,17 +173,34 @@ export function parseInspirationLink(rawUrl: string): {
 }
 
 /**
- * 依關鍵字搜尋靈感庫
+ * 依關鍵字與校園脈絡領域搜尋靈感庫
  */
-export function searchInspirations(keyword?: string): CuratedInspirationItem[] {
-  if (!keyword) return CURATED_INSPIRATIONS;
-  const kw = keyword.toLowerCase();
-  return CURATED_INSPIRATIONS.filter(
-    (item) =>
+export function searchInspirations(
+  keyword?: string,
+  domain?: "tamkang" | "ntu" | "general"
+): CuratedInspirationItem[] {
+  if (!keyword && !domain) return CURATED_INSPIRATIONS;
+  const kw = (keyword || "").toLowerCase();
+
+  const filtered = CURATED_INSPIRATIONS.filter((item) => {
+    if (domain === "tamkang" && item.tags.some((t) => t.includes("淡水") || t.includes("克難坡") || t.includes("福園"))) {
+      return true;
+    }
+    if (domain === "ntu" && item.tags.some((t) => t.includes("臺大") || t.includes("椰林") || t.includes("醉月湖"))) {
+      return true;
+    }
+    if (domain === "general" && item.tags.some((t) => t.includes("青年") || t.includes("校園生活"))) {
+      return true;
+    }
+    if (!kw) return false;
+    return (
       item.title.toLowerCase().includes(kw) ||
       item.description.toLowerCase().includes(kw) ||
       item.tags.some((t) => t.toLowerCase().includes(kw))
-  );
+    );
+  });
+
+  return filtered.length > 0 ? filtered : CURATED_INSPIRATIONS;
 }
 
 import {

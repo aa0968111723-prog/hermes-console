@@ -134,7 +134,35 @@ async function testOrchestrator() {
   console.log(`  ✓ 敏感操作二次確認防護 Token 驗證通過: ${result.actionConfirmation.token.slice(0, 16)}...`);
 }
 
-Promise.all([testAllIntegrations(), testOrchestrator()])
+async function testOrchestratorNtu() {
+  console.log("▶ 測試 3: 跨校園領域 9 大子任務編排動態適配 (NTU Context)");
+  const userPrompt = "幫我做給臺灣大學大一新生看的野餐茶會網宣";
+  const result = await executeOrchestratedTask(userPrompt, {
+    activeProject: "ntu"
+  });
+
+  assert.strictEqual(result.status, "completed", "NTU 任務編排必須成功完成");
+  assert.strictEqual(result.subtasks.length, 9, "必須精確包含 9 大子任務");
+
+  // 子任務 1 記憶檢索地標隔離
+  const memoryTask = result.subtasks[0];
+  assert.ok(memoryTask.description.includes("臺大") || memoryTask.description.includes("椰林"), "記憶檢索應適配臺大校園脈絡");
+  assert.ok(!memoryTask.description.includes("克難坡"), "嚴禁洩漏克難坡地標");
+
+  // 子任務 2 校園 MCP 調研
+  const mcpTask = result.subtasks[1];
+  assert.ok(mcpTask.title.includes("臺大"), "調研子任務應標題適配臺大");
+  assert.ok(!mcpTask.outputSummary?.includes("宮燈"), "嚴禁洩漏宮燈教室");
+
+  // 子任務 8 社群文案與標籤適配
+  const socialTask = result.subtasks[7];
+  assert.ok(socialTask.outputSummary?.includes("#臺灣大學"), "社群標籤摘要應包含 #臺灣大學");
+  assert.ok(!socialTask.outputSummary?.includes("#淡江大學"), "社群標籤摘要嚴禁洩漏 #淡江大學");
+
+  console.log("  ✓ 跨校園領域 9 大子任務地標隔離與動態適配驗證通過！");
+}
+
+Promise.all([testAllIntegrations(), testOrchestrator(), testOrchestratorNtu()])
   .then(() => {
     console.log("\n🎉 Phase 9 任務編排與真實整合健康度驗證 100% 全部通過！");
   })
