@@ -1,4 +1,7 @@
-﻿import crypto from "crypto";
+import crypto from "crypto";
+import { get, put } from "./store";
+import { seal, unseal } from "./vault";
+import { WORKSPACE_OWNER } from "./security";
 
 export interface CanvaOAuthConfig {
   clientId: string;
@@ -75,19 +78,80 @@ export interface CanvaTokenInfo {
   isMock?: boolean;
 }
 
+type StoredTokens = { id: string; ciphertext: string };
+type VaultTokens = {
+  access_token: string;
+  refresh_token: string;
+  expiresAt: number;
+  scope: string;
+};
+
 // 記憶體中暫存工作區 Canva Token（無登入共享工作區模式）
 let currentWorkspaceCanvaToken: CanvaTokenInfo | null = null;
 
 export function setWorkspaceCanvaToken(token: CanvaTokenInfo) {
   currentWorkspaceCanvaToken = token;
+
+  // 若為正式金鑰且配置了加密金鑰，同步持久化至加密 Vault
+  if (!token.isMock && process.env.CONSOLE_VAULT_KEY) {
+    try {
+      const vaultTokens: VaultTokens = {
+        access_token: token.accessToken,
+        refresh_token: token.refreshToken || "",
+        expiresAt: token.obtainedAt + token.expiresIn * 1000,
+        scope: token.scope,
+      };
+      put("canva_tokens", WORKSPACE_OWNER, {
+        id: "current",
+        ciphertext: seal(vaultTokens),
+      });
+      put("canva_status", WORKSPACE_OWNER, {
+        id: "current",
+        state: "partial",
+        checkedAt: new Date().toISOString(),
+        message: "已透過零登入工作區授權儲存於加密 Vault。",
+      });
+    } catch {
+      // 容錯降級：不阻斷記憶體 token 運作
+    }
+  }
 }
 
 export function getWorkspaceCanvaToken(): CanvaTokenInfo | null {
-  if (!currentWorkspaceCanvaToken) return null;
-  // 檢查是否已過期（預留 30 秒緩衝）
-  const isExpired = Date.now() > currentWorkspaceCanvaToken.obtainedAt + (currentWorkspaceCanvaToken.expiresIn - 30) * 1000;
-  if (isExpired) {
-    return null;
+  if (currentWorkspaceCanvaToken) {
+    // 檢查是否已過期（預留 30 秒緩衝）
+    const isExpired =
+      Date.now() >
+      currentWorkspaceCanvaToken.obtainedAt +
+        (currentWorkspaceCanvaToken.expiresIn - 30) * 1000;
+    if (!isExpired) {
+      return currentWorkspaceCanvaToken;
+    }
   }
-  return currentWorkspaceCanvaToken;
+
+  // 若記憶體無有效 Token，嘗試從加密 Vault 讀取已持久化的金鑰
+  if (process.env.CONSOLE_VAULT_KEY) {
+    try {
+      const stored = get<StoredTokens>("canva_tokens", WORKSPACE_OWNER, "current");
+      if (stored?.ciphertext) {
+        const unsealed = unseal<VaultTokens>(stored.ciphertext);
+        if (unsealed && unsealed.expiresAt > Date.now() + 30_000) {
+          const synced: CanvaTokenInfo = {
+            accessToken: unsealed.access_token,
+            refreshToken: unsealed.refresh_token,
+            expiresIn: Math.max(60, Math.round((unsealed.expiresAt - Date.now()) / 1000)),
+            obtainedAt: Date.now(),
+            scope: unsealed.scope,
+            isMock: false,
+          };
+          currentWorkspaceCanvaToken = synced;
+          return synced;
+        }
+      }
+    } catch {
+      // 容錯降級
+    }
+  }
+
+  return null;
 }

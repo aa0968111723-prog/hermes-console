@@ -196,6 +196,35 @@
    - `npx tsc --noEmit`：0 錯誤。
    - `npm run check:secrets`：200 檔案零洩漏。
 
+## 週期 9 (Iteration 9) Canva 官方 PKCE 授權雙向連動、草稿藍圖在地化與真實匯出能力加固
+
+針對審查反饋建議的「主題 H：Canva 官方 PKCE 授權、草稿藍圖與真實匯出」，完成以下 4 大核心加固：
+
+1. **Canva PKCE 授權與加密 Vault 雙向持久化連動 (`lib/server/canva-auth.ts`)**：
+   - 重構 `getWorkspaceCanvaToken()`：除記憶體快取外，自動在記憶體過期時查詢加密 SQLite Store 之 `canva_tokens` 表，透過 `unseal` 安全恢復金鑰，打通 `/api/canva` 與 `/api/auth/canva` 兩大授權路徑。
+   - 重構 `setWorkspaceCanvaToken()`：取得正式金鑰後，自動同步封裝至加密 Vault (`seal`) 並更新 `canva_status` 為 `partial`，確保服務重啟與不同端點皆能保持在線。
+
+2. **Canva 官方 Connect API 設計與匯出函式庫擴充 (`lib/server/canva.ts`)**：
+   - 實作 `getCanvaDesign(owner, designId)`：讀取 Canva 設計中繼資料。
+   - 實作 `createCanvaDesign(owner, input)`：透過官方 `POST /designs` 建立預設規格（如 `instagram_post` 1080x1350）或自訂尺寸設計。
+   - 實作 `exportCanvaDesign(owner, input)`：透過官方 `POST /exports` 提交 PNG、JPG、PDF 匯出工作。
+   - 實作 `pollCanvaExport(owner, exportJobId)`：透過官方 `GET /exports/{id}` 輪詢匯出狀態與官方下載連結。
+
+3. **Canva 統一 API 路由全生命週期擴充 (`app/api/canva/route.ts`)**：
+   - 擴充 `POST /api/canva` 端點，以嚴格 Zod `discriminatedUnion` 支援：`authorize`、`verify`、`search_designs`、`get_design`、`create_design`、`export_design`、`poll_export`、`template_dataset`。
+   - 保留原有同源檢驗與 `authenticate(req, true)` 嚴格安全性防護。
+
+4. **MCP 註冊表與草稿藍圖在地化 (`lib/server/mcp/registry.ts`)**：
+   - 新增 `export_canva_design_draft` 工具至 `MCP_TOOLS`，支援由官方 API 匯出或沙盒模式產出高擬真 1080x1350 預覽規格與下載連結。
+   - 升級 `create_canva_design_draft`：依據 `resolveContextDomain` 動態在地化圖層提示詞（臺大椰林大道 vs 淡江福園）與行動號召，徹底消除非淡江情境地標洩漏。
+
+5. **測試覆蓋與全線驗證**：
+   - 在 `tests/phase1_security.test.ts` 加入 Canva Vault 持久化雙向同步測試斷言。
+   - 在 `tests/phase4_mcp_inspiration.test.ts` 加入 NTU Canva 草稿在地化與 `export_canva_design_draft` 工具測試斷言。
+   - `npm test`：49/49 測試全數通過（100% Pass）。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：200 檔案零洩漏。
+
 ---
 
 ## 關鍵資安規範

@@ -50,7 +50,29 @@ async function testMcpPermissions() {
   });
   assert.strictEqual(draftRes.success, true);
   assert.ok((draftRes.result as any).draftId.startsWith("canva_draft_"));
-  console.log("  ✓ Draft 階層 (Canva 草稿藍圖) 執行通過");
+
+  // 跨領域 Canva 草稿在地化檢驗 (NTU Context)
+  const ntuDraft = await executeMcpTool("create_canva_design_draft", {
+    title: "臺大椰林大道迎新野餐茶會",
+    dimensions: "1080x1350"
+  });
+  assert.strictEqual(ntuDraft.success, true);
+  const ntuLayers = (ntuDraft.result as any).layers;
+  assert.ok(ntuLayers[1].prompt.includes("椰林"), "NTU 草稿背景應為椰林大道");
+  assert.ok(!ntuLayers[1].prompt.includes("福園"), "NTU 草稿嚴禁洩漏福園");
+  assert.ok(ntuLayers[5].text.includes("臺大"), "NTU 底部標籤應為臺大迎新");
+
+  // 測試 Canva 草稿匯出工具 (Export Draft)
+  const exportRes = await executeMcpTool("export_canva_design_draft", {
+    draftId: (draftRes.result as any).draftId,
+    format: "png"
+  });
+  assert.strictEqual(exportRes.success, true);
+  assert.strictEqual((exportRes.result as any).format, "png");
+  assert.strictEqual((exportRes.result as any).status, "success");
+  assert.strictEqual((exportRes.result as any).previewDimensions, "1080x1350");
+  assert.ok((exportRes.result as any).exportUrl.includes("canva.com"), "應產出合法 Canva 匯出連結");
+  console.log("  ✓ Draft 階層 (Canva 草稿藍圖與匯出工具) 執行通過 (含跨校園隔離與 PNG 匯出)");
 
   // C. Publish 階層若無 Token 必須被拒絕並發行確認 Token
   const unauthPub = await executeMcpTool("publish_social_campaign", {

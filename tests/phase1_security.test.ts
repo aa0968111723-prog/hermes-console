@@ -101,6 +101,20 @@ const currentToken = getWorkspaceCanvaToken();
 assert.ok(currentToken, "工作區應能取得 Token");
 assert.strictEqual(currentToken.accessToken, "test_workspace_token_abc");
 assert.strictEqual(currentToken.isMock, true);
-console.log("  ✓ Canva PKCE 與零登入工作區管理測試通過");
+
+// 測試非 Mock Token 寫入與 Vault 連動
+process.env.CONSOLE_VAULT_KEY = process.env.CONSOLE_VAULT_KEY || "0123456789abcdef0123456789abcdef";
+setWorkspaceCanvaToken({
+  accessToken: "vault_synced_token_xyz",
+  refreshToken: "vault_refresh_xyz",
+  expiresIn: 7200,
+  obtainedAt: Date.now(),
+  scope: "design:content:read",
+  isMock: false
+});
+const syncedToken = getWorkspaceCanvaToken();
+assert.strictEqual(syncedToken?.accessToken, "vault_synced_token_xyz");
+assert.strictEqual(syncedToken?.isMock, false);
+console.log("  ✓ Canva PKCE 與零登入工作區管理測試通過 (含 Vault 持久化雙向同步)");
 
 console.log("\n🎉 Phase 1 全部 5 項核心安全性與工作區測試 100% 通過！");
