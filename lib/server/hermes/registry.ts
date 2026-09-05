@@ -14,6 +14,10 @@ export interface AgentProfile {
   allowedTools: string[];
   temperature: number;
   samplePrompts: string[];
+  /** Console role only — not a discovered Hermes /p/<profile> instance. */
+  kind?: "console_role";
+  hermesProfilePath?: string | null;
+  credentialReference?: string;
 }
 
 export const AGENT_PROFILES: Record<string, AgentProfile> = {
@@ -204,5 +208,10 @@ export function getAgentProfile(profileId?: string): AgentProfile {
  * 列出所有支援的 Profile 清單
  */
 export function listAgentProfiles(): AgentProfile[] {
-  return Object.values(AGENT_PROFILES);
+  return Object.values(AGENT_PROFILES).map((profile) => ({
+    ...profile,
+    kind: "console_role",
+    hermesProfilePath: profile.hermesProfilePath ?? null,
+    credentialReference: profile.credentialReference || "HERMES_API_KEY",
+  }));
 }

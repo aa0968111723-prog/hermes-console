@@ -77,9 +77,9 @@ export function seedRegistry(): McpEntry[] {
       authMode: "bearer",
       credentialReference: "TKU_MCP_TOKEN",
       tools: [],
-      status: "connected",
+      status: "partial",
       verifiedAt: null,
-      lastError: null,
+      lastError: "已設定端點，尚未完成 initialize／tools/list／安全讀取。",
       readonly: true,
       trustedLevel: "external",
     });
@@ -128,9 +128,9 @@ export function registerMcp(input: {
     authMode: input.authMode || "bearer",
     credentialReference: input.credentialReference || null,
     tools: [],
-    status: "connected",
+    status: "partial",
     verifiedAt: null,
-    lastError: null,
+    lastError: "已登記端點，尚未驗證。",
     readonly: input.readonly !== false,
     trustedLevel: "untrusted",
   };

@@ -421,13 +421,13 @@ export function researchInstagramTrends(input: {
   return {
     domain,
     topic: input.topic || (domain === "ntu" ? "臺大新生迎新社群活動" : "淡江大一禪學社茶會"),
-    dataSource: hasMetaApi ? "meta_graph_api" : "campus_trend_engine",
+    dataSource: "campus_trend_engine",
     truthStatus: {
-      connected: hasMetaApi,
-      status: hasMetaApi ? "Connected" : "Partial",
+      connected: false,
+      status: hasMetaApi ? "Needs Authorization" : "Partial",
       message: hasMetaApi
-        ? "已連線 Meta Graph API，結合校園大數據標籤調研。"
-        : "未配置 INSTAGRAM_ACCESS_TOKEN，以校園生活作息大數據模型生成真實調研建議。"
+        ? "已設定 Meta／Instagram 環境變數，尚未完成 Graph 探測；不是全站搜尋。"
+        : "未配置 INSTAGRAM_ACCESS_TOKEN。標籤與時段為啟發式模型，不是 Meta 官方流量數據。"
     },
     hashtags,
     optimalPostingTimes,

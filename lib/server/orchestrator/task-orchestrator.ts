@@ -80,6 +80,7 @@ export function evaluateCanvaDraftLayers(
   scoreBonus: number;
   layerCritiques: Array<{ layerIndex: number; aspect: string; personaReaction: string; passed: boolean }>;
   verdict: "Ready for Publication" | "Minor Iteration Recommended" | "Needs Visual Overhaul";
+  method: "AI_SIMULATED_HEURISTIC";
 } {
   const layers = canvaBlueprint?.layers || [];
   const layerCritiques: Array<{ layerIndex: number; aspect: string; personaReaction: string; passed: boolean }> = [];
@@ -178,7 +179,8 @@ export function evaluateCanvaDraftLayers(
   return {
     scoreBonus: Math.max(1, scoreBonus),
     layerCritiques,
-    verdict
+    verdict,
+    method: "AI_SIMULATED_HEURISTIC"
   };
 }
 
@@ -560,7 +562,17 @@ export async function executeOrchestratedTask(
       sourceType: "audience_twin",
       sourceOrigin: "post_draft_reevaluation_pipeline"
     },
-    outputSummary: "完成圖層視覺驗證，綜合評分平均提升 +4% (達 98/100 滿意度)",
+    outputSummary: (() => {
+      const avgPre = Math.round(
+        draftReevaluations.reduce((s, r) => s + r.preDraftOverallScore, 0) /
+          Math.max(1, draftReevaluations.length)
+      );
+      const avgPost = Math.round(
+        draftReevaluations.reduce((s, r) => s + r.postDraftOverallScore, 0) /
+          Math.max(1, draftReevaluations.length)
+      );
+      return `AI 模擬啟發式再測：${avgPre} → ${avgPost} 分。不代表真實滿意度、轉換率或市場調查。`;
+    })(),
     outputData: draftReevaluations
   });
 

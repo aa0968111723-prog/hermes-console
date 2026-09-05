@@ -23,34 +23,44 @@ export function getMcpServers(): McpServerConfig[] {
   } catch {
     // 容錯防禦：若資料庫處於高並行存取競爭，降級為預設狀態不阻塞模組初始化
   }
-  const isCanvaConnected =
-    Boolean(getWorkspaceCanvaToken()) ||
-    canvaVault.state === "verified" ||
-    canvaVault.state === "partial";
+  const canvaState = canvaVault.state;
+  const canvaStatusValue: McpServerConfig["status"] =
+    canvaState === "verified"
+      ? "connected"
+      : canvaState === "partial" || Boolean(getWorkspaceCanvaToken())
+        ? "partial"
+        : "unconfigured";
 
   return [
     {
       id: "tku-campus-mcp",
       name: "淡江大學校園生態 MCP",
       url: process.env.TKU_MCP_URL,
-      enabled: true,
-      status: process.env.TKU_MCP_URL ? "connected" : "fallback_local",
-      description: "提供淡江校園行事曆、宮燈教室/福園場地借用、大一迎新時程與校園心理洞察。"
+      enabled: Boolean(process.env.TKU_MCP_URL),
+      status: process.env.TKU_MCP_URL ? "partial" : "unconfigured",
+      description: process.env.TKU_MCP_URL
+        ? "已設定 TKU_MCP_URL，尚未完成 initialize／tools/list／安全讀取，不能稱為 connected。"
+        : "未設定 TKU_MCP_URL。本機校園筆記不是 MCP。"
     },
     {
       id: "canva-design-mcp",
       name: "Canva 自動化設計 MCP",
       url: "https://api.canva.com/rest/v1",
-      enabled: true,
-      status: isCanvaConnected ? "connected" : "fallback_local",
-      description: "提供自動產生 Canva 16:9 / 4:5 / 9:16 設計草稿與排版素材匯出。"
+      enabled: canvaStatusValue !== "unconfigured",
+      status: canvaStatusValue,
+      description:
+        canvaStatusValue === "connected"
+          ? "Canva Vault 已驗證。"
+          : canvaStatusValue === "partial"
+            ? "持有 Canva token 或清單讀取，尚未完成完整 verify。"
+            : "未授權 Canva。本地草稿藍圖不是 Canva MCP。"
     },
     {
       id: "hermes-ecosystem-mcp",
-      name: "Hermes 41 專案生態系 MCP",
-      enabled: true,
-      status: "connected",
-      description: "連接柯能 GitHub 41 個專案知識庫與技術規格目錄。"
+      name: "Hermes 專案生態系 MCP",
+      enabled: false,
+      status: "unconfigured",
+      description: "GitHub 專案目錄不是 MCP。需提供 endpoint、transport 與 permission 才可註冊。"
     }
   ];
 }

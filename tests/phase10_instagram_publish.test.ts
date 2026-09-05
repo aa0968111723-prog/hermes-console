@@ -91,7 +91,12 @@ test("Instagram 社群調研引擎、時段模型與視覺規範 (Phase 10)", as
     assert.strictEqual(report.visualGuidelines.dimensions.height, 1350);
     assert.ok(report.visualGuidelines.craftStampRule.includes("36px"), "手作三色光邊角印章規範需符合 36px");
     assert.ok(report.disclaimer.includes("模擬評估"), "調研報告必須包含免責聲明");
-    assert.ok(report.truthStatus.status === "Partial" || report.truthStatus.status === "Connected");
+    assert.notEqual(report.truthStatus.connected, true, "未探測 Graph 不得聲稱 Connected");
+    assert.notEqual(report.dataSource, "meta_graph_api", "啟發式標籤模型不得標成 meta_graph_api");
+    assert.ok(
+      ["Partial", "Needs Authorization", "Unconfigured"].includes(report.truthStatus.status),
+      `調研狀態必須誠實，不得為 Connected：${report.truthStatus.status}`,
+    );
     console.log("  ✓ 完整調研報告生成與 4:5 視覺排版規範驗證通過");
   });
 });
@@ -198,7 +203,7 @@ test("Instagram 發布真實狀態探測與安全發布加固 (Phase 10)", async
     assert.strictEqual(pubRes.mode, "sandbox_audit_simulation");
     assert.ok(pubRes.id?.startsWith("sim_"));
     assert.strictEqual(pubRes.auditTrail?.idempotencyKey, idempotencyKey);
-    assert.ok(pubRes.auditTrail?.disclaimer.includes("安全沙盒模擬發布"));
+    assert.ok(pubRes.auditTrail?.disclaimer?.includes("安全沙盒模擬發布"));
 
     // 3. 測試冪等性防重複調用 (以相同 idempotencyKey 再次調用)
     const duplicateRes = await metaPublisher.publish({

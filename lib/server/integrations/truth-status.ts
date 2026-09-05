@@ -181,11 +181,11 @@ export function probeCanvaStatus(): IntegrationCheckResult {
       id: "canva",
       name: "Canva Design Bridge",
       category: "design",
-      status: "Connected",
-      statusBadge: "正式已連線",
+      status: "Partial",
+      statusBadge: "記憶體有 token，尚未 verify",
       latencyMs: 5,
-      details: "已透過 PKCE OAuth 連接 Canva 正式帳戶，支援真實素材與設計草稿同步。",
-      capabilities: ["oauth_pkce", "design_read_write", "asset_export"],
+      details: "工作區持有 Canva token，但尚未完成設計清單 verify。不能稱為 Connected。",
+      capabilities: ["oauth_pkce"],
       lastCheckedAt: Date.now()
     };
   }
@@ -223,6 +223,7 @@ export function probeCanvaStatus(): IntegrationCheckResult {
 export async function probeTamkangMcpStatus(): Promise<IntegrationCheckResult> {
   const remoteUrl = process.env.TKU_MCP_URL;
   if (remoteUrl) {
+    const start = Date.now();
     try {
       const res = await fetch(`${remoteUrl}/health`, {
         headers: { Authorization: `Bearer ${process.env.TKU_MCP_TOKEN || ""}` },
@@ -234,28 +235,39 @@ export async function probeTamkangMcpStatus(): Promise<IntegrationCheckResult> {
           id: "tku_mcp",
           name: "淡江大學生態 MCP",
           category: "campus_mcp",
-          status: "Verified",
-          statusBadge: "遠端已驗證",
-          latencyMs: 45,
-          details: "遠端淡江 MCP 伺服器連線正常，提供即時校園行事曆與借地情報。",
-          capabilities: ["remote_calendar", "remote_venues", "freshman_mindset"],
+          status: "Partial",
+          statusBadge: "遠端可連線，尚未 tools/list 驗證",
+          latencyMs: Date.now() - start,
+          details: "TKU_MCP_URL 有回應，但尚未完成 initialize／tools/list／安全讀取，不能稱為 Verified。",
+          capabilities: ["http_reachable"],
           lastCheckedAt: Date.now()
         };
       }
     } catch {
       // 降級
     }
+    return {
+      id: "tku_mcp",
+      name: "淡江大學生態 MCP",
+      category: "campus_mcp",
+      status: "Failed",
+      statusBadge: "遠端不可用",
+      latencyMs: Date.now() - start,
+      details: "已設定 TKU_MCP_URL 但探測失敗。可改用公開網頁研究，不把本機知識圖譜當成 MCP。",
+      capabilities: ["web_fallback"],
+      lastCheckedAt: Date.now()
+    };
   }
 
   return {
     id: "tku_mcp",
     name: "淡江大學生態 MCP",
     category: "campus_mcp",
-    status: "Partial",
-    statusBadge: "校園知識圖譜運作中",
-    latencyMs: 1,
-    details: "未配置遠端 TKU_MCP_URL，已無縫載入真實淡江校園知識圖譜（克難坡、宮燈教室、福園黑天鵝、大一迎新日程）。",
-    capabilities: ["local_campus_calendar", "local_venues", "zen_club_profile"],
+    status: "Unconfigured",
+    statusBadge: "未設定 TKU_MCP_URL",
+    latencyMs: 0,
+    details: "未配置遠端 Tamkang MCP。本機校園筆記不是 MCP，狀態為 Unconfigured。",
+    capabilities: ["console_notes_only"],
     lastCheckedAt: Date.now()
   };
 }
@@ -264,18 +276,21 @@ export async function probeTamkangMcpStatus(): Promise<IntegrationCheckResult> {
  * 探測 Instagram 靈感調研狀態
  */
 export function probeInstagramStatus(): IntegrationCheckResult {
-  const hasMetaApi = Boolean(process.env.META_APP_ID && process.env.META_ACCESS_TOKEN);
+  const hasMetaApi = Boolean(
+    process.env.INSTAGRAM_ACCESS_TOKEN ||
+      (process.env.META_APP_ID && process.env.META_ACCESS_TOKEN),
+  );
 
   if (hasMetaApi) {
     return {
       id: "instagram_search",
       name: "Instagram Inspiration",
       category: "social",
-      status: "Connected",
-      statusBadge: "API 已連線",
-      latencyMs: 10,
-      details: "已連接 Meta Graph API，支援公開標籤搜尋與貼文調研。",
-      capabilities: ["tag_search", "media_insights"],
+      status: "Needs Authorization",
+      statusBadge: "已設定憑證，尚未完成 Graph 探測",
+      latencyMs: 0,
+      details: "已設定 Meta／Instagram 環境變數，但尚未對 Graph API 做成功探測。不能稱為 Connected，也不等於全站搜尋。",
+      capabilities: ["env_present"],
       lastCheckedAt: Date.now()
     };
   }
@@ -304,11 +319,11 @@ export function probePinterestStatus(): IntegrationCheckResult {
       id: "pinterest_search",
       name: "Pinterest Inspiration",
       category: "social",
-      status: "Connected",
-      statusBadge: "API 已連線",
-      latencyMs: 10,
-      details: "已連接 Pinterest 官方 API，支援情緒板調研。",
-      capabilities: ["board_search", "pin_insights"],
+      status: "Needs Authorization",
+      statusBadge: "已設定憑證，尚未完成 API 探測",
+      latencyMs: 0,
+      details: "已設定 PINTEREST_ACCESS_TOKEN，但尚未對官方 API 做成功探測。不能稱為 Connected，也不等於全站搜尋。",
+      capabilities: ["env_present"],
       lastCheckedAt: Date.now()
     };
   }
@@ -346,8 +361,15 @@ export async function getAllIntegrationsReport(options?: {
   ]);
 
   const integrations = [hermes, canva, tku, instagram, pinterest];
-  const hasConnectedOrVerified = integrations.some((i) => i.status === "Connected" || i.status === "Verified");
-  const overallHealth = hasConnectedOrVerified ? "healthy" : "partial_ready";
+  const hasVerified = integrations.some((i) => i.status === "Verified");
+  const allFailed = integrations.every((i) =>
+    ["Failed", "Unconfigured"].includes(i.status),
+  );
+  const overallHealth = hasVerified
+    ? "healthy"
+    : allFailed
+      ? "needs_attention"
+      : "partial_ready";
 
   return {
     timestamp: Date.now(),

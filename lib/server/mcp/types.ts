@@ -10,7 +10,7 @@ export interface McpServerConfig {
   url?: string;
   token?: string;
   enabled: boolean;
-  status: "connected" | "fallback_local" | "unconfigured" | "error";
+  status: "connected" | "partial" | "fallback_local" | "unconfigured" | "error";
   description: string;
 }
 

@@ -126,7 +126,12 @@ async function testOrchestrator() {
   assert.strictEqual(topReeval.layerCritiques.length, 4, "必須包含 4 項圖層審查反饋");
   assert.ok(topReeval.layerCritiques.every((c) => c.passed), "所有草稿圖層審查必須符合受眾偏好通過");
   assert.strictEqual(topReeval.verdict, "Ready for Publication", "頂部方向結論應為 Ready for Publication");
-  console.log(`  ✓ 草稿後受眾再測驗 (Audience Re-evaluation) 驗證通過: ${topReeval.preDraftOverallScore} -> ${topReeval.postDraftOverallScore} (+${topReeval.scoreDelta}%)`);
+  const reevalTask = result.subtasks.find((st) => st.subtaskId === "audience_reevaluation");
+  const reevalSummary = reevalTask?.outputSummary || "";
+  assert.ok(reevalSummary.includes("AI 模擬"), "再測摘要必須標示 AI 模擬啟發式");
+  assert.ok(!reevalSummary.includes("98/100"), "不得把啟發式分數寫成真實滿意度 98/100");
+  assert.ok(!reevalSummary.includes("+4%"), "不得把啟發式增益寫成真實 +4%");
+  console.log(`  ✓ 草稿後受眾再測驗 (Audience Re-evaluation) 驗證通過: ${topReeval.preDraftOverallScore} -> ${topReeval.postDraftOverallScore} (AI 模擬啟發式，非真實轉換率)`);
 
   // 驗證敏感操作二次確認 Token
   assert.ok(result.actionConfirmation.token.startsWith("conf_"), "安全二次確認 Token 必須合法簽發");
