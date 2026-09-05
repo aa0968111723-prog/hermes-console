@@ -34,6 +34,7 @@ import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
 import InspirationBoard from "./inspiration/InspirationBoard";
 import IntegrationHealth from "./settings/IntegrationHealth";
+import CreativeIntelligenceView from "./CreativeIntelligenceView";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import {
@@ -146,7 +147,7 @@ export default function HermesConsole() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
   const [nav, setNav] = useState<
-    "chat" | "projects" | "inspiration" | "agents"
+    "chat" | "projects" | "inspiration" | "agents" | "creative_os"
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
@@ -655,6 +656,13 @@ export default function HermesConsole() {
           <Bot size={19} />
           Agent
         </button>
+        <button
+          aria-current={nav === "creative_os" ? "page" : undefined}
+          onClick={() => navigate("creative_os")}
+        >
+          <Sparkles size={19} />
+          創意智能 OS
+        </button>
       </nav>
       <div className="side-section">
         <span>專案</span>
@@ -800,12 +808,22 @@ export default function HermesConsole() {
                 ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
-                  : "Agent"}
+                  : nav === "creative_os"
+                    ? "✨ 創意智能 OS"
+                    : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
             </span>
           </div>
+          <button
+            type="button"
+            className={`btn-creative-os ${nav === "creative_os" ? "active" : ""}`}
+            onClick={() => navigate(nav === "creative_os" ? "chat" : "creative_os")}
+            title="開啟 Hermes Creative Intelligence OS 全管線"
+          >
+            ✨ 創意智能 OS
+          </button>
           <button
             className="connection-pill"
             onClick={() => {
@@ -900,6 +918,10 @@ export default function HermesConsole() {
                     </button>
                     <div className="starters">
                       {[
+                        [
+                          "🌿 淡江大一禪學社網宣 OS",
+                          "幫我做給淡江大學大一新生看的禪學社茶會網宣",
+                        ],
                         ["幫我找網宣靈感", "幫我找網宣靈感。"],
                         [
                           "幫我做淡江新生海報",
@@ -1401,6 +1423,11 @@ export default function HermesConsole() {
           <InspirationBoard
             items={inspiration}
             notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
+          />
+        ) : nav === "creative_os" ? (
+          <CreativeIntelligenceView
+            initialPrompt="幫我做給淡江大學大一新生看的禪學社茶會網宣"
+            onBack={() => setNav("chat")}
           />
         ) : (
           <section className="secondary-page">
