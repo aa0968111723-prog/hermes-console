@@ -246,6 +246,7 @@ async function execute(
           { method: "POST", body: JSON.stringify({ title: conv.title }) },
           controller.signal,
           sessionKeyFor(conv.projectId),
+          { role: "general" },
         ),
       );
       const remote = created.session_id ?? created.id;
@@ -302,6 +303,7 @@ async function execute(
           },
           controller.signal,
           headers["X-Hermes-Session-Key"],
+          { role: "general" },
         ),
       );
       task.remoteId = idSchema.parse(response.run_id);
@@ -333,6 +335,7 @@ async function execute(
       },
       controller.signal,
       headers["X-Hermes-Session-Key"],
+      { role: "general" },
     );
     if (!response.ok) throw httpError(response.status);
     const remoteSession = response.headers.get("X-Hermes-Session-Id");

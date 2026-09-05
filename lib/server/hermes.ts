@@ -3,6 +3,17 @@ import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
 import { ApiError, redact } from "./security";
 import { get, put } from "./store";
+import {
+  credentialReferenceFor,
+  urlReferenceFor,
+  type AgentRole,
+} from "./agents";
+
+export type HermesAgent = {
+  role?: AgentRole;
+  credentialReference?: string;
+  baseUrl?: string;
+};
 
 export function deadline(name: string, fallback: number) {
   const value = Number(process.env[name]);
@@ -10,14 +21,39 @@ export function deadline(name: string, fallback: number) {
     ? value
     : fallback;
 }
-export function target() {
-  if (!process.env.HERMES_API_URL || !process.env.HERMES_API_KEY)
+const KEY_REF = /^HERMES(_[A-Z]+)?_API_KEY$/;
+
+export function resolveAgent(agent?: HermesAgent) {
+  const role = agent?.role || "general";
+  const credentialReference =
+    agent?.credentialReference || credentialReferenceFor(role);
+  if (!KEY_REF.test(credentialReference))
+    throw new ApiError(500, "invalid_credential_ref", "憑證參照無效。");
+  const key = (process.env[credentialReference] || "").trim();
+  const url =
+    (agent?.baseUrl || "").trim() ||
+    (process.env[urlReferenceFor(role)] || "").trim() ||
+    (role === "general" ? (process.env.HERMES_API_URL || "").trim() : "");
+  if (!url || !key)
+    throw new ApiError(
+      503,
+      "hermes_unconfigured",
+      role === "general"
+        ? "請在後端設定已確認的 Hermes API 網域與新的金鑰。"
+        : "此 Agent 尚未設定後端網域與憑證參照。",
+    );
+  return { role, credentialReference, key, url };
+}
+
+export function target(raw?: string, key?: string) {
+  const urlValue = raw || resolveAgent().url;
+  if (raw && !key && !process.env.HERMES_API_KEY)
     throw new ApiError(
       503,
       "hermes_unconfigured",
       "請在後端設定已確認的 Hermes API 網域與新的金鑰。",
     );
-  const url = new URL(process.env.HERMES_API_URL);
+  const url = new URL(urlValue);
   const local =
     process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
     ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
@@ -70,8 +106,10 @@ export async function upstream(
   init: RequestInit = {},
   signal?: AbortSignal,
   sessionKey = "workspace",
+  agent?: HermesAgent,
 ) {
-  const base = target();
+  const resolved = resolveAgent(agent);
+  const base = target(resolved.url, resolved.key);
   if (
     !/^\/(v1\/(models|capabilities|skills|toolsets|chat\/completions|runs(?:\/[a-zA-Z0-9_-]+(?:\/(stop|events))?)?)|api\/sessions(?:\/[a-zA-Z0-9_-]+(?:\/messages)?)?)$/.test(
       path,
@@ -92,7 +130,7 @@ export async function upstream(
         "Content-Type": "application/json",
         "X-Hermes-Session-Key": sessionKey,
         ...init.headers,
-        Authorization: "Bearer " + process.env.HERMES_API_KEY,
+        Authorization: "Bearer " + resolved.key,
       },
       signal: signal
         ? AbortSignal.any([signal, connection.signal])

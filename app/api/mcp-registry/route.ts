@@ -5,11 +5,7 @@ import {
   respond,
   route,
 } from "@/lib/server/security";
-import {
-  interpretVerification,
-  registerMcp,
-  seedRegistry,
-} from "@/lib/server/mcp-registry";
+import { probeMcp, registerMcp, seedRegistry } from "@/lib/server/mcp-registry";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   authenticate(req);
@@ -29,22 +25,10 @@ export const POST = route(async (req) => {
         .regex(/^[A-Z][A-Z0-9_]*$/)
         .nullable()
         .optional(),
-      initialize: z.boolean().optional(),
-      toolsList: z.boolean().optional(),
-      safeRead: z.boolean().optional(),
+      readonly: z.boolean().optional(),
     })
     .strict()
     .parse(await jsonBody(req));
   const entry = registerMcp(body);
-  if (
-    body.initialize !== undefined ||
-    body.toolsList !== undefined ||
-    body.safeRead !== undefined
-  )
-    entry.status = interpretVerification({
-      initialize: !!body.initialize,
-      toolsList: !!body.toolsList,
-      safeRead: !!body.safeRead,
-    });
-  return respond({ server: entry }, 201);
+  return respond({ server: await probeMcp(entry) }, 201);
 });

@@ -69,11 +69,15 @@ export const POST = route(async (req) => {
     new URL(req.url).searchParams.get("projectId") || "personal",
   );
   verifyProject(owner, projectId);
-  if (!["image/png", "image/jpeg", "image/webp", "text/plain"].includes(type))
+  if (
+    !["image/png", "image/jpeg", "image/webp", "text/plain", "application/pdf"].includes(
+      type,
+    )
+  )
     throw new ApiError(
       415,
       "unsupported_file",
-      "支援 PNG、JPEG、WebP 與 TXT。",
+      "支援 PNG、JPEG、WebP、TXT 與 PDF。",
     );
   const max = 8_000_000;
   if (Number(req.headers.get("content-length")) > max)

@@ -155,9 +155,66 @@ export function interpretVerification(steps: {
   return "connected";
 }
 
+export async function mcpJsonRpc(
+  entry: McpEntry,
+  method: string,
+  params?: unknown,
+): Promise<JsonRpcResult> {
+  try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/json, text/event-stream",
+    };
+    if (entry.authMode === "bearer" && entry.credentialReference) {
+      if (!/^[A-Z][A-Z0-9_]{2,80}$/.test(entry.credentialReference))
+        return { method, ok: false, error: "憑證參照無效。" };
+      const token = process.env[entry.credentialReference];
+      if (token) headers.Authorization = "Bearer " + token;
+    }
+    const response = await fetch(entry.endpoint, {
+      method: "POST",
+      headers,
+      redirect: "error",
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method,
+        params: params ?? {},
+      }),
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      return { method, ok: false, error: "MCP HTTP " + response.status };
+    }
+    const data = (await response.json()) as {
+      result?: unknown;
+      error?: { message?: string };
+    };
+    if (data.error)
+      return {
+        method,
+        ok: false,
+        error: redact(String(data.error.message || "rpc error")),
+      };
+    return { method, ok: true, result: data.result };
+  } catch (error) {
+    return {
+      method,
+      ok: false,
+      error: error instanceof Error ? redact(error.message) : "MCP 連線失敗",
+    };
+  }
+}
+
 export async function probeMcp(
   entry: McpEntry,
-  rpc: (method: string, params?: unknown) => Promise<JsonRpcResult>,
+  rpc: (
+    method: string,
+    params?: unknown,
+  ) => Promise<JsonRpcResult> = (method, params) =>
+    mcpJsonRpc(entry, method, params),
 ) {
   const initialize = await rpc("initialize", {
     protocolVersion: "2025-06-18",

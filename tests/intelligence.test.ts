@@ -21,11 +21,12 @@ const captured: { path: string; headers: Record<string, string | string[] | unde
 const server = createServer((req, res) => {
   captured.push({ path: req.url || "", headers: req.headers });
   res.setHeader("Content-Type", "application/json");
-  if (req.url === "/v1/models") {
+  const path = req.url || "";
+  if (path.endsWith("/v1/models")) {
     res.end(JSON.stringify({ data: [{ id: "fixture-agent" }] }));
     return;
   }
-  if (req.url === "/v1/capabilities") {
+  if (path.endsWith("/v1/capabilities")) {
     res.end(
       JSON.stringify({
         object: "hermes.api_server.capabilities",
@@ -34,7 +35,7 @@ const server = createServer((req, res) => {
     );
     return;
   }
-  if (req.url === "/v1/skills" || req.url === "/v1/toolsets") {
+  if (path.endsWith("/v1/skills") || path.endsWith("/v1/toolsets")) {
     res.end("[]");
     return;
   }
@@ -43,6 +44,10 @@ const server = createServer((req, res) => {
 await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 process.env.HERMES_API_URL =
   "http://127.0.0.1:" + (server.address() as { port: number }).port;
+const creativeKey = randomBytes(24).toString("hex");
+process.env.HERMES_CREATIVE_API_KEY = creativeKey;
+process.env.HERMES_CREATIVE_API_URL =
+  process.env.HERMES_API_URL + "/p/creative";
 
 const security = await import("../lib/server/security");
 const { health, sessionKeyFor, upstream } = await import("../lib/server/hermes");
@@ -59,6 +64,8 @@ const untrusted = await import("../lib/server/untrusted");
 const usage = await import("../lib/server/usage");
 const agents = await import("../lib/server/agents");
 const { canvaStatus } = await import("../lib/server/canva");
+const materialsRoute = await import("../app/api/materials/route");
+const mcpRegistryRoute = await import("../app/api/mcp-registry/route");
 
 
 function request(path: string, method = "GET", body?: unknown, origin = true) {
@@ -153,6 +160,20 @@ test("no-login workspace, confirmation, discovery and creative intelligence", as
     assert.ok(!JSON.stringify(saved).includes(process.env.HERMES_API_KEY!));
   });
 
+  await t.test("non-general profile key and /p/<profile> reach upstream", async () => {
+    captured.length = 0;
+    await upstream("/v1/models", {}, undefined, "workspace", {
+      role: "creative",
+    });
+    const last = captured.at(-1);
+    assert.equal(last?.headers.authorization, "Bearer " + creativeKey);
+    assert.notEqual(
+      last?.headers.authorization,
+      "Bearer " + process.env.HERMES_API_KEY,
+    );
+    assert.equal(last?.path, "/p/creative/v1/models");
+  });
+
   await t.test("confirmation tokens reject confirmed=true and reuse", async () => {
     const minted = security.mintConfirmation({
       action: "instagram_publish",
@@ -230,6 +251,84 @@ test("no-login workspace, confirmation, discovery and creative intelligence", as
         }),
       /GitHub/,
     );
+  });
+
+  await t.test("MCP registry POST probes live RPC and ignores client booleans", async () => {
+    const methods: string[] = [];
+    const mcp = createServer(async (req, res) => {
+      let body = "";
+      for await (const part of req) body += part;
+      const message = JSON.parse(body || "{}") as { method?: string };
+      methods.push(String(message.method || ""));
+      res.setHeader("Content-Type", "application/json");
+      if (message.method === "initialize") {
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: { protocolVersion: "2025-06-18" },
+          }),
+        );
+        return;
+      }
+      if (message.method === "tools/list") {
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: {
+              tools: [{ name: "tku_news", description: "campus news" }],
+            },
+          }),
+        );
+        return;
+      }
+      if (message.method === "tools/call") {
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: { content: [{ type: "text", text: "ok" }] },
+          }),
+        );
+        return;
+      }
+      res.end(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          error: { message: "unknown method" },
+        }),
+      );
+    });
+    await new Promise<void>((resolve) => mcp.listen(0, "127.0.0.1", resolve));
+    const endpoint =
+      "http://127.0.0.1:" + (mcp.address() as { port: number }).port;
+    const attested = await mcpRegistryRoute.POST(
+      request("mcp-registry", "POST", {
+        id: "tku-live",
+        name: "Tamkang fixture",
+        endpoint,
+        initialize: true,
+        toolsList: true,
+        safeRead: true,
+      }),
+    );
+    assert.equal(attested.status, 400);
+    const probed = await mcpRegistryRoute.POST(
+      request("mcp-registry", "POST", {
+        id: "tku-live",
+        name: "Tamkang fixture",
+        endpoint,
+        authMode: "none",
+      }),
+    );
+    assert.equal(probed.status, 201);
+    const payload = await probed.json();
+    assert.equal(payload.server.status, "verified");
+    assert.deepEqual(methods, ["initialize", "tools/list", "tools/call"]);
+    mcp.closeAllConnections();
+    mcp.close();
   });
 
   await t.test("Tamkang maps different tool names and offline fallback", () => {
@@ -322,6 +421,28 @@ test("no-login workspace, confirmation, discovery and creative intelligence", as
     const canva = canvaStatus("workspace");
     assert.equal(canva.configured, false);
     assert.notEqual(canva.state, "available");
+  });
+
+  await t.test("POST /api/materials accepts PDF through the real handler", async () => {
+    const pdf = Buffer.from("%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n");
+    const response = await materialsRoute.POST(
+      new Request(
+        "http://localhost:3211/api/materials?projectId=personal",
+        {
+          method: "POST",
+          headers: {
+            Origin: process.env.CONSOLE_ORIGIN!,
+            "Content-Type": "application/pdf",
+            "x-file-name": encodeURIComponent("brief.pdf"),
+          },
+          body: new Uint8Array(pdf),
+        },
+      ),
+    );
+    assert.equal(response.status, 201);
+    const payload = await response.json();
+    assert.equal(payload.material.mime, "application/pdf");
+    assert.equal(payload.material.title, "brief.pdf");
   });
 
   await t.test("redact still strips secrets", () => {
