@@ -159,9 +159,14 @@ export async function queryTkuCalendar(week?: number) {
   }
 
   if (week) {
-    return TKU_SEMESTER_CALENDAR.find((c) => c.week === week) || TKU_SEMESTER_CALENDAR[1];
+    const local = TKU_SEMESTER_CALENDAR.find((c) => c.week === week) || TKU_SEMESTER_CALENDAR[1];
+    return { ...local, source: "console_notes" as const, mcpVerified: false };
   }
-  return TKU_SEMESTER_CALENDAR;
+  return TKU_SEMESTER_CALENDAR.map((item) => ({
+    ...item,
+    source: "console_notes" as const,
+    mcpVerified: false,
+  }));
 }
 
 /**
@@ -227,9 +232,16 @@ export async function queryTkuVenues(venueId?: string) {
   }
 
   if (venueId) {
-    return TKU_CLUB_VENUES.find((v) => v.venueId === venueId || v.name.includes(venueId)) || TKU_CLUB_VENUES[0];
+    const local =
+      TKU_CLUB_VENUES.find((v) => v.venueId === venueId || v.name.includes(venueId)) ||
+      TKU_CLUB_VENUES[0];
+    return { ...local, source: "console_notes" as const, mcpVerified: false };
   }
-  return TKU_CLUB_VENUES;
+  return TKU_CLUB_VENUES.map((item) => ({
+    ...item,
+    source: "console_notes" as const,
+    mcpVerified: false,
+  }));
 }
 
 /**

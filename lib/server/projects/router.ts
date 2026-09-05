@@ -38,7 +38,7 @@ export const PROJECT_CATALOG: ProjectToolMapping[] = [
   },
 ];
 
-export function routeToolsets(intent: string) {
+export function routeToolsets(intent: string, projectId?: string) {
   const selected: string[] = ["research"];
   if (/攤位|空間|3D|booth/i.test(intent)) selected.push("planform", "canva", "tamkang");
   else if (/影片|剪輯|video/i.test(intent)) selected.push("cutos", "canva", "research");
@@ -46,10 +46,15 @@ export function routeToolsets(intent: string) {
     selected.push("tamkang", "canva", "inspiration", "audience");
   else selected.push("canva");
   const unique = [...new Set(selected)];
+  const mappings = PROJECT_CATALOG.filter((item) => {
+    if (!unique.includes(item.mcpServerId)) return false;
+    if (projectId && item.projectId && item.projectId !== projectId) return false;
+    return true;
+  });
   return {
     intent,
     toolsets: unique,
-    mappings: PROJECT_CATALOG.filter((item) => unique.includes(item.mcpServerId)),
+    mappings,
     note: unique.includes("planform")
       ? "planform-iso 未設定 endpoint 時保持 disabled。"
       : "只依任務意圖挑選工具集，不灌入全部 MCP tools。",

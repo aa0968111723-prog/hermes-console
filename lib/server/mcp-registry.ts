@@ -24,6 +24,7 @@ export interface McpEntry {
   lastError: string | null;
   readonly: boolean;
   trustedLevel: "untrusted" | "workspace" | "external";
+  projectId?: string | null;
 }
 
 const endpointSchema = z
@@ -275,4 +276,19 @@ export function getMcp(id: string) {
     seedRegistry().find((item) => item.id === id) ||
     null
   );
+}
+
+export function listProjectMcp(projectId: string): McpEntry[] {
+  return seedRegistry().filter((item) => {
+    if (!item.projectId) return item.id === "workspace" || item.id === "tku";
+    return item.projectId === projectId;
+  });
+}
+
+export function projectMcpIsolated(projectA: string, projectB: string) {
+  const a = listProjectMcp(projectA).map((item) => item.id);
+  const b = listProjectMcp(projectB).map((item) => item.id);
+  const aOnly = a.filter((id) => id !== "workspace" && id !== "tku");
+  const bOnly = b.filter((id) => id !== "workspace" && id !== "tku");
+  return aOnly.every((id) => !bOnly.includes(id));
 }

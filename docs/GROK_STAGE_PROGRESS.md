@@ -1,7 +1,7 @@
 # Grok Staged Long-Run Progress
 
 ## Current Phase
-Phase 2 complete locally; next is Phase 3.
+Phase 3 complete locally; next is Phase 4.
 
 ## Observed Main SHA
 `7efcc06142a770f218a150f241354fd8fcda245f` (PR #11 merged)
@@ -27,18 +27,19 @@ Phase 2 complete locally; next is Phase 3.
 - Phase 0 truthful integration baseline (`a40c2d6`).
 - Phase 1 Hermes control plane (`a231f50`).
 - Phase 2 memory layers, usage telemetry, task limits: no fabricated MEMORY.md; usage records profile/project/conversation/run/tokens/tools; no USD estimate; orchestration clamped to depth 2 / 30 sources / 5 roles / 5 directions / 3 revisions.
+- Phase 3 verified MCP routing: initialize/tools/list/safeRead required for Verified; Tamkang mapping uses description+schema; local notes labeled `console_notes`; project mappings do not leak.
 
 ## Verified
 - Default Hermes works when named profiles are absent.
 - Missing named profile does not crash; explicit error + default fallback.
 - Hermes memory layer reports unavailable instead of fake MEMORY.md.
 - Usage `cost` is null when provider price is unknown.
-- `npm test` 80/80; `typecheck`; `check:secrets`.
+- `npm test` 85/85; `typecheck`; `check:secrets`.
 
 ## Still partial
 - Live Hermes session history/search still unsupported until the instance exposes `/api/sessions`.
 - Audience Twin named fixtures (Phase 5).
-- Tamkang local notes are not MCP (Phase 3).
+- Tamkang local notes labeled `console_notes` / Unconfigured until live MCP verify.
 
 ## External blockers
 - Live Hermes named profiles and scoped keys.
@@ -48,7 +49,7 @@ Phase 2 complete locally; next is Phase 3.
 - Pinterest official API.
 
 ## Tests run
-- `npm test`: 80/80 pass
+- `npm test`: 85/85 pass
 - `npm run typecheck`: pass
 - `npm run check:secrets`: PASS, 208 files
 
@@ -60,20 +61,15 @@ None.
 - Previously pasted secrets remain compromised; not copied into code.
 
 ## Files modified
-- `lib/server/hermes/memory.ts`
-- `lib/server/hermes/usage.ts`
-- `lib/server/hermes/client.ts`
-- `lib/server/usage.ts`
-- `lib/server/orchestrator/limits.ts`
-- `lib/server/orchestrator/task-orchestrator.ts`
-- `lib/server/audience-twin/engine.ts`
-- `app/api/hermes/memory/route.ts`
-- `app/api/hermes/usage/route.ts`
-- `tests/phase2_memory_usage.test.ts`
+- `lib/server/tamkang.ts`
+- `lib/server/mcp/tamkang-adapter.ts`
+- `lib/server/mcp-registry.ts`
+- `lib/server/projects/router.ts`
+- `tests/phase3_mcp_routing.test.ts`
 - `docs/GROK_STAGE_PROGRESS.md`
 
 ## Commit
-`feat: connect Hermes memory usage and task telemetry`
+`feat: add verified MCP and project tool routing`
 
 ## Next Phase
-Phase 3 — verified MCP, Tamkang mapping, project tool routing.
+Phase 4 — truthful universal inspiration pipeline.

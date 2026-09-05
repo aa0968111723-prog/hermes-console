@@ -34,7 +34,20 @@ const HINTS: Record<TamkangCapability, RegExp[]> = {
   tamsui_events: [/tamsui.*event/i, /festival/i],
 };
 
-export function mapTamkangTools(tools: Array<{ name: string }>) {
+function toolHaystack(tool: {
+  name: string;
+  description?: string;
+  inputSchema?: unknown;
+}) {
+  const schema = tool.inputSchema && typeof tool.inputSchema === "object"
+    ? JSON.stringify(tool.inputSchema)
+    : "";
+  return `${tool.name} ${tool.description || ""} ${schema}`;
+}
+
+export function mapTamkangTools(
+  tools: Array<{ name: string; description?: string; inputSchema?: unknown }>,
+) {
   const mapping: Record<TamkangCapability, string | null> = {
     tku_search: null,
     tku_news: null,
@@ -53,11 +66,35 @@ export function mapTamkangTools(tools: Array<{ name: string }>) {
   };
   for (const capability of TAMKANG_CAPABILITIES) {
     const match = tools.find((tool) =>
-      HINTS[capability].some((pattern) => pattern.test(tool.name)),
+      HINTS[capability].some((pattern) => pattern.test(toolHaystack(tool))),
     );
     mapping[capability] = match?.name || null;
   }
   return mapping;
+}
+
+export const TAMKANG_CAPABILITY_GROUPS = {
+  campus: ["tku_campus", "tku_search"],
+  events: ["tku_events"],
+  clubs: ["tku_clubs"],
+  calendar: ["tku_calendar"],
+  transport: ["tku_transport"],
+  facilities: ["tku_facilities"],
+  studentLife: ["tku_student_life"],
+  map: ["tku_map"],
+  course: ["tku_courses"],
+  news: ["tku_news"],
+} as const;
+
+export function groupedTamkangCapabilities(
+  mapping: Record<TamkangCapability, string | null>,
+) {
+  return Object.fromEntries(
+    Object.entries(TAMKANG_CAPABILITY_GROUPS).map(([group, keys]) => [
+      group,
+      keys.map((key) => mapping[key as TamkangCapability]).find(Boolean) || null,
+    ]),
+  ) as Record<keyof typeof TAMKANG_CAPABILITY_GROUPS, string | null>;
 }
 
 export function tamkangConfigured() {
