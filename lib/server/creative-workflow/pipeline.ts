@@ -8,6 +8,7 @@ import { getSocialLogisticsForDomain } from "./directions.ts";
 import { researchInstagramTrends, type InstagramResearchReport } from "../social/instagram-research.ts";
 import { runResearchAudienceDirectionWorkflow } from "../creative/research-direction-workflow.ts";
 import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
+import { prepareSafeSocialPublish } from "../publish/safe-workflow.ts";
 
 export interface CreativeDirection {
   id: string;
@@ -64,6 +65,7 @@ export interface CreativePipelineResult {
     method: "ai_heuristic";
     topDirectionId: string;
   };
+  safePublish?: ReturnType<typeof prepareSafeSocialPublish>;
 }
 
 export async function runCreativeIntelligencePipeline(
@@ -251,5 +253,13 @@ export async function runCreativeIntelligencePipeline(
       method: "ai_heuristic",
       topDirectionId: workflow.topDirection.raw.id,
     },
+    safePublish: prepareSafeSocialPublish({
+      caption: topDirection.igCaption.hook,
+      title: topDirection.title,
+      copy: topDirection.igCaption.body,
+      cta: topDirection.igCaption.callToAction,
+      mediaId: "os_blueprint_preview",
+      target: "instagram:workspace",
+    }),
   };
 }

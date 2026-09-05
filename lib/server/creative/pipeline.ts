@@ -13,6 +13,7 @@ import {
 import { socialDrafts } from "./social";
 import { routeToolsets } from "../projects/router";
 import { instagramPublishStatus } from "../publish";
+import { prepareSafeSocialPublish } from "../publish/safe-workflow";
 import { runResearchAudienceDirectionWorkflow } from "./research-direction-workflow";
 
 function directionsFor(prompt: string): RankableDirection[] {
@@ -157,7 +158,18 @@ export function runCreativeIntelligence(input: {
       audience: profile.name,
     }),
     tools: routeToolsets(input.prompt),
-    publish: instagramPublishStatus(),
+    publish: {
+      ...instagramPublishStatus(),
+      workflow: prepareSafeSocialPublish({
+        caption: selected.copy,
+        title: selected.title,
+        copy: selected.copy,
+        cta: selected.cta,
+        audience: profile.name,
+        mediaId: "direction_preview",
+        target: "instagram:workspace",
+      }),
+    },
     reverseThinking: wantsReverseThinking(input.prompt)
       ? runReverseThinkingEvaluation({
           prompt: input.prompt,

@@ -101,7 +101,8 @@ async function testMcpPermissions() {
     confirmationToken: tokenData.token
   });
   assert.strictEqual(authorizedPub.success, true);
-  assert.strictEqual((authorizedPub.result as any).published, true);
+  assert.strictEqual((authorizedPub.result as any).published, false);
+  assert.strictEqual((authorizedPub.result as any).livePosted, false);
   assert.strictEqual((authorizedPub.result as any).mode, "sandbox_simulation");
   assert.ok((authorizedPub.result as any).note.includes("沙盒模擬模式"));
   console.log("  ✓ 正式授權二次確認發布通過 (含安全沙盒模式標註)");

@@ -128,17 +128,24 @@ export function confirmPublish(input: ConfirmPublishInput): ConfirmPublishResult
 
   const status = instagramPublishStatus();
 
-  // 若已配置正式金鑰並啟用真實發布
+  // Live Graph is irreversible. This console never fabricates a Meta media id.
   if (status.enabled) {
-    const publishedId = `ig_live_${Date.now()}`;
+    const simId = `queued_${Date.now()}`;
     return {
       ok: true,
-      state: "published",
-      id: publishedId,
-      mode: "live_meta_graph_api",
+      state: "sandbox_simulated",
+      id: simId,
+      mode: "sandbox_audit_simulation",
       publishedAt: new Date().toISOString(),
-      containerId: `container_${Date.now()}`,
       mediaId: input.mediaId,
+      auditTrail: {
+        target: input.target,
+        caption: input.caption,
+        mediaId: input.mediaId,
+        timestamp: new Date().toISOString(),
+        disclaimer:
+          "ENABLE_LIVE_PUBLISH 已開，但本控制台不呼叫 Meta Graph（不可逆）。僅沙盒審核排隊，未真實發文。",
+      },
     };
   }
 

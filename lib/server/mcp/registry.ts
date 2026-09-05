@@ -10,6 +10,7 @@ import { resolveContextDomain } from "../audience-twin/engine.ts";
 import { getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
 import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
 import { researchInstagramTrends } from "../social/instagram-research.ts";
+import { describeMcpSandboxPublish } from "../publish/safe-workflow.ts";
 
 // 記憶體中暫存的確認 Token
 const confirmationTokens = new Map<string, ConfirmationTokenPayload>();
@@ -439,36 +440,14 @@ export async function executeMcpTool(
     }
 
     case "publish_social_campaign": {
-      const hasLiveKey = Boolean(
-        process.env.INSTAGRAM_ACCESS_TOKEN ||
-        process.env.META_ACCESS_TOKEN ||
-        process.env.META_GRAPH_API_KEY
-      );
-      const isLiveEnabled = hasLiveKey && process.env.ENABLE_LIVE_PUBLISH === "true";
       const idempotencyKey = String(args.idempotencyKey || `idem_${Date.now()}`);
       return {
         success: true,
-        result: {
-          published: true,
-          mode: isLiveEnabled ? "live_published" : "sandbox_simulation",
-          platform: args.platform,
-          publishedAt: new Date().toISOString(),
-          status: isLiveEnabled
-            ? "已排程推播至正式社群平台 (Meta Graph API)"
-            : "已排程至安全沙盒預備發布隊列（待配置正式金鑰或開啟 ENABLE_LIVE_PUBLISH）",
-          note: isLiveEnabled
-            ? "已透過 Meta Graph API 交付排程"
-            : "未配置正式金鑰或未開啟 ENABLE_LIVE_PUBLISH，系統以沙盒模擬模式產生發布封包與審核紀錄",
-          captionPreview: String(args.caption).slice(0, 80) + "...",
+        result: describeMcpSandboxPublish({
+          platform: String(args.platform || "instagram"),
+          caption: String(args.caption || ""),
           idempotencyKey,
-          auditTrail: {
-            idempotencyKey,
-            platform: args.platform,
-            captionLength: String(args.caption).length,
-            timestamp: new Date().toISOString(),
-            disclaimer: "安全沙盒模擬發布完成，具備完整審核軌跡"
-          }
-        }
+        }),
       };
     }
 
