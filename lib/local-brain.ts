@@ -4,8 +4,8 @@
  * 確保 hermes-console 具備「深度可用 (Deeply Usable)」之完整能力。
  */
 
-import { PROJECTS, TOOLS } from "./catalog";
-import { executeHermesTool, HERMES_TOOLS, ToolExecutionResult } from "./tools";
+import { PROJECTS, TOOLS } from "./catalog.ts";
+import { executeHermesTool, HERMES_TOOLS, type ToolExecutionResult } from "./tools.ts";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant" | "tool";

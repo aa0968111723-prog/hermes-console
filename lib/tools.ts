@@ -1,5 +1,5 @@
-import { PROJECTS, TOOLS } from "./catalog";
-import { HERMES_DEFAULTS } from "./hermes-config";
+import { PROJECTS, TOOLS } from "./catalog.ts";
+import { HERMES_DEFAULTS } from "./hermes-config.ts";
 
 export interface ToolDefinition {
   type: "function";

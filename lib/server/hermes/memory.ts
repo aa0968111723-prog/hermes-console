@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Hermes 大腦記憶中心 (Brain & Project Memory Center)
  * 儲存全域生態、淡江大學校園脈絡、大一新生受眾洞察與專案長期記憶
  */
@@ -93,11 +93,34 @@ export function searchMemories(query: string, project?: string): MemoryItem[] {
     .map((item) => {
       let score = 0;
       const text = `${item.title} ${item.content} ${item.tags.join(" ")}`.toLowerCase();
+
+      // 1. 檢查記憶標籤是否出現在查詢中
+      for (const tag of item.tags) {
+        if (normalizedQuery.includes(tag.toLowerCase())) {
+          score += 20;
+        }
+      }
+
+      // 2. 核心校園與社團主題詞雙向比對
+      const keywords = ["淡江", "禪學", "茶會", "新生", "大一", "克難坡", "福園", "宮燈", "選課", "放鬆", "視覺", "網宣"];
+      for (const kw of keywords) {
+        if (normalizedQuery.includes(kw) && text.includes(kw)) {
+          score += 10;
+        }
+      }
+
+      // 3. 一般詞彙比對
       for (const term of queryTerms) {
         if (text.includes(term)) {
           score += 10;
         }
       }
+
+      // 4. 同專案基礎優先級
+      if (item.project === project) {
+        score += 2;
+      }
+
       return { item, score };
     })
     .filter((entry) => entry.score > 0)
