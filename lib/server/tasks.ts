@@ -10,11 +10,13 @@ import {
   httpError,
   readJSON,
   serviceIdentity,
+  sessionKeyFor,
   streamPreview,
   upstream,
   usage,
   visibleText,
 } from "./hermes";
+import { recordTaskUsage } from "./usage";
 import { attachmentParts, material } from "./materials";
 import { frames } from "./sse";
 
@@ -126,6 +128,10 @@ function finish(
       id: "verified",
       verifiedAt: now(),
       targetHash: serviceIdentity(),
+    });
+    recordTaskUsage(task, {
+      agentId: "general",
+      projectId: conv.projectId,
     });
   }
   return save(owner, task);
@@ -239,6 +245,8 @@ async function execute(
           "/api/sessions",
           { method: "POST", body: JSON.stringify({ title: conv.title }) },
           controller.signal,
+          sessionKeyFor(conv.projectId),
+          { role: "general" },
         ),
       );
       const remote = created.session_id ?? created.id;
@@ -251,7 +259,9 @@ async function execute(
       conv.hermesSessionId = String(remote);
       put("conversation", owner, conv);
     }
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      "X-Hermes-Session-Key": sessionKeyFor(conv.projectId),
+    };
     if (conv.hermesSessionId)
       headers["X-Hermes-Session-Id"] = conv.hermesSessionId;
     const history = await Promise.all(
@@ -292,6 +302,8 @@ async function execute(
             }),
           },
           controller.signal,
+          headers["X-Hermes-Session-Key"],
+          { role: "general" },
         ),
       );
       task.remoteId = idSchema.parse(response.run_id);
@@ -322,6 +334,8 @@ async function execute(
         }),
       },
       controller.signal,
+      headers["X-Hermes-Session-Key"],
+      { role: "general" },
     );
     if (!response.ok) throw httpError(response.status);
     const remoteSession = response.headers.get("X-Hermes-Session-Id");

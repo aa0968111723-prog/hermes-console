@@ -13,7 +13,7 @@ export const PATCH = route(async (req) => {
   const input = z
     .object({
       id: z.string().regex(/^[a-f0-9]{64}$/),
-      selected: z.number().int().min(0).max(2),
+      selected: z.number().int().min(0).max(4),
     })
     .strict()
     .parse(await jsonBody(req));

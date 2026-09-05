@@ -1,6 +1,5 @@
-import { ApiError, route } from "@/lib/server/security";
+import { ApiError, route, WORKSPACE_OWNER } from "@/lib/server/security";
 import { completeCanvaAuth } from "@/lib/server/canva";
-import { db } from "@/lib/server/store";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   const url = new URL(req.url),
@@ -17,12 +16,7 @@ export const GET = route(async (req) => {
       "oauth_rejected",
       "Canva 授權未完成或來源驗證失敗，請回到設定重新開始。",
     );
-  await completeCanvaAuth("owner", state, code, (digest) => {
-    const session = db()
-      .prepare("SELECT expires FROM sessions WHERE digest=? AND owner=?")
-      .get(digest, "owner");
-    return !!session && Number(session.expires) > Date.now();
-  });
+  await completeCanvaAuth(WORKSPACE_OWNER, state, code);
   return new Response(null, {
     status: 303,
     headers: {

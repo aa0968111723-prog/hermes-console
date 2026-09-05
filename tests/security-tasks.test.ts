@@ -158,58 +158,64 @@ async function settle(id: string) {
   throw new Error("Fixture task did not settle");
 }
 test("security, honest health, durable tasks, uploads and ownership", async (t) => {
-  await t.test("protected API rejects anonymous requests", async () => {
-    assert.equal(
-      (await taskRoute.POST(request("tasks", "POST", {}, false))).status,
-      401,
-    );
+  await t.test("workspace APIs do not require login cookies", async () => {
     assert.equal(
       (await healthRoute.GET(request("health", "GET", undefined, false)))
         .status,
-      401,
+      200,
     );
     assert.equal(
       (await authRoute.GET(request("auth", "GET", undefined, false))).status,
-      401,
+      200,
+    );
+    const body = await (
+      await authRoute.GET(request("auth", "GET", undefined, false))
+    ).json();
+    assert.ok(!/請先登入|login required/i.test(JSON.stringify(body)));
+    assert.equal(
+      (
+        await taskRoute.POST(
+          new Request("http://localhost:3210/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          }),
+        )
+      ).status,
+      403,
     );
   });
-  await t.test(
-    "login requires correct password; cookies are HttpOnly and origin-bound",
-    async () => {
-      assert.equal(
-        (
-          await authRoute.POST(
-            request("auth", "POST", {
-              username: "fixture-owner",
-              password: "wrong",
-            }),
-          )
-        ).status,
-        401,
-      );
-      assert.match(cookie, /HttpOnly/);
-      assert.match(cookie, /SameSite=Strict/);
-      assert.throws(
-        () =>
-          security.authenticate(
-            new Request("http://localhost:3210/api/tasks", {
-              headers: { Cookie: cookie, Origin: "https://attacker.example" },
-            }),
-            true,
-          ),
-        /來源/,
-      );
-      assert.throws(
-        () =>
-          security.authenticate(
-            new Request("http://localhost:3210/api/tasks", {
-              headers: { Cookie: "hermes_session=forged" },
-            }),
-          ),
-        /登入/,
-      );
-    },
-  );
+  await t.test("mutations stay origin-bound without a login gate", async () => {
+    assert.equal(
+      (
+        await authRoute.POST(
+          request("auth", "POST", {
+            username: "fixture-owner",
+            password: "wrong",
+          }),
+        )
+      ).status,
+      410,
+    );
+    assert.throws(
+      () =>
+        security.authenticate(
+          new Request("http://localhost:3210/api/tasks", {
+            headers: { Cookie: cookie, Origin: "https://attacker.example" },
+          }),
+          true,
+        ),
+      /來源/,
+    );
+    assert.equal(
+      security.authenticate(
+        new Request("http://localhost:3210/api/tasks", {
+          headers: { Cookie: "hermes_session=forged" },
+        }),
+      ),
+      "workspace",
+    );
+  });
   await t.test("client destinations and credentials rejected", async () => {
     assert.equal(
       (
@@ -242,8 +248,11 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
     async () => {
       const h = await health("owner", true);
       assert.equal(h.status, "partial");
+      const items = integrations("owner", h);
       assert.ok(
-        integrations("owner", h).every((i) => i.state === "unconfigured"),
+        items
+          .filter((i) => ["instagram", "tku", "pinterest"].includes(i.id))
+          .every((i) => i.state === "unconfigured"),
       );
       assert.equal(usage(undefined, undefined, null).totalTokens, null);
       assert.equal(usage(undefined, undefined, null).providerCost, null);

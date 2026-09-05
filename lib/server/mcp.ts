@@ -1,7 +1,7 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
-import { ApiError, hash, limited, redact } from "./security";
+import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest, canvaStatus } from "./canva";
 import {
@@ -32,8 +32,8 @@ export function bridgeAuth(request: Request) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(process.env.CONSOLE_ORIGIN!).origin)
     throw new ApiError(403, "origin_rejected", "不允許此 MCP Origin。");
-  limited("mcp:owner", 120, 60_000);
-  return "owner";
+  limited("mcp:" + WORKSPACE_OWNER, 120, 60_000);
+  return WORKSPACE_OWNER;
 }
 const context = { taskId: z.string().uuid().optional() };
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);

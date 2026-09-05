@@ -25,8 +25,22 @@ export function db() {
       CREATE TABLE IF NOT EXISTS limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
       PRAGMA user_version=1;
     `);
+    migrateLegacyOwner(runtimeStore.hermesDatabase);
   }
   return runtimeStore.hermesDatabase;
+}
+function migrateLegacyOwner(database: DatabaseSync) {
+  const legacy = database
+    .prepare("SELECT COUNT(*) AS n FROM records WHERE owner=?")
+    .get("owner");
+  const current = database
+    .prepare("SELECT COUNT(*) AS n FROM records WHERE owner=?")
+    .get("workspace");
+  if (Number(legacy?.n || 0) > 0 && Number(current?.n || 0) === 0) {
+    database
+      .prepare("UPDATE records SET owner=? WHERE owner=?")
+      .run("workspace", "owner");
+  }
 }
 export function get<T>(kind: string, owner: string, id: string): T | null {
   const row = db()

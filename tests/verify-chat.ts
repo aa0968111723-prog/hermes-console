@@ -5,15 +5,17 @@ import { createServer } from "node:http";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { randomBytes, scryptSync } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 // Full Console HTTP/browser path against an explicitly isolated protocol fixture.
 // This is NOT proof that the user's Zeabur instance is reachable.
 let mode = "chat",
   cancelled = false,
-  calls = 0;
+  calls = 0,
+  lastSessionKey = "";
 const fixtureKey = randomBytes(32).toString("hex");
 const fixture = createServer(async (req, res) => {
+  lastSessionKey = String(req.headers["x-hermes-session-key"] || "");
   if (req.headers.authorization !== "Bearer " + fixtureKey) {
     res.writeHead(401).end();
     return;
@@ -98,15 +100,10 @@ const fixture = createServer(async (req, res) => {
 await new Promise<void>((resolve) => fixture.listen(0, "127.0.0.1", resolve));
 const base = "http://127.0.0.1:3216";
 const data = await mkdtemp(join(tmpdir(), "hermes-browser-contract-"));
-const password = randomBytes(24).toString("hex"),
-  salt = randomBytes(16).toString("hex");
 const environment: NodeJS.ProcessEnv = {
   ...process.env,
   NODE_ENV: "production",
   CONSOLE_ORIGIN: base,
-  CONSOLE_USERNAME: "contract-owner",
-  CONSOLE_PASSWORD_HASH:
-    "scrypt:" + salt + ":" + scryptSync(password, salt, 64).toString("hex"),
   CONSOLE_DATA_DIR: data,
   HERMES_API_URL:
     "http://127.0.0.1:" + (fixture.address() as { port: number }).port,
@@ -165,9 +162,9 @@ try {
   });
   const page = await context.newPage();
   await page.goto(base);
-  await page.getByLabel("帳號", { exact: true }).fill("contract-owner");
-  await page.getByLabel("密碼", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "進入工作區" }).click();
+  await expect(
+    page.getByRole("heading", { name: "今天想做什麼？" }),
+  ).toBeVisible();
   const textarea = page.getByRole("textbox", { name: "訊息", exact: true });
   await page
     .locator('input[type="file"]')
@@ -267,10 +264,19 @@ try {
   });
   assert.equal(cancelled, true);
   assert.equal(calls, 2);
-  assert.ok(!logs.includes(password));
+  assert.equal(lastSessionKey, "workspace");
+  const integrations = await (
+    await context.request.get(base + "/api/integrations")
+  ).json();
+  const canva = integrations.integrations.find(
+    (item: { id: string }) => item.id === "canva",
+  );
+  assert.ok(canva);
+  assert.notEqual(canva.state, "available");
+  assert.match(String(canva.detail), /Needs Canva Authorization|尚未/);
   assert.ok(!logs.includes(fixtureKey));
   console.log(
-    "PASS: full browser -> Console -> contract server long stream, read without forced scrolling, reload, attachment-preserving branch, native run persistence across actual Console process restart, real stop HTTP, no duplicate submission. NOT Zeabur live validation.",
+    "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP. NOT Zeabur live validation.",
   );
 } finally {
   await browser.close();

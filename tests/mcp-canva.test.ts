@@ -105,7 +105,7 @@ test("real MCP client contract and Canva adapter contracts (not live Canva)", as
       const text = (first.content as Array<{ text: string }>)[0].text;
       workflowId = JSON.parse(text).id;
       assert.equal(
-        get<{ state: string }>("workflow", "owner", workflowId)?.state,
+        get<{ state: string }>("workflow", "workspace", workflowId)?.state,
         "awaiting_selection",
       );
       const again = await client.callTool({
@@ -129,23 +129,23 @@ test("real MCP client contract and Canva adapter contracts (not live Canva)", as
       );
       await assert.rejects(
         () =>
-          createDraft("owner", {
+          createDraft("workspace", {
             workflowId,
             fields: { TITLE: { type: "text", text: "test" } },
           }),
         /選定/,
       );
-      chooseDirection("owner", workflowId, 0);
+      chooseDirection("workspace", workflowId, 0);
       await assert.rejects(
         () =>
-          createDraft("owner", {
+          createDraft("workspace", {
             workflowId,
             fields: { TITLE: { type: "text", text: "test" } },
           }),
         /Template/,
       );
       assert.equal(
-        get<{ state: string }>("workflow", "owner", workflowId)?.state,
+        get<{ state: string }>("workflow", "workspace", workflowId)?.state,
         "waiting_authorization",
       );
     },
@@ -212,7 +212,7 @@ test("real MCP client contract and Canva adapter contracts (not live Canva)", as
         throw new Error("Unexpected contract endpoint");
       };
       process.env.CANVA_BRAND_TEMPLATE_ID = "contract_template";
-      put("canva_tokens", "owner", {
+      put("canva_tokens", "workspace", {
         id: "current",
         ciphertext: seal({
           access_token: randomBytes(20).toString("hex"),
@@ -226,14 +226,14 @@ test("real MCP client contract and Canva adapter contracts (not live Canva)", as
         fields: { TITLE: { type: "text" as const, text: "contract title" } },
       };
       await Promise.all([
-        createDraft("owner", input),
-        createDraft("owner", input),
+        createDraft("workspace", input),
+        createDraft("workspace", input),
       ]);
       assert.equal(autofills, 1);
-      const done = await pollDraft("owner", workflowId);
+      const done = await pollDraft("workspace", workflowId);
       assert.equal(done.state, "draft_ready");
       assert.equal(done.design?.id, "contract_design");
-      await createDraft("owner", input);
+      await createDraft("workspace", input);
       assert.equal(autofills, 1);
     },
   );

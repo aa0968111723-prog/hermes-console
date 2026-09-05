@@ -8,7 +8,7 @@
 
 - 移除公開秘密預設值、前端金鑰欄位、模板 local-brain、XML 文字工具執行、假 ONLINE、寫死服務連線及專案數。
 - 更新 Next.js／React 與有安全問題的相依套件；部署端仍須撤銷所有舊憑證。
-- 單一擁有者登入、scrypt 密碼雜湊、HttpOnly／SameSite session、API 端驗證、Origin 檢查、持久化請求限制。
+- 免登入單一工作區（owner namespace=`workspace`）。Origin 檢查、持久化請求限制、秘密遮蔽、一次性高風險確認 token 仍在。CONSOLE_USERNAME／PASSWORD_HASH 不是啟動必要條件。
 - HTTPS 服務由後端受控設定；不接受客戶端 baseUrl／apiKey；禁止重導向攜出 Authorization。
 - 模型清單驗證、實例能力探索、工具／技能清單；明確區分服務可達、憑證有效、Agent 曾成功執行與各工具證據。
 - SQLite 保存專案、會話、任務、來源、素材、工具事件及使用量。瀏覽器只保存外觀和目前對話識別。
@@ -86,7 +86,7 @@
 
 1. 經 Zeabur 確認的 Hermes API 網域、目前部署倉庫／版本；在部署秘密中設定全新的 HERMES_API_KEY，切勿在對話貼上。
 2. 撤銷／輪替所有之前公開的 Hermes API 金鑰與管理後台密碼；確認舊部署、前端快取及建置產物不再含秘密。此分支未執行撤銷。
-3. Console HTTPS 網域、單一 replica、可寫持久化磁碟；CONSOLE_ORIGIN、CONSOLE_USERNAME、CONSOLE_PASSWORD_HASH。
+3. Console HTTPS 網域、單一 replica、可寫持久化磁碟；CONSOLE_ORIGIN。產品為 No Login；公開網域請另加部署層保護。
 4. Hermes 目前 profile 的工具權限清單及記憶儲存卷。建議此 Console 專用 read/draft-only profile。文字提示不是權限沙箱；必須在 Hermes 端停用不應對外發佈／執行的工具。
 5. Canva Connect 的 Client ID／Secret、OAuth redirect URI、使用者授權，以及可用 Brand Template ID／方案。Autofill 受官方方案与權限限制；不能把沒有權限當成功。
 6. 保存在秘密儲存的 CONSOLE_VAULT_KEY；必須跨重啟保留，遺失將無法解密既有 OAuth token。
