@@ -6,6 +6,7 @@ import type { AudienceScore, AudienceSimulationResult } from "../audience-twin/t
 import { generateConfirmationToken } from "../mcp/registry.ts";
 import type { CreativeDirection } from "../creative-workflow/pipeline.ts";
 import { getRawDirectionsForDomain, getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
+import { researchInstagramTrends } from "../social/instagram-research.ts";
 
 export type SubtaskType =
   | "memory_retrieval"
@@ -579,6 +580,8 @@ export async function executeOrchestratedTask(
       ? `完成 ${rawDirections.length} 款不同策略文案與 #大學生活 #心靈充電 標籤庫`
       : `完成 ${rawDirections.length} 款不同策略文案與 #淡江大學 #克難坡日常 標籤庫`;
 
+  const igReport = researchInstagramTrends({ domain, topic: userPrompt });
+
   subtasks.push({
     subtaskId: "social_caption_draft",
     title: "Instagram / Threads 社群排版文案產出",
@@ -589,7 +592,11 @@ export async function executeOrchestratedTask(
       sourceType: "security_token",
       sourceOrigin: "hermes_social_copywriter"
     },
-    outputSummary: socialSummary
+    outputSummary: `${socialSummary} (首選時段：${igReport.optimalPostingTimes.find((s) => s.isPrimeGoldenHour)?.name || "深夜黃金檔"})`,
+    outputData: {
+      directionsCount: rawDirections.length,
+      instagramReport: igReport
+    }
   });
 
   // ─── 子任務 9: 敏感操作二次確認 Token 簽發 ───

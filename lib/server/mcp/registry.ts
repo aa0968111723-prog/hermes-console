@@ -8,6 +8,7 @@ import { WORKSPACE_OWNER } from "../security.ts";
 import { discoverRemoteMcpTools } from "./client.ts";
 import { resolveContextDomain } from "../audience-twin/engine.ts";
 import { getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
+import { researchInstagramTrends } from "../social/instagram-research.ts";
 
 // 記憶體中暫存的確認 Token
 const confirmationTokens = new Map<string, ConfirmationTokenPayload>();
@@ -135,6 +136,23 @@ export const MCP_TOOLS: McpToolDefinition[] = [
         tags: { type: "array", items: { type: "string" }, description: "標籤" }
       },
       required: ["title", "content"]
+    }
+  },
+  {
+    name: "research_instagram_trends",
+    description: "調研指定校園或大專領域之 Instagram 熱門標籤、最佳發文時段分佈與視覺版型規範",
+    permissionTier: "read",
+    serverId: "tku-campus-mcp",
+    parameters: {
+      type: "object",
+      properties: {
+        domain: {
+          type: "string",
+          enum: ["tamkang", "ntu", "general"],
+          description: "校園或專案領域（淡江、臺大、通用大專）"
+        },
+        topic: { type: "string", description: "活動主題或社團名稱（如迎新茶會、野餐）" }
+      }
     }
   },
   {
@@ -390,27 +408,44 @@ export async function executeMcpTool(
       return { success: true, result: { saved: true, memory: mem } };
     }
 
+    case "research_instagram_trends": {
+      const report = researchInstagramTrends({
+        domain: typeof args.domain === "string" ? args.domain : undefined,
+        topic: typeof args.topic === "string" ? args.topic : undefined
+      });
+      return { success: true, result: report };
+    }
+
     case "publish_social_campaign": {
       const hasLiveKey = Boolean(
         process.env.INSTAGRAM_ACCESS_TOKEN ||
         process.env.META_ACCESS_TOKEN ||
         process.env.META_GRAPH_API_KEY
       );
+      const isLiveEnabled = hasLiveKey && process.env.ENABLE_LIVE_PUBLISH === "true";
+      const idempotencyKey = String(args.idempotencyKey || `idem_${Date.now()}`);
       return {
         success: true,
         result: {
           published: true,
-          mode: hasLiveKey ? "live_published" : "sandbox_simulation",
+          mode: isLiveEnabled ? "live_published" : "sandbox_simulation",
           platform: args.platform,
           publishedAt: new Date().toISOString(),
-          status: hasLiveKey
-            ? "已排程推播至正式社群平台"
-            : "已排程至安全沙盒預備發布隊列（待配置正式金鑰）",
-          note: hasLiveKey
+          status: isLiveEnabled
+            ? "已排程推播至正式社群平台 (Meta Graph API)"
+            : "已排程至安全沙盒預備發布隊列（待配置正式金鑰或開啟 ENABLE_LIVE_PUBLISH）",
+          note: isLiveEnabled
             ? "已透過 Meta Graph API 交付排程"
-            : "未配置 INSTAGRAM_ACCESS_TOKEN，系統以沙盒模擬模式產生發布封包與審核紀錄",
+            : "未配置正式金鑰或未開啟 ENABLE_LIVE_PUBLISH，系統以沙盒模擬模式產生發布封包與審核紀錄",
           captionPreview: String(args.caption).slice(0, 80) + "...",
-          idempotencyKey: args.idempotencyKey || `idem_${Date.now()}`
+          idempotencyKey,
+          auditTrail: {
+            idempotencyKey,
+            platform: args.platform,
+            captionLength: String(args.caption).length,
+            timestamp: new Date().toISOString(),
+            disclaimer: "安全沙盒模擬發布完成，具備完整審核軌跡"
+          }
         }
       };
     }

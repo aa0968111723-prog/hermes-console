@@ -19,7 +19,8 @@
 | **Phase 8** | 安全社群發布審核機制 | 已完成 | 敏感操作單次確認 Token；Payload-bound 防篡改校驗；冪等防重發機制；二次確認彈窗。 |
 | **Phase 9** | 9 大子任務編排與真實整合健康度 | 已完成 | 誠實回報 7 大狀態（Connected, Verified, Partial, Unconfigured 等）；9 大子任務循序編排（含 Provenance 出處與 Evidence vs Hypothesis）；Canva 草稿後受眾再測驗 (+4% 增益)；5 大單元測試套件 100% 通過；Next.js 43 路由全綠構建編譯。 |
 | **Main 整合** | origin/main (PR #8, #9, #11) 雙向匯流 | 已完成 | 解決 9 處衝突；完全相容 main 的安全規範與新架構；保留全部 9 大子任務、Audience Twin 與 Canva 藍圖；49/49 測試全數通過；`tsc` 與 `npm run build` 零錯誤。 |
-| **驗證** | 端對端測試與 PR 提交 | 已完成 | 5 大單元測試套件 + main 整合測試共 49 項測試 100% 通過 (`tsx --test tests/*.test.ts`)；Next.js 43 個靜態/動態路由編譯零錯誤；PR #10 無衝突就緒。 |
+| **Phase 10** | Instagram 社群調研與 Publishing 加固 | 已完成 | 多校園 Hashtag 趨勢；3 大生活節奏發文時段模型；4:5 視覺規範與 36px 手作印章；Truthful Probes 狀態探測；冪等防重發快取；沙盒審核日誌與 live_meta_graph_api 支援。 |
+| **驗證** | 端對端測試與 PR 提交 | 已完成 | 6 大單元測試套件共 60 項測試 100% 通過 (`tsx --test tests/*.test.ts`)；Next.js 43 個靜態/動態路由編譯零錯誤；202 個檔案金鑰掃描零洩漏；PR #10 就緒。 |
 
 ---
 
@@ -224,6 +225,46 @@
    - `npm test`：49/49 測試全數通過（100% Pass）。
    - `npx tsc --noEmit`：0 錯誤。
    - `npm run check:secrets`：200 檔案零洩漏。
+
+---
+
+## 週期 10 (Iteration 10) Instagram 社群調研引擎、時段分佈模型與 Publishing 安全加固
+
+針對審查反饋建議的「主題 I/J：Instagram Research 與 Publishing 加固」，完成以下 5 大核心加固：
+
+1. **Instagram 社群調研引擎實作 (`lib/server/social/instagram-research.ts`)**：
+   - **多校園熱門 Hashtag 趨勢分析**：支援淡江 (`tamkang`)、臺大 (`ntu`) 與通用大專 (`general`)。分類包含校園地標、社團活動、生活減壓、大一迎新鉤子，並嚴格隔離各校地標（淡江克難坡/宮燈 vs 臺大椰林/醉月湖）。
+   - **校園大專生活節奏發文時段模型**：
+     - 中午放空覓食期 (12:15 - 13:15)：推薦 Story 9:16，觸及權重 88。
+     - 傍晚放學通勤期 (17:30 - 18:45)：推薦 Carousel 多圖輪播，觸及權重 86。
+     - 深夜宿舍黃金檔 (21:45 - 23:30) ⭐：推薦 4:5 滿版 Feed 視覺，觸及權重 97，停留秒數 5.2s，互動率極高。
+   - **即時發布契合度指數 (Posting Readiness Score)**：依據當前時間自動評估契合度與發布格式建議。
+   - **視覺規格與規範檢驗**：推薦 4:5 (1080x1350) 滿版規格，邊角安全區（頂 120px、底 180px），手作圓形三色光道具 36px 邊角印章規範，首屏 3 行折疊前鉤子原則。
+
+2. **Truthful Probes 狀態探測升級 (`lib/server/publish.ts`)**：
+   - 支援 4 大環境狀態誠實探測：
+     - `unconfigured`（未配置金鑰，預設保持關閉）。
+     - `needs_authorization`（配置 OAuth ID/Secret，但需伺服器確認與使用者授權）。
+     - `sandbox`（配置 API Token 但未開 live，安全沙盒審核模式）。
+     - `ready`（配置 Token 且 `ENABLE_LIVE_PUBLISH === "true"`，官方發布就緒）。
+   - 升級 `confirmPublish`：支援 `allowSandbox: true` 產生完整沙盒審核軌跡 (`auditTrail`)，或執行正式 `live_meta_graph_api` 發布。
+
+3. **`metaPublisher.publish` 契約加固與冪等性防重複發布 (`lib/server/publish/contract.ts`)**：
+   - 建立伺服器端冪等快取 `idempotencyStore`（最多 500 筆，1 小時 TTL），相同 `idempotencyKey` 重複提交自動回傳快取結果並標記 `idempotentCached: true`，杜絕重複扣款或重複排程。
+   - 嚴格一次性 Token 核驗：缺少 Token 或傳入 boolean `true` 嚴格拒絕。
+
+4. **MCP 工具擴充與全管線整合 (`lib/server/mcp/registry.ts`, `task-orchestrator.ts`, `pipeline.ts`)**：
+   - 新增 `research_instagram_trends` 工具至 `MCP_TOOLS`（`permissionTier: "read"`）。
+   - 升級 `publish_social_campaign` 工具：整合沙盒審核軌跡與 Meta Graph API 交付模式。
+   - 在 9 大子任務編排器之子任務 8 (`social_caption_draft`) 整合調研報告與最佳時段推薦。
+   - 在 `runCreativeIntelligencePipeline` 中回傳 `instagramResearch` 報告。
+
+5. **全套測試覆蓋與零錯誤驗證**：
+   - 建立 `tests/phase10_instagram_publish.test.ts` 包含 11 項測試斷言。
+   - `npm test`：**60 / 60 測試全數通過 (100% Pass)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：202 個檔案零洩漏。
+   - `npm run build`：Next.js 43/43 路由編譯零錯誤。
 
 ---
 

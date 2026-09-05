@@ -5,6 +5,7 @@ import { simulateAudienceReaction, resolveContextDomain } from "../audience-twin
 import type { AudienceScore, AudienceSimulationResult } from "../audience-twin/types.ts";
 import { generateConfirmationToken } from "../mcp/registry.ts";
 import { getRawDirectionsForDomain, getSocialLogisticsForDomain } from "./directions.ts";
+import { researchInstagramTrends, type InstagramResearchReport } from "../social/instagram-research.ts";
 
 export interface CreativeDirection {
   id: string;
@@ -51,6 +52,7 @@ export interface CreativePipelineResult {
     actionName: string;
     toolTarget: string;
   };
+  instagramResearch?: InstagramResearchReport;
 }
 
 export async function runCreativeIntelligencePipeline(
@@ -226,6 +228,7 @@ export async function runCreativeIntelligencePipeline(
       expiresAt: conf.expiresAt,
       actionName: "發布 Instagram 網宣與同步至 Canva",
       toolTarget: "publish_social_campaign"
-    }
+    },
+    instagramResearch: researchInstagramTrends({ domain, topic: userQuery })
   };
 }
