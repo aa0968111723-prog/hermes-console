@@ -160,12 +160,22 @@ export async function queryTkuCalendar(week?: number) {
 
   if (week) {
     const local = TKU_SEMESTER_CALENDAR.find((c) => c.week === week) || TKU_SEMESTER_CALENDAR[1];
-    return { ...local, source: "console_notes" as const, mcpVerified: false };
+    return {
+      ...local,
+      source: "console_notes" as const,
+      mcpVerified: false,
+      sourceLayer: "console_local_notes" as const,
+      isRemoteMcp: false,
+      note: "本機校園筆記，非遠端 MCP 伺服器輸出",
+    };
   }
   return TKU_SEMESTER_CALENDAR.map((item) => ({
     ...item,
     source: "console_notes" as const,
     mcpVerified: false,
+    sourceLayer: "console_local_notes" as const,
+    isRemoteMcp: false,
+    note: "本機校園筆記，非遠端 MCP 伺服器輸出",
   }));
 }
 
@@ -235,12 +245,22 @@ export async function queryTkuVenues(venueId?: string) {
     const local =
       TKU_CLUB_VENUES.find((v) => v.venueId === venueId || v.name.includes(venueId)) ||
       TKU_CLUB_VENUES[0];
-    return { ...local, source: "console_notes" as const, mcpVerified: false };
+    return {
+      ...local,
+      source: "console_notes" as const,
+      mcpVerified: false,
+      sourceLayer: "console_local_notes" as const,
+      isRemoteMcp: false,
+      note: "本機校園筆記，非遠端 MCP 伺服器輸出",
+    };
   }
   return TKU_CLUB_VENUES.map((item) => ({
     ...item,
     source: "console_notes" as const,
     mcpVerified: false,
+    sourceLayer: "console_local_notes" as const,
+    isRemoteMcp: false,
+    note: "本機校園筆記，非遠端 MCP 伺服器輸出",
   }));
 }
 
@@ -261,6 +281,48 @@ export function getTkuZenClubProfile() {
       closing: "20:05 - 20:20 大合照與專屬紀念祝福書籤領取"
     },
     dressCode: "輕鬆舒適休閒即可，無特殊限制",
-    fee: "完全免費（歡迎大一新生攜伴參加）"
+    fee: "完全免費（歡迎大一新生攜伴參加）",
+    source: "console_notes" as const,
+    mcpVerified: false,
+    sourceLayer: "console_local_notes" as const,
+    isRemoteMcp: false,
+    note: "本機校園筆記，非遠端 MCP 伺服器輸出",
+  };
+}
+
+/**
+ * 檢驗淡江資料來源出處 (Truthful Source Provenance)
+ */
+export function getTkuSourceProvenance(data: unknown): {
+  isRemoteMcp: boolean;
+  sourceLayer: "remote_mcp" | "console_local_notes" | "unknown";
+  note: string;
+} {
+  if (data && typeof data === "object") {
+    const isRemote = (data as Record<string, unknown>).isRemoteMcp === true;
+    const layer = (data as Record<string, unknown>).sourceLayer;
+    if (isRemote || layer === "remote_mcp") {
+      return {
+        isRemoteMcp: true,
+        sourceLayer: "remote_mcp",
+        note: "資料來自遠端驗證通過之 Tamkang MCP 伺服器",
+      };
+    }
+    if (
+      layer === "console_local_notes" ||
+      (data as Record<string, unknown>).source === "console_notes" ||
+      (data as Record<string, unknown>).isRemoteMcp === false
+    ) {
+      return {
+        isRemoteMcp: false,
+        sourceLayer: "console_local_notes",
+        note: "資料來自 Console 本機校園知識筆記，非遠端 MCP 伺服器輸出",
+      };
+    }
+  }
+  return {
+    isRemoteMcp: false,
+    sourceLayer: "unknown",
+    note: "未標記出處之資料來源",
   };
 }

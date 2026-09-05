@@ -268,6 +268,34 @@
 
 ---
 
+## 週期 11 (Iteration 11) Phase 3 Verified MCP、專案隔離與淡江適配器雙向匯流
+
+本週期完成 Grok 遠端提交 `5a6d61f` 與 Antigravity 本地 Phase 3 功能之無縫雙向匯流：
+
+1. **MCP 專案邊界隔離與動態目錄評估 (`lib/server/mcp-registry.ts`, `lib/server/projects/router.ts`)**：
+   - 整合 `projectMcpIsolated(a, b)` 演算法，防止跨專案（如 Planform 3D 攤位與 CutOS 影片剪輯）MCP 伺服器工具相互洩漏。
+   - 擴充 `PROJECT_CATALOG` 支援 `tamkang` 與 `canva` 官方橋接項目。
+   - 實作 `getDynamicProjectCatalog()`，動態計算各專案 MCP 端點啟用狀態與備援狀態（`ready`, `disabled`, `fallback_available`）。
+   - 擴充 `routeToolsets(intent, projectId)` 支援意圖語意分類（`space_and_booth`, `video_production`, `creative_campaign`, `general_design`）。
+
+2. **淡江能力分組與覆蓋率分析 (`lib/server/tamkang.ts`)**：
+   - 整合 Grok 之 `toolHaystack`（深入工具名稱、描述與 inputSchema）與 `TAMKANG_CAPABILITY_GROUPS` 10 大能力分組。
+   - 擴充正規表示式 `HINTS`，加入行事曆、社團、校園、教室等關鍵詞辨識。
+   - 加入 `resolveTamkangTool` 與 `getTamkangCapabilityCoverage`，精確分析 MCP 工具覆蓋度與缺失能力清單。
+
+3. **淡江校園資料出處真確性標記 (`lib/server/mcp/tamkang-adapter.ts`)**：
+   - 於 `queryTkuCalendar`、`queryTkuVenues` 與 `getTkuZenClubProfile` 同時標記 `source: "console_notes"`、`mcpVerified: false`、`sourceLayer: "console_local_notes"` 與 `isRemoteMcp: false`。
+   - 實作 `getTkuSourceProvenance` 出處解析器，誠實區分遠端 Verified MCP 與本機校園筆記。
+
+4. **全套整合測試與全鏈路驗證**：
+   - 融合雙方測試至 `tests/phase3_mcp_routing.test.ts`（包含 9 項測試斷言）。
+   - `npm test`：**90 / 90 測試全數通過 (100% Pass)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：209 個檔案零洩漏。
+   - `npm run build`：Next.js 43 個靜態/動態路由全部編譯通過。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
