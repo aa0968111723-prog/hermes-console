@@ -5,7 +5,9 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
-import { db } from "./store";
+import { db, get, put, transaction } from "./store";
+
+export const WORKSPACE_OWNER = "workspace";
 
 export class ApiError extends Error {
   constructor(
@@ -53,21 +55,85 @@ export function checkOrigin(request: Request) {
 }
 export function authenticate(request: Request, mutation = false): string {
   if (mutation) checkOrigin(request);
-  const cookie = (request.headers.get("cookie") || "")
-    .split(";")
-    .map((x) => x.trim())
-    .find((x) => x.startsWith("hermes_session="))
-    ?.slice(15);
-  if (!cookie || !/^[a-f0-9]{64}$/.test(cookie))
-    throw new ApiError(401, "unauthorized", "請先登入。");
-  const session = db()
-    .prepare("SELECT owner,expires FROM sessions WHERE digest=?")
-    .get(hash(cookie));
-  if (!session || Number(session.expires) <= Date.now())
-    throw new ApiError(401, "unauthorized", "登入已到期，請重新登入。");
-  const owner = String(session.owner);
-  limited("api:" + owner, 240, 60_000);
-  return owner;
+  limited("api:" + WORKSPACE_OWNER, 240, 60_000);
+  return WORKSPACE_OWNER;
+}
+
+export type ConfirmationRecord = {
+  id: string;
+  action: string;
+  target: string;
+  payloadHash: string;
+  expiresAt: number;
+  used: boolean;
+};
+
+export function payloadDigest(payload: unknown) {
+  return hash(JSON.stringify(payload ?? null));
+}
+
+export function mintConfirmation(input: {
+  action: string;
+  target: string;
+  payload: unknown;
+  ttlMs?: number;
+}) {
+  const token = randomBytes(32).toString("hex");
+  const expiresAt = Date.now() + Math.min(input.ttlMs || 5 * 60_000, 15 * 60_000);
+  put("confirmation", WORKSPACE_OWNER, {
+    id: hash(token),
+    action: input.action,
+    target: input.target,
+    payloadHash: payloadDigest(input.payload),
+    expiresAt,
+    used: false,
+  } satisfies ConfirmationRecord);
+  return { token, expiresAt, action: input.action, target: input.target };
+}
+
+export function consumeConfirmation(input: {
+  token: unknown;
+  action: string;
+  target: string;
+  payload: unknown;
+}) {
+  if (input.token === true || input.token === "true")
+    throw new ApiError(
+      403,
+      "confirmation_required",
+      "前端 confirmed=true 不足；此操作需要伺服器核發的一次性確認。",
+    );
+  const token = typeof input.token === "string" ? input.token : "";
+  if (!/^[a-f0-9]{64}$/.test(token))
+    throw new ApiError(
+      403,
+      "confirmation_required",
+      "此操作需要伺服器核發的一次性確認。",
+    );
+  transaction(() => {
+    const record = get<ConfirmationRecord>(
+      "confirmation",
+      WORKSPACE_OWNER,
+      hash(token),
+    );
+    if (!record || record.used || record.expiresAt < Date.now())
+      throw new ApiError(
+        403,
+        "confirmation_invalid",
+        "確認已失效、已使用或不存在，請重新確認。",
+      );
+    if (
+      record.action !== input.action ||
+      record.target !== input.target ||
+      record.payloadHash !== payloadDigest(input.payload)
+    )
+      throw new ApiError(
+        403,
+        "confirmation_mismatch",
+        "確認內容與操作不符，請重新確認。",
+      );
+    put("confirmation", WORKSPACE_OWNER, { ...record, used: true });
+  });
 }
 export function verifyPassword(password: string, encoded: string) {
   const [scheme, salt, value] = encoded.split(":");

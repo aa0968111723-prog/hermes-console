@@ -10,7 +10,8 @@ import {
   Images,
   Leaf,
   ListTodo,
-  LogOut,
+  Sparkles,
+  Bot,
   Menu,
   MessageSquare,
   PanelLeftClose,
@@ -30,6 +31,11 @@ import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
 import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
+import AgentPanel from "./agents/AgentPanel";
+import InspirationBoard from "./inspiration/InspirationBoard";
+import IntegrationHealth from "./settings/IntegrationHealth";
+import type { AgentProfile } from "@/lib/server/agents";
+import type { InspirationItem } from "@/lib/server/inspiration";
 import {
   emptyDraft,
   useComposerDraft,
@@ -124,15 +130,13 @@ async function api<T>(
         : "未收到操作結果。請先查看已保存的任務或素材，再決定是否重試。",
     );
   });
-  if (response.status === 401 && path !== "auth")
-    window.dispatchEvent(new Event("hermes-session-expired"));
   const data = await response.json().catch(() => ({}));
   if (!response.ok)
     throw new Error(data.error?.message || "操作失敗，請稍後重試。");
   return data as T;
 }
 export default function HermesConsole() {
-  const [auth, setAuth] = useState<"loading" | "guest" | "member">("loading");
+  const [auth, setAuth] = useState<"loading" | "ready">("loading");
   const [data, setData] = useState<Workspace>(EMPTY);
   const [health, setHealth] = useState<Health | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -141,7 +145,11 @@ export default function HermesConsole() {
   const [canvaConfigured, setCanvaConfigured] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
-  const [nav, setNav] = useState<"chat" | "materials" | "tasks">("chat");
+  const [nav, setNav] = useState<
+    "chat" | "projects" | "inspiration" | "agents"
+  >("chat");
+  const [agents, setAgents] = useState<AgentProfile[]>([]);
+  const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(true);
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
@@ -250,10 +258,9 @@ export default function HermesConsole() {
       setLegacy(!!readPreference("hermes.conversations"));
     } catch {}
     setHydrated(true);
-    api("auth")
-      .then(async () => {
-        setAuth("member");
-        const workspace = await loadWorkspace();
+    loadWorkspace()
+      .then((workspace) => {
+        setAuth("ready");
         const saved = readPreference("hermes.active.v2");
         const conv = workspace.conversations.find((c) => c.id === saved);
         if (conv) {
@@ -261,24 +268,16 @@ export default function HermesConsole() {
           setProject(conv.projectId);
         }
       })
-      .catch(() => setAuth("guest"));
+      .catch((e) => {
+        setAuth("ready");
+        setError((e as Error).message);
+      });
   }, [loadWorkspace]);
   useEffect(() => {
     if (hydrated) writePreference("hermes.ui.v2", JSON.stringify(prefs));
   }, [prefs, hydrated]);
   useEffect(() => {
-    const expire = () => {
-      setAuth("guest");
-      setPanel(null);
-      setDrawer(false);
-      setOffline(false);
-      setError("登入已到期，請重新登入。此分頁的未送出草稿仍保留。");
-    };
-    window.addEventListener("hermes-session-expired", expire);
-    return () => window.removeEventListener("hermes-session-expired", expire);
-  }, []);
-  useEffect(() => {
-    if (auth !== "member") return;
+    if (auth !== "ready") return;
     api<Health>("health")
       .then(setHealth)
       .catch((e) => setError(e.message));
@@ -603,6 +602,14 @@ export default function HermesConsole() {
   const navigate = (next: typeof nav) => {
     setNav(next);
     setDrawer(false);
+    if (next === "agents")
+      api<{ agents: AgentProfile[] }>("agents")
+        .then((result) => setAgents(result.agents))
+        .catch(() => {});
+    if (next === "inspiration")
+      api<{ items: InspirationItem[] }>("inspiration")
+        .then((result) => setInspiration(result.items))
+        .catch(() => {});
   };
   const navigation = (
     <>
@@ -628,21 +635,25 @@ export default function HermesConsole() {
           對話
         </button>
         <button
-          aria-current={nav === "materials" ? "page" : undefined}
-          onClick={() => navigate("materials")}
+          aria-current={nav === "projects" ? "page" : undefined}
+          onClick={() => navigate("projects")}
         >
           <Images size={19} />
-          素材
+          專案
         </button>
         <button
-          aria-current={nav === "tasks" ? "page" : undefined}
-          onClick={() => navigate("tasks")}
+          aria-current={nav === "inspiration" ? "page" : undefined}
+          onClick={() => navigate("inspiration")}
         >
-          <ListTodo size={19} />
-          任務
-          {tasks.filter(isActive).length > 0 && (
-            <span className="count">{tasks.filter(isActive).length}</span>
-          )}
+          <Sparkles size={19} />
+          靈感
+        </button>
+        <button
+          aria-current={nav === "agents" ? "page" : undefined}
+          onClick={() => navigate("agents")}
+        >
+          <Bot size={19} />
+          Agent
         </button>
       </nav>
       <div className="side-section">
@@ -725,76 +736,8 @@ export default function HermesConsole() {
 
   if (auth === "loading")
     return (
-      <main className="login-screen">
-        <p role="status">正在開啟私人工作區…</p>
-      </main>
-    );
-  if (auth === "guest")
-    return (
-      <main className="login-screen">
-        <div className="login-card">
-          <img
-            className="login-turtle"
-            src="/mascot/turtle.png"
-            alt="嫩綠龜龜"
-          />
-          <p className="eyebrow">HERMES · CREATIVE WORKSPACE</p>
-          <h1>讓好想法，慢慢成形。</h1>
-          <p className="muted">登入你的私人創作工作區。</p>
-          <form
-            onSubmit={async (event) => {
-              event.preventDefault();
-              setBusy(true);
-              setError("");
-              const fields = new FormData(event.currentTarget);
-              try {
-                await api("auth", "POST", {
-                  username: fields.get("username"),
-                  password: fields.get("password"),
-                });
-                setAuth("member");
-                await refresh();
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <label>
-              帳號
-              <input
-                name="username"
-                autoComplete="username"
-                required
-                maxLength={100}
-              />
-            </label>
-            <label>
-              密碼
-              <input
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                maxLength={256}
-              />
-            </label>
-            {error && (
-              <p role="alert" className="error">
-                {error}
-              </p>
-            )}
-            <button className="primary" disabled={busy}>
-              {busy ? "驗證中…" : "進入工作區"}
-            </button>
-          </form>
-          <small>
-            首次使用請先在後端設定帳號與新的密碼雜湊。
-            <br />
-            Hermes 金鑰不會出現在瀏覽器。
-          </small>
-        </div>
+      <main className="workspace-loading">
+        <p role="status">正在開啟工作區…</p>
       </main>
     );
 
@@ -809,6 +752,7 @@ export default function HermesConsole() {
       }
       data-compact={prefs.compact}
     >
+
       <a className="skip-link" href="#composer">
         跳至輸入區
       </a>
@@ -852,9 +796,11 @@ export default function HermesConsole() {
           <div className="topbar-title">
             {nav === "chat"
               ? "創作對話"
-              : nav === "materials"
-                ? "素材與靈感"
-                : "任務紀錄"}
+              : nav === "projects"
+                ? "專案與素材"
+                : nav === "inspiration"
+                  ? "靈感"
+                  : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
@@ -939,31 +885,36 @@ export default function HermesConsole() {
                         onClick={() => openTask()}
                       />
                     )}
-                    <p className="eyebrow">一點靈感，開始一段創作</p>
-                    <h1>今天，想讓什麼好點子成形？</h1>
+                    <p className="eyebrow">歡迎使用 Hermes Creative Intelligence</p>
+                    <h1>今天想做什麼？</h1>
                     <p>
-                      從活動想法到視覺方向，
+                      直接告訴龜龜你想做什麼。
                       <br className="mobile-break" />
-                      我們一步一步整理。
+                      不必自己挑選工具。
                     </p>
+                    <button
+                      className="primary"
+                      onClick={() => input.current?.focus()}
+                    >
+                      開始使用
+                    </button>
                     <div className="starters">
                       {[
+                        ["幫我找網宣靈感", "幫我找網宣靈感。"],
                         [
-                          "籌備活動網宣",
-                          "我想規劃一場活動的網宣，請先幫我釐清活動目的、受眾、時間地點與必要資訊。",
+                          "幫我做淡江新生海報",
+                          "幫我做一張給淡江大一新生看的社團茶會海報。",
+                        ],
+                        ["分析這張文宣", "請分析這張文宣。"],
+                        [
+                          "站在目標客群角度看看",
+                          "站在目標客群角度看看，路人會不會滑掉。",
                         ],
                         [
-                          "整理參考靈感",
-                          "我有一些參考素材，請幫我分析配色、構圖與適合延伸的方向。",
+                          "找 IG / Pinterest 參考",
+                          "幫我找 IG 與 Pinterest 參考，不要假裝已搜尋完整平台。",
                         ],
-                        [
-                          "探索三個方向",
-                          "請根據已確認的活動資訊提出三個不同創作方向，各自包含核心主張、視覺、文案與行動呼籲。",
-                        ],
-                        [
-                          "打磨貼文文案",
-                          "我想打磨一篇 Instagram 貼文草稿，請先詢問受眾、目的及必要資訊，不要直接發佈。",
-                        ],
+                        ["做 Canva 草稿", "幫我做 Canva 草稿。"],
                       ].map(([label, prompt]) => (
                         <button
                           key={label}
@@ -1268,7 +1219,7 @@ export default function HermesConsole() {
                       className="sr-only"
                       tabIndex={-1}
                       type="file"
-                      accept="image/png,image/jpeg,image/webp,text/plain"
+                      accept="image/png,image/jpeg,image/webp,text/plain,application/pdf"
                       multiple
                       disabled={busy}
                       onChange={(e) => {
@@ -1289,7 +1240,7 @@ export default function HermesConsole() {
                       type="button"
                       aria-label="上傳圖片或文字檔"
                       disabled={busy}
-                      title="PNG、JPG、WebP 或 TXT；每個檔案最多 8 MB，每則訊息最多四個附件"
+                      title="PNG、JPG、WebP、TXT 或 PDF；每個檔案最多 8 MB，每則訊息最多四個附件"
                       onClick={() => uploadInput.current?.click()}
                     >
                       <Plus size={23} />
@@ -1298,7 +1249,7 @@ export default function HermesConsole() {
                       className="composer-label"
                       type="button"
                       disabled={busy}
-                      onClick={() => setNav("materials")}
+                      onClick={() => setNav("projects")}
                     >
                       <ImagePlus size={17} />
                       加入素材
@@ -1339,7 +1290,7 @@ export default function HermesConsole() {
               </p>
             </div>
           </>
-        ) : nav === "materials" ? (
+        ) : nav === "projects" ? (
           <section className="secondary-page">
             <p className="eyebrow">收好靈感，接著創作</p>
             <h1>素材與靈感</h1>
@@ -1446,8 +1397,14 @@ export default function HermesConsole() {
               </div>
             )}
           </section>
+        ) : nav === "inspiration" ? (
+          <InspirationBoard
+            items={inspiration}
+            notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
+          />
         ) : (
           <section className="secondary-page">
+            <AgentPanel agents={agents} brain={[]} />
             <p className="eyebrow">每一步都有紀錄</p>
             <h1>任務</h1>
             <p className="muted">這裡只呈現後端儲存及 Hermes 回報的狀態。</p>
@@ -1798,10 +1755,11 @@ export default function HermesConsole() {
                     <p className="muted">
                       網址、金鑰只在後端設定。此處不收集或顯示金鑰。
                     </p>
+                    <IntegrationHealth items={integrations} />
                     <h3>Canva Connect 授權</h3>
                     <p>
                       {canvaConfigured
-                        ? "後端已設定 OAuth；請登入 Canva 並確認所需權限。"
+                        ? "後端已設定 OAuth；請前往 Canva 授權並確認所需權限。此授權只用於 Canva。"
                         : "後端尚未設定 Canva OAuth。也可沿用 Hermes 已有的 Canva 設計 MCP。"}
                     </p>
                     <button
@@ -1962,34 +1920,7 @@ export default function HermesConsole() {
                 )}
               </div>
               <footer className="settings-footer">
-                <button
-                  onClick={async () => {
-                    try {
-                      await api("auth", "DELETE");
-                      setAuth("guest");
-                      setPanel(null);
-                      setData(EMPTY);
-                      setTasks([]);
-                      setHealth(null);
-                      for (const xhr of pendingXHR.current.values())
-                        xhr.abort();
-                      pendingXHR.current.clear();
-                      clearDrafts();
-                      setWorkflows([]);
-                      setRemoteHistory(null);
-                      setPreview(null);
-                      setNotice("");
-                      setError("");
-                      setActiveId(null);
-                      writePreference("hermes.active.v2", null);
-                    } catch (e) {
-                      setError((e as Error).message);
-                    }
-                  }}
-                >
-                  <LogOut size={16} />
-                  登出工作區
-                </button>
+                <p className="muted">單一工作區 · 秘密只存在後端</p>
               </footer>
             </>
           ) : panel === "preview" && preview ? (

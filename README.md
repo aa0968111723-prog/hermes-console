@@ -1,6 +1,6 @@
-# Hermes 創作助手
+# Hermes Creative Intelligence
 
-明亮、受保護的 Hermes 對話工作區。Hermes 執行工具；Console 保存會話對應、任務與素材，不另建模板大腦。
+明亮、免登入的單一工作區。開啟網址即可與 Hermes 對話。Hermes 執行工具；Console 保存會話對應、任務與素材，不另建模板大腦。
 
 ## 啟動
 
@@ -8,11 +8,14 @@
 
 1. `npm ci`
 2. 複製 `.env.example` 到 `.env.local`，依註解設定。
-3. `npm run password:hash` 建立新的登入密碼雜湊。
-4. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。
-5. `npm run dev`；正式環境使用 `npm run build` 與 `npm start`。
+3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。
+4. `npm run dev`；正式環境使用 `npm run build` 與 `npm start`。
 
-所有操作需要登入。目前為單一擁有者的私人工作區：不開放註冊，不把共享 Hermes 記憶冒充多租戶隔離。
+# No Login
+
+開啟網站即可使用。不需要帳號、密碼、註冊或 session 登入閘。資料寫入固定後端 namespace `workspace`，不會在介面顯示。
+
+若把 Console 網域直接暴露在公開 Internet，任何知道網址的人都可能消耗 Hermes／MCP 資源。請使用可選的部署層保護（Zeabur private networking、reverse proxy、Cloudflare Access、VPN、IP allowlist），不要在 Console UI 恢復登入。
 
 ## 重要安全操作
 

@@ -6,15 +6,16 @@
 
 - 單一 replica，掛載可寫持久化卷到 `/app/data`。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
-- `npm run password:hash` 在互動終端產生新登入密碼雜湊。密碼本身不寫入環境變數。
-- 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。
+- # No Login：產品本身不要求 Console 帳號密碼。`CONSOLE_USERNAME`／`CONSOLE_PASSWORD_HASH` 不是啟動必要條件。
+- 若網域直接暴露在公開 Internet，任何知道網址的人都可能使用 Console 並消耗 Hermes／MCP 資源。可選部署層保護：Zeabur private networking、reverse proxy access policy、Cloudflare Access、VPN、IP allowlist。不要在 Console UI 恢復登入。
+- 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。撤銷所有曾公開的 Hermes API Key 並重新產生。
 - 定期備份 SQLite 和 uploads；備份也必須存取受控。不要把資料卷提交 Git。
 - 未實作多 replica 鎖／分散式佇列。不要水平扩展此版本。
 
 ## Hermes
 
 1. 記錄部署 commit／版本及 API 網域，先輪替被公開過的憑證。
-2. 使用 Console 登入後的「重新驗證連線」。模型清單成功不等於所有工具可用。
+2. 使用設定中的「重新驗證連線」。模型清單成功不等於所有工具可用。
 3. 觀察實例 capability 回應，確認 runs、status、stop、sessions、toolsets、skills 實際存在。
 4. 舊版只能 chat-completions 時，Console 可以保存歷史與串流結果，但中斷不保證遠端停止；不得把此模式當可可靠取消副作用的執行器。
 5. 必須在 Hermes 端限制工具。此版本 Console 不提供社群正式發佈工具；不能靠模型提示代替 Hermes 權限限制。

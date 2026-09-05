@@ -1,40 +1,48 @@
 ## 摘要
 
-將舊版雙介面與假備援流程改為受保護的明亮 Hermes 工作區；移除公開秘密預設值、固定模板 local-brain、XML 文字工具執行及寫死狀態／數量。
+將 Hermes Console 升級為 **Hermes Creative Intelligence**：免登入單一工作區。開啟網址即可對話，不再出現登入頁、註冊、帳號或密碼。秘密仍只存在 server-side env / encrypted vault。
 
-本 PR 保持 Draft，因為尚未取得使用者部署端的新憑證與平台授權，不能宣稱七項整合已全部實機跑通。
+## No-login architecture
 
-## 實作
+- Browser → Console Server → server-held credentials → Hermes / MCP / Canva。
+- 所有資料使用固定 namespace `workspace`，不在 UI 顯示。
+- `CONSOLE_USERNAME` / `CONSOLE_PASSWORD_HASH` 不是啟動必要條件。
+- Canva OAuth 仍是連外部 Canva 帳號，與 Console 免登入無關。
 
-- 登入/session/API 權限、Origin、請求限制、受控服務網址、錯誤狀態及串流秘密遮蔽。
-- SQLite 會話／專案／任務／素材／工具事件；native runs 查回／停止，舊版串流中斷明確標示不確定；去重、歷史匯入與分支。
-- 真正圖片上傳與 image input、Markdown／表格／來源、明亮手機優先 UI、高度可調整的閱讀與角色偏好。
-- 依使用者附件製作透明嫩綠龜龜；由實際任務事件驅動，支援 reduced motion／隱藏／大小。
-- 真實 Streamable HTTP MCP；持久化三方向與使用者選定流程。
-- Canva Connect PKCE OAuth、加密 token、refresh、搜尋／讀取／上傳／autofill／匯出 API 工具；未授權不列為可用，副作用不確定時不自動重送。
-- Docker 單 replica 持久化部署範本，CI 與精確設定／限制清單。
+## 安全模型
 
-## 驗證
+- 保留 Origin 檢查、rate limit、request/upload size、timeout、SSRF／URL 驗證、API allowlist、secret redaction。
+- 工具分 read / draft / write / publish / destructive。
+- 高風險副作用需要伺服器核發、一次性、短效、綁定 action+target+payload hash 的確認 token。`confirmed=true` 不足。
+- Instagram 發佈預設關閉，即使免登入也必須人工確認。
+- 公開 Internet 部署可消耗 Hermes／MCP；請用 Zeabur private networking、reverse proxy、Cloudflare Access、VPN 或 IP allowlist。不要在 UI 恢復登入。
+- 曾公開的 Hermes API Key 必須撤銷並重新產生。
 
-- 22 項後端／MCP SDK／Canva HTTP 契約與角色狀態測試通過。
-- 型別檢查、正式建置通過；npm audit 0 項已知漏洞；秘密字串掃描通過。
-- 真實 Chromium：1440、768、390、360px；登入、API 保護、固定亮色、合成 IME、Shift+Enter、觸控／輸入／角色邊界、抽屜、來源保存、角色偏好。
-- 真實 Console 程序重啟＋隔離 Hermes 協定伺服器：長串流、重新整理、原生任務恢復、不重複提交、停止 HTTP。
-- 截圖：docs/screenshots。
+## Hermes Multi-Agent
 
-## 本輪細節優化
+- Agent Registry：general / creative / research / tku / design / social / development / reviewer。
+- 憑證以 env 參照保存，不寫入 SQLite 明文。
+- 能力從實例探索（unknown / unsupported / available / partial / failed）。
+- 上游呼叫送出 `X-Hermes-Session-Key`（workspace / project:<id> / campaign:<id>）。
+- Agent Brain 僅在實例支援 memory／session_search 時顯示。
+- 使用量記錄 tokens／工具／時長，不估算未提供的價格。
+- 多代理交接深度最多 2，含 timeout／budget／Stop。
 
-- 分頁內草稿依對話／專案分開；附件延遲上傳不會混入別的對話。登出清除，登入到期可接續；重新整理會清除的限制明確呈現。
-- 長文輸入自動展開並因應縮小可視高度；分支保留附件、上方閱讀不被新訊息拉回。
-- 具名面板、鍵盤設定分頁、焦點返回、可鍵盤捲動表格。
-- 禁止瀏覽器儲存時仍可使用、登入到期重新驗證、上傳逾時／取消清理、真實龜龜工具狀態。
-- 擴充兩套瀏覽器檢查，新增桌面／手機設定面板截圖。外部服務待授權清單不變。
+## Memory / MCP / Tamkang / IG / Pinterest / Audience Twin / Canva
 
-## 不應誤解為已完成
+- MCP Registry：initialize ≠ verified；tools/list = partial；安全讀取 = verified。GitHub URL 不是 MCP。
+- 淡江：`TKU_MCP_URL` / `TKU_MCP_TOKEN` + capability mapping；離線改網頁研究。
+- Instagram 研究 vs 發佈；不宣稱搜尋完整 Instagram。
+- Pinterest Pin／看板 URL + 網頁；不假裝官方全站搜尋。
+- 「幫我找靈感」產生 Inspiration Board。
+- Audience Twin 分開 Evidence / Hypothesis，分數 0–100，永遠附「AI 模擬評估，不代表真實市場調查。」
+- Canva 保留既有 PKCE／vault；新增 template／dataset mapping／Open in Canva。未授權時流程標記 Needs Canva Authorization。
 
-- 以上外部服務回應契約測試不是 Zeabur、Canva 或實體手機驗證。
-- 仍需經確認的 Hermes 網域／版本及全新後端金鑰、Canva OAuth 使用者授權／範本、淡江與其他專案 MCP 端點。
-- 舊憑證必須在部署端撤銷；此 PR 沒有撤銷、重寫 Git 歷史、強制推送、正式部署或社群發佈。
-- Instagram 正式發佈、Pinterest 官方搜尋及未指定的校務／專案服務尚未完成，介面沒有假成功入口。
+## Tool Permissions / 測試 / 部署 / 尚未授權服務
+
+- Web／IG／Pinterest／PDF／MCP／素材皆為不可信資料；「忽略系統指令」不執行。
+- `npm test`、`typecheck`、`build`、`test:ui`、`test:chat`、`audit`、`check:secrets` 已在本分支執行。
+- 部署：長駐 Node.js、SQLite、Persistent Volume、single replica、HTTPS。
+- 尚未授權：真實 Zeabur Hermes、Canva 使用者 OAuth、Tamkang MCP、Instagram／Pinterest API。介面顯示 Unconfigured / Needs Authorization，不假裝 Connected。
 
 完整狀態見 docs/DELIVERY.md 與 docs/DEPLOYMENT.md。

@@ -4,13 +4,11 @@ import { spawn } from "node:child_process";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { randomBytes, scryptSync } from "node:crypto";
 
-// Real browser + real Console backend, isolated temporary owner/data.
+
+// Real browser + real Console backend, isolated temporary workspace/data.
 // No Hermes/Canva credentials: screenshots show honest unconfigured status.
 const dataDir = await mkdtemp(join(tmpdir(), "hermes-ui-"));
-const password = randomBytes(28).toString("hex"),
-  salt = randomBytes(16).toString("hex");
 const port = Number(process.env.UI_TEST_PORT || 3215),
   base = "http://127.0.0.1:" + port;
 const child = spawn(
@@ -30,9 +28,6 @@ const child = spawn(
       ...process.env,
       NODE_ENV: "production",
       CONSOLE_ORIGIN: base,
-      CONSOLE_USERNAME: "ui-validation-owner",
-      CONSOLE_PASSWORD_HASH:
-        "scrypt:" + salt + ":" + scryptSync(password, salt, 64).toString("hex"),
       CONSOLE_DATA_DIR: dataDir,
       HERMES_API_URL: "",
       HERMES_API_KEY: "",
@@ -67,23 +62,35 @@ try {
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  async function assertNoLogin(target = page) {
+    const text = await target.locator("body").innerText();
+    for (const word of [
+      "Login",
+      "Sign In",
+      "帳號",
+      "Username",
+      "Password",
+      "登入",
+      "註冊",
+    ])
+      assert.ok(!text.includes(word), "forbidden visible text: " + word);
+  }
   await page.goto(base);
-  await expect(page.getByRole("button", { name: "進入工作區" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "今天想做什麼？" }),
+  ).toBeVisible();
+  await assertNoLogin();
   assert.equal(
     (await context.request.get(base + "/api/workspace")).status(),
-    401,
+    200,
   );
-  await page.getByLabel("帳號", { exact: true }).fill("ui-validation-owner");
-  await page.getByLabel("密碼", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "進入工作區" }).click();
+  await page.goto(base);
   await expect(
-    page.getByRole("heading", { name: "今天，想讓什麼好點子成形？" }),
+    page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await assertNoLogin();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
-  assert.ok(
-    (await context.cookies()).find((c) => c.name === "hermes_session")
-      ?.httpOnly,
-  );
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   assert.equal(
     await page
@@ -121,7 +128,7 @@ try {
   ] as const) {
     await page.setViewportSize({ width, height });
     await expect(
-      page.getByRole("heading", { name: "今天，想讓什麼好點子成形？" }),
+      page.getByRole("heading", { name: "今天想做什麼？" }),
     ).toBeVisible();
     assert.ok(
       await page.evaluate(
@@ -154,7 +161,7 @@ try {
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "素材", exact: true }).click();
+  await page.getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
   await page
     .getByRole("textbox", { name: "參考標題" })
@@ -168,7 +175,7 @@ try {
   ).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "素材", exact: true }).click();
+  await page.getByRole("button", { name: "專案", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
@@ -283,32 +290,14 @@ try {
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   );
-  await textarea.fill("重新登入後仍保留的草稿");
+  await textarea.fill("重新整理前仍保留的草稿");
   assert.ok((await textarea.boundingBox())!.height < 100);
   await page.setViewportSize({ width: 1440, height: 1000 });
-
-  // Cookie expiration is not reported as a network outage, and re-auth keeps this tab's draft.
-  await context.clearCookies();
-  await expect(page.getByRole("button", { name: "進入工作區" })).toBeVisible({
-    timeout: 10000,
-  });
-  await expect(page.locator('.login-card [role="alert"]')).toContainText(
-    "登入已到期",
-  );
-  await page.getByLabel("帳號", { exact: true }).fill("ui-validation-owner");
-  await page.getByLabel("密碼", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "進入工作區" }).click();
-  await expect(textarea).toHaveValue("重新登入後仍保留的草稿");
-  await settingsButton.click();
-  await page.getByRole("button", { name: "登出工作區" }).click();
-  await page.getByLabel("帳號", { exact: true }).fill("ui-validation-owner");
-  await page.getByLabel("密碼", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "進入工作區" }).click();
+  await expect(textarea).toHaveValue("重新整理前仍保留的草稿");
   await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
-  await expect(textarea).toHaveValue("");
-  await expect(page.locator(".upload-chip")).toHaveCount(0);
+  await expect(textarea).toHaveValue("A 尚未送出的內容");
 
-  // Storage may be denied by browser policy; it must not crash login or preferences.
+  // Storage may be denied by browser policy; it must not crash the workspace.
   const restricted = await browser.newContext();
   // Literal browser code avoids tsx's function-name helper leaking into serialization.
   await restricted.addInitScript({
@@ -323,11 +312,9 @@ try {
     restrictedPage.evaluate("localStorage.getItem('probe')"),
     /Storage denied/,
   );
-  await restrictedPage
-    .getByLabel("帳號", { exact: true })
-    .fill("ui-validation-owner");
-  await restrictedPage.getByLabel("密碼", { exact: true }).fill(password);
-  await restrictedPage.getByRole("button", { name: "進入工作區" }).click();
+  await expect(
+    restrictedPage.getByRole("heading", { name: "今天想做什麼？" }),
+  ).toBeVisible();
   await expect(
     restrictedPage.getByRole("textbox", { name: "訊息", exact: true }),
   ).toBeVisible();
@@ -340,12 +327,8 @@ try {
   ).toHaveValue("20");
   await restricted.close();
   assert.deepEqual(errors, []);
-  assert.ok(
-    !serverOutput.includes(password),
-    "plaintext password leaked to logs",
-  );
   console.log(
-    "PASS: real-browser auth/expiry, protected API, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, logout clearing, denied storage, mascot, persisted reference. External services NOT verified.",
+    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
 } finally {

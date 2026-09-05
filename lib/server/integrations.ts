@@ -1,5 +1,10 @@
 import type { Health, Task, IntegrationState } from "../contracts";
 import { list } from "./store";
+import { canvaStatus } from "./canva";
+import { instagramPublishStatus } from "./publish";
+import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
+import { tamkangStatus } from "./tamkang";
+import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
   name: string;
@@ -16,19 +21,18 @@ export function integrations(owner: string, h: Health): Integration[] {
       id: "instagram",
       name: "Instagram",
       pattern: /instagram|(^|_)ig_/i,
-      detail: "貼文連結與參考圖可保存；不承諾全站搜尋。正式發佈未啟用。",
+      detail: instagramResearchLimits().notice,
       requirements: [
-        "Hermes 中的 Instagram 工具／MCP",
-        "專業帳號與所需 OAuth 範圍",
-        "獨立發佈確認與去重驗證",
+        "使用者貼 IG URL、網頁索引或已授權 Meta API",
+        "正式發佈需 OAuth、publish 權限與一次性確認",
       ],
     },
     {
       id: "tku",
       name: "淡江 MCP",
-      pattern: /tku|tamkang|tronclass/i,
-      detail: "尚未確認指定倉庫、工具範圍與授權；課務資料不等於全部校園資訊。",
-      requirements: ["MCP 倉庫與實際服務端點", "公開／私人資料範圍與授權"],
+      pattern: /tku|tamkang|tronclass|campus|tamsui/i,
+      detail: tamkangStatus().detail,
+      requirements: ["TKU_MCP_URL", "TKU_MCP_TOKEN", "實際 tools/list 驗證"],
     },
     {
       id: "canva",
@@ -55,9 +59,8 @@ export function integrations(owner: string, h: Health): Integration[] {
       id: "pinterest",
       name: "Pinterest",
       pattern: /pinterest/i,
-      detail:
-        "支援 HTTPS Pin／看板連結收藏；官方搜尋能力需另行驗證。參考素材不保證可商用。",
-      requirements: ["Hermes Pinterest 工具／MCP", "官方帳號授權及搜尋權限"],
+      detail: pinterestResearchLimits().notice,
+      requirements: ["Pin／看板 HTTPS 連結", "Pinterest API 授權（可選）"],
     },
     {
       id: "creative",
@@ -72,7 +75,33 @@ export function integrations(owner: string, h: Health): Integration[] {
     },
   ];
   const events = list<Task>("task", owner).flatMap((t) => t.events);
-  return definitions.map((d) => {
+  const registry = seedRegistry();
+  const extras: Integration[] = [
+    {
+      id: "hermes",
+      name: "Hermes",
+      state: h.status,
+      detail: h.message,
+      verifiedAt: h.checkedAt,
+      tools: h.toolsets.flatMap((t) => t.tools || []),
+      evidence: h.credential === "valid" ? "models" : null,
+      requirements: ["HERMES_API_URL", "HERMES_API_KEY"],
+    },
+    {
+      id: "workspace-mcp",
+      name: "Workspace MCP",
+      state: (registry.find((i) => i.id === "workspace")?.status ===
+      "unconfigured"
+        ? "unconfigured"
+        : "partial") as IntegrationState,
+      detail: "Console 自身 MCP；成功連線不代表已 verified。",
+      verifiedAt: null,
+      tools: [],
+      evidence: null,
+      requirements: ["MCP_BRIDGE_TOKEN"],
+    },
+  ];
+  const mapped: Integration[] = definitions.map((d) => {
     const matching = h.toolsets.filter(
       (t) =>
         d.pattern.test(t.name) ||
@@ -107,4 +136,25 @@ export function integrations(owner: string, h: Health): Integration[] {
       requirements: d.requirements,
     } satisfies Integration;
   });
+  const tku = tamkangStatus();
+  const ig = instagramPublishStatus();
+  const canva = canvaStatus(owner);
+  for (const item of mapped) {
+    if (item.id === "tku") {
+      item.state = tku.state as IntegrationState;
+      item.detail = tku.detail;
+    }
+    if (item.id === "instagram") {
+      item.state = ig.configured ? "awaiting_authorization" : "unconfigured";
+      item.detail = ig.message;
+    }
+    if (item.id === "canva") {
+      item.state = canva.state as IntegrationState;
+      item.detail = canva.needsAuthorization
+        ? "Needs Canva Authorization"
+        : canva.message;
+      item.verifiedAt = canva.verifiedAt;
+    }
+  }
+  return extras.concat(mapped);
 }

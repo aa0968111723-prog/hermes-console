@@ -10,18 +10,29 @@ const url = z
 const direction = z
   .object({
     title: z.string().min(1).max(120),
+    coreIdea: z.string().max(2000).optional(),
     claim: z.string().max(2000),
+    audienceInsight: z.string().max(4000).optional(),
     visual: z.string().max(4000),
+    composition: z.string().max(2000).optional(),
+    color: z.string().max(1000).optional(),
+    typography: z.string().max(1000).optional(),
     copy: z.string().max(5000),
     cta: z.string().max(1000),
+    platform: z.string().max(100).optional(),
+    references: z.array(url).max(20).optional(),
     sources: z.array(url).max(20),
+    risks: z.array(z.string().max(500)).max(10).optional(),
+    audienceScores: z.record(z.string(), z.number().min(0).max(100)).optional(),
+    audienceFeedback: z.string().max(4000).optional(),
+    revisionSuggestions: z.array(z.string().max(500)).max(10).optional(),
   })
   .strict();
 export const directionsInput = z
   .object({
     projectId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/),
     brief: z.string().min(1).max(10_000),
-    directions: z.array(direction).length(3),
+    directions: z.array(direction).min(3).max(5),
   })
   .strict();
 export interface Workflow {
@@ -82,8 +93,12 @@ export function chooseDirection(owner: string, id: string, selected: number) {
         "workflow_locked",
         "設計已提交，不能覆寫選擇；請建立新的創作版本。",
       );
-    if (!Number.isInteger(selected) || selected < 0 || selected > 2)
-      throw new ApiError(400, "invalid_direction", "請選擇三個方向之一。");
+    if (
+      !Number.isInteger(selected) ||
+      selected < 0 ||
+      selected >= record.directions.length
+    )
+      throw new ApiError(400, "invalid_direction", "請選擇其中一個創作方向。");
     return put("workflow", owner, {
       ...record,
       selected,

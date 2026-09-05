@@ -10,6 +10,51 @@
   --selection: #e5efd9;
   --app-height: 100dvh;
 }
+.workspace-loading,
+.welcome-overlay {
+  min-height: var(--app-height);
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  text-align: center;
+}
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(250, 252, 248, 0.96);
+}
+.welcome-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.agent-card,
+.agent-detail,
+.inspiration-board li,
+.audience-card,
+.integration-health li {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: left;
+}
+.agent-card {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.disclaimer {
+  font-size: 13px;
+  color: var(--muted);
+}
 .canva-result {
   background: #fff;
   border: 1px solid var(--line);
@@ -456,11 +501,15 @@ nav button[aria-current="page"] {
 .turtle[data-animate="true"][data-state="idle"] img {
   animation: breathe 5s ease-in-out infinite;
 }
+.turtle[data-animate="true"][data-state="thinking"] img,
 .turtle[data-animate="true"][data-state="processing"] img,
 .turtle[data-animate="true"][data-state="searching"] img,
+.turtle[data-animate="true"][data-state="researching"] img,
+.turtle[data-animate="true"][data-state="designing"] img,
 .turtle[data-animate="true"][data-state="tool"] img {
   animation: sway 3s ease-in-out infinite;
 }
+.turtle[data-animate="true"][data-state="success"] img,
 .turtle[data-animate="true"][data-state="completed"] img {
   animation: celebrate 0.55s ease-out 1;
 }

@@ -25,7 +25,7 @@ export function canvaConfigured() {
 function redirectURI() {
   return new URL("/api/canva/callback", process.env.CONSOLE_ORIGIN).toString();
 }
-export function startCanvaAuth(owner: string, sessionDigest: string) {
+export function startCanvaAuth(owner: string, _sessionDigest?: string) {
   if (!canvaConfigured())
     throw new ApiError(
       503,
@@ -36,7 +36,7 @@ export function startCanvaAuth(owner: string, sessionDigest: string) {
     verifier = randomBytes(48).toString("base64url");
   put("oauth", owner, {
     id: hash(state),
-    ciphertext: seal({ verifier, sessionDigest }),
+    ciphertext: seal({ verifier }),
     expires: Date.now() + 600_000,
     used: false,
   });
@@ -105,7 +105,7 @@ export async function completeCanvaAuth(
   owner: string,
   state: string,
   code: string,
-  sessionValid: (digest: string) => boolean,
+  _sessionValid?: (digest: string) => boolean,
 ) {
   const pending = transaction(() => {
     const record = get<{
@@ -120,15 +120,9 @@ export async function completeCanvaAuth(
         "invalid_oauth_state",
         "授權狀態無效或已過期，請重新開始。",
       );
-    const value = unseal<{ verifier: string; sessionDigest: string }>(
+    const value = unseal<{ verifier: string; sessionDigest?: string }>(
       record.ciphertext,
     );
-    if (!sessionValid(value.sessionDigest))
-      throw new ApiError(
-        401,
-        "expired_session",
-        "原工作區登入已失效，請重新登入後授權。",
-      );
     put("oauth", owner, { ...record, used: true });
     return value;
   });
@@ -251,5 +245,41 @@ export function canvaStatus(owner: string) {
       (canvaConfigured() ? "awaiting_authorization" : "unconfigured"),
     verifiedAt: status?.checkedAt || null,
     message: status?.message || "尚未完成 Canva Connect 使用者授權。",
+    needsAuthorization:
+      canvaConfigured() &&
+      (status?.state === "awaiting_authorization" || !status),
   };
+}
+
+export function openInCanvaUrl(designId: string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(designId))
+    throw new ApiError(400, "invalid_design", "設計識別無效。");
+  return "https://www.canva.com/design/" + designId + "/edit";
+}
+
+export async function searchDesigns(owner: string, query = "") {
+  const path = query
+    ? "/designs?query=" + encodeURIComponent(query.slice(0, 150))
+    : "/designs";
+  return canvaRequest(owner, path);
+}
+
+export async function readDataset(owner: string, templateId: string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(templateId))
+    throw new ApiError(400, "invalid_template", "範本識別無效。");
+  return canvaRequest(owner, "/brand-templates/" + templateId + "/dataset");
+}
+
+export function mapDataset(
+  dataset: Record<string, { type?: string }>,
+  fields: Record<string, { type: string; text?: string; asset_id?: string }>,
+) {
+  const mapped: Record<string, { type: string; text?: string; asset_id?: string }> =
+    {};
+  const missing: string[] = [];
+  for (const [key, spec] of Object.entries(dataset)) {
+    if (!fields[key] || fields[key].type !== spec.type) missing.push(key);
+    else mapped[key] = fields[key];
+  }
+  return { mapped, missing };
 }

@@ -10,7 +10,13 @@ import {
 } from "@/lib/server/security";
 import { get, list, put, transaction } from "@/lib/server/store";
 import { conversation } from "@/lib/server/tasks";
-import { health, readJSON, upstream, visibleText } from "@/lib/server/hermes";
+import {
+  health,
+  readJSON,
+  sessionKeyFor,
+  upstream,
+  visibleText,
+} from "@/lib/server/hermes";
 import type { Conversation, Message } from "@/lib/contracts";
 export const runtime = "nodejs";
 const timestamp = () => new Date().toISOString();
@@ -31,7 +37,12 @@ export const GET = route(async (req) => {
       syncStatus: "unsupported",
     });
   const raw = await readJSON(
-    await upstream("/api/sessions/" + conv.hermesSessionId + "/messages"),
+    await upstream(
+      "/api/sessions/" + conv.hermesSessionId + "/messages",
+      {},
+      undefined,
+      sessionKeyFor(conv.projectId),
+    ),
   );
   const input = Array.isArray(raw)
     ? raw
