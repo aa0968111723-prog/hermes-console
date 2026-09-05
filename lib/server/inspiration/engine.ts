@@ -1,7 +1,18 @@
 /**
- * 萬象靈感引擎 (Universal Inspiration Engine)
- * 整合網路調研趨勢、社群視覺風格 (IG / Pinterest / Canva 範本) 與校園在地素材
+ * Universal Inspiration Engine — truthful sources only.
+ * Console palettes are fixtures. URL ingest classifies HTTPS links; it does not scrape.
  */
+import {
+  ingestUrl,
+  listInspiration,
+  type InspirationItem,
+} from "../inspiration";
+import { wrapUntrusted, containsInjectionAttempt } from "../untrusted";
+import { parseInspirationQuery, type InspirationQuery } from "./query";
+import { canonicalUrl, dedupeInspiration } from "./dedupe";
+import { PROVIDERS, providerHealth, type ProviderHealth } from "./providers";
+
+export type CampusInspirationDomain = "tamkang" | "ntu" | "general";
 
 export interface CuratedInspirationItem {
   id: string;
@@ -14,7 +25,15 @@ export interface CuratedInspirationItem {
   tags: string[];
   rightsNote: string;
   sourceUrl?: string;
+  sourceKind: "console_fixture";
+  domain: CampusInspirationDomain;
+  liveFetch: false;
+  fetchedAt: null;
+  fullSiteSearch: false;
 }
+
+const FIXTURE_RIGHTS =
+  "控制台內建風格參考（console_fixture），不是即時網路趨勢或平台搜尋結果。可見性不代表權利已清除。";
 
 export const CURATED_INSPIRATIONS: CuratedInspirationItem[] = [
   {
@@ -31,7 +50,12 @@ export const CURATED_INSPIRATIONS: CuratedInspirationItem[] = [
     ],
     typographySuggestion: "大標題使用思源宋體（Noto Serif TC）營造人文底蘊，內文搭配清爽無襯線體（Noto Sans TC）。",
     tags: ["淡水暮色", "陶茶質地", "低飽和度", "人文文青"],
-    rightsNote: "原創設計風格參考・無第三方版權爭議"
+    rightsNote: FIXTURE_RIGHTS,
+    sourceKind: "console_fixture",
+    domain: "tamkang",
+    liveFetch: false,
+    fetchedAt: null,
+    fullSiteSearch: false
   },
   {
     id: "insp_kenan_recharge",
@@ -47,7 +71,12 @@ export const CURATED_INSPIRATIONS: CuratedInspirationItem[] = [
     ],
     typographySuggestion: "採用現代黑體搭配重點手寫手寫字體點綴（例如『累了嗎？先喝杯茶』）。",
     tags: ["校園日常", "克難坡梗", "活力重開機", "雜誌排版"],
-    rightsNote: "淡江校園生活文化共構・CC0 概念"
+    rightsNote: FIXTURE_RIGHTS,
+    sourceKind: "console_fixture",
+    domain: "tamkang",
+    liveFetch: false,
+    fetchedAt: null,
+    fullSiteSearch: false
   },
   {
     id: "insp_fuyuan_zen",
@@ -63,7 +92,12 @@ export const CURATED_INSPIRATIONS: CuratedInspirationItem[] = [
     ],
     typographySuggestion: "細明宋體搭配寬鬆字距（Letter-spacing: 0.15em），呼吸感極強。",
     tags: ["極簡主義", "水波倒影", "高級留白", "Canva推薦"],
-    rightsNote: "相容於 Canva 商業免費模板結構授權"
+    rightsNote: FIXTURE_RIGHTS,
+    sourceKind: "console_fixture",
+    domain: "tamkang",
+    liveFetch: false,
+    fetchedAt: null,
+    fullSiteSearch: false
   },
   {
     id: "insp_ntu_yelin_minimal",
@@ -79,7 +113,12 @@ export const CURATED_INSPIRATIONS: CuratedInspirationItem[] = [
     ],
     typographySuggestion: "大標題使用思源宋體 Bold 44pt，副標題搭配思源黑體 Regular 20pt，視覺層次分明。",
     tags: ["臺大", "椰林大道", "醉月湖", "草地野餐", "自然光影"],
-    rightsNote: "原創設計風格參考・無第三方版權爭議"
+    rightsNote: FIXTURE_RIGHTS,
+    sourceKind: "console_fixture",
+    domain: "ntu",
+    liveFetch: false,
+    fetchedAt: null,
+    fullSiteSearch: false
   },
   {
     id: "insp_campus_editorial_zen",
@@ -95,123 +134,122 @@ export const CURATED_INSPIRATIONS: CuratedInspirationItem[] = [
     ],
     typographySuggestion: "以思源宋體做為視覺焦點，搭配手作圓形三色光 36px 邊角落款。",
     tags: ["校園生活", "青年學誌", "低飽和度", "極簡排版", "茶席放鬆"],
-    rightsNote: "開放共創設計風格・CC0 概念"
+    rightsNote: FIXTURE_RIGHTS,
+    sourceKind: "console_fixture",
+    domain: "general",
+    liveFetch: false,
+    fetchedAt: null,
+    fullSiteSearch: false
   }
 ];
 
-/**
- * 解析使用者輸入之靈感連結 (IG, Pinterest, Canva 等)
- */
-export function parseInspirationLink(rawUrl: string): {
+const GENERIC_PALETTE = CURATED_INSPIRATIONS.find((item) => item.domain === "general")!.colorPalette;
+
+export interface ParsedInspirationLink {
   platform: "instagram" | "pinterest" | "canva" | "web";
   title: string;
   insights: string[];
   extractedPalette: { name: string; hex: string }[];
   rightsNotice: string;
-} {
-  const url = String(rawUrl || "").trim().toLowerCase();
+  fetched: false;
+  liveContent: null;
+  sourceKind: "url_classified";
+  extractionMode: "heuristic_not_fetched";
+  classifiedUrl: string;
+}
 
-  if (url.includes("instagram.com")) {
-    return {
-      platform: "instagram",
-      title: "Instagram 視覺靈感擷取",
-      insights: [
-        "IG 直式 4:5 (1080x1350) 與限動 9:16 為大學生最高觸及比例",
-        "封面首圖避免過多小字，主視覺焦點需在中央 1:1 安全方格內",
-        "文案採用斷行排版與留言互動引導 (Call-to-Action)"
-      ],
-      extractedPalette: [
-        { name: "社群暖晨白", hex: "#FAF7F2" },
-        { name: "質感墨綠", hex: "#263D31" },
-        { name: "焦糖蜜茶", hex: "#B87A4B" }
-      ],
-      rightsNotice: "公開社群引用符合合理使用原則，僅作為風格與版面構圖參考，圖片需自行拍攝或使用開源商用圖庫"
-    };
+function heuristicInsights(platform: ParsedInspirationLink["platform"]): string[] {
+  const prefix = "此為平台慣例啟發式，並未抓取該網址內容。";
+  if (platform === "instagram") {
+    return [
+      prefix,
+      "IG 直式 4:5 (1080x1350) 與限動 9:16 為大學生常用比例（啟發式，非 Meta 實測）",
+      "封面首圖避免過多小字，主視覺焦點需在中央 1:1 安全方格內",
+      "公開社群引用符合合理使用原則，僅作為風格與版面構圖參考"
+    ];
   }
-
-  if (url.includes("pinterest.com")) {
-    return {
-      platform: "pinterest",
-      title: "Pinterest Moodboard 氛圍擷取",
-      insights: [
-        "重視自然光影與材質細節（如粗陶茶碗、自然竹木紋理、水珠折射）",
-        "色調多採用低飽和大地色系（Earth Tone），呈現溫厚不刺眼的心靈感受"
-      ],
-      extractedPalette: [
-        { name: "原木陶土", hex: "#8C6D58" },
-        { name: "素雅棉麻", hex: "#E8E2D5" },
-        { name: "若竹嫩青", hex: "#94A89A" }
-      ],
-      rightsNotice: "Pinterest 收集之情緒板屬靈感構思，不得直接轉載未授權攝影原作"
-    };
+  if (platform === "pinterest") {
+    return [
+      prefix,
+      "重視自然光影與材質細節（如粗陶茶碗、自然竹木紋理）",
+      "色調多採用低飽和大地色系（Earth Tone）"
+    ];
   }
-
-  if (url.includes("canva.com")) {
-    return {
-      platform: "canva",
-      title: "Canva 模板結構解析",
-      insights: [
-        "分層架構完整：背景層 -> 圖片遮罩 -> 標題組 -> 說明文字 -> CTA 按鈕",
-        "文字框均設有自適應邊距，替換文案時版面不致破版"
-      ],
-      extractedPalette: [
-        { name: "極簡主底色", hex: "#F5F3EF" },
-        { name: "重點深茶綠", hex: "#1C3328" },
-        { name: "亮眼琥珀金", hex: "#D4A359" }
-      ],
-      rightsNotice: "可直接使用 Canva 自由授權元件進行商業宣傳與社團推播"
-    };
+  if (platform === "canva") {
+    return [
+      prefix,
+      "分層架構常見：背景層 -> 圖片遮罩 -> 標題組 -> 說明文字 -> CTA 按鈕",
+      "文字框常設自適應邊距，替換文案時較不易破版"
+    ];
   }
-
-  return {
-    platform: "web",
-    title: "網頁靈感資料擷取",
-    insights: ["現代文青青年網站趨勢：大字標題、精準留白、柔和過渡效果"],
-    extractedPalette: CURATED_INSPIRATIONS[0].colorPalette,
-    rightsNotice: "遵守合理使用與原創改作規範"
-  };
+  return [
+    prefix,
+    "現代文青青年網站趨勢啟發式：大字標題、精準留白、柔和過渡效果"
+  ];
 }
 
 /**
- * 依關鍵字與校園脈絡領域搜尋靈感庫
+ * Classify a user-supplied inspiration URL. Does not fetch or scrape the remote page.
  */
-export function searchInspirations(
-  keyword?: string,
-  domain?: "tamkang" | "ntu" | "general"
-): CuratedInspirationItem[] {
-  if (!keyword && !domain) return CURATED_INSPIRATIONS;
-  const kw = (keyword || "").toLowerCase();
-
-  const filtered = CURATED_INSPIRATIONS.filter((item) => {
-    if (domain === "tamkang" && item.tags.some((t) => t.includes("淡水") || t.includes("克難坡") || t.includes("福園"))) {
-      return true;
-    }
-    if (domain === "ntu" && item.tags.some((t) => t.includes("臺大") || t.includes("椰林") || t.includes("醉月湖"))) {
-      return true;
-    }
-    if (domain === "general" && item.tags.some((t) => t.includes("青年") || t.includes("校園生活"))) {
-      return true;
-    }
-    if (!kw) return false;
-    return (
-      item.title.toLowerCase().includes(kw) ||
-      item.description.toLowerCase().includes(kw) ||
-      item.tags.some((t) => t.toLowerCase().includes(kw))
-    );
-  });
-
-  return filtered.length > 0 ? filtered : CURATED_INSPIRATIONS;
+export function parseInspirationLink(rawUrl: string): ParsedInspirationLink {
+  const classifiedUrl = String(rawUrl || "").trim();
+  const url = classifiedUrl.toLowerCase();
+  const platform: ParsedInspirationLink["platform"] = url.includes("instagram.com")
+    ? "instagram"
+    : url.includes("pinterest.com")
+      ? "pinterest"
+      : url.includes("canva.com")
+        ? "canva"
+        : "web";
+  const titles = {
+    instagram: "Instagram 連結已分類（未抓取）",
+    pinterest: "Pinterest 連結已分類（未抓取）",
+    canva: "Canva 連結已分類（未抓取）",
+    web: "網頁連結已分類（未抓取）"
+  } as const;
+  const rights = {
+    instagram: "公開社群引用符合合理使用原則，僅作為風格與版面構圖參考；本機未下載原圖。",
+    pinterest: "Pinterest 連結僅分類，不得直接轉載未授權攝影原作；符合合理使用之構圖參考。",
+    canva: "可使用 Canva 自由授權元件；本分類未呼叫 Canva API 也未匯入模板。符合合理使用。",
+    web: "遵守合理使用與原創改作規範；未抓取該網頁本文或圖片。"
+  } as const;
+  return {
+    platform,
+    title: titles[platform],
+    insights: heuristicInsights(platform),
+    extractedPalette: GENERIC_PALETTE,
+    rightsNotice: rights[platform],
+    fetched: false,
+    liveContent: null,
+    sourceKind: "url_classified",
+    extractionMode: "heuristic_not_fetched",
+    classifiedUrl
+  };
 }
 
-import {
-  ingestUrl,
-  listInspiration,
-  type InspirationItem,
-} from "../inspiration";
-import { wrapUntrusted, containsInjectionAttempt } from "../untrusted";
-import { parseInspirationQuery } from "./query";
-import { canonicalUrl, dedupeInspiration } from "./dedupe";
-import { PROVIDERS, providerHealth } from "./providers";
+export function searchInspirations(
+  keyword?: string,
+  domain?: CampusInspirationDomain,
+): CuratedInspirationItem[] {
+  const kw = (keyword || "").trim().toLowerCase();
+  const scoped = CURATED_INSPIRATIONS.filter((item) => !domain || item.domain === domain);
+  if (!kw) return scoped;
+  const matched = scoped.filter((item) =>
+    item.title.toLowerCase().includes(kw) ||
+    item.description.toLowerCase().includes(kw) ||
+    item.tags.some((tag) => tag.toLowerCase().includes(kw))
+  );
+  return domain ? (matched.length > 0 ? matched : scoped) : matched;
+}
+
+export function domainFromQuery(
+  query: Pick<InspirationQuery, "target" | "raw">,
+): CampusInspirationDomain | "unspecified" {
+  if (query.target === "Tamkang freshman" || /淡江/.test(query.raw)) return "tamkang";
+  if (query.target === "NTU freshman" || /台大|臺大/.test(query.raw)) return "ntu";
+  if (query.target === "university freshman") return "general";
+  return "unspecified";
+}
 
 export function analyzeReference(input: {
   caption?: string;
@@ -235,6 +273,7 @@ export function analyzeReference(input: {
     rightsNote: "可見性不代表權利已清除。",
     injectionAttempt: injected,
     executable: false,
+    fetched: false as const,
   };
 }
 
@@ -253,13 +292,21 @@ export function searchInspiration(input: {
       caption: item.captionExcerpt,
     })),
   );
+  const domain = domainFromQuery(query);
+  const fixtures = searchInspirations(
+    undefined,
+    domain === "unspecified" ? undefined : domain,
+  );
   return {
     query,
     items,
+    fixtures,
     providers: providerHealth(),
-    fullSiteSearch: false,
+    fullSiteSearch: false as const,
+    liveFetch: false as const,
+    fetchedAt: null,
     notice:
-      "統一 Inspiration Engine：未授權時只合併已保存參考與可解析 URL，不假裝 Instagram／Pinterest 全站搜尋。",
+      "統一 Inspiration Engine：未授權時只合併已保存參考、可解析 URL 與控制台風格參考庫，不假裝 Instagram／Pinterest 全站搜尋。",
   };
 }
 
@@ -287,6 +334,7 @@ export function resolveInspirationUrl(input: {
     fit: analysis.whyRelevant,
     risk: analysis.risks,
     sourceUrl: canonicalUrl(item.sourceUrl),
+    sourceType: "user_url",
   };
 }
 
@@ -300,5 +348,48 @@ export function boardFor(projectId: string) {
       })),
     ),
     providers: providerHealth(),
+    fullSiteSearch: false as const,
+    liveFetch: false as const,
+  };
+}
+
+export interface InspirationPipelineResult {
+  query: InspirationQuery;
+  domain: CampusInspirationDomain | "unspecified";
+  fixtures: CuratedInspirationItem[];
+  savedItems: InspirationItem[];
+  urlResolution: ParsedInspirationLink | null;
+  providers: ProviderHealth[];
+  fullSiteSearch: false;
+  liveFetch: false;
+  fetchedAt: null;
+  notice: string;
+}
+
+export function runInspirationPipeline(input: {
+  prompt: string;
+  projectId?: string;
+  domain?: CampusInspirationDomain;
+  url?: string;
+}): InspirationPipelineResult {
+  const query = parseInspirationQuery(input.prompt);
+  const domain = input.domain ?? domainFromQuery(query);
+  const scopedDomain = domain === "unspecified" ? undefined : domain;
+  const saved = searchInspiration({
+    prompt: input.prompt,
+    projectId: input.projectId || "personal",
+  });
+  return {
+    query,
+    domain,
+    fixtures: searchInspirations(undefined, scopedDomain),
+    savedItems: saved.items,
+    urlResolution: input.url ? parseInspirationLink(input.url) : null,
+    providers: saved.providers,
+    fullSiteSearch: false,
+    liveFetch: false,
+    fetchedAt: null,
+    notice:
+      "Truthful inspiration pipeline：控制台風格庫為 console_fixture；URL 只分類不抓取；Instagram／Pinterest 全站搜尋未授權且未執行。",
   };
 }

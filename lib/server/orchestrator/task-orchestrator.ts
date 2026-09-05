@@ -364,17 +364,10 @@ export async function executeOrchestratedTask(
   const inspirations = searchInspirations(searchKeyword, domain);
   const inspDesc =
     domain === "ntu"
-      ? "提取椰林醉月湖自然微光調色盤、野餐雜誌感排版與 Canva 模板結構"
+      ? "使用控制台臺大風格參考庫（椰林／醉月湖調色盤）；未抓取 Instagram／Pinterest 全站"
       : domain === "general"
-      ? "提取青年學誌低飽和調色盤、當代文青極簡排版與 Canva 模板結構"
-      : "提取淡水暮色低飽和調色盤、克難坡雜誌感排版與 Canva 模板結構";
-
-  const inspOrigin =
-    domain === "ntu"
-      ? "yelin_lake_aesthetic & instagram_canva_patterns"
-      : domain === "general"
-      ? "campus_youth_editorial & instagram_canva_patterns"
-      : "tamsui_sunset_aesthetic & instagram_canva_patterns";
+      ? "使用控制台通用校園風格參考庫；未抓取 Instagram／Pinterest 全站"
+      : "使用控制台淡江風格參考庫（淡水暮色／克難坡／福園調色盤）；未抓取 Instagram／Pinterest 全站";
 
   subtasks.push({
     subtaskId: "inspiration_search",
@@ -384,18 +377,19 @@ export async function executeOrchestratedTask(
     durationMs: Date.now() - t3Start,
     provenance: {
       sourceType: "inspiration_engine",
-      sourceOrigin: inspOrigin,
-      rightsOrAttribution: "符合合理使用原則之風格結構參考"
+      sourceOrigin: "console_style_library",
+      rightsOrAttribution: "控制台內建風格參考（console_fixture）；可見性不代表權利已清除；未執行平台全站搜尋"
     },
     evidenceVsHypothesis: {
       evidence: [
-        "IG 4:5 直式 (1080x1350) 在大專院校學生族群停留率最高"
+        "回傳項目皆標為 console_fixture，liveFetch=false，fullSiteSearch=false"
       ],
       hypotheses: [
-        "低彩度深竹綠與燕麥暖白比傳統鮮豔長輩圖高出 2 倍轉傳意願"
+        "IG 4:5 直式 (1080x1350) 在大專院校學生族群停留率較高（啟發式，非 Meta 實測）",
+        "低彩度深竹綠與燕麥暖白可能提高轉傳意願（啟發式，非真實轉換率）"
       ]
     },
-    outputSummary: "提取 3 套原創校園調色盤與 IG 4:5 模板排版結構",
+    outputSummary: `控制台風格參考 ${inspirations.length} 套，未宣稱 Instagram／Pinterest 全站搜尋`,
     outputData: clampTaskList(inspirations, TASK_LIMITS.maxResearchSources)
   });
 

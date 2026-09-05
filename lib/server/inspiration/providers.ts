@@ -16,6 +16,7 @@ export interface ProviderCapabilities {
   resolveUrl: boolean;
   globalSearch: boolean;
   analyze: boolean;
+  liveFetch: boolean;
 }
 
 export interface ProviderHealth {
@@ -36,10 +37,6 @@ export interface InspirationProvider {
   resolveUrl(url: string, projectId: string): InspirationItem | null;
 }
 
-function none(): ProviderCapabilities {
-  return { search: false, resolveUrl: false, globalSearch: false, analyze: false };
-}
-
 function storedMatch(platform: InspirationPlatform, projectId: string) {
   return listInspiration(projectId).filter((item) => item.platform === platform);
 }
@@ -54,11 +51,12 @@ export const webProvider: InspirationProvider = {
     resolveUrl: true,
     globalSearch: false,
     analyze: true,
+    liveFetch: false,
   }),
   health: () => ({
     id: "web",
     state: "partial",
-    detail: "可解析使用者 HTTPS 連結；不執行任意全網爬蟲。",
+    detail: "可解析使用者 HTTPS 連結；不執行任意全網爬蟲，也不假裝已抓取頁面。",
     capabilities: webProvider.capabilities(),
   }),
   search: (query, projectId) => storedMatch("web", projectId),
@@ -79,6 +77,7 @@ export const instagramProvider: InspirationProvider = {
     resolveUrl: true,
     globalSearch: false,
     analyze: true,
+    liveFetch: false,
   }),
   health: () => {
     const limits = instagramResearchLimits();
@@ -108,6 +107,7 @@ export const pinterestProvider: InspirationProvider = {
     resolveUrl: true,
     globalSearch: false,
     analyze: true,
+    liveFetch: false,
   }),
   health: () => ({
     id: "pinterest",
@@ -132,10 +132,11 @@ export const canvaProvider: InspirationProvider = {
   platform: "canva",
   isConfigured: () => canvaConfigured(),
   capabilities: () => ({
-    search: canvaConfigured(),
+    search: false,
     resolveUrl: true,
     globalSearch: false,
     analyze: false,
+    liveFetch: false,
   }),
   health: () => {
     const status = canvaStatus(WORKSPACE_OWNER);
@@ -171,6 +172,7 @@ export const projectHistoryProvider: InspirationProvider = {
     resolveUrl: false,
     globalSearch: false,
     analyze: false,
+    liveFetch: false,
   }),
   health: () => ({
     id: "project",
@@ -192,6 +194,7 @@ export const uploadProvider: InspirationProvider = {
     resolveUrl: false,
     globalSearch: false,
     analyze: true,
+    liveFetch: false,
   }),
   health: () => ({
     id: "upload",
