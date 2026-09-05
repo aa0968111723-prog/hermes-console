@@ -6,6 +6,7 @@ import { PROJECTS, TOOLS, Project } from "@/lib/catalog";
 import { HERMES_DEFAULTS, STORAGE_KEYS, normalizeBaseUrl } from "@/lib/hermes-config";
 import { HERMES_TOOLS, ToolExecutionResult, executeHermesTool } from "@/lib/tools";
 import JieWorld from "./JieWorld";
+import CreativeIntelligenceView from "./CreativeIntelligenceView";
 
 export type ToolCallData = {
   id: string;
@@ -67,7 +68,7 @@ export default function HermesConsole() {
   const [statusText, setStatusText] = useState("");
 
   // 介面抽屜與分頁
-  const [activeTab, setActiveTab] = useState<"chat" | "projects" | "tools" | "settings">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "creative_os" | "projects" | "tools" | "settings">("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [projectSearch, setProjectSearch] = useState("");
   const [projectGroupFilter, setProjectGroupFilter] = useState("全部");
@@ -565,6 +566,13 @@ export default function HermesConsole() {
 
         <div className="header-actions">
           <button
+            className="btn-creative-os"
+            onClick={() => setActiveTab("creative_os")}
+            title="開啟 Hermes Creative Intelligence OS 全管線"
+          >
+            ✨ 創意智能 OS
+          </button>
+          <button
             className="btn-atelier-switch"
             onClick={() => { setViewMode("jieworld"); localStorage.setItem(STORAGE_KEYS.VIEW_MODE, "jieworld"); }}
             title="切換至倢小天地靈感模式"
@@ -655,6 +663,9 @@ export default function HermesConsole() {
               <button className={`nav-tab-btn ${activeTab === "chat" ? "active" : ""}`} onClick={() => setActiveTab("chat")}>
                 主聊天
               </button>
+              <button className={`nav-tab-btn ${activeTab === "creative_os" ? "active" : ""}`} onClick={() => setActiveTab("creative_os")}>
+                ✨ 創意智能
+              </button>
               <button className={`nav-tab-btn ${activeTab === "projects" ? "active" : ""}`} onClick={() => setActiveTab("projects")}>
                 專案目錄
               </button>
@@ -682,6 +693,10 @@ export default function HermesConsole() {
                       已連接 Zeabur 容器與 41 個生態系專案。輸入問題或點擊快捷指令：
                     </p>
                     <div className="quick-starters-grid">
+                      <button className="starter-card flagship" onClick={() => setActiveTab("creative_os")}>
+                        <div className="starter-title">✨ 淡江禪學社大一新生茶會網宣</div>
+                        <div className="starter-desc">啟動 Creative OS 全管線：專案記憶、MCP、Audience Twin、Canva 草稿</div>
+                      </button>
                       <button className="starter-card" onClick={() => handleSendMessage("幫我檢索 41 個專案中所有與「設計」相關的專案與技術")}>
                         <div className="starter-title">🔍 檢索生態系專案</div>
                         <div className="starter-desc">調用 get_ecosystem_projects 工具查詢</div>
@@ -787,6 +802,26 @@ export default function HermesConsole() {
                     handleSendMessage();
                   }}
                 >
+                  <div className="composer-quick-chip-row">
+                    <button
+                      type="button"
+                      className="quick-chip-btn"
+                      onClick={() => {
+                        setInput("幫我做給淡江大學大一新生看的禪學社茶會網宣");
+                      }}
+                    >
+                      🌿 填入：「幫我做給淡江大學大一新生看的禪學社茶會網宣」
+                    </button>
+                    <button
+                      type="button"
+                      className="quick-chip-btn launch-os"
+                      onClick={() => {
+                        setActiveTab("creative_os");
+                      }}
+                    >
+                      🚀 一鍵直達 Creative Intelligence OS
+                    </button>
+                  </div>
                   <div className="composer-input-row">
                     <textarea
                       ref={textareaRef}
@@ -820,6 +855,18 @@ export default function HermesConsole() {
                 </form>
               </div>
             </div>
+          )}
+
+          {/* TAB: 創意智能 OS (Creative Intelligence OS) */}
+          {activeTab === "creative_os" && (
+            <CreativeIntelligenceView
+              initialPrompt="幫我做給淡江大學大一新生看的禪學社茶會網宣"
+              onSelectProject={handleSelectProject}
+              onSendChatMessage={(msg) => {
+                setActiveTab("chat");
+                handleSendMessage(msg);
+              }}
+            />
           )}
 
           {/* TAB 2: 41 個專案目錄 (Compare & Explore Surface) */}
