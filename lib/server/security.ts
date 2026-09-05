@@ -113,6 +113,11 @@ export function validateSsrfSafeUrl(urlStr: string, allowLocal: boolean = false)
       return { safe: false, reason: "禁止連線至雲端 Metadata 服務" };
     }
 
+    // 檢查 0.0.0.0 特殊綁定地址
+    if (host === "0.0.0.0" || host === "::" || host === "[::]") {
+      return { safe: false, reason: "禁止連線至 0.0.0.0 特殊綁定地址" };
+    }
+
     // 檢查 localhost 與私有 IP
     const isLocal =
       host === "localhost" ||
@@ -122,7 +127,16 @@ export function validateSsrfSafeUrl(urlStr: string, allowLocal: boolean = false)
       host.startsWith("192.168.") ||
       /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host);
 
-    if (isLocal && !allowLocal && process.env.NODE_ENV === "production") {
+    if (isLocal && !allowLocal) {
+      return { safe: false, reason: "禁止連線至本地或內部私有網路" };
+    }
+
+    if (
+      isLocal &&
+      allowLocal &&
+      process.env.NODE_ENV === "production" &&
+      process.env.HERMES_ALLOW_LOOPBACK_HTTP !== "true"
+    ) {
       return { safe: false, reason: "生產環境禁止連線至內部私有網路" };
     }
 

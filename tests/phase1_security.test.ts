@@ -1,4 +1,4 @@
-﻿import assert from "node:assert";
+import assert from "node:assert";
 import {
   generateCsrfToken,
   verifySameOrigin,
@@ -62,7 +62,13 @@ assert.strictEqual(dangerousMetadata.safe, false, "雲端 Metadata 服務必須�
 
 const dangerousProtocol = validateSsrfSafeUrl("file:///etc/passwd");
 assert.strictEqual(dangerousProtocol.safe, false, "非 HTTP/HTTPS 協議必須被阻擋");
-console.log("  ✓ SSRF 防護檢查通過");
+
+const dangerousZero = validateSsrfSafeUrl("http://0.0.0.0:8080");
+assert.strictEqual(dangerousZero.safe, false, "0.0.0.0 特殊綁定地址必須被阻擋");
+
+const dangerousPrivateIp = validateSsrfSafeUrl("http://192.168.1.100/admin");
+assert.strictEqual(dangerousPrivateIp.safe, false, "未授權之內部私有網段必須被阻擋");
+console.log("  ✓ SSRF 防護檢查通過 (含 0.0.0.0 與私有 IP)");
 
 // 4. 速率限制測試
 console.log("▶ 測試 4: 記憶體速率限制");

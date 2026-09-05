@@ -36,6 +36,25 @@
 
 ---
 
+## 週期 2 (Iteration 2) 紅隊審核與架構漏洞加固
+
+根據 PR #10 深度紅隊審查反饋，完成以下 4 大核心加固：
+1. **修復探測邏輯虛假在線漏洞 (Truthful Probes)**：
+   - 移除 `discovery.ts` 中 `ping.status < 500` 寬鬆邏輯，杜絕 404/403/400 被誤判為「Zeabur 伺服器在線」的欺瞞漏洞。
+   - 整合 Hermes 官方 `/health` 健康檢查端點，並在非正常回應時誠實回報狀態碼（例如 `(HTTP 404)`）並啟用降級備援。
+   - 新增 `tests/phase2_hermes_registry.test.ts` 之 Test 6 實測驗證 404 回應精準判定為 offline。
+2. **SSRF 安全檢驗收緊**：
+   - 在 `security.ts` 的 `validateSsrfSafeUrl` 中加入 `0.0.0.0`、`::` 特殊綁定地址黑名單，防範 Linux 介面綁定穿透。
+   - 收緊本地/私有網段檢驗，新增單元測試覆蓋。
+3. **SSE Tool Calling 串流解析與執行閉環**：
+   - 在 `client.ts` 中實作 SSE `tool_calls` delta 累加解析器，當模型發起工具調用時，自動在伺服器端調用 `executeHermesTool` 並轉發 `event: tool_result`。
+   - 在 `recordUsage` 中真實記錄 `toolCallsCount` 與 `toolsUsed` 清單。
+4. **真實 Upstream Usage 捕捉**：
+   - 請求主體配置 `stream_options: { include_usage: true }`，解析上游返回之 `prompt_tokens` 與 `completion_tokens`，取代純經驗字元估算。
+
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。

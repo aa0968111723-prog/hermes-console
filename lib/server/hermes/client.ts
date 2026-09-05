@@ -96,6 +96,7 @@ export async function* streamHermesChat(
         body: JSON.stringify({
           model,
           stream: true,
+          stream_options: { include_usage: true },
           temperature: profile.temperature,
           messages: formattedMessages,
           tools: toolsForProfile.length > 0 ? toolsForProfile : undefined,
@@ -107,28 +108,98 @@ export async function* streamHermesChat(
       if (upstream.ok && upstream.body) {
         const reader = upstream.body.getReader();
         const decoder = new TextDecoder();
-        let buffer = "";
+        let sseBuffer = "";
+        let reportedPromptTokens = 0;
+        let reportedCompletionTokens = 0;
+        const accumulatedToolCalls = new Map<number, { id: string; name: string; args: string }>();
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
+          sseBuffer += chunk;
           totalCompletionChars += chunk.length;
+
+          // 嘗試解析 SSE 內部是否有 tool_calls 或 usage
+          const lines = sseBuffer.split("\n");
+          sseBuffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("data: ") && trimmed !== "data: [DONE]") {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6));
+                if (parsed.usage) {
+                  if (typeof parsed.usage.prompt_tokens === "number") {
+                    reportedPromptTokens = parsed.usage.prompt_tokens;
+                  }
+                  if (typeof parsed.usage.completion_tokens === "number") {
+                    reportedCompletionTokens = parsed.usage.completion_tokens;
+                  }
+                }
+                const deltaToolCalls = parsed.choices?.[0]?.delta?.tool_calls;
+                if (Array.isArray(deltaToolCalls)) {
+                  for (const dtc of deltaToolCalls) {
+                    const idx = dtc.index ?? 0;
+                    const existing = accumulatedToolCalls.get(idx) || { id: "", name: "", args: "" };
+                    if (dtc.id) existing.id = dtc.id;
+                    if (dtc.function?.name) existing.name = dtc.function.name;
+                    if (dtc.function?.arguments) existing.args += dtc.function.arguments;
+                    accumulatedToolCalls.set(idx, existing);
+                  }
+                }
+              } catch {
+                // 非標準 JSON 或心跳 chunk 忽略
+              }
+            }
+          }
 
           // 直通轉發 SSE chunk
           yield chunk;
         }
 
-        // 記錄用量
+        // 若模型在串流中發起了工具呼叫，在伺服器端執行並回傳 tool_result 事件
+        if (accumulatedToolCalls.size > 0) {
+          for (const [, tc] of accumulatedToolCalls) {
+            if (tc.name) {
+              toolCallsCount++;
+              if (!toolsUsed.includes(tc.name)) {
+                toolsUsed.push(tc.name);
+              }
+              let parsedArgs: Record<string, unknown> = {};
+              try {
+                parsedArgs = tc.args ? JSON.parse(tc.args) : {};
+              } catch {
+                parsedArgs = { raw: tc.args };
+              }
+
+              yield `event: status\ndata: ${JSON.stringify({
+                message: `正在執行工具調用: ${tc.name}...`,
+                tool: tc.name
+              })}\n\n`;
+
+              const toolRes = await executeHermesTool(tc.name, parsedArgs);
+              yield `event: tool_result\ndata: ${JSON.stringify({
+                id: tc.id,
+                name: tc.name,
+                result: toolRes.result,
+                summary: toolRes.summary
+              })}\n\n`;
+            }
+          }
+        }
+
+        // 記錄用量（若上游回報真實 Usage 則優先採用）
         const latencyMs = Date.now() - startTime;
+        const promptTokens = reportedPromptTokens || Math.ceil(totalPromptChars / 2.5);
+        const completionTokens = reportedCompletionTokens || Math.ceil(totalCompletionChars / 2.5);
         recordUsage({
           sessionKey: session.sessionKey,
           profileId: profile.id,
           model,
-          promptTokens: Math.ceil(totalPromptChars / 2.5),
-          completionTokens: Math.ceil(totalCompletionChars / 2.5),
-          totalTokens: Math.ceil((totalPromptChars + totalCompletionChars) / 2.5),
+          promptTokens,
+          completionTokens,
+          totalTokens: promptTokens + completionTokens,
           latencyMs,
           toolCallsCount,
           toolsUsed
@@ -149,6 +220,13 @@ export async function* streamHermesChat(
   const localStream = streamLocalHermesResponse(req.messages, session.activeProject);
   for await (const chunk of localStream) {
     totalCompletionChars += chunk.length;
+    if (chunk.includes("<tool_call>")) {
+      toolCallsCount++;
+      const match = chunk.match(/"name":\s*"([^"]+)"/);
+      if (match && match[1] && !toolsUsed.includes(match[1])) {
+        toolsUsed.push(match[1]);
+      }
+    }
     yield chunk;
   }
 

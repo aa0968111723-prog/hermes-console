@@ -1,4 +1,5 @@
-﻿import assert from "node:assert";
+import assert from "node:assert";
+import http from "node:http";
 import {
   listAgentProfiles,
   getAgentProfile,
@@ -7,7 +8,8 @@ import {
   addMemory,
   recordUsage,
   getUsageSummary,
-  streamHermesChat
+  streamHermesChat,
+  probeHermesCapabilities
 } from "../lib/server/hermes/index.ts";
 
 console.log("🚀 開始執行 Phase 2 & 3 Multi-Profile 與記憶用量體系測試...\n");
@@ -81,6 +83,24 @@ async function testStream() {
   assert.ok(receivedStatus, "串流應發送 status 事件");
   assert.ok(receivedContent, "串流應發送實質內容 chunk");
   console.log("  ✓ 雙引擎串流與事件調度驗證通過");
+
+  // 6. 真實探測測試 (Truthful Probe - 杜絕 404 誤判在線漏洞)
+  console.log("▶ 測試 6: 服務端點真實探測 (Truthful Probe vs 404 False Positive)");
+  const mock404Server = http.createServer((_req, res) => {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Not Found" }));
+  });
+
+  await new Promise<void>((resolve) => mock404Server.listen(0, "127.0.0.1", () => resolve()));
+  const mockPort = (mock404Server.address() as any).port;
+  
+  const report404 = await probeHermesCapabilities(`http://127.0.0.1:${mockPort}`, "test-key");
+  assert.strictEqual(report404.online, false, "HTTP 404 回應絕對不可誤判為 online");
+  assert.strictEqual(report404.degradedFallback, true, "HTTP 404 回應必須進入降級備援");
+  assert.ok(report404.message.includes("404"), "錯誤訊息應明確指出 404");
+  
+  mock404Server.close();
+  console.log("  ✓ 404 狀態碼誠實判斷通過，杜絕虛假在線 (False Positive)");
 }
 
 testStream().then(() => {

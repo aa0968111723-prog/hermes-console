@@ -86,14 +86,46 @@ export async function probeHermesCapabilities(
       };
     }
 
-    // Ping 根路徑嘗試
+    // 若 403 存取受限
+    if (res && res.status === 403) {
+      return {
+        online: false,
+        latencyMs,
+        models: [HERMES_DEFAULTS.DEFAULT_MODEL],
+        activeModel: HERMES_DEFAULTS.DEFAULT_MODEL,
+        availableProfiles: profiles,
+        degradedFallback: true,
+        message: "Zeabur Hermes API 存取被拒 (HTTP 403)，已轉入本地備援"
+      };
+    }
+
+    // 嘗試 Hermes /health 健康檢查端點
+    const health = await fetch(`${base}/health`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(3000)
+    }).catch(() => null);
+
+    if (health && health.ok) {
+      return {
+        online: true,
+        latencyMs: Date.now() - start,
+        models: [HERMES_DEFAULTS.DEFAULT_MODEL],
+        activeModel: HERMES_DEFAULTS.DEFAULT_MODEL,
+        availableProfiles: profiles,
+        degradedFallback: false,
+        message: "Zeabur Hermes 雲端服務在線 (/health 正常)"
+      };
+    }
+
+    // Ping 根路徑嘗試（嚴格要求 200-299 ok，避免 404 誤判）
     const ping = await fetch(base, {
       method: "GET",
       headers: { Authorization: `Bearer ${key}` },
       signal: AbortSignal.timeout(3000)
     }).catch(() => null);
 
-    if (ping && (ping.ok || ping.status < 500)) {
+    if (ping && ping.ok) {
       return {
         online: true,
         latencyMs: Date.now() - start,
@@ -105,6 +137,8 @@ export async function probeHermesCapabilities(
       };
     }
 
+    const lastStatus = res?.status || health?.status || ping?.status;
+    const statusNote = lastStatus ? ` (HTTP ${lastStatus})` : "";
     return {
       online: false,
       latencyMs: Date.now() - start,
@@ -112,7 +146,7 @@ export async function probeHermesCapabilities(
       activeModel: HERMES_DEFAULTS.DEFAULT_MODEL,
       availableProfiles: profiles,
       degradedFallback: true,
-      message: "無法連線至 Zeabur 伺服器，已自動啟用本地高擬真備援沙盒"
+      message: `無法連線至 Zeabur 伺服器${statusNote}，已自動啟用本地高擬真備援沙盒`
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
