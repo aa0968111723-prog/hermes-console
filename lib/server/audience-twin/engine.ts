@@ -1,4 +1,4 @@
-﻿import type { PersonaProfile, AudienceScore, PersonaFeedback, AudienceSimulationResult } from "./types.ts";
+import type { PersonaProfile, AudienceScore, PersonaFeedback, AudienceSimulationResult } from "./types.ts";
 
 export const PERSONAS: PersonaProfile[] = [
   {
@@ -206,6 +206,7 @@ export function simulateAudienceReaction(
     debateSummary,
     consensus,
     evidencePoints,
-    hypothesisPoints
+    hypothesisPoints,
+    disclaimer: "AI 模擬評估，不代表真實市場調查。"
   };
 }

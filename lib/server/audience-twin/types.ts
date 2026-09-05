@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Audience Twin (受眾雙生模擬) 類型定義
  */
 
@@ -48,4 +48,5 @@ export interface AudienceSimulationResult {
   consensus: "strongly_recommended" | "recommended" | "needs_iteration";
   evidencePoints: string[];   // 真實證據 (Evidence)
   hypothesisPoints: string[]; // 推論假設 (Hypothesis)
+  disclaimer: string;         // AI 模擬免責聲明
 }

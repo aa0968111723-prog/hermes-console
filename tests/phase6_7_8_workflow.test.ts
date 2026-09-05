@@ -1,4 +1,4 @@
-﻿import assert from "node:assert";
+import assert from "node:assert";
 import { PERSONAS, simulateAudienceReaction } from "../lib/server/audience-twin/engine.ts";
 import { runCreativeIntelligencePipeline } from "../lib/server/creative-workflow/pipeline.ts";
 
@@ -29,7 +29,8 @@ assert.strictEqual(simulation.feedback.length, 5, "5 位 Persona 均需提供回
 assert.ok(simulation.evidencePoints.length >= 2, "需包含真實證據標籤");
 assert.ok(simulation.hypothesisPoints.length >= 1, "需包含推論假設標籤");
 assert.strictEqual(simulation.consensus, "strongly_recommended");
-console.log(`  ✓ 模擬成功！綜合評分: ${simulation.scores.overallScore}/100，達成高度共識`);
+assert.strictEqual(simulation.disclaimer, "AI 模擬評估，不代表真實市場調查。");
+console.log(`  ✓ 模擬成功！綜合評分: ${simulation.scores.overallScore}/100，達成高度共識 (含免責聲明)`);
 
 // 測試 AI Slop 扣分懲罰
 const slopSimulation = simulateAudienceReaction(
