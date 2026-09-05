@@ -7,6 +7,7 @@ import { generateConfirmationToken } from "../mcp/registry.ts";
 import type { CreativeDirection } from "../creative-workflow/pipeline.ts";
 import { getRawDirectionsForDomain, getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
 import { researchInstagramTrends } from "../social/instagram-research.ts";
+import { TASK_LIMITS, clampTaskList } from "./limits.ts";
 
 export type SubtaskType =
   | "memory_retrieval"
@@ -68,6 +69,7 @@ export interface OrchestratedTaskResult {
     toolTarget: string;
     payloadHash: string;
   };
+  limits: typeof TASK_LIMITS;
 }
 
 /**
@@ -262,7 +264,7 @@ export async function executeOrchestratedTask(
       hypotheses: memHypotheses
     },
     outputSummary: `檢索到 ${memories.length} 條高度相關校園記憶`,
-    outputData: memories.slice(0, 3)
+    outputData: clampTaskList(memories, TASK_LIMITS.maxResearchSources)
   });
 
   // ─── 子任務 2: 校園生態 MCP 調研 ───
@@ -394,12 +396,15 @@ export async function executeOrchestratedTask(
       ]
     },
     outputSummary: "提取 3 套原創校園調色盤與 IG 4:5 模板排版結構",
-    outputData: inspirations
+    outputData: clampTaskList(inspirations, TASK_LIMITS.maxResearchSources)
   });
 
   // ─── 子任務 4: 策略創意方向生成 ───
   const t4Start = Date.now();
-  const rawDirections = getRawDirectionsForDomain(domain);
+  const rawDirections = clampTaskList(
+    getRawDirectionsForDomain(domain),
+    TASK_LIMITS.maxCreativeDirections,
+  );
 
   subtasks.push({
     subtaskId: "direction_generation",
@@ -655,6 +660,7 @@ export async function executeOrchestratedTask(
       actionName: "發布 Instagram 網宣與同步至 Canva",
       toolTarget: "publish_social_campaign",
       payloadHash: "verified_sha256"
-    }
+    },
+    limits: TASK_LIMITS
   };
 }

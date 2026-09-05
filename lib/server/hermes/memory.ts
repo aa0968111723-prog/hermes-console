@@ -14,7 +14,7 @@ export interface MemoryItem {
   evidenceType: MemoryEvidenceType;
   tags: string[];
   createdAt: number;
-  sourceLayer?: "console_seed" | "hermes_memory" | "session_history" | "project_context";
+  sourceLayer?: "console_seed" | "hermes_memory" | "session_history" | "project_context" | "audience_context";
 }
 
 // 預設注入之淡江領袖禪學社真實校園記憶庫
@@ -137,9 +137,74 @@ export function searchMemories(query: string, project?: string): MemoryItem[] {
 export function addMemory(item: Omit<MemoryItem, "id" | "createdAt">): MemoryItem {
   const fullItem: MemoryItem = {
     ...item,
+    sourceLayer: item.sourceLayer || "project_context",
     id: `mem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     createdAt: Date.now()
   };
   memoryStore.unshift(fullItem);
   return fullItem;
+}
+
+export interface MemoryLayerReport {
+  id: "hermes_memory" | "hermes_session_history" | "console_project" | "audience_context" | "console_seed";
+  label: string;
+  available: boolean;
+  source: "hermes" | "console";
+  note: string;
+  items: MemoryItem[];
+}
+
+export function getMemoryInventory(project?: string): {
+  layers: MemoryLayerReport[];
+  fabricatedHermesMemory: false;
+} {
+  const projectItems = listMemories(project);
+  const seeds = projectItems.filter((item) => item.sourceLayer === "console_seed");
+  const projectContext = projectItems.filter((item) => item.sourceLayer === "project_context");
+  const audience = projectItems.filter((item) => item.type === "audience" || item.sourceLayer === "audience_context");
+  return {
+    fabricatedHermesMemory: false,
+    layers: [
+      {
+        id: "hermes_memory",
+        label: "Hermes Memory",
+        available: false,
+        source: "hermes",
+        note: "This Hermes instance did not expose a memory provider. MEMORY.md is not fabricated.",
+        items: [],
+      },
+      {
+        id: "hermes_session_history",
+        label: "Hermes Session History",
+        available: false,
+        source: "hermes",
+        note: "Session search/history is unsupported until /api/sessions is available.",
+        items: [],
+      },
+      {
+        id: "console_project",
+        label: "Console Project Context",
+        available: true,
+        source: "console",
+        note: "Workspace-authored project notes. Not Hermes long-term memory.",
+        items: projectContext,
+      },
+      {
+        id: "audience_context",
+        label: "Audience Context",
+        available: audience.length > 0,
+        source: "console",
+        note: "Audience insights stored by Console, labeled separately from Hermes memory.",
+        items: audience,
+      },
+      {
+        id: "console_seed",
+        label: "Console seed notes",
+        available: seeds.length > 0,
+        source: "console",
+        note: "Built-in campus notes. Evidence type is not a verified Hermes memory file.",
+        items: seeds,
+      },
+    ],
+  };
 }

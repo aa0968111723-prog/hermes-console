@@ -6,5 +6,11 @@ export async function GET(req: NextRequest) {
   const sessionKey = url.searchParams.get("sessionKey") || undefined;
   const summary = getUsageSummary(sessionKey);
   const events = listRecentUsageEvents(20, sessionKey);
-  return NextResponse.json({ ok: true, summary, events });
+  return NextResponse.json({
+    ok: true,
+    summary,
+    events,
+    cost: null,
+    costNotice: "Provider price is unknown; USD cost is not estimated.",
+  });
 }

@@ -7,13 +7,19 @@ export interface UsageEvent {
   timestamp: number;
   sessionKey: string;
   profileId: string;
+  agent?: string;
+  project?: string | null;
+  conversation?: string | null;
+  run?: string | null;
   model: string;
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
   latencyMs: number;
   toolCallsCount: number;
+  toolErrors?: number;
   toolsUsed: string[];
+  tokenSource?: "upstream" | "unavailable";
 }
 
 export interface UsageSummary {
@@ -72,9 +78,9 @@ export function getUsageSummary(sessionKey?: string): UsageSummary {
   const sessions = new Set<string>();
 
   for (const e of targetEvents) {
-    totalTokens += e.totalTokens;
-    totalPrompt += e.promptTokens;
-    totalCompletion += e.completionTokens;
+    totalTokens += e.totalTokens || 0;
+    totalPrompt += e.promptTokens || 0;
+    totalCompletion += e.completionTokens || 0;
     totalLatency += e.latencyMs;
     totalToolCalls += e.toolCallsCount;
     sessions.add(e.sessionKey);

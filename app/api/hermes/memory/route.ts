@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchMemories, listMemories, addMemory } from "@/lib/server/hermes/memory";
+import { searchMemories, listMemories, addMemory, getMemoryInventory } from "@/lib/server/hermes/memory";
 import { verifySameOrigin } from "@/lib/server/security";
 
 export async function GET(req: NextRequest) {
@@ -8,7 +8,15 @@ export async function GET(req: NextRequest) {
   const project = url.searchParams.get("project") || undefined;
 
   const memories = q ? searchMemories(q, project) : listMemories(project);
-  return NextResponse.json({ ok: true, count: memories.length, memories });
+  const inventory = getMemoryInventory(project);
+  return NextResponse.json({
+    ok: true,
+    count: memories.length,
+    memories,
+    layers: inventory.layers,
+    fabricatedHermesMemory: inventory.fabricatedHermesMemory,
+    note: "Console seed and project notes are not Hermes MEMORY.md.",
+  });
 }
 
 export async function POST(req: NextRequest) {

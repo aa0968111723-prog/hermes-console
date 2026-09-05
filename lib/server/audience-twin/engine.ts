@@ -275,13 +275,14 @@ export function resolvePersonasForContext(
   projectId?: string
 ): { domain: AudienceDomain; personas: PersonaProfile[] } {
   const domain = resolveContextDomain(text, projectId);
+  const maxRoles = 5;
   if (domain === "ntu") {
-    return { domain, personas: NTU_PERSONAS };
+    return { domain, personas: NTU_PERSONAS.slice(0, maxRoles) };
   }
   if (domain === "general") {
-    return { domain, personas: GENERAL_PERSONAS };
+    return { domain, personas: GENERAL_PERSONAS.slice(0, maxRoles) };
   }
-  return { domain: "tamkang", personas: TAMKANG_PERSONAS };
+  return { domain: "tamkang", personas: TAMKANG_PERSONAS.slice(0, maxRoles) };
 }
 
 /**

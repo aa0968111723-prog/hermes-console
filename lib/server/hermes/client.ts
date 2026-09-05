@@ -70,7 +70,6 @@ export async function* streamHermesChat(
 
   const toolsForProfile = HERMES_TOOLS.filter((t) => profile.allowedTools.includes(t.function.name));
 
-  let totalPromptChars = formattedMessages.reduce((acc, m) => acc + (m.content?.length || 0), 0);
   let totalCompletionChars = 0;
   let toolCallsCount = 0;
   const toolsUsed: string[] = [];
@@ -207,18 +206,21 @@ export async function* streamHermesChat(
 
         // 記錄用量（若上游回報真實 Usage 則優先採用）
         const latencyMs = Date.now() - startTime;
-        const promptTokens = reportedPromptTokens || Math.ceil(totalPromptChars / 2.5);
-        const completionTokens = reportedCompletionTokens || Math.ceil(totalCompletionChars / 2.5);
+        const hasUpstreamUsage = reportedPromptTokens > 0 || reportedCompletionTokens > 0;
         recordUsage({
           sessionKey: session.sessionKey,
           profileId: profile.id,
+          agent: profile.id,
+          project: session.activeProject,
           model,
-          promptTokens,
-          completionTokens,
-          totalTokens: promptTokens + completionTokens,
+          promptTokens: hasUpstreamUsage ? reportedPromptTokens : null,
+          completionTokens: hasUpstreamUsage ? reportedCompletionTokens : null,
+          totalTokens: hasUpstreamUsage ? reportedPromptTokens + reportedCompletionTokens : null,
           latencyMs,
           toolCallsCount,
-          toolsUsed
+          toolErrors: 0,
+          toolsUsed,
+          tokenSource: hasUpstreamUsage ? "upstream" : "unavailable"
         });
 
         yield `event: done\ndata: [DONE]\n\n`;
@@ -250,13 +252,17 @@ export async function* streamHermesChat(
   recordUsage({
     sessionKey: session.sessionKey,
     profileId: profile.id,
+    agent: profile.id,
+    project: session.activeProject,
     model: "hermes-local-sandbox",
-    promptTokens: Math.ceil(totalPromptChars / 2.5),
-    completionTokens: Math.ceil(totalCompletionChars / 2.5),
-    totalTokens: Math.ceil((totalPromptChars + totalCompletionChars) / 2.5),
+    promptTokens: null,
+    completionTokens: null,
+    totalTokens: null,
     latencyMs,
     toolCallsCount,
-    toolsUsed
+    toolErrors: 0,
+    toolsUsed,
+    tokenSource: "unavailable"
   });
 
   yield `event: done\ndata: [DONE]\n\n`;
