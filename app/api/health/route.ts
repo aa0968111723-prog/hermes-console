@@ -1,17 +1,30 @@
 import { NextRequest } from "next/server";
 import { normalizeBaseUrl, HERMES_DEFAULTS } from "@/lib/hermes-config";
+import { checkRateLimit, validateSsrfSafeUrl } from "@/lib/server/security";
 
 export async function POST(req: NextRequest) {
   const start = Date.now();
+  const clientIp = req.headers.get("x-forwarded-for") || "127.0.0.1";
+  const rate = checkRateLimit(`health_${clientIp}`, 60, 60000);
+  if (!rate.allowed) {
+    return Response.json({ ok: false, error: "請求過於頻繁" }, { status: 429 });
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const rawUrl = body.baseUrl || process.env.HERMES_API_URL || "";
     const base = normalizeBaseUrl(rawUrl);
-    const key = (body.apiKey || process.env.HERMES_API_KEY || HERMES_DEFAULTS.DEFAULT_API_KEY).trim();
 
     if (!base) {
       return Response.json({ ok: false, error: "未提供 Zeabur 網域" }, { status: 400 });
     }
+
+    const ssrf = validateSsrfSafeUrl(base, true);
+    if (!ssrf.safe) {
+      return Response.json({ ok: false, error: `不安全的目標網址: ${ssrf.reason}` }, { status: 400 });
+    }
+
+    const key = (body.apiKey || process.env.HERMES_API_KEY || HERMES_DEFAULTS.DEFAULT_API_KEY).trim();
 
     // 測試連線
     const controller = new AbortController();

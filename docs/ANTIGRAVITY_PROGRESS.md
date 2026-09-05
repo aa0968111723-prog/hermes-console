@@ -1,4 +1,4 @@
-﻿# Hermes Creative Intelligence OS - 實作進度追蹤紀錄
+# Hermes Creative Intelligence OS - 實作進度追蹤紀錄
 
 本專案遵循「Long-Running Autonomous Engineering Loop」，將 `hermes-console` 升級為支援零登入、淡江大學禪學社場景深度適配、Audience Twin 受眾雙生模擬、靈感引擎、Canva 自動草稿與安全社群發布的 **Hermes Creative Intelligence OS**。
 
@@ -8,9 +8,9 @@
 
 | 階段 | 模組名稱 | 狀態 | 核心成果與驗證 |
 | :--- | :--- | :---: | :--- |
-| **Phase 0** | 基準建置與洩漏金鑰淨化 | 進行中 | 清理程式碼庫所有歷史洩漏金鑰；建立 `feat/hermes-creative-intelligence-loop` 分支；初始化追蹤日誌。 |
-| **Phase 1** | 零登入單一工作區重構 | 待開始 | 零登入直接使用；同源寫入防護與 CSRF 安全機制；Canva OAuth 獨立狀態 Cookie。 |
-| **Phase 2** | Hermes Multi-Profile 註冊體系 | 待開始 | 支援 `general`, `creative`, `tku`, `research`, `design`, `social`, `reviewer`；自動端點探測與備援。 |
+| **Phase 0** | 基準建置與洩漏金鑰淨化 | 已完成 | 清理程式碼庫所有歷史洩漏金鑰；建立 `feat/hermes-creative-intelligence-loop` 分支；初始化追蹤日誌。 |
+| **Phase 1** | 零登入單一工作區重構 | 已完成 | 零登入直接使用；CSRF Token、同源防護、SSRF 檢查、速率限制；Canva PKCE 獨立狀態 Cookie 支援；單元測試 100% 通過。 |
+| **Phase 2** | Hermes Multi-Profile 註冊體系 | 進行中 | 支援 `general`, `creative`, `tku`, `research`, `design`, `social`, `reviewer`；自動端點探測與備援。 |
 | **Phase 3** | 大腦記憶中心與用量追蹤 | 待開始 | 用量事件記錄；專案與會話隔離記憶檢索。 |
 | **Phase 4** | 遠端 MCP 註冊表與淡江 Adapter | 待開始 | 5 級工具權限；Tamkang MCP 適配器（淡江校園時程、大一新生作息、社團場地）與降級調研。 |
 | **Phase 5** | 萬象靈感引擎 (Inspiration) | 待開始 | 整合公開研究、IG/Pinterest 靈感語意分析、素材解析與版權標註。 |

@@ -2,12 +2,34 @@ import { NextRequest } from "next/server";
 import { normalizeBaseUrl, HERMES_DEFAULTS } from "@/lib/hermes-config";
 import { HERMES_TOOLS } from "@/lib/tools";
 import { streamLocalHermesResponse } from "@/lib/local-brain";
+import { verifySameOrigin, checkRateLimit, validateSsrfSafeUrl } from "@/lib/server/security";
 
 export async function POST(req: NextRequest) {
+  // 1. 同源寫入防護
+  const originCheck = verifySameOrigin(req);
+  if (!originCheck.ok) {
+    return Response.json({ error: originCheck.reason || "無效的跨來源請求" }, { status: 403 });
+  }
+
+  // 2. 速率限制防護
+  const clientIp = req.headers.get("x-forwarded-for") || "127.0.0.1";
+  const rate = checkRateLimit(`chat_${clientIp}`, 120, 60000);
+  if (!rate.allowed) {
+    return Response.json({ error: "請求過於頻繁，請稍候再試" }, { status: 429 });
+  }
+
   try {
     const body = await req.json().catch(() => ({}));
     const rawUrl = body.baseUrl || process.env.HERMES_API_URL || "";
     const base = normalizeBaseUrl(rawUrl);
+
+    // 3. SSRF 檢驗
+    if (base) {
+      const ssrf = validateSsrfSafeUrl(base, true);
+      if (!ssrf.safe) {
+        return Response.json({ error: `拒絕連線至不安全位址: ${ssrf.reason}` }, { status: 400 });
+      }
+    }
     const key = (body.apiKey || process.env.HERMES_API_KEY || HERMES_DEFAULTS.DEFAULT_API_KEY).trim();
     const model = body.model || process.env.HERMES_MODEL || HERMES_DEFAULTS.DEFAULT_MODEL;
     const activeProject = body.activeProject || "hermes-console";
