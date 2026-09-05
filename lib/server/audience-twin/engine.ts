@@ -1,3 +1,4 @@
+import { AUDIENCE_DISCLAIMER } from "../audience.ts";
 import type {
   PersonaProfile,
   AudienceScore,
@@ -10,10 +11,22 @@ import type {
 
 export type AudienceDomain = "tamkang" | "ntu" | "general";
 
+type PersonaDraft = Omit<PersonaProfile, "sourceKind" | "simulation" | "method" | "domain">;
+
+function asConsolePersonas(domain: AudienceDomain, list: PersonaDraft[]): PersonaProfile[] {
+  return list.map((persona) => ({
+    ...persona,
+    sourceKind: "console_fixture",
+    simulation: true,
+    method: "ai_heuristic",
+    domain,
+  }));
+}
+
 /**
  * 淡江大學專屬受眾 Persona
  */
-export const TAMKANG_PERSONAS: PersonaProfile[] = [
+export const TAMKANG_PERSONAS: PersonaProfile[] = asConsolePersonas("tamkang", [
   {
     id: "target_freshman",
     name: "大一新生・小涵 (企管系)",
@@ -69,12 +82,12 @@ export const TAMKANG_PERSONAS: PersonaProfile[] = [
     triggers: ["思源宋體低飽和自然色", "三色光手作圓形道具符合規範", "明確視覺層次", "真實校園情境"],
     dislikes: ["三色光過度放大變標靶", "AI 常用罐頭字 (揭開神秘面紗/不容錯過)", "可讀中文字體溢出破版"]
   }
-];
+]);
 
 /**
  * 臺灣大學 (NTU) 專屬受眾 Persona
  */
-export const NTU_PERSONAS: PersonaProfile[] = [
+export const NTU_PERSONAS: PersonaProfile[] = asConsolePersonas("ntu", [
   {
     id: "target_freshman",
     name: "大一新生・宇軒 (電機系)",
@@ -130,12 +143,12 @@ export const NTU_PERSONAS: PersonaProfile[] = [
     triggers: ["思源宋體低飽和自然色", "三色光手作圓形道具符合規範", "明確視覺層次", "真實校園情境"],
     dislikes: ["三色光過度放大變標靶", "AI 常用罐頭字 (揭開神秘面紗/不容錯過)", "可讀中文字體溢出破版"]
   }
-];
+]);
 
 /**
  * 通用大專院校受眾 Persona (General Collegiate)
  */
-export const GENERAL_PERSONAS: PersonaProfile[] = [
+export const GENERAL_PERSONAS: PersonaProfile[] = asConsolePersonas("general", [
   {
     id: "target_freshman",
     name: "大一新生・宜庭 (新鮮人)",
@@ -191,7 +204,7 @@ export const GENERAL_PERSONAS: PersonaProfile[] = [
     triggers: ["思源宋體低飽和自然色", "三色光手作圓形道具符合規範", "明確視覺層次", "真實情境痛點"],
     dislikes: ["三色光過度放大變標靶", "AI 常用罐頭字 (揭開神秘面紗/不容錯過)", "可讀中文字體溢出破版"]
   }
-];
+]);
 
 /**
  * 預設匯出 Persona（維持既有相容性，預設為淡江 Persona 結構）
@@ -258,8 +271,7 @@ export function resolveContextDomain(fullText: string, projectId?: string): Audi
     lower.includes("醉月湖") ||
     lower.includes("總圖") ||
     lower.includes("活大") ||
-    lower.includes("小福") ||
-    lower.includes("腳踏車")
+    lower.includes("小福")
   ) {
     return "ntu";
   }
@@ -285,166 +297,196 @@ export function resolvePersonasForContext(
   return { domain: "tamkang", personas: TAMKANG_PERSONAS.slice(0, maxRoles) };
 }
 
+const TKU_OFFICIAL_URL = "https://www.tku.edu.tw/";
+const NTU_OFFICIAL_URL = "https://www.ntu.edu.tw/";
+const VISUAL_SPEC = {
+  statement: "手作圓形三色光道具規範（紅外、黃中、綠內）直徑 36px 邊角印章落款",
+  kind: "evidence" as const,
+  sourceTag: "[視覺規範守則] 專案分鏡與視覺資產規範手冊 (AGENTS.md)",
+  confidence: 100,
+  sourceKind: "console_spec" as const,
+  sourceUrl: null,
+  liveFetch: false as const,
+};
+
+function groundedFact(
+  fact: Omit<AudienceFact, "liveFetch">,
+): AudienceFact {
+  return { ...fact, liveFetch: false };
+}
+
 /**
- * 依脈絡領域動態產生客觀事實與推論假設 (Facts Provenance)
+ * Domain-scoped facts. Evidence requires an official URL, console notes, or project spec.
+ * Survey-like dwell/conversion claims stay hypotheses. fullText is used only for domain context.
  */
 export function extractContextFacts(fullText: string, domain: AudienceDomain): AudienceFact[] {
+  void fullText;
   if (domain === "ntu") {
     return [
-      {
-        statement: "臺灣大學椰林大道與廣大校區使新生第一週普遍面臨通勤尋找教室之適應期",
+      groundedFact({
+        statement: "國立臺灣大學為臺北市之國立大學，校總區含椰林大道與醉月湖等公開校園地標。",
         kind: "evidence",
-        sourceTag: "[校園真實地標] 國立臺灣大學校園地理環境公開資料",
-        confidence: 99
-      },
-      {
-        statement: "大一開學前三週選課系統分發與通識搶課為全校新生最高頻共鳴話題",
+        sourceTag: "[官方網站] https://www.ntu.edu.tw/",
+        confidence: 80,
+        sourceKind: "official_web",
+        sourceUrl: NTU_OFFICIAL_URL,
+      }),
+      groundedFact({
+        statement: "椰林大道與醉月湖為臺灣大學校總區可核對之地標名稱，不是即時問卷結果。",
         kind: "evidence",
-        sourceTag: "[教務行事曆] 臺灣大學選課日程與新生生活常規統計",
-        confidence: 95
-      },
-      {
-        statement: "醉月湖畔與總圖書館草坪具備寧靜慢活意象，學生休憩好感度極高",
-        kind: "evidence",
-        sourceTag: "[校園景觀調研] 臺灣大學校園景觀與學生活動好感度統計",
-        confidence: 96
-      },
-      {
-        statement: "第一學生活動中心 (活大) 多功能空間具備空調與展演席位，適合茶席交流",
-        kind: "evidence",
-        sourceTag: "[實體場地規範] 臺灣大學學生活動中心場地租借資料",
-        confidence: 94
-      },
-      {
-        statement: "手作圓形三色光道具規範（紅外、黃中、綠內）直徑 36px 邊角印章落款",
-        kind: "evidence",
-        sourceTag: "[視覺規範守則] 專案分鏡與視覺資產規範手冊 (AGENTS.md)",
-        confidence: 100
-      },
-      {
+        sourceTag: "[校園真實地標] 控制台校史筆記（console_notes，非遠端 MCP 實測）",
+        confidence: 70,
+        sourceKind: "console_notes",
+        sourceUrl: null,
+      }),
+      VISUAL_SPEC,
+      groundedFact({
+        statement: "大一開學前三週選課與通識搶課為全校新生最高頻共鳴話題",
+        kind: "hypothesis",
+        sourceTag: "[心理推論假設] 未執行真實新生問卷，僅控制台啟發式",
+        confidence: 40,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
+      groundedFact({
         statement: "首屏文案直擊『椰林迷路或通識避雷』可將社群瀏覽停留時間自 0.8s 提升至 2.2s",
         kind: "hypothesis",
-        sourceTag: "[心理推論假設] 受眾注意力與拇指滑動心理模型",
-        confidence: 85
-      },
-      {
+        sourceTag: "[心理推論假設] 受眾注意力與拇指滑動心理模型，非 Meta 實測",
+        confidence: 35,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
+      groundedFact({
         statement: "明示『零社交壓力、純品茶聊生活』能顯著降低大一新生防備心達 30%",
         kind: "hypothesis",
         sourceTag: "[心理推論假設] 新生社交焦慮與防禦減壓心理推論",
-        confidence: 82
-      },
-      {
+        confidence: 35,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
+      groundedFact({
         statement: "宣導『歡迎攜伴室友同行』有助於觸發宿舍跨寢轉傳擴散",
         kind: "hypothesis",
         sourceTag: "[行為推論假設] 大專院校宿舍同儕網絡傳播假說",
-        confidence: 80
-      }
+        confidence: 35,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
     ];
   }
 
   if (domain === "general") {
     return [
-      {
+      VISUAL_SPEC,
+      groundedFact({
+        statement: "本模擬使用控制台通用大專 Persona 庫（console_fixture），不是真實受訪者。",
+        kind: "evidence",
+        sourceTag: "[模擬方法] Audience Twin console_fixture，非抽樣調查",
+        confidence: 100,
+        sourceKind: "console_spec",
+        sourceUrl: null,
+      }),
+      groundedFact({
+        statement: "未呼叫 Instagram、Pinterest 或問卷平台 API；分數為 AI 啟發式。",
+        kind: "evidence",
+        sourceTag: "[模擬方法] 無 liveFetch、無官方受眾調查",
+        confidence: 100,
+        sourceKind: "console_spec",
+        sourceUrl: null,
+      }),
+      groundedFact({
         statement: "大專院校新鮮人開學首月普遍面臨生活作息調適與社交圈建立壓力",
-        kind: "evidence",
-        sourceTag: "[高教新生調研] 大專院校大一新生適應期行為調研報告",
-        confidence: 96
-      },
-      {
-        statement: "大學通識與必修搶課機制為開學前三週全體大一學生最關切破冰話題",
-        kind: "evidence",
-        sourceTag: "[校務生活統計] 大學教務選課週期與學生關注焦點分析",
-        confidence: 95
-      },
-      {
-        statement: "校園綠意草坪與靜心教室自帶放鬆心理暗示，利於卸下防禦",
-        kind: "evidence",
-        sourceTag: "[環境心理學] 校園公共休憩空間與心理減壓關聯研究",
-        confidence: 92
-      },
-      {
-        statement: "活動中心多功能教室具備獨立隔音與木質地坪，適合作為沉浸茶席聚會",
-        kind: "evidence",
-        sourceTag: "[場地規範] 大學校園學生活動空間租借標準",
-        confidence: 93
-      },
-      {
-        statement: "手作圓形三色光道具規範（紅外、黃中、綠內）直徑 36px 邊角印章落款",
-        kind: "evidence",
-        sourceTag: "[視覺規範守則] 專案分鏡與視覺資產規範手冊 (AGENTS.md)",
-        confidence: 100
-      },
-      {
+        kind: "hypothesis",
+        sourceTag: "[心理推論假設] 未引用真實高教問卷",
+        confidence: 40,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
+      groundedFact({
         statement: "首屏文字點出『大腦重開機・選課避雷』可提升社群滑動停留率 2 倍以上",
         kind: "hypothesis",
         sourceTag: "[心理推論假設] 社群資訊滑動與第一印象停留心理學",
-        confidence: 83
-      },
-      {
+        confidence: 35,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
+      groundedFact({
         statement: "標榜『完全免費・零推銷壓力』能有效排除商業與宗教招募疑慮",
         kind: "hypothesis",
         sourceTag: "[心理推論假設] 大學生防禦心理與消費警覺推論",
-        confidence: 86
-      },
-      {
+        confidence: 35,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
+      groundedFact({
         statement: "提供攜伴同行機制可降低單獨出席之社交焦慮感",
         kind: "hypothesis",
         sourceTag: "[行為推論假設] 同儕團體陪伴與參與意願關聯假說",
-        confidence: 81
-      }
+        confidence: 35,
+        sourceKind: "heuristic",
+        sourceUrl: null,
+      }),
     ];
   }
 
-  // 預設為淡江大學 (Tamkang)
   return [
-    {
+    groundedFact({
+      statement: "淡江大學位於新北市淡水區。",
+      kind: "evidence",
+      sourceTag: "[官方網站] https://www.tku.edu.tw/",
+      confidence: 80,
+      sourceKind: "official_web",
+      sourceUrl: TKU_OFFICIAL_URL,
+    }),
+    groundedFact({
+      statement: "克難坡為淡江大學創校初期校園路徑，公開校史記載約 132 階。",
+      kind: "evidence",
+      sourceTag: "[校園真實地標] 控制台校史筆記（console_notes，非遠端 MCP 實測）",
+      confidence: 70,
+      sourceKind: "console_notes",
+      sourceUrl: null,
+    }),
+    groundedFact({
+      statement: "福園與宮燈教室為淡江校園可核對之地標名稱，不是即時好感度調查。",
+      kind: "evidence",
+      sourceTag: "[校園真實地標] 控制台校史筆記（console_notes，非遠端 MCP 實測）",
+      confidence: 70,
+      sourceKind: "console_notes",
+      sourceUrl: null,
+    }),
+    VISUAL_SPEC,
+    groundedFact({
       statement: "淡江大學克難坡 132 階為全校大一新生開學第一週最強烈之體能痛點",
-      kind: "evidence",
-      sourceTag: "[校園真實地標] 淡江大學校史與地理標誌性地標事實",
-      confidence: 99
-    },
-    {
-      statement: "大一開學前三週選課系統與搶課壓力為新生最高頻社交共鳴破冰話題",
-      kind: "evidence",
-      sourceTag: "[官方行事曆作息] 教務處選課日程與大一新生作息統計",
-      confidence: 95
-    },
-    {
-      statement: "福園黑天鵝池畔與宮燈教室自帶人文寧靜校園意象，學生好感度高",
-      kind: "evidence",
-      sourceTag: "[校園景觀調研] 淡江大學校園地標好感度公開資料",
-      confidence: 96
-    },
-    {
-      statement: "活動中心 B307 多功能教室具備木質地板與空調音響，符合茶席靜心規格",
-      kind: "evidence",
-      sourceTag: "[實體場地規範] 淡江大學學生活動中心場地租借規格資料",
-      confidence: 94
-    },
-    {
-      statement: "手作圓形三色光道具規範（紅外、黃中、綠內）直徑 36px 邊角印章落款",
-      kind: "evidence",
-      sourceTag: "[視覺規範守則] 專案分鏡與視覺資產規範手冊 (AGENTS.md)",
-      confidence: 100
-    },
-    {
+      kind: "hypothesis",
+      sourceTag: "[心理推論假設] 痛點強度未經問卷驗證",
+      confidence: 40,
+      sourceKind: "heuristic",
+      sourceUrl: null,
+    }),
+    groundedFact({
       statement: "首屏標題放置『克難坡 132 階』痛點反差鉤子可將 IG 停留秒數自 0.8s 提升至 2.4s",
       kind: "hypothesis",
-      sourceTag: "[心理推論假設] 受眾注意力與拇指滑動心理模型",
-      confidence: 84
-    },
-    {
+      sourceTag: "[心理推論假設] 受眾注意力與拇指滑動心理模型，非 Meta 實測",
+      confidence: 35,
+      sourceKind: "heuristic",
+      sourceUrl: null,
+    }),
+    groundedFact({
       statement: "明示『零社交壓力、免尷尬自我介紹』可使內向型新生赴約意願提升約 35%",
       kind: "hypothesis",
       sourceTag: "[心理推論假設] 新生社交焦慮與防禦減壓心理推論",
-      confidence: 82
-    },
-    {
+      confidence: 35,
+      sourceKind: "heuristic",
+      sourceUrl: null,
+    }),
+    groundedFact({
       statement: "加入『歡迎攜伴室友同行』文案能促進新生整寢同行之同儕擴散效應",
       kind: "hypothesis",
       sourceTag: "[行為推論假設] 大專院校宿舍同儕網絡傳播假說",
-      confidence: 80
-    }
+      confidence: 35,
+      sourceKind: "heuristic",
+      sourceUrl: null,
+    }),
   ];
 }
 
@@ -762,6 +804,10 @@ export function simulateAudienceReaction(
     facts,
     evidencePoints,
     hypothesisPoints,
-    disclaimer: "AI 模擬評估，不代表真實市場調查。"
+    disclaimer: AUDIENCE_DISCLAIMER,
+    simulation: true,
+    method: "ai_heuristic",
+    personaSource: "console_fixture",
+    domain,
   };
 }

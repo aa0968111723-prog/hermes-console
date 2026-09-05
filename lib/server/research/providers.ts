@@ -63,6 +63,18 @@ export function officialWebSources(): SourceRecord[] {
       confidence: 0.8,
       usedFor: "location",
     },
+    {
+      id: "ntu-official",
+      url: "https://www.ntu.edu.tw/",
+      provider: "NtuOfficialWebProvider",
+      title: "國立臺灣大學",
+      excerpt: "國立臺灣大學位於臺北市，校總區含椰林大道等公開校園地標。",
+      retrievedAt: now,
+      publishedAt: null,
+      official: true,
+      confidence: 0.8,
+      usedFor: "location",
+    },
   ];
 }
 

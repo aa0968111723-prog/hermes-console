@@ -19,6 +19,10 @@ export interface PersonaProfile {
   mindset: string;
   triggers: string[];
   dislikes: string[];
+  sourceKind: "console_fixture";
+  simulation: true;
+  method: "ai_heuristic";
+  domain: "tamkang" | "ntu" | "general";
 }
 
 export interface AudienceScore {
@@ -57,11 +61,16 @@ export interface DebateRound {
   roundSynthesis: string;
 }
 
+export type FactSourceKind = "official_web" | "console_notes" | "console_spec" | "heuristic";
+
 export interface AudienceFact {
   statement: string;
   kind: "evidence" | "hypothesis";
   sourceTag: string;
   confidence: number;
+  sourceKind: FactSourceKind;
+  sourceUrl: string | null;
+  liveFetch: false;
 }
 
 export interface AudienceSimulationResult {
@@ -76,5 +85,9 @@ export interface AudienceSimulationResult {
   evidencePoints: string[];   // 真實證據 (Evidence)
   hypothesisPoints: string[]; // 推論假設 (Hypothesis)
   disclaimer: string;         // AI 模擬免責聲明
+  simulation: true;
+  method: "ai_heuristic";
+  personaSource: "console_fixture";
+  domain: "tamkang" | "ntu" | "general";
 }
 
