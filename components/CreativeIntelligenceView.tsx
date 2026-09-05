@@ -1,7 +1,9 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { CreativePipelineResult, CreativeDirection } from "@/lib/server/creative-workflow/pipeline.ts";
+import type { OrchestratedTaskResult, OrchestratedSubtask, DraftReevaluationReport } from "@/lib/server/orchestrator/task-orchestrator.ts";
+import type { IntegrationCheckResult } from "@/lib/server/integrations/truth-status.ts";
 
 interface Props {
   initialPrompt?: string;
@@ -19,7 +21,10 @@ export default function CreativeIntelligenceView({
   const [isRunning, setIsRunning] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [pipelineData, setPipelineData] = useState<CreativePipelineResult | null>(null);
+  const [orchestratedTask, setOrchestratedTask] = useState<OrchestratedTaskResult | null>(null);
+  const [integrations, setIntegrations] = useState<IntegrationCheckResult[]>([]);
   const [activeDirIndex, setActiveDirIndex] = useState(0);
+  const [showSubtasks, setShowSubtasks] = useState(false);
 
   // 敏感操作二次確認彈窗狀態
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -33,6 +38,18 @@ export default function CreativeIntelligenceView({
     setTimeout(() => setCopyNotice(""), 2500);
   };
 
+  // 載入真實整合狀態
+  useEffect(() => {
+    fetch("/api/integrations/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok && Array.isArray(data.integrations)) {
+          setIntegrations(data.integrations);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const handleRunPipeline = async (overridePrompt?: string) => {
     const query = (overridePrompt || prompt).trim();
     if (!query) return;
@@ -42,15 +59,9 @@ export default function CreativeIntelligenceView({
     setPublishResult(null);
 
     try {
-      setStatusMessage("正在調用淡江校園 MCP（行事曆、宮燈/福園場地與迎新脈絡）...");
-      await new Promise((r) => setTimeout(r, 400));
+      setStatusMessage("任務編排中：調用淡江校園 MCP、萬象靈感與 Audience Twin 雙生評分...");
 
-      setStatusMessage("萬象靈感引擎：擷取淡水暮色、克難坡登頂日常與 Canva 模板結構...");
-      await new Promise((r) => setTimeout(r, 400));
-
-      setStatusMessage("Audience Twin 受眾雙生模擬：5 大 Persona（小涵、阿倫、廷宇、小琪、V導）即時評分中...");
-
-      const res = await fetch("/api/creative/pipeline", {
+      const res = await fetch("/api/orchestrator/task", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,10 +76,34 @@ export default function CreativeIntelligenceView({
       }
 
       const data = await res.json();
-      setPipelineData(data.pipeline);
+      const task: OrchestratedTaskResult = data.task;
+      setOrchestratedTask(task);
+
+      // 同步轉換為 pipelineData 格式
+      setPipelineData({
+        query: task.userPrompt,
+        executedAt: new Date(task.finishedAt).toISOString(),
+        activeProject: task.activeProject,
+        assignedProfile: {
+          id: "tku",
+          name: "淡江校園脈絡專家",
+          role: "Tamkang Campus Specialist & Creative Orchestrator"
+        },
+        contextMemories: (task.subtasks[0]?.outputData as any[]) || [],
+        campusIntel: {
+          currentWeekEvents: (task.subtasks[1]?.outputData as any)?.calendar,
+          recommendedVenues: (task.subtasks[1]?.outputData as any)?.venues,
+          clubProfile: (task.subtasks[1]?.outputData as any)?.clubProfile
+        },
+        inspirations: (task.subtasks[2]?.outputData as any[]) || [],
+        directions: task.directions,
+        topDirection: task.topDirection,
+        actionConfirmation: task.actionConfirmation
+      });
+
       setActiveDirIndex(0);
-      setConfirmationToken(data.pipeline.actionConfirmation?.token || "");
-      showToast("✨ 創意智能全管線生成完成！");
+      setConfirmationToken(task.actionConfirmation?.token || "");
+      showToast("✨ 9 大子任務全管線編排完成（含草稿後受眾再測驗）！");
     } catch (err: any) {
       alert(`管線執行失敗: ${err.message || String(err)}`);
     } finally {
@@ -190,6 +225,27 @@ export default function CreativeIntelligenceView({
             🦢 福園池畔高顏值微光貼文
           </button>
         </div>
+
+        {/* 生態系整合真實狀態列 (Truthful Integration Health) */}
+        {integrations.length > 0 && (
+          <div className="os-integration-status-row">
+            <span className="integration-label">🔌 生態系整合真實狀態：</span>
+            <div className="integration-chips-wrap">
+              {integrations.map((item) => (
+                <div
+                  key={item.id}
+                  className={`integration-pill status-${item.status.toLowerCase().replace(/\s+/g, "-")}`}
+                  title={`${item.name} (${item.status}) - ${item.details}`}
+                >
+                  <span className="integration-dot" />
+                  <span className="integration-name">{item.name}</span>
+                  <span className="integration-badge">{item.statusBadge}</span>
+                  {item.latencyMs > 0 && <span className="integration-latency">{item.latencyMs}ms</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 執行狀態條 */}
@@ -235,6 +291,86 @@ export default function CreativeIntelligenceView({
               <span className="stage-meta">{pipelineData.directions.length} 策略方向</span>
             </div>
           </div>
+
+          {/* 9 大子任務編排時序與來源出處 (Subtasks Orchestration & Provenance) */}
+          {orchestratedTask && (
+            <div className="subtasks-orchestration-container">
+              <div className="subtasks-toggle-bar">
+                <div className="subtasks-toggle-title">
+                  <span className="subtasks-icon">⚡</span>
+                  <strong>9 大子任務編排與來源出處追蹤 (Task Provenance)</strong>
+                  <span className="subtasks-meta">
+                    總耗時 {orchestratedTask.totalDurationMs}ms・{orchestratedTask.subtasks.length} 階全自動協同
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-toggle-subtasks"
+                  onClick={() => setShowSubtasks(!showSubtasks)}
+                >
+                  {showSubtasks ? "收合子任務明細 ▲" : "展開 9 大子任務明細 ▼"}
+                </button>
+              </div>
+
+              {showSubtasks && (
+                <div className="subtasks-grid">
+                  {orchestratedTask.subtasks.map((st, idx) => (
+                    <div key={st.subtaskId} className="subtask-card">
+                      <div className="subtask-card-header">
+                        <span className="subtask-idx">Step {idx + 1}</span>
+                        <span className="subtask-title">{st.title}</span>
+                        <span className="subtask-duration">{st.durationMs}ms</span>
+                        <span className={`subtask-status-badge status-${st.status}`}>
+                          {st.status === "completed" ? "✓ 完成" : st.status}
+                        </span>
+                      </div>
+                      <p className="subtask-desc">{st.description}</p>
+
+                      {st.outputSummary && (
+                        <div className="subtask-summary">
+                          <strong>產出：</strong>{st.outputSummary}
+                        </div>
+                      )}
+
+                      <div className="subtask-provenance">
+                        <div className="prov-row">
+                          <span className="prov-label">來源出處：</span>
+                          <code className="prov-source">{st.provenance.sourceOrigin}</code>
+                        </div>
+                        {st.provenance.rightsOrAttribution && (
+                          <div className="prov-row">
+                            <span className="prov-label">權限/歸屬：</span>
+                            <span className="prov-rights">{st.provenance.rightsOrAttribution}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {st.evidenceVsHypothesis && (
+                        <div className="subtask-eh-box">
+                          {st.evidenceVsHypothesis.evidence.length > 0 && (
+                            <div className="eh-subrow">
+                              <span className="eh-mini-tag verified">證據</span>
+                              <span className="eh-mini-text">
+                                {st.evidenceVsHypothesis.evidence.join("；")}
+                              </span>
+                            </div>
+                          )}
+                          {st.evidenceVsHypothesis.hypotheses.length > 0 && (
+                            <div className="eh-subrow">
+                              <span className="eh-mini-tag hypothesis">假設</span>
+                              <span className="eh-mini-text">
+                                {st.evidenceVsHypothesis.hypotheses.join("；")}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 策略方向選擇頁籤 */}
           <div className="direction-tabs-header">
@@ -339,6 +475,57 @@ export default function CreativeIntelligenceView({
                   </button>
                 </div>
               </div>
+
+              {/* 草稿完成後受眾再測驗報告 (Audience Re-evaluation) */}
+              {orchestratedTask?.draftReevaluations && (
+                (() => {
+                  const reeval = orchestratedTask.draftReevaluations.find(
+                    (r) => r.directionId === currentDirection.id
+                  ) || orchestratedTask.draftReevaluations[activeDirIndex];
+                  if (!reeval) return null;
+
+                  return (
+                    <div className="os-card reevaluation-card">
+                      <div className="card-title-row">
+                        <span className="card-icon">🔬</span>
+                        <div>
+                          <h4>草稿後受眾再測驗報告 (Post-Draft Re-evaluation)</h4>
+                          <span className="card-sub-desc">5 位受眾針對 Canva 畫布圖層與動線之落地驗證</span>
+                        </div>
+                        <span className="reeval-verdict-tag">{reeval.verdict}</span>
+                      </div>
+
+                      <div className="reeval-scores-banner">
+                        <div className="reeval-score-item">
+                          <span className="reeval-label">概念階段初評</span>
+                          <span className="reeval-val">{reeval.preDraftOverallScore} 分</span>
+                        </div>
+                        <div className="reeval-arrow">➔</div>
+                        <div className="reeval-score-item highlight">
+                          <span className="reeval-label">草稿落地後再測驗</span>
+                          <span className="reeval-val">{reeval.postDraftOverallScore} 分</span>
+                        </div>
+                        <div className="reeval-delta-badge">
+                          +{reeval.scoreDelta}% 視覺落地增益
+                        </div>
+                      </div>
+
+                      <div className="layer-critiques-block">
+                        <div className="critique-header">Canva 圖層受眾即時審驗：</div>
+                        <div className="critique-list">
+                          {reeval.layerCritiques.map((c, i) => (
+                            <div key={i} className="critique-item">
+                              <span className="critique-badge">L{c.layerIndex} {c.aspect}</span>
+                              <span className="critique-reaction">「{c.personaReaction}」</span>
+                              <span className="critique-status">{c.passed ? "✓ 通過" : "待調整"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              )}
 
               {/* Instagram 社群文案排版 */}
               <div className="os-card ig-caption-card">

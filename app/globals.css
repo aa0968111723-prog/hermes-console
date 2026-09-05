@@ -2447,3 +2447,421 @@ a:hover {
   border-color: var(--accent-hover);
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.2);
 }
+
+/* ─── 生態系整合真實狀態欄 (Truthful Integration Health Bar) ─── */
+.os-integration-status-row {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.integration-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.integration-chips-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.integration-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.integration-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.integration-name {
+  color: var(--text-secondary);
+}
+
+.integration-badge {
+  font-weight: 700;
+}
+
+.integration-latency {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* 狀態色彩映射 (Truth Status Mapping) */
+.integration-pill.status-connected {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+}
+.integration-pill.status-connected .integration-dot { background: #10b981; box-shadow: 0 0 6px #10b981; }
+.integration-pill.status-connected .integration-badge { color: #10b981; }
+
+.integration-pill.status-verified {
+  border-color: rgba(6, 182, 212, 0.4);
+  background: rgba(6, 182, 212, 0.08);
+}
+.integration-pill.status-verified .integration-dot { background: #06b6d4; box-shadow: 0 0 6px #06b6d4; }
+.integration-pill.status-verified .integration-badge { color: #06b6d4; }
+
+.integration-pill.status-partial {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+}
+.integration-pill.status-partial .integration-dot { background: #f59e0b; }
+.integration-pill.status-partial .integration-badge { color: #f59e0b; }
+
+.integration-pill.status-needs-authorization {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.08);
+}
+.integration-pill.status-needs-authorization .integration-dot { background: #f97316; }
+.integration-pill.status-needs-authorization .integration-badge { color: #f97316; }
+
+.integration-pill.status-unconfigured {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+.integration-pill.status-unconfigured .integration-dot { background: var(--text-muted); }
+.integration-pill.status-unconfigured .integration-badge { color: var(--text-muted); }
+
+.integration-pill.status-failed {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+.integration-pill.status-failed .integration-dot { background: #ef4444; }
+.integration-pill.status-failed .integration-badge { color: #ef4444; }
+
+/* ─── 9 大子任務編排與來源出處 (Subtasks Orchestration) ─── */
+.subtasks-orchestration-container {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.subtasks-toggle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.subtasks-toggle-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.subtasks-icon {
+  font-size: 16px;
+  color: var(--accent);
+}
+
+.subtasks-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-surface-raised);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.btn-toggle-subtasks {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-subtasks:hover {
+  background: var(--bg-surface);
+  border-color: var(--accent);
+}
+
+.subtasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+
+.subtask-card {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subtask-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.subtask-idx {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.subtask-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.subtask-duration {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.subtask-status-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.subtask-status-badge.status-completed {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.subtask-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.subtask-summary {
+  font-size: 11px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 4px 8px;
+  border-radius: 4px;
+  border-left: 2px solid var(--accent);
+}
+
+.subtask-provenance {
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 8px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.prov-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.prov-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.prov-source {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #38bdf8;
+  word-break: break-all;
+}
+
+.prov-rights {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.subtask-eh-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.eh-subrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.eh-mini-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.eh-mini-tag.verified {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.eh-mini-tag.hypothesis {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+.eh-mini-text {
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* ─── 草稿後受眾再測驗卡片 (Audience Re-evaluation) ─── */
+.reevaluation-card {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+.reeval-verdict-tag {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.reeval-scores-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 18px;
+  margin: 14px 0;
+  flex-wrap: wrap;
+}
+
+.reeval-score-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.reeval-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.reeval-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.reeval-score-item.highlight .reeval-val {
+  color: var(--accent);
+}
+
+.reeval-arrow {
+  font-size: 18px;
+  color: var(--text-muted);
+}
+
+.reeval-delta-badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.layer-critiques-block {
+  margin-top: 10px;
+}
+
+.critique-header {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.critique-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.critique-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.critique-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.critique-reaction {
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.critique-status {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  white-space: nowrap;
+}
+

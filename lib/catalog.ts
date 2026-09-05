@@ -8,13 +8,13 @@ export type Project = {
 };
 
 export const TOOLS = [
-  { name: "GitHub", status: "已連線", desc: "儲存庫與提交狀態查詢", href: "https://github.com/aa0968111723-prog" },
-  { name: "Zeabur Hermes Brain", status: "主腦運作中", desc: "API 伺服器與儀表板 (port 9119)", href: "#zeabur" },
-  { name: "Vercel", status: "已連線", desc: "前端與即時站台部署", href: "https://vercel.com" },
-  { name: "Canva", status: "已連線", desc: "視覺排版與設計橋接", href: "https://www.canva.com" },
-  { name: "Google Drive", status: "已連線", desc: "素材與劇本雲端儲存", href: "https://drive.google.com" },
-  { name: "Ecosystem Catalog", status: "全域索引", desc: "41 個生態系專案即時檢索", href: "#catalog" },
-  { name: "Voice & Audio", status: "已備妥", desc: "語音合成與旁白管線", href: "#voice" }
+  { name: "GitHub", status: "Verified", desc: "儲存庫與提交狀態查詢（公開/認證）", href: "https://github.com/aa0968111723-prog" },
+  { name: "Zeabur Hermes Brain", status: "Partial", desc: "雲端主腦與本地高擬真雙引擎自動備援", href: "#zeabur" },
+  { name: "Vercel", status: "Connected", desc: "前端與即時站台部署", href: "https://vercel.com" },
+  { name: "Canva", status: "Needs Authorization", desc: "視覺排版與設計橋接（支援 PKCE 授權與沙盒模式）", href: "https://www.canva.com" },
+  { name: "Google Drive", status: "Unconfigured", desc: "素材與劇本雲端儲存（待授權綁定）", href: "https://drive.google.com" },
+  { name: "Ecosystem Catalog", status: "Verified", desc: "41 個生態系專案即時檢索索引", href: "#catalog" },
+  { name: "Voice & Audio", status: "Partial", desc: "語音合成與旁白管線（本地合成備妥）", href: "#voice" }
 ];
 
 export const PROJECTS: Project[] = [
