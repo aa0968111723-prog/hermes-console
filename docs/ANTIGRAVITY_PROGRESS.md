@@ -52,6 +52,20 @@
 4. **真實 Upstream Usage 捕捉**：
    - 請求主體配置 `stream_options: { include_usage: true }`，解析上游返回之 `prompt_tokens` 與 `completion_tokens`，取代純經驗字元估算。
 
+---
+
+## 週期 3 (Iteration 3) Audience Twin 規範化與可解釋性加固
+
+1. **Audience Twin 免責聲明全鏈路規範**：
+   - 在 `lib/server/audience-twin/types.ts` 與 `engine.ts` 中將 `disclaimer: "AI 模擬評估，不代表真實市場調查。"` 納入 `AudienceSimulationResult` 標準契約回傳值。
+   - 與 `lib/server/audience.ts` 中的 `AUDIENCE_DISCLAIMER` 達成 100% 一致。
+2. **單元測試與端對端驗證**：
+   - 在 `tests/phase6_7_8_workflow.test.ts` 新增免責聲明存在性斷言。
+   - 49/49 項測試持續全數通過。
+   - 遠端 GitHub Actions 工作流 `33976580119` 綠燈通過（1m0s）。
+   - PR #10 保持 `mergeStateStatus: "CLEAN"`，`mergeable: "MERGEABLE"`。
+
+
 
 ---
 
