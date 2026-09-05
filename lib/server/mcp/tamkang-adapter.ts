@@ -1,4 +1,5 @@
 import { validateSsrfSafeUrl } from "../security.ts";
+import { callRemoteMcpToolViaSdk } from "./client.ts";
 
 /**
  * 淡江大學專用 MCP 適配器 (Tamkang MCP Adapter)
@@ -107,6 +108,17 @@ export async function queryTkuCalendar(week?: number) {
     );
     if (ssrf.safe) {
       try {
+        // 優先透過標準 MCP SDK Client 連線調用
+        const sdkRes = await callRemoteMcpToolViaSdk(
+          remoteUrl,
+          "query_tku_calendar",
+          { week: week ?? 2 },
+          { token: process.env.TKU_MCP_TOKEN, timeoutMs: 3500 }
+        );
+        if (sdkRes.success && sdkRes.result) {
+          return sdkRes.result;
+        }
+
         const rpcPayload = {
           jsonrpc: "2.0",
           id: `mcp_tku_${Date.now()}`,
@@ -164,6 +176,17 @@ export async function queryTkuVenues(venueId?: string) {
     );
     if (ssrf.safe) {
       try {
+        // 優先透過標準 MCP SDK Client 連線調用
+        const sdkRes = await callRemoteMcpToolViaSdk(
+          remoteUrl,
+          "query_tku_venues",
+          { venueId: venueId || "" },
+          { token: process.env.TKU_MCP_TOKEN, timeoutMs: 3500 }
+        );
+        if (sdkRes.success && sdkRes.result) {
+          return sdkRes.result;
+        }
+
         const rpcPayload = {
           jsonrpc: "2.0",
           id: `mcp_tku_venue_${Date.now()}`,

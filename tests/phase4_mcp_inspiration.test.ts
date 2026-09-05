@@ -109,10 +109,61 @@ function testInspirations() {
   console.log("  ✓ 靈感搜尋、IG/Pinterest 解析與版權標註通過");
 }
 
-Promise.all([testTkuAdapter(), testMcpPermissions()]).then(() => {
+import {
+  createMcpClient,
+  callRemoteMcpToolViaSdk,
+  discoverRemoteMcpTools
+} from "../lib/server/mcp/client.ts";
+import {
+  getMcpServers,
+  discoverAndRegisterRemoteTools
+} from "../lib/server/mcp/registry.ts";
+
+// 4. MCP SDK Client 封裝與動態探索測試
+console.log("▶ 測試 4: MCP SDK Client 封裝、SSRF 防禦與容錯降級");
+async function testMcpSdkClient() {
+  // A. SSRF 攔截檢驗
+  await assert.rejects(
+    () => createMcpClient("http://169.254.169.254/mcp", { allowLoopback: false }),
+    (err: any) => err.code === "ssrf_rejected" || /阻擋/.test(err.message),
+    "對雲端 metadata 服務必須執行 SSRF 攔截"
+  );
+  console.log("  ✓ MCP SDK Client SSRF 阻擋驗證通過");
+
+  // B. 遠端連線失敗/逾時降級
+  const unreachable = await callRemoteMcpToolViaSdk(
+    "http://127.0.0.1:59999/mcp-offline",
+    "query_tku_calendar",
+    { week: 2 },
+    { timeoutMs: 300, allowLoopback: true }
+  );
+  assert.strictEqual(unreachable.success, false);
+  assert.ok(unreachable.error && unreachable.error.length > 0, "連線失敗應有清楚錯誤說明");
+  console.log("  ✓ MCP SDK 遠端調用逾時與平滑降級驗證通過");
+
+  // C. 動態探索工具失敗降級
+  const discoverRes = await discoverRemoteMcpTools(
+    "http://127.0.0.1:59999/mcp-offline",
+    { timeoutMs: 300, allowLoopback: true }
+  );
+  assert.strictEqual(discoverRes.success, false);
+  assert.deepStrictEqual(discoverRes.tools, []);
+  console.log("  ✓ 動態探索遠端工具離線降級通過");
+
+  // D. 取得 MCP 伺服器即時狀態
+  const servers = getMcpServers();
+  assert.strictEqual(servers.length, 3, "應註冊 3 大 MCP 伺服器");
+  assert.ok(servers.some((s) => s.id === "tku-campus-mcp"));
+  assert.ok(servers.some((s) => s.id === "canva-design-mcp"));
+  assert.ok(servers.some((s) => s.id === "hermes-ecosystem-mcp"));
+  console.log("  ✓ MCP 伺服器即時健康度探測通過");
+}
+
+Promise.all([testTkuAdapter(), testMcpPermissions(), testMcpSdkClient()]).then(() => {
   testInspirations();
   console.log("\n🎉 Phase 4 & 5 全部 MCP 與靈感引擎測試 100% 通過！");
 }).catch((err) => {
   console.error("測試失敗:", err);
   process.exit(1);
 });
+

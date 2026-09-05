@@ -3,36 +3,53 @@ import type { ToolPermissionTier, McpServerConfig, McpToolDefinition, Confirmati
 import { queryTkuCalendar, queryTkuVenues, getTkuZenClubProfile } from "./tamkang-adapter.ts";
 import { addMemory } from "../hermes/memory.ts";
 import { getWorkspaceCanvaToken } from "../canva-auth.ts";
+import { canvaStatus } from "../canva.ts";
+import { WORKSPACE_OWNER } from "../security.ts";
+import { discoverRemoteMcpTools } from "./client.ts";
 
 // 記憶體中暫存的確認 Token
 const confirmationTokens = new Map<string, ConfirmationTokenPayload>();
 
-// 註冊的 MCP 伺服器
-export const MCP_SERVERS: McpServerConfig[] = [
-  {
-    id: "tku-campus-mcp",
-    name: "淡江大學校園生態 MCP",
-    url: process.env.TKU_MCP_URL,
-    enabled: true,
-    status: process.env.TKU_MCP_URL ? "connected" : "fallback_local",
-    description: "提供淡江校園行事曆、宮燈教室/福園場地借用、大一迎新時程與校園心理洞察。"
-  },
-  {
-    id: "canva-design-mcp",
-    name: "Canva 自動化設計 MCP",
-    url: "https://api.canva.com/rest/v1",
-    enabled: true,
-    status: getWorkspaceCanvaToken() ? "connected" : "fallback_local",
-    description: "提供自動產生 Canva 16:9 / 4:5 / 9:16 設計草稿與排版素材匯出。"
-  },
-  {
-    id: "hermes-ecosystem-mcp",
-    name: "Hermes 41 專案生態系 MCP",
-    enabled: true,
-    status: "connected",
-    description: "連接柯能 GitHub 41 個專案知識庫與技術規格目錄。"
-  }
-];
+/**
+ * 動態取得 MCP 伺服器狀態（包含 Vault 與環境變數即時探測）
+ */
+export function getMcpServers(): McpServerConfig[] {
+  const canvaVault = canvaStatus(WORKSPACE_OWNER);
+  const isCanvaConnected =
+    Boolean(getWorkspaceCanvaToken()) ||
+    canvaVault.state === "verified" ||
+    canvaVault.state === "partial";
+
+  return [
+    {
+      id: "tku-campus-mcp",
+      name: "淡江大學校園生態 MCP",
+      url: process.env.TKU_MCP_URL,
+      enabled: true,
+      status: process.env.TKU_MCP_URL ? "connected" : "fallback_local",
+      description: "提供淡江校園行事曆、宮燈教室/福園場地借用、大一迎新時程與校園心理洞察。"
+    },
+    {
+      id: "canva-design-mcp",
+      name: "Canva 自動化設計 MCP",
+      url: "https://api.canva.com/rest/v1",
+      enabled: true,
+      status: isCanvaConnected ? "connected" : "fallback_local",
+      description: "提供自動產生 Canva 16:9 / 4:5 / 9:16 設計草稿與排版素材匯出。"
+    },
+    {
+      id: "hermes-ecosystem-mcp",
+      name: "Hermes 41 專案生態系 MCP",
+      enabled: true,
+      status: "connected",
+      description: "連接柯能 GitHub 41 個專案知識庫與技術規格目錄。"
+    }
+  ];
+}
+
+// 註冊的 MCP 伺服器常數
+export const MCP_SERVERS: McpServerConfig[] = getMcpServers();
+
 
 // MCP 工具清單
 export const MCP_TOOLS: McpToolDefinition[] = [
@@ -238,12 +255,20 @@ export async function executeMcpTool(
 
     case "create_canva_design_draft": {
       const canvaToken = getWorkspaceCanvaToken();
+      const canvaVault = canvaStatus(WORKSPACE_OWNER);
+      const canvaMode = canvaToken?.isMock
+        ? "sandbox"
+        : canvaToken || canvaVault.state === "verified"
+          ? "live_connected"
+          : canvaVault.state === "partial"
+            ? "vault_partial"
+            : "local_blueprint";
       const draftResult = {
         draftId: `canva_draft_${Date.now()}`,
         title: args.title,
         dimensions: args.dimensions || "1080x1350 (IG Portrait 4:5)",
         theme: args.theme || "淡水暮色・禪茶微光",
-        canvaMode: canvaToken?.isMock ? "sandbox" : canvaToken ? "live_connected" : "local_blueprint",
+        canvaMode,
         exportUrl: `https://www.canva.com/design/draft?id=${Date.now()}`,
         layers: [
           { layer: 1, type: "background", color: "#F7F5F0", name: "微溫米白自然背景" },
@@ -299,3 +324,33 @@ export async function executeMcpTool(
       return { success: false, error: `未實作的工具: ${name}` };
   }
 }
+
+/**
+ * 動態探索並註冊遠端 MCP 伺服器之工具清單
+ */
+export async function discoverAndRegisterRemoteTools(
+  serverUrl: string,
+  serverId: string = "tku-campus-mcp"
+): Promise<{ success: boolean; registeredCount: number; error?: string }> {
+  const res = await discoverRemoteMcpTools(serverUrl);
+  if (!res.success) {
+    return { success: false, registeredCount: 0, error: res.error };
+  }
+
+  let registeredCount = 0;
+  for (const t of res.tools) {
+    if (!MCP_TOOLS.some((existing) => existing.name === t.name)) {
+      MCP_TOOLS.push({
+        name: t.name,
+        description: t.description || `遠端 MCP 動態工具 (${serverId})`,
+        permissionTier: "read",
+        serverId,
+        parameters: (t.inputSchema as Record<string, unknown>) || { type: "object", properties: {} }
+      });
+      registeredCount++;
+    }
+  }
+
+  return { success: true, registeredCount };
+}
+

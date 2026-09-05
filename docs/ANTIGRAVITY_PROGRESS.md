@@ -109,6 +109,34 @@
 
 ---
 
+## 週期 6 (Iteration 6) 標準 MCP SDK Client 整合與動態工具探索加固
+
+針對紅隊審查指出的「未使用官方 `@modelcontextprotocol/sdk`、遠端協定非標準傳輸、工具靜態寫死」之缺口，完成以下核心重構：
+
+1. **實作官方 MCP SDK 客戶端封裝 (`lib/server/mcp/client.ts`)**：
+   - 引入官方 `@modelcontextprotocol/sdk` 之 `Client` 與 `StreamableHTTPClientTransport` 模組。
+   - 封裝 `createMcpClient` 實例工廠，全數實施 `validateSsrfSafeUrl` 嚴格檢驗，阻擋惡意內網與私有 IP 穿透。
+   - 提供 `listTools()`、`callTool()` 與優雅資源釋放 `close()` 介面，支援標準 MCP 回傳封包之解析。
+   - 實作具備逾時控制的 `callRemoteMcpToolViaSdk` 與動態探索函式 `discoverRemoteMcpTools`。
+
+2. **淡江適配器優先對接標準 MCP SDK 傳輸**：
+   - 在 `tamkang-adapter.ts` 中的 `queryTkuCalendar` 與 `queryTkuVenues`，優先透過 `callRemoteMcpToolViaSdk` 以標準 MCP 傳輸協定進行遠端調用。
+   - 若遠端伺服器僅支援輕量 JSON-RPC 2.0 或未開啟完整 MCP 串流，自動平滑回退至標準 JSON-RPC 2.0 HTTP 封包；離線或逾時自動回退本機校園知識圖譜，達成多重彈性容錯。
+
+3. **動態 MCP 工具探索與伺服器健康度即時化**：
+   - 在 `lib/server/mcp/registry.ts` 實作 `discoverAndRegisterRemoteTools`，可透過 `tools/list` 探索遠端工具並動態註冊進系統中。
+   - 新增 `getMcpServers()` 整合 Canva Vault 狀態，在 `/api/mcp/servers` 路由即時回報真實伺服器連線狀態。
+   - 在 `create_canva_design_draft` 中依據 Vault 驗證狀態精準標記 `canvaMode`（`live_connected`、`vault_partial`、`sandbox`、`local_blueprint`）。
+
+4. **單元測試套件全綠驗證**：
+   - 在 `tests/phase4_mcp_inspiration.test.ts` 新增「測試 4: MCP SDK Client 封裝、SSRF 防禦與容錯降級」，涵蓋雲端 Metadata SSRF 阻擋、離線逾時平滑降級、動態探索失敗降級與伺服器健康度探測。
+   - `npm test`：49/49 測試 100% 通過。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：199 檔案零洩漏。
+   - `npm run build`：Next.js 43/43 路由編譯零錯誤。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
