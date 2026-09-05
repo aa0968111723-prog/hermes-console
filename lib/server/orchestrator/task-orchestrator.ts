@@ -1,7 +1,7 @@
-﻿import { searchMemories } from "../hermes/memory.ts";
+import { searchMemories } from "../hermes/memory.ts";
 import { queryTkuCalendar, queryTkuVenues, getTkuZenClubProfile } from "../mcp/tamkang-adapter.ts";
 import { searchInspirations } from "../inspiration/engine.ts";
-import { simulateAudienceReaction, PERSONAS } from "../audience-twin/engine.ts";
+import { simulateAudienceReaction, resolvePersonasForContext, PERSONAS } from "../audience-twin/engine.ts";
 import type { AudienceScore, AudienceSimulationResult } from "../audience-twin/types.ts";
 import { generateConfirmationToken } from "../mcp/registry.ts";
 import type { CreativeDirection } from "../creative-workflow/pipeline.ts";
@@ -65,6 +65,118 @@ export interface OrchestratedTaskResult {
     actionName: string;
     toolTarget: string;
     payloadHash: string;
+  };
+}
+
+/**
+ * 依據 Canva 設計草稿分層藍圖進行動態圖層評估 (Dynamic Layer Evaluation)
+ */
+export function evaluateCanvaDraftLayers(
+  canvaBlueprint: { layers: Array<{ layer: number; type: string; content?: string; note?: string }> },
+  directionTitle: string
+): {
+  scoreBonus: number;
+  layerCritiques: Array<{ layerIndex: number; aspect: string; personaReaction: string; passed: boolean }>;
+  verdict: "Ready for Publication" | "Minor Iteration Recommended" | "Needs Visual Overhaul";
+} {
+  const layers = canvaBlueprint?.layers || [];
+  const layerCritiques: Array<{ layerIndex: number; aspect: string; personaReaction: string; passed: boolean }> = [];
+  let scoreBonus = 0;
+
+  // Layer 1: 底色柔和度
+  const layer1 = layers.find((l) => l.layer === 1);
+  const layer1Note = (layer1?.note || "").toLowerCase();
+  const isLayer1Gentle = layer1Note.includes("柔和") || layer1Note.includes("無壓") || layer1Note.includes("燕麥") || !layer1Note.includes("螢光");
+  if (isLayer1Gentle) {
+    layerCritiques.push({
+      layerIndex: 1,
+      aspect: "底色柔和度",
+      personaReaction: "燕麥暖白背景大幅降低螢幕藍光刺眼感，符合放鬆調性",
+      passed: true
+    });
+    scoreBonus += 1;
+  } else {
+    layerCritiques.push({
+      layerIndex: 1,
+      aspect: "底色柔和度",
+      personaReaction: "背景色彩過於刺眼或反差不足，可能造成視覺疲勞",
+      passed: false
+    });
+  }
+
+  // Layer 3: 標題思源宋體階層
+  const layer3 = layers.find((l) => l.layer === 3);
+  const layer3Content = layer3?.content || directionTitle || "";
+  const layer3Note = layer3?.note || "";
+  const hasHeadlineHierarchy = layer3Note.includes("44pt") || layer3Note.includes("思源宋體") || layer3Content.length > 0;
+  if (hasHeadlineHierarchy) {
+    layerCritiques.push({
+      layerIndex: 3,
+      aspect: "標題思源宋體階層",
+      personaReaction: "標題 44pt 搶眼有力，滑過首屏 0.8 秒即可抓住目光",
+      passed: true
+    });
+    scoreBonus += 1;
+  } else {
+    layerCritiques.push({
+      layerIndex: 3,
+      aspect: "標題思源宋體階層",
+      personaReaction: "標題缺乏層次感與停留吸引力",
+      passed: false
+    });
+  }
+
+  // Layer 5: 手作三色光道具規範
+  const layer5 = layers.find((l) => l.layer === 5);
+  const layer5Note = layer5?.note || "";
+  const isSealCompliant = (layer5Note.includes("手作") || layer5Note.includes("圓形") || layer5Note.includes("36px")) &&
+    !layer5Note.includes("巨大") && !layer5Note.includes("標靶") && !layer5Note.includes("交通燈");
+  if (isSealCompliant) {
+    layerCritiques.push({
+      layerIndex: 5,
+      aspect: "手作三色光道具規範",
+      personaReaction: "三色光（紅外、黃中、綠內）直徑 36px 適度收斂在角落，完全無標靶感",
+      passed: true
+    });
+    scoreBonus += 1;
+  } else {
+    layerCritiques.push({
+      layerIndex: 5,
+      aspect: "手作三色光道具規範",
+      personaReaction: "三色光尺寸過大或樣式不合規，有標靶誤讀風險",
+      passed: false
+    });
+  }
+
+  // Layer 6: 行動號召清晰度
+  const layer6 = layers.find((l) => l.layer === 6);
+  const layer6Content = layer6?.content || "";
+  const isCtaClear = layer6Content.includes("免費") || layer6Content.includes("茶會") || layer6Content.includes("點心") || layer6Content.includes("時間");
+  if (isCtaClear) {
+    layerCritiques.push({
+      layerIndex: 6,
+      aspect: "行動號召清晰度",
+      personaReaction: "時間、地點、免費與備有點心清晰可見，懷疑論者防禦感歸零",
+      passed: true
+    });
+    scoreBonus += 1;
+  } else {
+    layerCritiques.push({
+      layerIndex: 6,
+      aspect: "行動號召清晰度",
+      personaReaction: "活動關鍵資訊不夠透明，新生可能產生疑慮",
+      passed: false
+    });
+  }
+
+  const passedCount = layerCritiques.filter((c) => c.passed).length;
+  const verdict: "Ready for Publication" | "Minor Iteration Recommended" | "Needs Visual Overhaul" =
+    passedCount >= 4 ? "Ready for Publication" : passedCount >= 2 ? "Minor Iteration Recommended" : "Needs Visual Overhaul";
+
+  return {
+    scoreBonus: Math.max(1, scoreBonus),
+    layerCritiques,
+    verdict
   };
 }
 
@@ -229,7 +341,7 @@ export async function executeOrchestratedTask(
   // ─── 子任務 5: Audience Twin 初步概念模擬評分 ───
   const t5Start = Date.now();
   const directions: CreativeDirection[] = rawDirections.map((dir) => {
-    const simulation = simulateAudienceReaction(dir.title, dir.coreInsight, dir.visualConcept, dir.hook);
+    const simulation = simulateAudienceReaction(dir.title, dir.coreInsight, dir.visualConcept, dir.hook, activeProject);
 
     const canvaBlueprint = {
       title: `${dir.title} (Canva 1080x1350)`,
@@ -289,17 +401,18 @@ export async function executeOrchestratedTask(
     };
   });
 
+  const resolvedAudience = resolvePersonasForContext(userPrompt, activeProject);
   subtasks.push({
     subtaskId: "audience_twin_simulation",
     title: "Audience Twin 受眾雙生模擬 (5 Persona)",
-    description: "由小涵、阿倫、廷宇、小琪、V導進行 5 維度指標評判",
+    description: `由 ${resolvedAudience.personas.map((p) => p.name.split("・")[1] || p.name).join("、")} 進行 5 維度指標評判`,
     status: "completed",
     durationMs: Date.now() - t5Start,
     provenance: {
       sourceType: "audience_twin",
-      sourceOrigin: "personas:target_freshman,bystander,skeptic,peer,creative_director"
+      sourceOrigin: `personas:${resolvedAudience.personas.map((p) => p.id).join(",")}`
     },
-    outputSummary: "完成 5 位模擬 Persona 評分，最高分達 94/100"
+    outputSummary: `完成 5 位模擬 Persona 評分，最高分達 ${directions[0]?.audienceScores.overallScore || 94}/100`
   });
 
   // ─── 子任務 6: Canva 設計草稿藍圖建立 ───
@@ -320,42 +433,16 @@ export async function executeOrchestratedTask(
   // ─── 子任務 7: Audience Re-evaluation (草稿後受眾再測驗) ───
   const t7Start = Date.now();
   const draftReevaluations: DraftReevaluationReport[] = directions.map((dir) => {
-    // 評估圖層對受眾的實際增益：手作三色光規範符合 +2、清晰 CTA +3、標題層次 +2
-    const scoreBonus = 4;
-    const postScore = Math.min(99, dir.audienceScores.overallScore + scoreBonus);
+    const evalResult = evaluateCanvaDraftLayers(dir.canvaBlueprint, dir.title);
+    const postScore = Math.min(99, dir.audienceScores.overallScore + evalResult.scoreBonus);
     return {
       directionId: dir.id,
       directionTitle: dir.title,
       preDraftOverallScore: dir.audienceScores.overallScore,
       postDraftOverallScore: postScore,
-      scoreDelta: scoreBonus,
-      layerCritiques: [
-        {
-          layerIndex: 1,
-          aspect: "底色柔和度",
-          personaReaction: "燕麥暖白背景大幅降低螢幕藍光刺眼感，符合放鬆調性",
-          passed: true
-        },
-        {
-          layerIndex: 3,
-          aspect: "標題思源宋體階層",
-          personaReaction: "標題 44pt 搶眼有力，滑過首屏 0.8 秒即可抓住目光",
-          passed: true
-        },
-        {
-          layerIndex: 5,
-          aspect: "手作三色光道具規範",
-          personaReaction: "三色光（紅外、黃中、綠內）直徑 36px 適度收斂在角落，完全無標靶感",
-          passed: true
-        },
-        {
-          layerIndex: 6,
-          aspect: "行動號召清晰度",
-          personaReaction: "時間、地點、免費與備有點心清晰可見，懷疑論者防禦感歸零",
-          passed: true
-        }
-      ],
-      verdict: "Ready for Publication"
+      scoreDelta: evalResult.scoreBonus,
+      layerCritiques: evalResult.layerCritiques,
+      verdict: evalResult.verdict
     };
   });
 

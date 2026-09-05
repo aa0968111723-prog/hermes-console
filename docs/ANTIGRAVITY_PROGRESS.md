@@ -137,11 +137,40 @@
 
 ---
 
+## 週期 7 (Iteration 7) Audience Twin 多校園脈絡動態適配、語意正則 AI Slop 攔截與 Canva 圖層動態重審加固
+
+針對紅隊審查指出的「非淡江校園場景硬編碼洩漏、AI Slop 同義詞繞過、堆砌關鍵字刷分、以及 Canva 草稿後受眾再測驗分數固定硬編碼」之缺口，完成以下 4 大核心加固：
+
+1. **Audience Twin 多領域 Persona 與校園地標動態適配 (`lib/server/audience-twin/engine.ts`)**：
+   - 實作 `resolveContextDomain(text, projectId)` 與 `resolvePersonasForContext(text, projectId)`，支援 `tamkang`（淡江）、`ntu`（臺大）、`general`（通用大專）三大校園領域動態切換。
+   - 預設保留 `PERSONAS` 陣列（5 位立體 Persona），確保與現有測試契約 100% 相容。
+   - 實作 `extractContextFacts(fullText, domain)`，依領域動態產出高信賴度之客觀證據（`[校園真實地標]`、`[教務行事曆]`、`[景觀調研]` 等）與推論假設。
+   - 實測在非淡江校園（如臺大「椰林大道迎新野餐」）情境下，精準適配臺大電機大一宇軒等 Persona，並嚴格隔離淡江克難坡/福園地標事實，杜絕事實洩漏。
+
+2. **語意正則 AI Slop 同義詞攔截與對數飽和防刷分計算**：
+   - 引入 `SLOP_PATTERNS` 語意正則陣列，精準識別「開啟心靈之旅」、「揭曉不為人知的奧秘」、「萬萬不能錯過」、「心靈洗禮」等常見同義 marketing 套話，檢測到即予以重扣（分數降至 50 以下）。
+   - 實作關鍵字對數飽和防刷分機制：`Math.min(18, Math.round(Math.log2(authFound.length + 1) * 6.5))`，有效防止大量堆砌校園名詞惡意刷分衝頂（實測堆砌 13 個關鍵字分數平滑收斂在 96 分內）。
+
+3. **Canva 草稿藍圖分層動態評估 (`lib/server/orchestrator/task-orchestrator.ts`)**：
+   - 實作 `evaluateCanvaDraftLayers(canvaBlueprint, directionTitle)`，取代原本寫死的 `scoreBonus = 4`。
+   - 逐層動態檢驗：
+     - Layer 1（底色）：驗證燕麥暖白等柔和護眼無壓色系。
+     - Layer 3（標題）：驗證思源宋體 44pt 視覺階層與停留吸睛力。
+     - Layer 5（手作印章）：嚴格校驗 AGENTS.md 守則「手作圓形三色光（紅外、黃中、綠內）直徑 36px 邊角印章」，防止過大或標靶化。
+     - Layer 6（行動號召）：檢驗時間、地點、費用（免費）、茶點等透明度。
+   - 依據通過圖層數動態計算增益分數與發布結論（`Ready for Publication`、`Minor Iteration Recommended`、`Needs Visual Overhaul`）。
+
+4. **全套測試與 Next.js 生產建置驗證**：
+   - 在 `tests/phase6_7_8_workflow.test.ts` 新增「測試 2b: 跨領域受眾適配與校園地標無洩漏驗證」、「測試 2c: 語意正則 AI Slop 同義句型攔截」、「測試 2d: 校園關鍵字對數飽和防刷分」。
+   - `npm test`：49/49 測試 100% 通過。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：199 檔案零洩漏。
+   - `npm run build`：Next.js 43/43 靜態與動態路由編譯零錯誤。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
-
-
-

@@ -1,4 +1,4 @@
-﻿import { searchMemories } from "../hermes/memory.ts";
+import { searchMemories } from "../hermes/memory.ts";
 import { queryTkuCalendar, queryTkuVenues, getTkuZenClubProfile } from "../mcp/tamkang-adapter.ts";
 import { searchInspirations } from "../inspiration/engine.ts";
 import { simulateAudienceReaction } from "../audience-twin/engine.ts";
@@ -125,7 +125,8 @@ export async function runCreativeIntelligencePipeline(
       dir.title,
       dir.coreInsight,
       dir.visualConcept,
-      dir.hook
+      dir.hook,
+      project
     );
 
     const canvaBlueprint = {

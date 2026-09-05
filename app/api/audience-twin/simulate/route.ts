@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { simulateAudienceReaction } from "@/lib/server/audience-twin/engine.ts";
 import { verifySameOrigin, checkRateLimit } from "@/lib/server/security.ts";
 
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { conceptTitle, description, visualNotes, copyExcerpt } = body;
+    const { conceptTitle, description, visualNotes, copyExcerpt, projectId } = body;
     if (!conceptTitle) {
       return NextResponse.json({ error: "概念標題為必填" }, { status: 400 });
     }
@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
       conceptTitle,
       description || "",
       visualNotes || "",
-      copyExcerpt || ""
+      copyExcerpt || "",
+      projectId
     );
 
     return NextResponse.json({ ok: true, result });

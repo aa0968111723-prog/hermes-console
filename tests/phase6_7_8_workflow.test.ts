@@ -58,6 +58,50 @@ const slopSimulation = simulateAudienceReaction(
 assert.ok(slopSimulation.scores.overallScore < simulation.scores.overallScore, "包含 AI Slop 必須被扣分");
 console.log(`  ✓ AI Slop 懲罰機制正常 (降至 ${slopSimulation.scores.overallScore}/100)`);
 
+// 測試跨領域校園適配 (NTU Context vs Tamkang Context)
+console.log("▶ 測試 2b: 跨領域受眾適配與校園地標無洩漏驗證 (NTU Context)");
+const ntuSimulation = simulateAudienceReaction(
+  "台大椰林大道迎新野餐交流會",
+  "以大一新生椰林迷路與通識避雷為切入，提供免費冷泡茶與雙主修選課經驗分享，保證零社交壓力。",
+  "日系雜誌排版，留白充足，手作三色光道具印章置於右下角 36px，符合規範。",
+  "初到椰林大道總是在迷路嗎？給自己一杯冷泡茶的大腦重開機時間。",
+  "ntu"
+);
+
+assert.ok(ntuSimulation.scores.overallScore >= 80, "NTU 痛點切入應獲得 80 分以上評價");
+assert.strictEqual(ntuSimulation.feedback[0].name, "大一新生・宇軒 (電機系)", "應動態適配為台大電機系大一新生宇軒");
+assert.ok(ntuSimulation.feedback[0].reaction.includes("台大") || ntuSimulation.feedback[0].reaction.includes("椰林"), "受眾反應應精準鎖定台大校園情境");
+
+// 驗證無淡江地標事實洩漏 (No Leaks)
+const ntuStatements = ntuSimulation.facts?.map((f) => f.statement).join(" ") || "";
+assert.ok(!ntuStatements.includes("克難坡"), "NTU 模擬事實嚴禁洩漏淡江克難坡地標");
+assert.ok(!ntuStatements.includes("福園"), "NTU 模擬事實嚴禁洩漏淡江福園地標");
+assert.ok(ntuStatements.includes("椰林大道") || ntuStatements.includes("醉月湖"), "NTU 模擬事實應包含台大專屬地標證據");
+console.log("  ✓ 跨校園領域動態適配正常，地標事實嚴格隔離無洩漏");
+
+// 測試語意正則 AI Slop 同義句型攔截 (Synonym Pattern Interception)
+console.log("▶ 測試 2c: 語意正則 AI Slop 同義句型攔截");
+const synonymSlopSimulation = simulateAudienceReaction(
+  "心靈之旅交流會",
+  "開啟這段心靈之旅，揭曉不為人知的奧秘，萬萬不能錯過！帶你領略心靈的洗禮！",
+  "螢光綠巨大漸層商標置中",
+  "期待您的光臨！"
+);
+assert.ok(synonymSlopSimulation.scores.overallScore < 50, "同義 AI Slop 句型必須被正則精準識別並降至 50 分以下");
+console.log(`  ✓ 語意正則成功攔截同義 AI Slop 句型 (降至 ${synonymSlopSimulation.scores.overallScore}/100)`);
+
+// 測試校園關鍵字對數飽和防刷分 (Logarithmic Saturation)
+console.log("▶ 測試 2d: 校園關鍵字對數飽和防刷分 (Keyword Stuffing Protection)");
+const stuffedSimulation = simulateAudienceReaction(
+  "克難坡 福園 宮燈教室 黑天鵝 選課 紅27 大一新生 冷泡茶 大腦重開機 專注放鬆 無社交壓力 不尷尬 活動中心",
+  "大量堆砌真實關鍵字測試分數飽和度",
+  "手作三色光道具 36px 印章於右下角",
+  "冷泡茶"
+);
+assert.ok(stuffedSimulation.scores.overallScore <= 96, "即使堆砌 13 個關鍵字，綜合分數受對數飽和限制不得超過 96 分");
+console.log(`  ✓ 對數飽和防刷分生效 (堆砌 13 個關鍵字得分 ${stuffedSimulation.scores.overallScore}/100，無異常衝頂)`);
+
+
 // 3. 完整 Creative Intelligence Pipeline 2.0 端對端測試
 console.log("▶ 測試 3: 全管線創意智能驅動測試");
 async function testPipeline() {
