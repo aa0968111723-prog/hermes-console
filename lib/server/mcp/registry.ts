@@ -14,7 +14,12 @@ const confirmationTokens = new Map<string, ConfirmationTokenPayload>();
  * 動態取得 MCP 伺服器狀態（包含 Vault 與環境變數即時探測）
  */
 export function getMcpServers(): McpServerConfig[] {
-  const canvaVault = canvaStatus(WORKSPACE_OWNER);
+  let canvaVault: { state?: string } = { state: "unconfigured" };
+  try {
+    canvaVault = canvaStatus(WORKSPACE_OWNER);
+  } catch {
+    // 容錯防禦：若資料庫處於高並行存取競爭，降級為預設狀態不阻塞模組初始化
+  }
   const isCanvaConnected =
     Boolean(getWorkspaceCanvaToken()) ||
     canvaVault.state === "verified" ||
