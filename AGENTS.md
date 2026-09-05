@@ -29,9 +29,8 @@ Speak and write UI copy in Traditional Chinese (繁體中文). Keep component na
 ## Hermes Brain & Tool Calling Integration
 
 1. **Zeabur 連線規範**：
-   - 端點：`/v1/chat/completions` (OpenAI 兼容 SSE 串流)
-   - 預設 API Key：`Xn7KpRg8w2vr91aHdeWoIDmTf6Jx0354`
-   - 管理後台：帳號 `admin` / 密碼 `Xn7KpRg8w2vr91aHdeWoIDmTf6Jx0354`
+   - API Key：透過環境變數 `HERMES_API_KEY` 或前端設定面板配置
+   - 管理後台：帳號 `admin` / 密碼透過環境變數 `HERMES_DASHBOARD_PASS` 配置
 2. **工具調用原則**：
    - Hermes 可直接調用 `lib/tools.ts` 中註冊之工具：專案目錄檢索、專案規格查詢、健康狀態檢驗、分鏡鏡頭拆解等。
    - 前端需視覺化展示工具調用卡片與結果折疊，並支援思維鏈 (`<thought>`) 展開。

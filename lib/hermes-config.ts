@@ -4,11 +4,11 @@
  */
 
 export const HERMES_DEFAULTS = {
-  // Zeabur 部署預設 API Server Key
-  DEFAULT_API_KEY: "Xn7KpRg8w2vr91aHdeWoIDmTf6Jx0354",
+  // Zeabur 部署 API Server Key（優先讀取環境變數）
+  DEFAULT_API_KEY: process.env.HERMES_API_KEY || "",
   // 儀表板帳號與密碼
-  DASHBOARD_USER: "admin",
-  DASHBOARD_PASS: "Xn7KpRg8w2vr91aHdeWoIDmTf6Jx0354",
+  DASHBOARD_USER: process.env.HERMES_DASHBOARD_USER || "admin",
+  DASHBOARD_PASS: process.env.HERMES_DASHBOARD_PASS || "",
   // 預設模型名稱
   DEFAULT_MODEL: "hermes-agent",
   // API Endpoint 規格

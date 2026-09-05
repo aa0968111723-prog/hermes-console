@@ -1076,7 +1076,7 @@ export default function HermesConsole() {
                         填入預設 Key
                       </button>
                     </div>
-                    <span className="form-hint">預設金鑰：<code>Xn7KpRg8w2vr91aHdeWoIDmTf6Jx0354</code></span>
+                    <span className="form-hint">留空將使用伺服器環境變數 <code>HERMES_API_KEY</code></span>
                   </div>
 
                   <div className="settings-actions">

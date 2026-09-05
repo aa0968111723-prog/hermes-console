@@ -6,8 +6,8 @@
 
 1. **深度連接 Zeabur Hermes Agent**：
    - 伺服器端點：`/v1/chat/completions` (SSE 即時串流支援)
-   - 內建預設 API Server Key：`Xn7KpRg8w2vr91aHdeWoIDmTf6Jx0354`
-   - 管理儀表板帳號：`admin` / 密碼：`Xn7KpRg8w2vr91aHdeWoIDmTf6Jx0354`
+   - API Server Key：可透過 `.env` 環境變數 `HERMES_API_KEY` 或前端設定面板配置
+   - 管理儀表板帳號：`admin` / 密碼透過環境變數 `HERMES_DASHBOARD_PASS` 配置
    - 連線健康檢測與 Ping 延遲回報。
 2. **全套生態系工具箱 (Full Tool Use)**：
    - `get_ecosystem_projects`：即時檢索 41 個專案目錄與狀態。
