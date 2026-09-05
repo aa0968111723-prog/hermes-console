@@ -7,6 +7,7 @@ import { generateConfirmationToken } from "../mcp/registry.ts";
 import { getSocialLogisticsForDomain } from "./directions.ts";
 import { researchInstagramTrends, type InstagramResearchReport } from "../social/instagram-research.ts";
 import { runResearchAudienceDirectionWorkflow } from "../creative/research-direction-workflow.ts";
+import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
 
 export interface CreativeDirection {
   id: string;
@@ -23,6 +24,8 @@ export interface CreativeDirection {
     dimensions: string;
     layers: Array<{ layer: number; type: string; content?: string; note?: string }>;
     exportDraftUrl: string;
+    mode?: string;
+    created?: false;
   };
   igCaption: {
     hook: string;
@@ -99,9 +102,14 @@ export async function runCreativeIntelligencePipeline(
     const dir = item.raw;
     const simulation = item.simulation;
 
-    const canvaBlueprint = {
-      title: `${dir.title} (Canva 1080x1350)`,
-      dimensions: "1080x1350 (IG 最佳 4:5 直式直拍比例)",
+    const canvaWorkflow = connectCreativeToCanva({
+      title: dir.title,
+      subtitle: dir.subtitle,
+      copy: dir.coreInsight,
+      cta: logistics.badgeContent,
+      visual: dir.visualConcept,
+      coreIdea: dir.coreInsight,
+      claim: dir.hook,
       layers: [
         { layer: 1, type: "background", note: `主色調 ${dir.colorPalette[1].hex} (${dir.colorPalette[1].name}) 柔和無壓底色` },
         { layer: 2, type: "visual_mask", note: "上方 60% 預留自然光茶席或校園地標散景攝影" },
@@ -110,8 +118,8 @@ export async function runCreativeIntelligencePipeline(
         { layer: 5, type: "three_color_seal", note: "手作圓形三色光印章（紅外、黃中、綠內）直徑 36px 置於右下角，規範落款" },
         { layer: 6, type: "event_badge", content: logistics.badgeContent, note: "底部深色圓角膠囊標籤" }
       ],
-      exportDraftUrl: `https://www.canva.com/design/draft?theme=${encodeURIComponent(dir.id)}`
-    };
+    });
+    const canvaBlueprint = canvaWorkflow.blueprint;
 
     let captionBody: string;
     if (domain === "ntu") {

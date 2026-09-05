@@ -4,13 +4,7 @@ import { wantsReverseThinking } from "../audience";
 import { runReverseThinkingEvaluation } from "../audience-twin/reverse-thinking";
 import { debateFromEvaluations } from "../audience/debate";
 import { searchInspiration } from "../inspiration/engine";
-import { canvaStatus } from "../canva";
-import { WORKSPACE_OWNER } from "../security";
-import {
-  directionToSpec,
-  validateSpecForTemplate,
-  revisionFromAudience,
-} from "./spec";
+import { connectCreativeToCanva } from "./canva-workflow";
 import {
   rankDirections,
   creativeFingerprint,
@@ -115,12 +109,18 @@ export function runCreativeIntelligence(input: {
     scores: evaluations.map((roles) => roles[0].scores.scores),
   });
   const selected = directions[ranking.ranking[0]?.index || 0];
-  const canva = canvaStatus(WORKSPACE_OWNER);
-  const spec = directionToSpec(selected, "生活場景優先，術語放副標。");
-  const datasetCheck = validateSpecForTemplate(spec, {
-    TITLE: { type: "text" },
-    SUBTITLE: { type: "text" },
-    CTA: { type: "text" },
+  const canvaWorkflow = connectCreativeToCanva({
+    title: selected.title,
+    copy: selected.copy,
+    cta: selected.cta,
+    visual: selected.visual,
+    coreIdea: selected.coreIdea,
+    claim: selected.claim,
+    layers: [
+      { layer: 1, type: "headline", content: selected.title },
+      { layer: 2, type: "body", content: selected.copy },
+      { layer: 3, type: "cta", content: selected.cta },
+    ],
   });
   const inspiration = searchInspiration({
     prompt: input.prompt,
@@ -140,14 +140,15 @@ export function runCreativeIntelligence(input: {
       selected.copy + directions.map((d) => d.copy).join(" "),
     ),
     canva: {
-      spec,
-      datasetCheck,
-      revision: revisionFromAudience(selected.copy),
-      status: canva.needsAuthorization
-        ? "Needs Canva Authorization"
-        : canva.configured
-          ? canva.state
-          : "unconfigured",
+      spec: canvaWorkflow.spec,
+      datasetCheck: canvaWorkflow.datasetCheck,
+      revision: canvaWorkflow.revision,
+      status: canvaWorkflow.status,
+      mode: canvaWorkflow.mode,
+      created: canvaWorkflow.created,
+      liveDesignId: canvaWorkflow.liveDesignId,
+      message: canvaWorkflow.message,
+      openUrl: canvaWorkflow.openUrl,
     },
     social: socialDrafts({
       title: selected.title,

@@ -8,6 +8,7 @@ import { WORKSPACE_OWNER } from "../security.ts";
 import { discoverRemoteMcpTools } from "./client.ts";
 import { resolveContextDomain } from "../audience-twin/engine.ts";
 import { getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
+import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
 import { researchInstagramTrends } from "../social/instagram-research.ts";
 
 // 記憶體中暫存的確認 Token
@@ -345,15 +346,26 @@ export async function executeMcpTool(
         { layer: 6, type: "footer_cta", text: logistics.badgeContent }
       ];
 
+      const connected = connectCreativeToCanva({
+        title: String(args.title || "未命名草稿"),
+        copy: String(args.theme || ""),
+        cta: logistics.badgeContent,
+        visual: String(args.theme || ""),
+        layers: (Array.isArray(args.elements) && args.elements.length > 0
+          ? args.elements
+          : defaultLayers) as Array<{ layer: number; type: string; content?: string; note?: string }>,
+      });
       const draftResult = {
         draftId: `canva_draft_${Date.now()}`,
         title: args.title,
         dimensions: args.dimensions || "1080x1350 (IG Portrait 4:5)",
         theme: args.theme || (domain === "ntu" ? "椰林微風・湖畔茶聚" : domain === "general" ? "校園生活・心靈茶席" : "淡水暮色・禪茶微光"),
-        canvaMode,
-        exportUrl: `https://www.canva.com/design/draft?id=${Date.now()}`,
+        canvaMode: connected.mode === "unconfigured" || connected.mode === "needs_authorization" ? "local_blueprint" : canvaMode,
+        created: false,
+        liveDesignId: null,
+        exportUrl: connected.openUrl,
         layers: Array.isArray(args.elements) && args.elements.length > 0 ? args.elements : defaultLayers,
-        message: "Canva 設計藍圖已成功建立，可直接無縫導入或於畫布進行微調"
+        message: connected.message
       };
       return { success: true, result: draftResult };
     }

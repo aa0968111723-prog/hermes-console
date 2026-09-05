@@ -8,6 +8,7 @@ import type { CreativeDirection } from "../creative-workflow/pipeline.ts";
 import { getRawDirectionsForDomain, getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
 import { researchInstagramTrends } from "../social/instagram-research.ts";
 import { TASK_LIMITS, clampTaskList } from "./limits.ts";
+import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
 
 export type SubtaskType =
   | "memory_retrieval"
@@ -418,9 +419,14 @@ export async function executeOrchestratedTask(
   const directions: CreativeDirection[] = rawDirections.map((dir) => {
     const simulation = simulateAudienceReaction(dir.title, dir.coreInsight, dir.visualConcept, dir.hook, activeProject);
 
-    const canvaBlueprint = {
-      title: `${dir.title} (Canva 1080x1350)`,
-      dimensions: "1080x1350 (IG 最佳 4:5 直式直拍比例)",
+    const canvaWorkflow = connectCreativeToCanva({
+      title: dir.title,
+      subtitle: dir.subtitle,
+      copy: dir.coreInsight,
+      cta: logistics.badgeContent,
+      visual: dir.visualConcept,
+      coreIdea: dir.coreInsight,
+      claim: dir.hook,
       layers: [
         { layer: 1, type: "background", note: `主色調 ${dir.colorPalette[1].hex} (${dir.colorPalette[1].name}) 柔和無壓底色` },
         { layer: 2, type: "visual_mask", note: "上方 60% 預留自然光茶席或校園地標散景攝影" },
@@ -429,8 +435,8 @@ export async function executeOrchestratedTask(
         { layer: 5, type: "three_color_seal", note: "手作圓形三色光印章（紅外、黃中、綠內）直徑 36px 置於右下角，規範落款" },
         { layer: 6, type: "event_badge", content: logistics.badgeContent, note: "底部深色圓角膠囊標籤" }
       ],
-      exportDraftUrl: `https://www.canva.com/design/draft?theme=${encodeURIComponent(dir.id)}`
-    };
+    });
+    const canvaBlueprint = canvaWorkflow.blueprint;
 
     let captionBody: string;
     if (domain === "ntu") {
@@ -530,9 +536,10 @@ export async function executeOrchestratedTask(
     durationMs: Date.now() - t6Start,
     provenance: {
       sourceType: "canva_bridge",
-      sourceOrigin: "canva_blueprint_generator"
+      sourceOrigin: directions[0]?.canvaBlueprint.mode || "local_blueprint",
+      rightsOrAttribution: "未建立遠端 Canva 設計；本機藍圖不是 live design"
     },
-    outputSummary: "完成 6 層 Canva 畫布圖層配置與色彩規範定義"
+    outputSummary: `完成 6 層 Canva 本機藍圖（mode=${directions[0]?.canvaBlueprint.mode || "local_blueprint"}，created=false）`
   });
 
   // ─── 子任務 7: Audience Re-evaluation (草稿後受眾再測驗) ───
