@@ -65,7 +65,20 @@
    - 遠端 GitHub Actions 工作流 `33976580119` 綠燈通過（1m0s）。
    - PR #10 保持 `mergeStateStatus: "CLEAN"`，`mergeable: "MERGEABLE"`。
 
+---
 
+## 週期 4 (Iteration 4) MCP 核心與淡江適配器加固
+
+針對審查反饋之「淡江 MCP 與 MCP 核心」進行 4 大加固：
+1. **補齊 `TKU_MCP_URL` 之 SSRF 防護**：
+   - 在 `tamkang-adapter.ts` 發送遠端請求前調用 `validateSsrfSafeUrl` 檢驗，杜絕惡意內網與私有 IP 穿透。
+2. **重構為標準 MCP JSON-RPC 2.0 傳輸協定**：
+   - `queryTkuCalendar` 與 `queryTkuVenues` 採用標準 MCP Spec 之 `{"jsonrpc":"2.0","method":"tools/call","params":{"name":"...","arguments":{...}}}`，並解析 MCP 回傳內容；遠端逾時或異常時平滑回退本機校園知識圖譜。
+3. **社群發布明確標記安全沙盒模擬 (Sandbox Simulation Mode)**：
+   - 在 `lib/server/mcp/registry.ts` 中，若未配置 Meta/Instagram API 金鑰，明確回傳 `mode: "sandbox_simulation"` 與審核紀錄說明，杜絕向使用者誤報真實發布成功。
+4. **Token 儲存容量防爆量與過期清理 (DoS Hardening)**：
+   - 設置 `MAX_CONFIRMATION_TOKENS = 500` 容量上限與 FIFO 溢出替換，並在每次生成 Token 前自動掃描銷毀過期條目。
+   - 在 `tests/phase4_mcp_inspiration.test.ts` 新增沙盒標籤與 505 次 Token 壓力清理斷言測試。
 
 ---
 

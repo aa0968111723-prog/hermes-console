@@ -1,4 +1,6 @@
-﻿/**
+import { validateSsrfSafeUrl } from "../security.ts";
+
+/**
  * 淡江大學專用 MCP 適配器 (Tamkang MCP Adapter)
  * 提供淡江大學校園地標、社團茶會時程、大一新生作息與迎新洞察
  */
@@ -99,14 +101,48 @@ const TKU_CLUB_VENUES: TkuVenueInfo[] = [
 export async function queryTkuCalendar(week?: number) {
   const remoteUrl = process.env.TKU_MCP_URL;
   if (remoteUrl) {
-    try {
-      const res = await fetch(`${remoteUrl}/calendar?week=${week || ""}`, {
-        headers: { Authorization: `Bearer ${process.env.TKU_MCP_TOKEN || ""}` },
-        signal: AbortSignal.timeout(4000)
-      });
-      if (res.ok) return await res.json();
-    } catch {
-      // 遠端若未就緒，自動回退本機資料庫
+    const ssrf = validateSsrfSafeUrl(
+      remoteUrl,
+      process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" || process.env.NODE_ENV !== "production"
+    );
+    if (ssrf.safe) {
+      try {
+        const rpcPayload = {
+          jsonrpc: "2.0",
+          id: `mcp_tku_${Date.now()}`,
+          method: "tools/call",
+          params: {
+            name: "query_tku_calendar",
+            arguments: { week: week ?? 2 }
+          }
+        };
+
+        const res = await fetch(remoteUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.TKU_MCP_TOKEN || ""}`
+          },
+          body: JSON.stringify(rpcPayload),
+          signal: AbortSignal.timeout(4000)
+        });
+
+        if (res.ok) {
+          const rpcRes = await res.json().catch(() => null);
+          if (rpcRes) {
+            if (rpcRes.result?.content?.[0]?.text) {
+              try {
+                return JSON.parse(rpcRes.result.content[0].text);
+              } catch {
+                return rpcRes.result.content[0].text;
+              }
+            }
+            if (rpcRes.result) return rpcRes.result;
+          }
+        }
+      } catch {
+        // 遠端若超時或失敗，自動平滑回退至本機資料庫
+      }
     }
   }
 
@@ -120,6 +156,53 @@ export async function queryTkuCalendar(week?: number) {
  * 查詢淡江社團場地情報
  */
 export async function queryTkuVenues(venueId?: string) {
+  const remoteUrl = process.env.TKU_MCP_URL;
+  if (remoteUrl) {
+    const ssrf = validateSsrfSafeUrl(
+      remoteUrl,
+      process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" || process.env.NODE_ENV !== "production"
+    );
+    if (ssrf.safe) {
+      try {
+        const rpcPayload = {
+          jsonrpc: "2.0",
+          id: `mcp_tku_venue_${Date.now()}`,
+          method: "tools/call",
+          params: {
+            name: "query_tku_venues",
+            arguments: { venueId: venueId || "" }
+          }
+        };
+
+        const res = await fetch(remoteUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.TKU_MCP_TOKEN || ""}`
+          },
+          body: JSON.stringify(rpcPayload),
+          signal: AbortSignal.timeout(4000)
+        });
+
+        if (res.ok) {
+          const rpcRes = await res.json().catch(() => null);
+          if (rpcRes) {
+            if (rpcRes.result?.content?.[0]?.text) {
+              try {
+                return JSON.parse(rpcRes.result.content[0].text);
+              } catch {
+                return rpcRes.result.content[0].text;
+              }
+            }
+            if (rpcRes.result) return rpcRes.result;
+          }
+        }
+      } catch {
+        // 遠端若超時，平滑回退
+      }
+    }
+  }
+
   if (venueId) {
     return TKU_CLUB_VENUES.find((v) => v.venueId === venueId || v.name.includes(venueId)) || TKU_CLUB_VENUES[0];
   }

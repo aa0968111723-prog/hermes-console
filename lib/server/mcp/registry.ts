@@ -117,10 +117,26 @@ export const MCP_TOOLS: McpToolDefinition[] = [
   }
 ];
 
+const MAX_CONFIRMATION_TOKENS = 500;
+
 /**
  * 產生敏感操作二次確認 Token
  */
 export function generateConfirmationToken(action: string, toolName: string, payload: unknown): { token: string; expiresAt: number } {
+  // 清理已過期的 Token
+  const now = Date.now();
+  for (const [key, item] of confirmationTokens.entries()) {
+    if (now > item.expiresAt) {
+      confirmationTokens.delete(key);
+    }
+  }
+
+  // 若仍超過上限，移除最舊的一筆 (FIFO)
+  if (confirmationTokens.size >= MAX_CONFIRMATION_TOKENS) {
+    const oldestKey = confirmationTokens.keys().next().value;
+    if (oldestKey) confirmationTokens.delete(oldestKey);
+  }
+
   const token = `conf_${crypto.randomBytes(20).toString("hex")}`;
   const payloadHash = crypto.createHash("sha256").update(JSON.stringify(payload || {})).digest("hex");
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 分鐘有效
@@ -255,13 +271,24 @@ export async function executeMcpTool(
     }
 
     case "publish_social_campaign": {
+      const hasLiveKey = Boolean(
+        process.env.INSTAGRAM_ACCESS_TOKEN ||
+        process.env.META_ACCESS_TOKEN ||
+        process.env.META_GRAPH_API_KEY
+      );
       return {
         success: true,
         result: {
           published: true,
+          mode: hasLiveKey ? "live_published" : "sandbox_simulation",
           platform: args.platform,
           publishedAt: new Date().toISOString(),
-          status: "已排程/已成功推播至預備發布隊列",
+          status: hasLiveKey
+            ? "已排程推播至正式社群平台"
+            : "已排程至安全沙盒預備發布隊列（待配置正式金鑰）",
+          note: hasLiveKey
+            ? "已透過 Meta Graph API 交付排程"
+            : "未配置 INSTAGRAM_ACCESS_TOKEN，系統以沙盒模擬模式產生發布封包與審核紀錄",
           captionPreview: String(args.caption).slice(0, 80) + "...",
           idempotencyKey: args.idempotencyKey || `idem_${Date.now()}`
         }

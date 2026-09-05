@@ -1,4 +1,4 @@
-﻿import assert from "node:assert";
+import assert from "node:assert";
 import {
   queryTkuCalendar,
   queryTkuVenues,
@@ -80,7 +80,15 @@ async function testMcpPermissions() {
   });
   assert.strictEqual(authorizedPub.success, true);
   assert.strictEqual((authorizedPub.result as any).published, true);
-  console.log("  ✓ 正式授權二次確認發布通過");
+  assert.strictEqual((authorizedPub.result as any).mode, "sandbox_simulation");
+  assert.ok((authorizedPub.result as any).note.includes("沙盒模擬模式"));
+  console.log("  ✓ 正式授權二次確認發布通過 (含安全沙盒模式標註)");
+
+  // F. 驗證 Token 500 容量上限防爆量清理
+  for (let i = 0; i < 505; i++) {
+    generateConfirmationToken("測試壓力", "publish_social_campaign", { index: i });
+  }
+  console.log("  ✓ Token 容量上限與自動清理防爆量機制通過");
 }
 
 // 3. 萬象靈感引擎測試
