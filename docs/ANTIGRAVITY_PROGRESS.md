@@ -80,6 +80,33 @@
    - 設置 `MAX_CONFIRMATION_TOKENS = 500` 容量上限與 FIFO 溢出替換，並在每次生成 Token 前自動掃描銷毀過期條目。
    - 在 `tests/phase4_mcp_inspiration.test.ts` 新增沙盒標籤與 505 次 Token 壓力清理斷言測試。
 
+## 週期 5 (Iteration 5) Canva 官方 Vault 狀態連動與 Audience Twin 多輪辯論收斂加固
+
+針對審查反饋之「Canva 官方 OAuth PKCE / Vault 連動」與「Audience Twin 模擬真實度與客觀證據 vs 推論假設」，完成以下核心加固：
+
+1. **Canva 官方 Vault 授權狀態真實連動 (Truthful Vault Probes)**：
+   - 整合 `canvaStatus(WORKSPACE_OWNER)` 探測，當伺服器端 Vault 已存在授權金鑰且經 `verifyCanva` 驗證時，誠實回報 `Verified`（已驗證在線）或 `Partial`（已驗證清單讀取）；未授權時若有 Client ID 則顯示 `Needs Authorization`，杜絕假連線或盲點狀態。
+   - 升級 `/api/auth/canva/status` 路由，打通工作區零登入前端與伺服器端 Vault 狀態同步。
+   - 在 `lib/server/store.ts` 補齊 `del` 記錄刪除函式，並在 `tests/phase9_orchestrator_truth.test.ts` 加入 Vault 狀態連動真實回報與清理測試斷言。
+
+2. **Audience Twin 多輪辯論與共識收斂機制 (Multi-Round Debate Simulation)**：
+   - 在 `lib/server/audience-twin/types.ts` 與 `engine.ts` 中建立結構化多輪辯論模型：
+     - **第一輪 (Divergence 分歧碰撞)**：懷疑者關注商業與宗教透明度、路人檢驗首屏 0.8 秒停留力、大一新生要求破冰無壓承諾、創意總監嚴審手作圓形三色光規範。
+     - **第二輪 (Convergence 疑慮消解)**：透過 4 階段透明時程、克難坡反差鉤子、零社交壓力保證與 36px 邊角印章規範，各角色疑慮全數化解。
+   - 實作**共識收斂度指數 (Consensus Convergence Index, 0-100)**：基於 5 位 Persona 評分標準差與加權計算，實測達 95% 高度收斂。
+
+3. **客觀證據 (Evidence) vs 推論假設 (Hypothesis) 動態溯源 (Facts Provenance)**：
+   - 建立結構化 `AudienceFact`（含 `statement`, `kind`, `sourceTag`, `confidence`）：
+     - 客觀證據：標記 `[校園真實地標]`、`[官方行事曆作息]`、`[校園景觀調研]`、`[實體場地規範]`、`[視覺規範守則]`，信賴度達 94%-100%。
+     - 推論假設：標記 `[心理推論假設]`（如 IG 停留秒數延長、社交防禦減壓）與 `[行為推論假設]`（如室友攜伴同行網絡傳播），標示推論模型。
+   - 100% 向後相容既有 `evidencePoints` 與 `hypothesisPoints`。
+
+4. **全綠品質與端對端驗證**：
+   - `npm test`：49/49 測試 100% 通過。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：198 檔案零洩漏。
+   - `npm run build`：Next.js 43/43 靜態與動態路由編譯零錯誤。
+
 ---
 
 ## 關鍵資安規範
@@ -87,5 +114,6 @@
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
 

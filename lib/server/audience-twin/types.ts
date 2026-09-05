@@ -40,13 +40,41 @@ export interface PersonaFeedback {
   constructiveSuggestion: string;
 }
 
+export interface DebateVoice {
+  personaId: PersonaId;
+  name: string;
+  avatar: string;
+  stance: "strongly_support" | "support" | "hesitant" | "skeptical" | "oppose";
+  argument: string;
+  resolutionProposal?: string;
+}
+
+export interface DebateRound {
+  round: number;
+  phase: "divergence" | "convergence";
+  title: string;
+  personaVoices: DebateVoice[];
+  roundSynthesis: string;
+}
+
+export interface AudienceFact {
+  statement: string;
+  kind: "evidence" | "hypothesis";
+  sourceTag: string;
+  confidence: number;
+}
+
 export interface AudienceSimulationResult {
   conceptTitle: string;
   scores: AudienceScore;
   feedback: PersonaFeedback[];
   debateSummary: string;
+  debateRounds?: DebateRound[];
+  consensusConvergenceIndex?: number; // 0-100 共識收斂度
   consensus: "strongly_recommended" | "recommended" | "needs_iteration";
+  facts?: AudienceFact[];
   evidencePoints: string[];   // 真實證據 (Evidence)
   hypothesisPoints: string[]; // 推論假設 (Hypothesis)
   disclaimer: string;         // AI 模擬免責聲明
 }
+

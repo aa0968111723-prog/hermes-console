@@ -1,4 +1,4 @@
-﻿import assert from "node:assert";
+import assert from "node:assert";
 import {
   getAllIntegrationsReport,
   probeZeaburHermesStatus,
@@ -24,10 +24,38 @@ const validStatuses = [
   "Failed"
 ];
 
+import { put, del } from "../lib/server/store.ts";
+import { WORKSPACE_OWNER } from "../lib/server/security.ts";
+
 const canvaCheck = probeCanvaStatus();
 assert.ok(validStatuses.includes(canvaCheck.status), `Canva 狀態必須為 7 大真實狀態之一: ${canvaCheck.status}`);
 assert.ok(canvaCheck.capabilities.length > 0, "Canva 必須宣告支援能力");
 console.log(`  ✓ Canva 探測正常: [${canvaCheck.status}] ${canvaCheck.statusBadge} - ${canvaCheck.details}`);
+
+// 驗證 Canva Vault 狀態連動 (Verified 與 Partial 狀態)
+put("canva_status", WORKSPACE_OWNER, {
+  id: "current",
+  state: "partial",
+  checkedAt: new Date().toISOString(),
+  message: "已驗證設計清單讀取。建立、上傳與匯出仍需個別執行驗證。"
+});
+const partialCheck = probeCanvaStatus();
+assert.strictEqual(partialCheck.status, "Partial", "Vault 登記 partial 時應誠實回報 Partial");
+assert.strictEqual(partialCheck.statusBadge, "已驗證清單讀取");
+
+put("canva_status", WORKSPACE_OWNER, {
+  id: "current",
+  state: "verified",
+  checkedAt: new Date().toISOString(),
+  message: "已全面驗證 Canva 官方連線正常。"
+});
+const verifiedCheck = probeCanvaStatus();
+assert.strictEqual(verifiedCheck.status, "Verified", "Vault 登記 verified 時應誠實回報 Verified");
+assert.strictEqual(verifiedCheck.statusBadge, "已驗證在線");
+
+// 清理測試狀態恢復真實預設
+del("canva_status", WORKSPACE_OWNER, "current");
+console.log("  ✓ Canva Vault 狀態真實連動 (Partial / Verified) 驗證通過");
 
 const igCheck = probeInstagramStatus();
 assert.ok(validStatuses.includes(igCheck.status), `IG 狀態必須為 7 大真實狀態之一: ${igCheck.status}`);

@@ -1,4 +1,6 @@
 import { getWorkspaceCanvaToken } from "../canva-auth.ts";
+import { canvaStatus } from "../canva.ts";
+import { WORKSPACE_OWNER } from "../security.ts";
 
 export function normalizeBaseUrl(raw?: string): string {
   if (!raw) return "";
@@ -145,6 +147,21 @@ export async function probeZeaburHermesStatus(
 export function probeCanvaStatus(): IntegrationCheckResult {
   const token = getWorkspaceCanvaToken();
   const hasClientId = Boolean(process.env.CANVA_CLIENT_ID);
+  const ownerStatus = canvaStatus(WORKSPACE_OWNER);
+
+  if (ownerStatus.verifiedAt && (ownerStatus.state === "verified" || ownerStatus.state === "partial")) {
+    return {
+      id: "canva",
+      name: "Canva Design Bridge",
+      category: "design",
+      status: ownerStatus.state === "verified" ? "Verified" : "Partial",
+      statusBadge: ownerStatus.state === "verified" ? "已驗證在線" : "已驗證清單讀取",
+      latencyMs: 5,
+      details: ownerStatus.message || "已驗證設計清單讀取，Canva 官方連線正常。",
+      capabilities: ["oauth_pkce", "design_read_write", "asset_export", "vault_encrypted"],
+      lastCheckedAt: Date.now()
+    };
+  }
 
   if (token) {
     if (token.isMock) {
@@ -173,7 +190,7 @@ export function probeCanvaStatus(): IntegrationCheckResult {
     };
   }
 
-  if (hasClientId) {
+  if (ownerStatus.needsAuthorization || hasClientId) {
     return {
       id: "canva",
       name: "Canva Design Bridge",

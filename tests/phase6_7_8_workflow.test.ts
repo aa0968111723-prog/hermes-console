@@ -30,7 +30,23 @@ assert.ok(simulation.evidencePoints.length >= 2, "需包含真實證據標籤");
 assert.ok(simulation.hypothesisPoints.length >= 1, "需包含推論假設標籤");
 assert.strictEqual(simulation.consensus, "strongly_recommended");
 assert.strictEqual(simulation.disclaimer, "AI 模擬評估，不代表真實市場調查。");
-console.log(`  ✓ 模擬成功！綜合評分: ${simulation.scores.overallScore}/100，達成高度共識 (含免責聲明)`);
+
+// 驗證多輪辯論與共識收斂結構
+assert.strictEqual(simulation.debateRounds?.length, 2, "必須包含 2 輪辯論過程 (Divergence & Convergence)");
+assert.strictEqual(simulation.debateRounds[0].phase, "divergence", "第一輪必須為 Divergence 分歧碰撞");
+assert.strictEqual(simulation.debateRounds[1].phase, "convergence", "第二輪必須為 Convergence 疑慮消解");
+assert.ok(simulation.consensusConvergenceIndex! >= 80 && simulation.consensusConvergenceIndex! <= 100, "共識收斂指數需在 80-100 之間");
+
+// 驗證客觀證據 vs 推論假設結構化事實 (Facts Provenance)
+assert.ok(simulation.facts && simulation.facts.length >= 5, "需包含結構化事實出處清單");
+const evidenceFacts = simulation.facts.filter((f) => f.kind === "evidence");
+const hypothesisFacts = simulation.facts.filter((f) => f.kind === "hypothesis");
+assert.ok(evidenceFacts.length >= 3, "需包含至少 3 條客觀證據");
+assert.ok(hypothesisFacts.length >= 2, "需包含至少 2 條推論假設");
+assert.ok(evidenceFacts.every((f) => f.sourceTag.startsWith("[")), "客觀證據必須標註清晰出處來源標籤");
+assert.ok(hypothesisFacts.every((f) => f.sourceTag.startsWith("[")), "推論假設必須標註清晰推論模型標籤");
+
+console.log(`  ✓ 模擬成功！綜合評分: ${simulation.scores.overallScore}/100，共識收斂指數: ${simulation.consensusConvergenceIndex}% (含多輪辯論與出處分離)`);
 
 // 測試 AI Slop 扣分懲罰
 const slopSimulation = simulateAudienceReaction(
