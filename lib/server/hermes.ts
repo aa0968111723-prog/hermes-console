@@ -95,7 +95,12 @@ export function httpError(status: number) {
     messages[status] || "Hermes 回應異常，請檢查部署服務。",
   );
 }
-export function sessionKeyFor(projectId?: string, campaignId?: string) {
+export function sessionKeyFor(
+  projectId?: string,
+  campaignId?: string,
+  audienceId?: string,
+) {
+  if (audienceId) return "audience:" + audienceId;
   if (campaignId) return "campaign:" + campaignId;
   if (projectId && projectId !== "personal") return "project:" + projectId;
   return "workspace";

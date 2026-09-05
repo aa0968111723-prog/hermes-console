@@ -198,10 +198,16 @@ export const AGENT_PROFILES: Record<string, AgentProfile> = {
  * 取得指定 Profile，若不存在則回退至 general
  */
 export function getAgentProfile(profileId?: string): AgentProfile {
-  if (!profileId || !AGENT_PROFILES[profileId]) {
-    return AGENT_PROFILES.general;
-  }
-  return AGENT_PROFILES[profileId];
+  const profile =
+    profileId && AGENT_PROFILES[profileId]
+      ? AGENT_PROFILES[profileId]
+      : AGENT_PROFILES.general;
+  return {
+    ...profile,
+    kind: "console_role",
+    hermesProfilePath: profile.hermesProfilePath ?? null,
+    credentialReference: profile.credentialReference || "HERMES_API_KEY",
+  };
 }
 
 /**

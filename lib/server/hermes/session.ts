@@ -12,18 +12,41 @@ export interface SessionContext {
   metadata: Record<string, unknown>;
 }
 
+export interface SessionConversation {
+  id: string;
+  sessionKey: string;
+  createdAt: number;
+}
+
 const sessionStore = new Map<string, SessionContext>();
+const conversationStore = new Map<string, SessionConversation>();
+
+const STRUCTURED_KEY = /^(workspace|project:[a-z0-9_-]+|campaign:[a-z0-9_-]+|audience:[a-z0-9_-]+)$/;
 
 /**
- * 標準化會話識別鍵
+ * 標準化會話識別鍵。
+ * Conversation ID 與 Session Key 分離：同 project 可開新對話、沿用同一把 key。
  */
-export function normalizeSessionKey(raw?: string): string {
-  const trimmed = String(raw || "").trim();
-  if (!trimmed) {
-    return "workspace:default";
+export function normalizeSessionKey(
+  raw?: string,
+  context?: { projectId?: string; campaignId?: string; audienceId?: string },
+): string {
+  const trimmed = String(raw || "").trim().toLowerCase();
+  if (trimmed) {
+    const cleaned = trimmed.replace(/[^a-z0-9:_-]/g, "");
+    if (STRUCTURED_KEY.test(cleaned) || cleaned.includes(":")) return cleaned;
+    return cleaned;
   }
-  // 保持簡潔規格
-  return trimmed.toLowerCase().replace(/[^a-z0-9:_-]/g, "");
+  if (context?.audienceId) {
+    return `audience:${context.audienceId.toLowerCase().replace(/[^a-z0-9_-]/g, "")}`;
+  }
+  if (context?.campaignId) {
+    return `campaign:${context.campaignId.toLowerCase().replace(/[^a-z0-9_-]/g, "")}`;
+  }
+  if (context?.projectId && context.projectId !== "personal") {
+    return `project:${context.projectId.toLowerCase().replace(/[^a-z0-9_-]/g, "")}`;
+  }
+  return "workspace";
 }
 
 /**
@@ -54,6 +77,32 @@ export function getOrCreateSessionContext(
 
   sessionStore.set(sessionKey, newContext);
   return newContext;
+}
+
+export function getSessionContext(rawKey: string): SessionContext | undefined {
+  return sessionStore.get(normalizeSessionKey(rawKey));
+}
+
+export function createConversation(rawKey?: string): SessionConversation {
+  const sessionKey = normalizeSessionKey(rawKey);
+  getOrCreateSessionContext(sessionKey);
+  const record: SessionConversation = {
+    id: `conv_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    sessionKey,
+    createdAt: Date.now(),
+  };
+  conversationStore.set(record.id, record);
+  return record;
+}
+
+export function listConversationsForSession(rawKey: string): SessionConversation[] {
+  const sessionKey = normalizeSessionKey(rawKey);
+  return Array.from(conversationStore.values()).filter((item) => item.sessionKey === sessionKey);
+}
+
+export function conversationBelongsToSession(conversationId: string, rawKey: string) {
+  const record = conversationStore.get(conversationId);
+  return Boolean(record && record.sessionKey === normalizeSessionKey(rawKey));
 }
 
 /**

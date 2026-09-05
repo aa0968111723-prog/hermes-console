@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { listAgentProfiles } from "@/lib/server/hermes/registry";
+import { listHermesNamedProfiles } from "@/lib/server/hermes/target";
 
 export async function GET() {
   const profiles = listAgentProfiles();
+  const hermesProfiles = listHermesNamedProfiles();
   return NextResponse.json({
     ok: true,
     profiles,
-    note: "These are Console roles, not live Hermes /p/<profile> discovery. Named Hermes profiles require env URL/key references.",
+    hermesProfiles,
+    note: "Console roles are not live Hermes /p/<profile> discovery. Named Hermes profiles come from server env URL/key references.",
   });
 }

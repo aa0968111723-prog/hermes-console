@@ -11,7 +11,17 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const report = await probeHermesCapabilities(body.baseUrl, body.apiKey);
+    if (body?.baseUrl || body?.apiKey) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Client-supplied Hermes URL or API key is not allowed. Use server env references.",
+        },
+        { status: 400 },
+      );
+    }
+    const profileId = typeof body?.profileId === "string" ? body.profileId : undefined;
+    const report = await probeHermesCapabilities(undefined, undefined, profileId);
     return NextResponse.json({ ok: true, report });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

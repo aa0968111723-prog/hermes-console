@@ -1,10 +1,11 @@
-import { normalizeBaseUrl, HERMES_DEFAULTS } from "../integrations/truth-status";
+import { HERMES_DEFAULTS } from "../integrations/truth-status";
 import { HERMES_TOOLS, executeHermesTool } from "./tools";
 import { streamLocalHermesResponse, type ChatMessage } from "./local-brain";
 import { getAgentProfile, type AgentProfile } from "./registry.ts";
 import { getOrCreateSessionContext, type SessionContext } from "./session.ts";
 import { recordUsage } from "./usage.ts";
 import { searchMemories } from "./memory.ts";
+import { readHermesCredential, resolveHermesTarget } from "./target.ts";
 
 export interface ChatCompletionRequest {
   messages: ChatMessage[];
@@ -62,9 +63,9 @@ export async function* streamHermesChat(
     ...req.messages
   ];
 
-  const rawUrl = req.baseUrl || process.env.HERMES_API_URL || "";
-  const base = normalizeBaseUrl(rawUrl);
-  const key = (req.apiKey || process.env.HERMES_API_KEY || HERMES_DEFAULTS.DEFAULT_API_KEY).trim();
+  const target = resolveHermesTarget(req.profileId);
+  const base = target.ok ? target.baseUrl : "";
+  const key = target.ok ? readHermesCredential(target.credentialReference) : "";
   const model = req.model || process.env.HERMES_MODEL || HERMES_DEFAULTS.DEFAULT_MODEL;
 
   const toolsForProfile = HERMES_TOOLS.filter((t) => profile.allowedTools.includes(t.function.name));
@@ -78,13 +79,28 @@ export async function* streamHermesChat(
   yield `event: status\ndata: ${JSON.stringify({
     profile: profile.id,
     profileName: profile.name,
+    profileKind: profile.kind || "console_role",
+    hermesTarget: {
+      ok: target.ok,
+      kind: target.kind,
+      profilePath: target.profilePath || null,
+      credentialReference: target.credentialReference,
+      fallbackUsed: target.fallbackUsed,
+      error: target.error || null,
+    },
     sessionKey: session.sessionKey,
     activeProject: session.activeProject,
-    engine: !req.forceLocal && base ? "zeabur_cloud" : "local_brain"
+    engine: !req.forceLocal && base && key ? "zeabur_cloud" : "local_brain"
   })}\n\n`;
 
+  if (target.error && target.fallbackUsed) {
+    yield `event: warning\ndata: ${JSON.stringify({
+      message: target.error,
+    })}\n\n`;
+  }
+
   // 1. 若設定了有效網域且未強制本地，嘗試請求 Zeabur
-  if (!req.forceLocal && base) {
+  if (!req.forceLocal && base && key) {
     try {
       const upstream = await fetch(`${base}/v1/chat/completions`, {
         method: "POST",
