@@ -58,5 +58,5 @@ MCP 工具成功後才說「已寫進靈感庫」。失敗就說失敗原因與�
 ## 沒有 MCP 時的落點
 
 ```text
-8cbc回 Console：開 https://344.zeabur.app/ → 靈感 → 貼上面網址收藏。
+請回 Console：開 https://344.zeabur.app/ → 靈感 → 貼上面網址收藏。
 ```
