@@ -10,9 +10,9 @@
 | :--- | :--- | :---: | :--- |
 | **Phase 0** | 基準建置與洩漏金鑰淨化 | 已完成 | 清理程式碼庫所有歷史洩漏金鑰；建立 `feat/hermes-creative-intelligence-loop` 分支；初始化追蹤日誌。 |
 | **Phase 1** | 零登入單一工作區重構 | 已完成 | 零登入直接使用；CSRF Token、同源防護、SSRF 檢查、速率限制；Canva PKCE 獨立狀態 Cookie 支援；單元測試 100% 通過。 |
-| **Phase 2** | Hermes Multi-Profile 註冊體系 | 進行中 | 支援 `general`, `creative`, `tku`, `research`, `design`, `social`, `reviewer`；自動端點探測與備援。 |
-| **Phase 3** | 大腦記憶中心與用量追蹤 | 待開始 | 用量事件記錄；專案與會話隔離記憶檢索。 |
-| **Phase 4** | 遠端 MCP 註冊表與淡江 Adapter | 待開始 | 5 級工具權限；Tamkang MCP 適配器（淡江校園時程、大一新生作息、社團場地）與降級調研。 |
+| **Phase 2** | Hermes Multi-Profile 註冊體系 | 已完成 | 支援 7 大角色 Profile；Session 鍵隔離；雙引擎無縫備援串流；能力探測路由。 |
+| **Phase 3** | 大腦記憶中心與用量追蹤 | 已完成 | 用量事件記錄 (Tokens/Tools/Latency)；專案記憶檢索 (淡江校園地標/禪學社脈絡)；單元測試 100% 通過。 |
+| **Phase 4** | 遠端 MCP 註冊表與淡江 Adapter | 進行中 | 5 級工具權限；Tamkang MCP 適配器（淡江校園時程、大一新生作息、社團場地）與降級調研。 |
 | **Phase 5** | 萬象靈感引擎 (Inspiration) | 待開始 | 整合公開研究、IG/Pinterest 靈感語意分析、素材解析與版權標註。 |
 | **Phase 6** | Audience Twin 受眾雙生模擬 | 待開始 | 大一新生上下文圖譜；5 大 Persona 模擬與辯論；受眾評分指標；證據/假設分流標籤。 |
 | **Phase 7** | 創意工作流 2.0 & Canva 草稿 | 待開始 | 3~5 個創意策略方向；Canva 設計草稿產出；受眾再測驗；社群 IG 貼文排版。 |
