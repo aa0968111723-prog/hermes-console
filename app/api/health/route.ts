@@ -1,68 +1,14 @@
-import { NextRequest } from "next/server";
-import { normalizeBaseUrl, HERMES_DEFAULTS } from "@/lib/hermes-config";
-
-export async function POST(req: NextRequest) {
-  const start = Date.now();
-  try {
-    const body = await req.json().catch(() => ({}));
-    const rawUrl = body.baseUrl || process.env.HERMES_API_URL || "";
-    const base = normalizeBaseUrl(rawUrl);
-    const key = (body.apiKey || process.env.HERMES_API_KEY || HERMES_DEFAULTS.DEFAULT_API_KEY).trim();
-
-    if (!base) {
-      return Response.json({ ok: false, error: "未提供 Zeabur 網域" }, { status: 400 });
-    }
-
-    // 測試連線
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const res = await fetch(`${base}/v1/models`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${key}`
-      },
-      signal: controller.signal
-    }).catch(() => null);
-
-    clearTimeout(timeout);
-    const latencyMs = Date.now() - start;
-
-    if (res && res.ok) {
-      const data = await res.json().catch(() => ({}));
-      return Response.json({
-        ok: true,
-        latencyMs,
-        models: data.data?.map((m: { id: string }) => m.id) || [HERMES_DEFAULTS.DEFAULT_MODEL],
-        statusText: "連線正常"
-      });
-    }
-
-    // 若 /v1/models 未開，嘗試 ping 根路徑或回傳基本檢驗
-    const pingRes = await fetch(`${base}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${key}` }
-    }).catch(() => null);
-
-    if (pingRes && (pingRes.ok || pingRes.status === 401 || pingRes.status === 404)) {
-      return Response.json({
-        ok: true,
-        latencyMs: Date.now() - start,
-        models: [HERMES_DEFAULTS.DEFAULT_MODEL],
-        statusText: `伺服器已回應 (HTTP ${pingRes.status})`
-      });
-    }
-
-    return Response.json({
-      ok: false,
-      latencyMs: Date.now() - start,
-      error: "無法連線至 Hermes API，請確認 Zeabur 網域已正確綁定並可自外部訪問。"
-    }, { status: 502 });
-  } catch (e: unknown) {
-    return Response.json({
-      ok: false,
-      latencyMs: Date.now() - start,
-      error: e instanceof Error ? e.message : String(e)
-    }, { status: 500 });
-  }
-}
+import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
+import { health } from "@/lib/server/hermes";
+import { z } from "zod";
+export const runtime = "nodejs";
+export const GET = route(async (request) =>
+  respond(await health(authenticate(request))),
+);
+export const POST = route(async (request) => {
+  const owner = authenticate(request, true);
+  z.object({})
+    .strict()
+    .parse(await jsonBody(request));
+  return respond(await health(owner, true));
+});

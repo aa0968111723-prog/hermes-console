@@ -2,20 +2,41 @@
   "name": "hermes-console",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "tsx --test tests/*.test.ts",
+    "test:ui": "tsx tests/verify-ui.ts",
+    "test:chat": "tsx tests/verify-chat.ts",
+    "typecheck": "tsc --noEmit",
+    "check:secrets": "node scripts/check-secrets.mjs",
+    "password:hash": "node scripts/password-hash.mjs"
   },
   "dependencies": {
-    "next": "15.5.2",
-    "react": "19.1.1",
-    "react-dom": "19.1.1"
+    "next": "15.5.25",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.0.0",
+    "sharp": "0.35.4",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "lucide-react": "^0.468.0"
+  },
+  "overrides": {
+    "postcss": "8.5.28"
+  },
+  "engines": {
+    "node": ">=22.13.0"
   },
   "devDependencies": {
     "@types/node": "24.3.0",
     "@types/react": "19.1.12",
     "@types/react-dom": "19.1.9",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "tsx": "^4.20.0",
+    "@playwright/test": "1.63.0",
+    "@modelcontextprotocol/sdk": "1.30.0"
   }
 }
