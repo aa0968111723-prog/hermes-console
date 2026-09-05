@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from "react";
 import type { CreativePipelineResult, CreativeDirection } from "@/lib/server/creative-workflow/pipeline.ts";
-import type { OrchestratedTaskResult, OrchestratedSubtask, DraftReevaluationReport } from "@/lib/server/orchestrator/task-orchestrator.ts";
+import type { OrchestratedTaskResult } from "@/lib/server/orchestrator/task-orchestrator.ts";
 import type { IntegrationCheckResult } from "@/lib/server/integrations/truth-status.ts";
+import {
+  MOBILE_CREATIVE_PANES,
+  type MobileCreativePane,
+} from "@/lib/client/mobile-workspace.ts";
 
 interface Props {
   initialPrompt?: string;
@@ -27,6 +31,7 @@ export default function CreativeIntelligenceView({
   const [integrations, setIntegrations] = useState<IntegrationCheckResult[]>([]);
   const [activeDirIndex, setActiveDirIndex] = useState(0);
   const [showSubtasks, setShowSubtasks] = useState(false);
+  const [mobilePane, setMobilePane] = useState<MobileCreativePane>("brief");
 
   // 敏感操作二次確認彈窗狀態
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -169,8 +174,11 @@ export default function CreativeIntelligenceView({
           <span className="hero-pill-tag">✨ HERMES CREATIVE INTELLIGENCE OS</span>
           <span className="hero-pill-status">全自動 7 階段協同</span>
         </div>
-        <h2 className="hero-title">淡江大學領袖禪學社・大一新生茶會網宣工作流</h2>
-        <p className="hero-desc">
+        <h2 className="hero-title">
+          <span className="hero-title-full">淡江大學領袖禪學社・大一新生茶會網宣工作流</span>
+          <span className="hero-title-short">創意工作流</span>
+        </h2>
+        <p className="hero-desc hide-on-mobile">
           零登入直接驅動：整合專案記憶庫、淡江 MCP 在地適配、萬象靈感引擎、Audience Twin 5 人受眾雙生模擬、Canva 設計草稿與安全社群發布審核機制。
         </p>
 
@@ -230,8 +238,8 @@ export default function CreativeIntelligenceView({
 
         {/* 生態系整合真實狀態列 (Truthful Integration Health) */}
         {integrations.length > 0 && (
-          <div className="os-integration-status-row">
-            <span className="integration-label">🔌 生態系整合真實狀態：</span>
+          <details className="os-integration-status-row">
+            <summary className="integration-label">🔌 生態系狀態</summary>
             <div className="integration-chips-wrap">
               {integrations.map((item) => (
                 <div
@@ -246,7 +254,7 @@ export default function CreativeIntelligenceView({
                 </div>
               ))}
             </div>
-          </div>
+          </details>
         )}
       </div>
 
@@ -395,12 +403,25 @@ export default function CreativeIntelligenceView({
             </div>
           </div>
 
+          <nav className="mobile-pane-tabs" aria-label="手機工作區分頁">
+            {MOBILE_CREATIVE_PANES.map((pane) => (
+              <button
+                key={pane.id}
+                type="button"
+                className={`mobile-pane-tab ${mobilePane === pane.id ? "active" : ""}`}
+                onClick={() => setMobilePane(pane.id)}
+              >
+                {pane.label}
+              </button>
+            ))}
+          </nav>
+
           {/* 核心內容雙欄佈局 */}
           <div className="direction-content-grid">
             {/* 左欄：方向詳情、Canva 設計藍圖、IG 文案 */}
             <div className="grid-left-col">
               {/* 方向核心卡片 */}
-              <div className="os-card dir-overview-card">
+              <div className={`os-card dir-overview-card mobile-pane ${mobilePane === "brief" ? "is-active" : ""}`}>
                 <div className="dir-header-row">
                   <div>
                     <span className="card-badge">策略方向 #{activeDirIndex + 1}</span>
@@ -439,7 +460,7 @@ export default function CreativeIntelligenceView({
               </div>
 
               {/* Canva 設計草稿藍圖 */}
-              <div className="os-card canva-blueprint-card">
+              <div className={`os-card canva-blueprint-card mobile-pane ${mobilePane === "design" ? "is-active" : ""}`}>
                 <div className="card-title-row">
                   <span className="card-icon">📐</span>
                   <h4>Canva 設計草稿分層藍圖</h4>
@@ -487,7 +508,7 @@ export default function CreativeIntelligenceView({
                   if (!reeval) return null;
 
                   return (
-                    <div className="os-card reevaluation-card">
+                    <div className={`os-card reevaluation-card mobile-pane ${mobilePane === "design" ? "is-active" : ""}`}>
                       <div className="card-title-row">
                         <span className="card-icon">🔬</span>
                         <div>
@@ -530,7 +551,7 @@ export default function CreativeIntelligenceView({
               )}
 
               {/* Instagram 社群文案排版 */}
-              <div className="os-card ig-caption-card">
+              <div className={`os-card ig-caption-card mobile-pane ${mobilePane === "copy" ? "is-active" : ""}`}>
                 <div className="card-title-row">
                   <span className="card-icon">📱</span>
                   <h4>Instagram / Threads 社群排版文案</h4>
@@ -578,7 +599,7 @@ export default function CreativeIntelligenceView({
             </div>
 
             {/* 右欄：Audience Twin 5 大 Persona 反饋與雷達評分 */}
-            <div className="grid-right-col">
+            <div className={`grid-right-col mobile-pane ${mobilePane === "audience" ? "is-active" : ""}`}>
               <div className="os-card audience-twin-card">
                 <div className="card-title-row">
                   <span className="card-icon">👥</span>

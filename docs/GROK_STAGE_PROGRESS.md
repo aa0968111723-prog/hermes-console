@@ -1,38 +1,36 @@
 # Grok Staged Long-Run Progress
 
 ## Current Phase
-Phase 10 complete locally; next is Phase 11.
+Phase 11 complete locally; next is Phase 12.
 
 ## Observed Main SHA
-`d24da9c85a2f5fd1362b3407c0be15fa99293ac6`
+`ef1df0fefc02602a8b585849eaae77b70003d8db`
 
 ## Observed PR #10 SHA
-`ff8d4ac` Phase 9 safe publishing; this checkpoint hardens no-login integration security.
+`cca5855` Phase 10 no-login security; this checkpoint simplifies the mobile creative workspace.
 
 ## Latest Antigravity findings reviewed
-- Cycle 1: client-supplied probe URL/key was a SECURITY RISK; `/api/hermes/probe` already rejects it. `/api/integrations/status` still accepted `baseUrl`/`apiKey`. Phase 10 rejects those and ignores them in `getAllIntegrationsReport`.
+- Cycle 1–2 truthful probes remain RESOLVED.
+- Creative OS hero, 5-stage strip, dual columns, and integration chips overflow on phones. Phase 11 adds 4 mobile panes (方向/設計/文案/受眾), 44px targets, stacked composer, short titles.
 
 ### Classification
 | Finding | Class | Status |
 | --- | --- | --- |
-| Client-supplied probe URL/key | SECURITY RISK | Phase 10: status + probe reject client credentials; report uses env only |
-| Missing origin on Next write handlers | SECURITY RISK | Phase 10: `requireWriteOrigin` when CONSOLE_ORIGIN is set |
+| Mobile creative OS clutter | UX | Phase 11: panes + stacked query + collapsed integrations |
 
 ## Completed
-- Phase 0–9 as previously committed (`a40c2d6` … `ff8d4ac`).
-- Phase 10 no-login security: GET workspace/health/inspiration/personas without login; writes need matching Origin; probe/status reject client Hermes URL/key; `confirmed=true` still insufficient for publish.
+- Phase 0–10 as previously committed (`a40c2d6` … `cca5855`).
+- Phase 11 mobile creative workspace: `MOBILE_CREATIVE_PANES`, sticky tabs under 760px, hide long hero copy, short nav label 「創意」.
 
 ## Verified
-- GET APIs 200 without login cookies.
-- Attacker Origin → 403 on probe/simulate/publish.
-- Status GET/POST with apiKey/baseUrl → 400.
-- Integration report not Connected from client destinations.
-- `npm test` 130/130; `typecheck`; `check:secrets`.
+- Panes are brief/design/copy/audience.
+- CSS `@media (max-width: 760px)` stacks `.os-query-box` and sets `min-height: 44px`.
+- `npm test` 134/134; `typecheck`; `check:secrets`.
 
 ## Still partial
 - Live Hermes session history/search still unsupported until `/api/sessions`.
 - Canva / Meta live actions blocked on OAuth.
-- Mobile creative workspace simplification (Phase 11).
+- Full system acceptance scenarios 1–7 (Phase 12).
 
 ## External blockers
 - Live Hermes named profiles and scoped keys.
@@ -42,9 +40,9 @@ Phase 10 complete locally; next is Phase 11.
 - Pinterest official API.
 
 ## Tests run
-- `npm test`: 130/130 pass
+- `npm test`: 134/134 pass
 - `npm run typecheck`: pass
-- `npm run check:secrets`: PASS, 220 files
+- `npm run check:secrets`: PASS, 222 files
 
 ## Tests failed
 None.
@@ -54,17 +52,15 @@ None.
 - Previously pasted secrets remain compromised; not copied into code.
 
 ## Files modified
-- `lib/server/security.ts`
-- `lib/server/integrations/truth-status.ts`
-- `app/api/integrations/status/route.ts`
-- `app/api/hermes/probe/route.ts`
-- `app/api/creative/pipeline/route.ts`
-- `app/api/audience-twin/simulate/route.ts`
-- `tests/phase10_nologin_security.test.ts`
+- `lib/client/mobile-workspace.ts`
+- `components/CreativeIntelligenceView.tsx`
+- `components/HermesConsole.tsx`
+- `app/globals.css`
+- `tests/phase11_mobile_workspace.test.ts`
 - `docs/GROK_STAGE_PROGRESS.md`
 
 ## Commit
-`test: harden no-login integration security`
+`refactor: simplify mobile creative workspace experience`
 
 ## Next Phase
-Phase 11 — refactor: simplify mobile creative workspace experience.
+Phase 12 — Full system acceptance (scenarios 1–7).

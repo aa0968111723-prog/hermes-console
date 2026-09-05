@@ -2717,6 +2717,116 @@ summary .badge {
   line-height: 1.4;
 }
 
+.hero-title-short,
+.nav-label-short,
+.mobile-pane-tabs {
+  display: none;
+}
+
+.hero-title-full,
+.nav-label-full {
+  display: inline;
+}
+
+@media (max-width: 760px) {
+  .hero-title-full,
+  .nav-label-full,
+  .hide-on-mobile {
+    display: none;
+  }
+  .hero-title-short,
+  .nav-label-short {
+    display: inline;
+  }
+  .creative-os-container {
+    padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
+  }
+  .os-hero-card {
+    padding: 16px 14px;
+    margin-bottom: 12px;
+  }
+  .hero-title {
+    font-size: 20px;
+  }
+  .os-query-box {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .btn-run-pipeline,
+  .mobile-pane-tab,
+  .dir-tab-btn,
+  .btn-open-canva,
+  .btn-copy-blueprint,
+  .btn-copy-caption,
+  .btn-trigger-publish,
+  .btn-confirm-action,
+  .btn-cancel,
+  .preset-chip {
+    min-height: 44px;
+  }
+  .preset-chips-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pipeline-stages-strip {
+    overflow-x: auto;
+    gap: 8px;
+  }
+  .stage-label,
+  .stage-meta,
+  .stage-arrow {
+    display: none;
+  }
+  .mobile-pane-tabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 12px;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: var(--bg);
+    padding: 8px 0;
+  }
+  .mobile-pane-tab {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .mobile-pane-tab.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .mobile-pane {
+    display: none;
+  }
+  .mobile-pane.is-active {
+    display: block;
+  }
+  .dir-tabs-list {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .evidence-hypothesis-row {
+    grid-template-columns: 1fr;
+  }
+  .blueprint-actions,
+  .caption-publish-row {
+    flex-direction: column;
+  }
+  .modal-content {
+    width: calc(100% - 24px);
+    margin: 12px;
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+  }
+}
+
 /* ─── 草稿後受眾再測驗卡片 (Audience Re-evaluation) ─── */
 .reevaluation-card {
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));

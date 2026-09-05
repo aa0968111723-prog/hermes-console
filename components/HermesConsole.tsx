@@ -661,7 +661,8 @@ export default function HermesConsole() {
           onClick={() => navigate("creative_os")}
         >
           <Sparkles size={19} />
-          創意智能 OS
+          <span className="nav-label-full">創意智能 OS</span>
+          <span className="nav-label-short">創意</span>
         </button>
       </nav>
       <div className="side-section">
@@ -822,7 +823,8 @@ export default function HermesConsole() {
             onClick={() => navigate(nav === "creative_os" ? "chat" : "creative_os")}
             title="開啟 Hermes Creative Intelligence OS 全管線"
           >
-            ✨ 創意智能 OS
+            <span className="nav-label-full">✨ 創意智能 OS</span>
+            <span className="nav-label-short">✨ 創意</span>
           </button>
           <button
             className="connection-pill"
