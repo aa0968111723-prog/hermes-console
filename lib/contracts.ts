@@ -58,6 +58,7 @@ export interface Conversation {
   updatedAt: string;
   parentId?: string;
   legacyId?: string;
+  assistantMode?: "creative" | "research" | "admin";
 }
 export interface Task {
   id: string;
