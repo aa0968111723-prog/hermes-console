@@ -1,0 +1,187 @@
+import assert from "node:assert";
+import {
+  getAllIntegrationsReport,
+  probeZeaburHermesStatus,
+  probeCanvaStatus,
+  probeTamkangMcpStatus,
+  probeInstagramStatus,
+  probePinterestStatus
+} from "../lib/server/integrations/truth-status.ts";
+import { executeOrchestratedTask } from "../lib/server/orchestrator/task-orchestrator.ts";
+
+console.log("🚀 開始執行 Phase 9 任務編排器與真實整合健康度驗證測試...\n");
+
+// 1. 生態系整合真實狀態測試 (Truthful Integrations Health)
+console.log("▶ 測試 1: 生態系整合真實探測 (Truthful Integration Probes)");
+
+const validStatuses = [
+  "Connected",
+  "Verified",
+  "Partial",
+  "Unconfigured",
+  "Needs Authorization",
+  "Unsupported",
+  "Failed"
+];
+
+import { put, del } from "../lib/server/store.ts";
+import { WORKSPACE_OWNER } from "../lib/server/security.ts";
+
+const canvaCheck = probeCanvaStatus();
+assert.ok(validStatuses.includes(canvaCheck.status), `Canva 狀態必須為 7 大真實狀態之一: ${canvaCheck.status}`);
+assert.ok(canvaCheck.capabilities.length > 0, "Canva 必須宣告支援能力");
+console.log(`  ✓ Canva 探測正常: [${canvaCheck.status}] ${canvaCheck.statusBadge} - ${canvaCheck.details}`);
+
+// 驗證 Canva Vault 狀態連動 (Verified 與 Partial 狀態)
+put("canva_status", WORKSPACE_OWNER, {
+  id: "current",
+  state: "partial",
+  checkedAt: new Date().toISOString(),
+  message: "已驗證設計清單讀取。建立、上傳與匯出仍需個別執行驗證。"
+});
+const partialCheck = probeCanvaStatus();
+assert.strictEqual(partialCheck.status, "Partial", "Vault 登記 partial 時應誠實回報 Partial");
+assert.strictEqual(partialCheck.statusBadge, "已驗證清單讀取");
+
+put("canva_status", WORKSPACE_OWNER, {
+  id: "current",
+  state: "verified",
+  checkedAt: new Date().toISOString(),
+  message: "已全面驗證 Canva 官方連線正常。"
+});
+const verifiedCheck = probeCanvaStatus();
+assert.strictEqual(verifiedCheck.status, "Verified", "Vault 登記 verified 時應誠實回報 Verified");
+assert.strictEqual(verifiedCheck.statusBadge, "已驗證在線");
+
+// 清理測試狀態恢復真實預設
+del("canva_status", WORKSPACE_OWNER, "current");
+console.log("  ✓ Canva Vault 狀態真實連動 (Partial / Verified) 驗證通過");
+
+const igCheck = probeInstagramStatus();
+assert.ok(validStatuses.includes(igCheck.status), `IG 狀態必須為 7 大真實狀態之一: ${igCheck.status}`);
+console.log(`  ✓ Instagram 探測正常: [${igCheck.status}] ${igCheck.statusBadge}`);
+
+const pinCheck = probePinterestStatus();
+assert.ok(validStatuses.includes(pinCheck.status), `Pinterest 狀態必須為 7 大真實狀態之一: ${pinCheck.status}`);
+console.log(`  ✓ Pinterest 探測正常: [${pinCheck.status}] ${pinCheck.statusBadge}`);
+
+async function testAllIntegrations() {
+  const report = await getAllIntegrationsReport();
+  assert.strictEqual(report.integrations.length, 5, "應完整回傳 5 大生態系整合項目的真實狀態");
+  for (const item of report.integrations) {
+    assert.ok(validStatuses.includes(item.status), `整合項目 ${item.id} 狀態 ${item.status} 非法`);
+    assert.ok(item.details.length > 0, `整合項目 ${item.id} 需附帶誠實細節描述`);
+  }
+  assert.ok(["healthy", "partial_ready", "needs_attention"].includes(report.overallHealth));
+  console.log(`  ✓ 全域整合探測通過！當前健康度: ${report.overallHealth} (5/5 項目誠實回報)`);
+}
+
+// 2. 9 大子任務編排與來源出處 (Task Orchestrator & Provenance)
+console.log("▶ 測試 2: 9 大子任務編排管線 (9-Stage Orchestration & Provenance)");
+
+async function testOrchestrator() {
+  const userPrompt = "幫我做給淡江大學大一新生看的禪學社茶會網宣";
+  const result = await executeOrchestratedTask(userPrompt, {
+    activeProject: "tku-zen-agent"
+  });
+
+  assert.strictEqual(result.status, "completed", "任務編排必須成功執行完成");
+  assert.strictEqual(result.activeProject, "tku-zen-agent");
+  assert.strictEqual(result.domain, "tamkang", "預設任務領域必須判定為 tamkang");
+  assert.strictEqual(result.assignedProfile.id, "tku", "指派專家應為淡江校園脈絡專家");
+  assert.strictEqual(result.domainMeta.campusName, "淡江大學");
+  assert.strictEqual(result.domainMeta.clubName, "領袖禪學社");
+  assert.strictEqual(result.subtasks.length, 9, "必須精確包含 9 大子任務階段");
+
+
+  const expectedSubtaskIds = [
+    "memory_retrieval",
+    "mcp_campus_research",
+    "inspiration_search",
+    "direction_generation",
+    "audience_twin_simulation",
+    "canva_draft_creation",
+    "audience_reevaluation",
+    "social_caption_draft",
+    "action_confirmation"
+  ];
+
+  result.subtasks.forEach((st, idx) => {
+    assert.strictEqual(st.subtaskId, expectedSubtaskIds[idx], `子任務順序不符: 預期 ${expectedSubtaskIds[idx]}, 得到 ${st.subtaskId}`);
+    assert.strictEqual(st.status, "completed", `子任務 ${st.subtaskId} 必須為 completed`);
+    assert.ok(st.durationMs >= 0, `子任務 ${st.subtaskId} 耗時必須非負數`);
+    assert.ok(st.provenance.sourceOrigin.length > 0, `子任務 ${st.subtaskId} 必須包含明確來源出處 (Provenance)`);
+  });
+  console.log("  ✓ 9 大子任務循序編排與出處追蹤驗證通過");
+
+  // 驗證真實證據與推論假設 (Evidence vs Hypothesis)
+  const memoryTask = result.subtasks[0];
+  assert.ok(memoryTask.evidenceVsHypothesis?.evidence.length! >= 1, "記憶階段需標記客觀證據");
+  assert.ok(memoryTask.evidenceVsHypothesis?.hypotheses.length! >= 1, "記憶階段需標記推論假設");
+
+  const mcpTask = result.subtasks[1];
+  assert.ok(mcpTask.evidenceVsHypothesis?.evidence.length! >= 1, "校園調研需標記客觀證據");
+  console.log("  ✓ 客觀證據 (Evidence) 與推論假設 (Hypothesis) 標記分離正確");
+
+  // 驗證草稿完成後受眾再測驗報告 (Audience Re-evaluation)
+  assert.ok(result.draftReevaluations.length >= 3, "應包含 3 個方向的受眾再測驗報告");
+  const topReeval = result.draftReevaluations[0];
+  assert.ok(topReeval.scoreDelta > 0, "落地藍圖經受眾再審應產生正面增益");
+  assert.ok(topReeval.postDraftOverallScore >= topReeval.preDraftOverallScore);
+  assert.strictEqual(topReeval.layerCritiques.length, 4, "必須包含 4 項圖層審查反饋");
+  assert.ok(topReeval.layerCritiques.every((c) => c.passed), "所有草稿圖層審查必須符合受眾偏好通過");
+  assert.strictEqual(topReeval.verdict, "Ready for Publication", "頂部方向結論應為 Ready for Publication");
+  const reevalTask = result.subtasks.find((st) => st.subtaskId === "audience_reevaluation");
+  const reevalSummary = reevalTask?.outputSummary || "";
+  assert.ok(reevalSummary.includes("AI 模擬"), "再測摘要必須標示 AI 模擬啟發式");
+  assert.ok(!reevalSummary.includes("98/100"), "不得把啟發式分數寫成真實滿意度 98/100");
+  assert.ok(!reevalSummary.includes("+4%"), "不得把啟發式增益寫成真實 +4%");
+  console.log(`  ✓ 草稿後受眾再測驗 (Audience Re-evaluation) 驗證通過: ${topReeval.preDraftOverallScore} -> ${topReeval.postDraftOverallScore} (AI 模擬啟發式，非真實轉換率)`);
+
+  // 驗證敏感操作二次確認 Token
+  assert.ok(result.actionConfirmation.token.startsWith("conf_"), "安全二次確認 Token 必須合法簽發");
+  assert.ok(result.actionConfirmation.expiresAt > Date.now(), "Token 必須處於有效期間");
+  console.log(`  ✓ 敏感操作二次確認防護 Token 驗證通過: ${result.actionConfirmation.token.slice(0, 16)}...`);
+}
+
+async function testOrchestratorNtu() {
+  console.log("▶ 測試 3: 跨校園領域 9 大子任務編排動態適配 (NTU Context)");
+  const userPrompt = "幫我做給臺灣大學大一新生看的野餐茶會網宣";
+  const result = await executeOrchestratedTask(userPrompt, {
+    activeProject: "ntu"
+  });
+
+  assert.strictEqual(result.status, "completed", "NTU 任務編排必須成功完成");
+  assert.strictEqual(result.domain, "ntu", "NTU 任務領域必須判定為 ntu");
+  assert.strictEqual(result.assignedProfile.id, "ntu", "指派專家應為臺大校園脈絡專家");
+  assert.strictEqual(result.domainMeta.campusName, "臺灣大學");
+  assert.strictEqual(result.domainMeta.clubName, "禪學社");
+  assert.strictEqual(result.subtasks.length, 9, "必須精確包含 9 大子任務");
+
+
+  // 子任務 1 記憶檢索地標隔離
+  const memoryTask = result.subtasks[0];
+  assert.ok(memoryTask.description.includes("臺大") || memoryTask.description.includes("椰林"), "記憶檢索應適配臺大校園脈絡");
+  assert.ok(!memoryTask.description.includes("克難坡"), "嚴禁洩漏克難坡地標");
+
+  // 子任務 2 校園 MCP 調研
+  const mcpTask = result.subtasks[1];
+  assert.ok(mcpTask.title.includes("臺大"), "調研子任務應標題適配臺大");
+  assert.ok(!mcpTask.outputSummary?.includes("宮燈"), "嚴禁洩漏宮燈教室");
+
+  // 子任務 8 社群文案與標籤適配
+  const socialTask = result.subtasks[7];
+  assert.ok(socialTask.outputSummary?.includes("#臺灣大學"), "社群標籤摘要應包含 #臺灣大學");
+  assert.ok(!socialTask.outputSummary?.includes("#淡江大學"), "社群標籤摘要嚴禁洩漏 #淡江大學");
+
+  console.log("  ✓ 跨校園領域 9 大子任務地標隔離與動態適配驗證通過！");
+}
+
+Promise.all([testAllIntegrations(), testOrchestrator(), testOrchestratorNtu()])
+  .then(() => {
+    console.log("\n🎉 Phase 9 任務編排與真實整合健康度驗證 100% 全部通過！");
+  })
+  .catch((err) => {
+    console.error("❌ 測試失敗:", err);
+    process.exit(1);
+  });

@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
     "test:ui": "tsx tests/verify-ui.ts",
     "test:chat": "tsx tests/verify-chat.ts",
     "typecheck": "tsc --noEmit",

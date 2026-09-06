@@ -173,15 +173,15 @@ function parseCsv(text: string): string[][] {
   for (let i = 0; i < text.length; i += 1) {
     const ch = text[i];
     if (quoted) {
-      if (ch === """) {
-        if (text[i + 1] === """) {
-          field += """;
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
           i += 1;
         } else quoted = false;
       } else field += ch;
       continue;
     }
-    if (ch === """) quoted = true;
+    if (ch === '"') quoted = true;
     else if (ch === ",") {
       row.push(field);
       field = "";

@@ -24,6 +24,7 @@ export interface McpEntry {
   lastError: string | null;
   readonly: boolean;
   trustedLevel: "untrusted" | "workspace" | "external";
+  projectId?: string | null;
 }
 
 const endpointSchema = z
@@ -60,7 +61,11 @@ export function seedRegistry(): McpEntry[] {
       transport: "streamable-http",
       authMode: "bearer",
       credentialReference: "MCP_BRIDGE_TOKEN",
-      tools: [],
+      tools: [
+        { name: "inspiration_list", description: "列出工作區已收藏的靈感項目" },
+        { name: "inspiration_ingest", description: "將公開 HTTPS 網址收藏進 Hermes Console 靈感庫" },
+        { name: "inspiration_search", description: "搜尋工作區靈感庫並執行萬象靈感調研管線" },
+      ],
       status: process.env.MCP_BRIDGE_TOKEN ? "partial" : "unconfigured",
       verifiedAt: null,
       lastError: null,
@@ -77,9 +82,9 @@ export function seedRegistry(): McpEntry[] {
       authMode: "bearer",
       credentialReference: "TKU_MCP_TOKEN",
       tools: [],
-      status: "connected",
+      status: "partial",
       verifiedAt: null,
-      lastError: null,
+      lastError: "已設定端點，尚未完成 initialize／tools/list／安全讀取。",
       readonly: true,
       trustedLevel: "external",
     });
@@ -128,9 +133,9 @@ export function registerMcp(input: {
     authMode: input.authMode || "bearer",
     credentialReference: input.credentialReference || null,
     tools: [],
-    status: "connected",
+    status: "partial",
     verifiedAt: null,
-    lastError: null,
+    lastError: "已登記端點，尚未驗證。",
     readonly: input.readonly !== false,
     trustedLevel: "untrusted",
   };
@@ -275,4 +280,19 @@ export function getMcp(id: string) {
     seedRegistry().find((item) => item.id === id) ||
     null
   );
+}
+
+export function listProjectMcp(projectId: string): McpEntry[] {
+  return seedRegistry().filter((item) => {
+    if (!item.projectId) return item.id === "workspace" || item.id === "tku";
+    return item.projectId === projectId;
+  });
+}
+
+export function projectMcpIsolated(projectA: string, projectB: string) {
+  const a = listProjectMcp(projectA).map((item) => item.id);
+  const b = listProjectMcp(projectB).map((item) => item.id);
+  const aOnly = a.filter((id) => id !== "workspace" && id !== "tku");
+  const bOnly = b.filter((id) => id !== "workspace" && id !== "tku");
+  return aOnly.every((id) => !bOnly.includes(id));
 }

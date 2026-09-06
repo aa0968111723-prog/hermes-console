@@ -21,7 +21,7 @@ export function parseInspirationQuery(raw: string): InspirationQuery {
     if (pattern.test(raw)) negative.push(label);
   const target = /淡江/.test(raw)
     ? "Tamkang freshman"
-    : /台大/.test(raw)
+    : /台大|臺大/.test(raw)
       ? "NTU freshman"
       : /新生/.test(raw)
         ? "university freshman"

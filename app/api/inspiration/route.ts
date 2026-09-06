@@ -6,7 +6,11 @@ import {
   listInspiration,
   pinterestResearchLimits,
 } from "@/lib/server/inspiration";
-import { searchInspiration, resolveInspirationUrl } from "@/lib/server/inspiration/engine";
+import {
+  resolveInspirationUrl,
+  runInspirationPipeline,
+  searchInspirations,
+} from "@/lib/server/inspiration/engine";
 import { providerHealth } from "@/lib/server/inspiration/providers";
 import { syncSheetsInspiration } from "@/lib/server/inspiration/sheets-sync";
 
@@ -16,12 +20,19 @@ export const GET = route(async (req) => {
   authenticate(req);
   const projectId = new URL(req.url).searchParams.get("projectId") || undefined;
   const sync = await syncSheetsInspiration();
+  const domain =
+    projectId === "tamkang" || projectId === "ntu" || projectId === "general"
+      ? projectId
+      : undefined;
   return respond({
     items: listInspiration(projectId),
+    fixtures: searchInspirations(undefined, domain),
     instagram: instagramResearchLimits(),
     pinterest: pinterestResearchLimits(),
     plan: inspirationSearchPlan("幫我找靈感"),
     providers: providerHealth(),
+    fullSiteSearch: false,
+    liveFetch: false,
     sheetsSync: sync,
   });
 });
@@ -39,13 +50,17 @@ export const POST = route(async (req) => {
     })
     .strict()
     .parse(await jsonBody(req));
-  if (body.action === "search")
-    return respond(
-      searchInspiration({
-        prompt: body.prompt || "幫我找靈感",
-        projectId: body.projectId,
-      }),
-    );
+  if (body.action === "search") {
+    const pipeline = runInspirationPipeline({
+      prompt: body.prompt || "幫我找靈感",
+      projectId: body.projectId,
+      url: body.url,
+    });
+    return respond({
+      ...pipeline,
+      items: pipeline.savedItems,
+    });
+  }
   if (!body.url)
     throw new ApiError(400, "url_required", "請提供靈感網址。");
   return respond(

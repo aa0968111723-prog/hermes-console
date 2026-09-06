@@ -8,26 +8,51 @@ const runtimeStore = globalThis as typeof globalThis & {
 export function dataDir() {
   return resolve(process.env.CONSOLE_DATA_DIR || ".data");
 }
-export function db() {
+export function db(): DatabaseSync {
   if (!runtimeStore.hermesDatabase) {
     mkdirSync(dataDir(), { recursive: true, mode: 0o700 });
-    runtimeStore.hermesDatabase = new DatabaseSync(
-      join(dataDir(), "console.sqlite"),
-    );
-    runtimeStore.hermesDatabase.exec(`
-      PRAGMA journal_mode=WAL;
-      PRAGMA busy_timeout=5000;
-      CREATE TABLE IF NOT EXISTS records (
-        kind TEXT NOT NULL, owner TEXT NOT NULL, id TEXT NOT NULL, value TEXT NOT NULL,
-        PRIMARY KEY(kind,owner,id)
-      );
-      CREATE TABLE IF NOT EXISTS sessions (digest TEXT PRIMARY KEY, owner TEXT NOT NULL, expires INTEGER NOT NULL);
-      CREATE TABLE IF NOT EXISTS limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
-      PRAGMA user_version=1;
-    `);
-    migrateLegacyOwner(runtimeStore.hermesDatabase);
+    const dbPath = join(dataDir(), "console.sqlite");
+
+    let retries = 5;
+    while (retries > 0) {
+      try {
+        const database = new DatabaseSync(dbPath);
+        database.exec("PRAGMA busy_timeout=10000;");
+        try {
+          database.exec("PRAGMA journal_mode=WAL;");
+        } catch {
+          // WAL 模式可能已由其他行程啟用或處於讀取鎖，不阻塞初始化
+        }
+        database.exec(`
+          CREATE TABLE IF NOT EXISTS records (
+            kind TEXT NOT NULL, owner TEXT NOT NULL, id TEXT NOT NULL, value TEXT NOT NULL,
+            PRIMARY KEY(kind,owner,id)
+          );
+          CREATE TABLE IF NOT EXISTS sessions (digest TEXT PRIMARY KEY, owner TEXT NOT NULL, expires INTEGER NOT NULL);
+          CREATE TABLE IF NOT EXISTS limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires INTEGER NOT NULL);
+          PRAGMA user_version=1;
+        `);
+        migrateLegacyOwner(database);
+        runtimeStore.hermesDatabase = database;
+        break;
+      } catch (err: unknown) {
+        const error = err as { code?: string; message?: string };
+        if (
+          (error?.code === "ERR_SQLITE_ERROR" ||
+            error?.message?.includes("locked") ||
+            error?.message?.includes("busy")) &&
+          retries > 1
+        ) {
+          retries--;
+          const sleepMs = Math.floor(Math.random() * 100) + 50;
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, sleepMs);
+          continue;
+        }
+        throw err;
+      }
+    }
   }
-  return runtimeStore.hermesDatabase;
+  return runtimeStore.hermesDatabase!;
 }
 function migrateLegacyOwner(database: DatabaseSync) {
   const legacy = database
@@ -67,6 +92,11 @@ export function put<T extends { id: string }>(
     )
     .run(kind, owner, value.id, JSON.stringify(value));
   return value;
+}
+export function del(kind: string, owner: string, id: string) {
+  db()
+    .prepare("DELETE FROM records WHERE kind=? AND owner=? AND id=?")
+    .run(kind, owner, id);
 }
 export function transaction<T>(fn: () => T): T {
   db().exec("BEGIN IMMEDIATE");

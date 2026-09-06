@@ -14,11 +14,18 @@ import {
 } from "./workflows";
 import { filePath, material } from "./materials";
 import type { Material, Task, TaskEvent } from "../contracts";
+import { ingestUrl, listInspiration } from "./inspiration";
+import { resolveInspirationUrl, runInspirationPipeline } from "./inspiration/engine";
+
 
 export function bridgeAuth(request: Request) {
   const configured = process.env.MCP_BRIDGE_TOKEN;
   const provided =
     request.headers.get("authorization")?.replace(/^Bearer /, "") || "";
+  const consoleOrigin = process.env.CONSOLE_ORIGIN;
+  const baseUrl = consoleOrigin
+    ? new URL(consoleOrigin).origin
+    : "https://344.zeabur.app";
   if (
     !configured ||
     configured.length < 32 ||
@@ -28,10 +35,19 @@ export function bridgeAuth(request: Request) {
       401,
       "bridge_unauthorized",
       "MCP 需要獨立的後端服務憑證。",
+      {
+        "WWW-Authenticate": `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
+      },
     );
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(process.env.CONSOLE_ORIGIN!).origin)
-    throw new ApiError(403, "origin_rejected", "不允許此 MCP Origin。");
+  if (origin && consoleOrigin) {
+    try {
+      if (origin !== new URL(consoleOrigin).origin)
+        throw new ApiError(403, "origin_rejected", "不允許此 MCP Origin。");
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+    }
+  }
   limited("mcp:" + WORKSPACE_OWNER, 120, 60_000);
   return WORKSPACE_OWNER;
 }
@@ -66,6 +82,26 @@ const schemas = {
     })
     .strict(),
   canva_get_export: z.object({ jobId: id, ...context }).strict(),
+  inspiration_list: z
+    .object({ projectId: id.default("personal"), ...context })
+    .strict(),
+  inspiration_ingest: z
+    .object({
+      url: z.string().url(),
+      projectId: id.default("personal"),
+      caption: z.string().max(2000).optional(),
+      account: z.string().max(120).optional(),
+      ...context,
+    })
+    .strict(),
+  inspiration_search: z
+    .object({
+      prompt: z.string().max(2000).default("幫我找靈感"),
+      projectId: id.default("personal"),
+      url: z.string().url().optional(),
+      ...context,
+    })
+    .strict(),
 };
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
@@ -88,6 +124,11 @@ const descriptions: Record<ToolName, string> = {
   canva_export_design:
     "將設計送交 Canva 匯出。使用固定 operationId，回傳工作 ID，需繼續查詢。不是發佈到社群。",
   canva_get_export: "查詢 Canva 匯出工作與下載連結；下載連結可能會到期。",
+  inspiration_list: "列出工作區已收藏的靈感項目。不包含全網搜尋。",
+  inspiration_ingest:
+    "將公開 HTTPS 網址收藏進 Hermes Console 靈感庫。不代表已清除版權。",
+  inspiration_search:
+    "依提示詞檢索工作區靈感庫與風格調色盤，不保證全網靈感抓取。",
 };
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
@@ -234,6 +275,45 @@ async function execute(
     }
     case "canva_get_export":
       return canvaRequest(owner, "/exports/" + schemas[name].parse(args).jobId);
+    case "inspiration_list": {
+      const input = schemas[name].parse(args);
+      const items = listInspiration(input.projectId);
+      return {
+        items,
+        count: items.length,
+        projectId: input.projectId,
+      };
+    }
+    case "inspiration_ingest": {
+      const input = schemas[name].parse(args);
+      const item = resolveInspirationUrl({
+        url: input.url,
+        projectId: input.projectId,
+        caption: input.caption,
+        account: input.account,
+      });
+      return {
+        ingested: true,
+        item,
+        message: "已成功收藏進工作區靈感庫。",
+      };
+    }
+
+    case "inspiration_search": {
+      const input = schemas[name].parse(args);
+      const pipeline = runInspirationPipeline({
+        prompt: input.prompt,
+        projectId: input.projectId,
+        url: input.url,
+      });
+      return {
+        prompt: input.prompt,
+        domain: pipeline.domain,
+        fixtures: pipeline.fixtures,
+        savedItems: pipeline.savedItems,
+        notice: pipeline.notice,
+      };
+    }
   }
 }
 export async function callTool(owner: string, name: string, input: unknown) {

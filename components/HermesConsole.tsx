@@ -34,8 +34,10 @@ import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
 import InspirationBoard from "./inspiration/InspirationBoard";
 import IntegrationHealth from "./settings/IntegrationHealth";
+import CreativeIntelligenceView from "./CreativeIntelligenceView";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
+import type { CuratedInspirationItem } from "@/lib/server/inspiration/engine";
 import {
   emptyDraft,
   useComposerDraft,
@@ -146,10 +148,11 @@ export default function HermesConsole() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
   const [nav, setNav] = useState<
-    "chat" | "projects" | "inspiration" | "agents"
+    "chat" | "projects" | "inspiration" | "agents" | "creative_os"
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
+  const [fixtures, setFixtures] = useState<CuratedInspirationItem[]>([]);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(true);
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
@@ -317,6 +320,19 @@ export default function HermesConsole() {
     };
   }, [auth, refresh]);
   useEffect(() => {
+    if (nav === "inspiration") {
+      api<{ items: InspirationItem[]; fixtures?: CuratedInspirationItem[] }>(
+        `inspiration?projectId=${encodeURIComponent(project)}`,
+      )
+        .then((r) => {
+          if (Array.isArray(r.items)) setInspiration(r.items);
+          if (Array.isArray(r.fixtures)) setFixtures(r.fixtures);
+        })
+        .catch(() => {});
+    }
+  }, [nav, project]);
+  useEffect(() => {
+
     const textarea = input.current;
     if (!textarea) return;
     const resize = () => {
@@ -655,6 +671,14 @@ export default function HermesConsole() {
           <Bot size={19} />
           Agent
         </button>
+        <button
+          aria-current={nav === "creative_os" ? "page" : undefined}
+          onClick={() => navigate("creative_os")}
+        >
+          <Sparkles size={19} />
+          <span className="nav-label-full">創意智能 OS</span>
+          <span className="nav-label-short">創意</span>
+        </button>
       </nav>
       <div className="side-section">
         <span>專案</span>
@@ -800,12 +824,23 @@ export default function HermesConsole() {
                 ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
-                  : "Agent"}
+                  : nav === "creative_os"
+                    ? "✨ 創意智能 OS"
+                    : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
             </span>
           </div>
+          <button
+            type="button"
+            className={`btn-creative-os ${nav === "creative_os" ? "active" : ""}`}
+            onClick={() => navigate(nav === "creative_os" ? "chat" : "creative_os")}
+            title="開啟 Hermes Creative Intelligence OS 全管線"
+          >
+            <span className="nav-label-full">✨ 創意智能 OS</span>
+            <span className="nav-label-short">✨ 創意</span>
+          </button>
           <button
             className="connection-pill"
             onClick={() => {
@@ -900,6 +935,10 @@ export default function HermesConsole() {
                     </button>
                     <div className="starters">
                       {[
+                        [
+                          "🌿 淡江大一禪學社網宣 OS",
+                          "幫我做給淡江大學大一新生看的禪學社茶會網宣",
+                        ],
                         ["幫我找網宣靈感", "幫我找網宣靈感。"],
                         [
                           "幫我做淡江新生海報",
@@ -1400,11 +1439,28 @@ export default function HermesConsole() {
         ) : nav === "inspiration" ? (
           <InspirationBoard
             items={inspiration}
+            fixtures={fixtures}
             notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
+            projectId={project}
+            onIngest={(newItem) => {
+              setInspiration((prev) => [
+                newItem,
+                ...prev.filter((i) => i.id !== newItem.id),
+              ]);
+            }}
           />
+        ) : nav === "creative_os" ? (
+
+          <CreativeIntelligenceView
+            initialPrompt="幫我做給淡江大學大一新生看的禪學社茶會網宣"
+            defaultProject={project}
+            onSelectProject={(p) => setProject(p)}
+            onBack={() => setNav("chat")}
+          />
+
         ) : (
           <section className="secondary-page">
-            <AgentPanel agents={agents} brain={[]} />
+            <AgentPanel agents={agents} brain={[]} project={project} />
             <p className="eyebrow">每一步都有紀錄</p>
             <h1>任務</h1>
             <p className="muted">這裡只呈現後端儲存及 Hermes 回報的狀態。</p>

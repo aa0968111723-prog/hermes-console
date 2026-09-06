@@ -20,21 +20,34 @@ export type TamkangCapability = (typeof TAMKANG_CAPABILITIES)[number];
 const HINTS: Record<TamkangCapability, RegExp[]> = {
   tku_search: [/search/i, /query/i, /find/i],
   tku_news: [/news/i, /announcement/i],
-  tku_calendar: [/calendar/i],
+  tku_calendar: [/calendar/i, /schedule/i, /semester/i],
   tku_events: [/event/i],
-  tku_clubs: [/club/i, /society/i],
+  tku_clubs: [/club/i, /society/i, /zen/i],
   tku_courses: [/course/i, /class/i, /curriculum/i],
-  tku_campus: [/campus/i],
+  tku_campus: [/campus/i, /location/i, /landmark/i],
   tku_map: [/map/i],
   tku_transport: [/transport/i, /bus/i, /mrt/i, /traffic/i],
-  tku_facilities: [/facilit/i, /building/i, /venue/i],
+  tku_facilities: [/facilit/i, /building/i, /venue/i, /classroom/i],
   tku_student_life: [/student.?life/i, /campus.?life/i],
   tamsui_places: [/tamsui.*place/i, /danshui/i, /place/i],
   tamsui_food: [/food/i, /restaurant/i, /eat/i],
   tamsui_events: [/tamsui.*event/i, /festival/i],
 };
 
-export function mapTamkangTools(tools: Array<{ name: string }>) {
+function toolHaystack(tool: {
+  name: string;
+  description?: string;
+  inputSchema?: unknown;
+}) {
+  const schema = tool.inputSchema && typeof tool.inputSchema === "object"
+    ? JSON.stringify(tool.inputSchema)
+    : "";
+  return `${tool.name} ${tool.description || ""} ${schema}`;
+}
+
+export function mapTamkangTools(
+  tools: Array<{ name: string; description?: string; inputSchema?: unknown }>,
+) {
   const mapping: Record<TamkangCapability, string | null> = {
     tku_search: null,
     tku_news: null,
@@ -53,11 +66,68 @@ export function mapTamkangTools(tools: Array<{ name: string }>) {
   };
   for (const capability of TAMKANG_CAPABILITIES) {
     const match = tools.find((tool) =>
-      HINTS[capability].some((pattern) => pattern.test(tool.name)),
+      HINTS[capability].some((pattern) => pattern.test(toolHaystack(tool))),
     );
     mapping[capability] = match?.name || null;
   }
   return mapping;
+}
+
+export const TAMKANG_CAPABILITY_GROUPS = {
+  campus: ["tku_campus", "tku_search"],
+  events: ["tku_events"],
+  clubs: ["tku_clubs"],
+  calendar: ["tku_calendar"],
+  transport: ["tku_transport"],
+  facilities: ["tku_facilities"],
+  studentLife: ["tku_student_life"],
+  map: ["tku_map"],
+  course: ["tku_courses"],
+  news: ["tku_news"],
+} as const;
+
+export function groupedTamkangCapabilities(
+  mapping: Record<TamkangCapability, string | null>,
+) {
+  return Object.fromEntries(
+    Object.entries(TAMKANG_CAPABILITY_GROUPS).map(([group, keys]) => [
+      group,
+      keys.map((key) => mapping[key as TamkangCapability]).find(Boolean) || null,
+    ]),
+  ) as Record<keyof typeof TAMKANG_CAPABILITY_GROUPS, string | null>;
+}
+
+/**
+ * 依能力解析最佳匹配工具名稱
+ */
+export function resolveTamkangTool(
+  capability: TamkangCapability,
+  tools: Array<{ name: string; description?: string; inputSchema?: unknown }>,
+): string | null {
+  const mapping = mapTamkangTools(tools);
+  return mapping[capability] || null;
+}
+
+/**
+ * 計算淡江工具能力覆蓋率
+ */
+export function getTamkangCapabilityCoverage(
+  tools: Array<{ name: string; description?: string; inputSchema?: unknown }>,
+) {
+  const mapping = mapTamkangTools(tools);
+  const totalCount = TAMKANG_CAPABILITIES.length;
+  const mapped = Object.entries(mapping).filter(([, toolName]) => toolName !== null);
+  const mappedCount = mapped.length;
+  const coveragePercent = Math.round((mappedCount / totalCount) * 100);
+  const missingCapabilities = TAMKANG_CAPABILITIES.filter((cap) => !mapping[cap]);
+
+  return {
+    mappedCount,
+    totalCount,
+    coveragePercent,
+    missingCapabilities,
+    mapping,
+  };
 }
 
 export function tamkangConfigured() {

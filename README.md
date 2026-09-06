@@ -4,7 +4,11 @@
 
 ## 啟動
 
-需要 Node.js 22.13+，建議 Node.js 24 LTS。此版本需要持久化磁碟與單一長駐 Node 程序，不適用無狀態 serverless 環境。
+需要 Node.js 22.13+，建議 Node.js 24 LTS。此版本支援零登入、任務持久化與 Hermes 雙引擎備援。
+
+1. **深度連接 Zeabur Hermes Agent**：支援 `/v1/chat/completions` SSE 即時串流與本地雙引擎備援。
+2. **全套生態系與 MCP 整合**：淡江大學校園生態 MCP、Canva 草稿藍圖、萬象靈感引擎與 Audience Twin 受眾雙生模擬。
+3. **零登入安全工作區 (No-Login Single Workspace)**：免登入開啟即用，具備嚴格的 CSRF、Same-Origin 與速率限制防護。
 
 1. `npm ci`
 2. 複製 `.env.example` 到 `.env.local`，依註解設定。

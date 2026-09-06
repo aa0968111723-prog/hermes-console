@@ -6,6 +6,7 @@ import { list, put } from "./store";
 export interface UsageEvent {
   id: string;
   agentId: string;
+  profileId?: string | null;
   model: string | null;
   projectId: string | null;
   conversationId: string | null;
@@ -36,6 +37,7 @@ export function recordTaskUsage(
   ).length;
   return recordUsage({
     agentId: extra.agentId || "general",
+    profileId: extra.agentId || "general",
     model: task.usage.model,
     projectId: extra.projectId || null,
     conversationId: task.conversationId,

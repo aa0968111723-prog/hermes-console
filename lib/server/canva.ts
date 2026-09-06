@@ -283,3 +283,65 @@ export function mapDataset(
   }
   return { mapped, missing };
 }
+
+export async function getCanvaDesign(owner: string, designId: string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(designId))
+    throw new ApiError(400, "invalid_design", "設計識別無效。");
+  return canvaRequest(owner, "/designs/" + designId);
+}
+
+export async function createCanvaDesign(
+  owner: string,
+  input: {
+    title: string;
+    designType?:
+      | { type: "preset"; name: string }
+      | { type: "custom"; width: number; height: number };
+  },
+) {
+  if (!input.title || input.title.trim().length === 0)
+    throw new ApiError(400, "invalid_title", "設計標題不能為空。");
+  const payload: Record<string, unknown> = {
+    title: input.title.slice(0, 100),
+  };
+  if (input.designType) {
+    payload.design_type = input.designType;
+  } else {
+    payload.design_type = { type: "preset", name: "instagram_post" };
+  }
+  return canvaRequest(owner, "/designs", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function exportCanvaDesign(
+  owner: string,
+  input: {
+    designId: string;
+    format?: "png" | "jpg" | "pdf";
+    quality?: number;
+  },
+) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(input.designId))
+    throw new ApiError(400, "invalid_design", "設計識別無效。");
+  const format = input.format || "png";
+  const body: Record<string, unknown> = {
+    design_id: input.designId,
+    format: { type: format },
+  };
+  if (input.quality && (format === "jpg" || format === "pdf")) {
+    body.format = { type: format, quality: input.quality };
+  }
+  return canvaRequest(owner, "/exports", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function pollCanvaExport(owner: string, exportJobId: string) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(exportJobId))
+    throw new ApiError(400, "invalid_export_job", "匯出工作識別無效。");
+  return canvaRequest(owner, "/exports/" + exportJobId);
+}
+

@@ -1,15 +1,10 @@
 import { buildProfile, contextGraph } from "../audience/engine";
 import { evaluateArtifact, evaluationEnvelope } from "../audience/evaluation";
+import { wantsReverseThinking } from "../audience";
+import { runReverseThinkingEvaluation } from "../audience-twin/reverse-thinking";
 import { debateFromEvaluations } from "../audience/debate";
 import { searchInspiration } from "../inspiration/engine";
-import { researchBundle } from "../research/providers";
-import { canvaStatus } from "../canva";
-import { WORKSPACE_OWNER } from "../security";
-import {
-  directionToSpec,
-  validateSpecForTemplate,
-  revisionFromAudience,
-} from "./spec";
+import { connectCreativeToCanva } from "./canva-workflow";
 import {
   rankDirections,
   creativeFingerprint,
@@ -18,6 +13,8 @@ import {
 import { socialDrafts } from "./social";
 import { routeToolsets } from "../projects/router";
 import { instagramPublishStatus } from "../publish";
+import { prepareSafeSocialPublish } from "../publish/safe-workflow";
+import { runResearchAudienceDirectionWorkflow } from "./research-direction-workflow";
 
 function directionsFor(prompt: string): RankableDirection[] {
   if (/攝影/.test(prompt))
@@ -76,15 +73,28 @@ export function runCreativeIntelligence(input: {
   tamkangReachable?: boolean;
 }) {
   const projectId = input.projectId || "personal";
-  const research = researchBundle({
+  const workflow = runResearchAudienceDirectionWorkflow({
     prompt: input.prompt,
-    mcpReachable: input.tamkangReachable,
+    projectId,
+    tamkangReachable: input.tamkangReachable,
   });
+  const research = workflow.research;
   const profile = buildProfile({
     projectId,
-    institution: /台大/.test(input.prompt) ? "國立臺灣大學" : "淡江大學",
-    location: /台大/.test(input.prompt) ? "公館" : "淡水",
-    name: /台大/.test(input.prompt) ? "台大大一新生" : "淡江大一新生",
+    institution:
+      workflow.domain === "ntu"
+        ? "國立臺灣大學"
+        : workflow.domain === "general"
+          ? "大專院校"
+          : "淡江大學",
+    location:
+      workflow.domain === "ntu" ? "公館" : workflow.domain === "general" ? "校園" : "淡水",
+    name:
+      workflow.domain === "ntu"
+        ? "台大大一新生"
+        : workflow.domain === "general"
+          ? "大一新生"
+          : "淡江大一新生",
   });
   const graph = contextGraph(profile.institution);
   const directions = directionsFor(input.prompt);
@@ -100,12 +110,18 @@ export function runCreativeIntelligence(input: {
     scores: evaluations.map((roles) => roles[0].scores.scores),
   });
   const selected = directions[ranking.ranking[0]?.index || 0];
-  const canva = canvaStatus(WORKSPACE_OWNER);
-  const spec = directionToSpec(selected, "生活場景優先，術語放副標。");
-  const datasetCheck = validateSpecForTemplate(spec, {
-    TITLE: { type: "text" },
-    SUBTITLE: { type: "text" },
-    CTA: { type: "text" },
+  const canvaWorkflow = connectCreativeToCanva({
+    title: selected.title,
+    copy: selected.copy,
+    cta: selected.cta,
+    visual: selected.visual,
+    coreIdea: selected.coreIdea,
+    claim: selected.claim,
+    layers: [
+      { layer: 1, type: "headline", content: selected.title },
+      { layer: 2, type: "body", content: selected.copy },
+      { layer: 3, type: "cta", content: selected.cta },
+    ],
   });
   const inspiration = searchInspiration({
     prompt: input.prompt,
@@ -125,14 +141,15 @@ export function runCreativeIntelligence(input: {
       selected.copy + directions.map((d) => d.copy).join(" "),
     ),
     canva: {
-      spec,
-      datasetCheck,
-      revision: revisionFromAudience(selected.copy),
-      status: canva.needsAuthorization
-        ? "Needs Canva Authorization"
-        : canva.configured
-          ? canva.state
-          : "unconfigured",
+      spec: canvaWorkflow.spec,
+      datasetCheck: canvaWorkflow.datasetCheck,
+      revision: canvaWorkflow.revision,
+      status: canvaWorkflow.status,
+      mode: canvaWorkflow.mode,
+      created: canvaWorkflow.created,
+      liveDesignId: canvaWorkflow.liveDesignId,
+      message: canvaWorkflow.message,
+      openUrl: canvaWorkflow.openUrl,
     },
     social: socialDrafts({
       title: selected.title,
@@ -141,6 +158,35 @@ export function runCreativeIntelligence(input: {
       audience: profile.name,
     }),
     tools: routeToolsets(input.prompt),
-    publish: instagramPublishStatus(),
+    publish: {
+      ...instagramPublishStatus(),
+      workflow: prepareSafeSocialPublish({
+        caption: selected.copy,
+        title: selected.title,
+        copy: selected.copy,
+        cta: selected.cta,
+        audience: profile.name,
+        mediaId: "direction_preview",
+        target: "instagram:workspace",
+      }),
+    },
+    reverseThinking: wantsReverseThinking(input.prompt)
+      ? runReverseThinkingEvaluation({
+          prompt: input.prompt,
+          conceptTitle: selected.title,
+          description: selected.copy,
+          copyExcerpt: selected.copy,
+          projectId,
+          institution: profile.institution,
+          location: profile.location,
+        })
+      : null,
+    researchAudienceWorkflow: {
+      domain: workflow.domain,
+      connected: [...workflow.connected],
+      method: "ai_heuristic" as const,
+      topDirectionId: workflow.topDirection.raw.id,
+      rankedCount: workflow.ranked.length,
+    },
   };
 }
