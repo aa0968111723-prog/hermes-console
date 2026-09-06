@@ -6,6 +6,7 @@ import type { OrchestratedTaskResult } from "@/lib/server/orchestrator/task-orch
 import type { IntegrationCheckResult } from "@/lib/server/integrations/truth-status.ts";
 import type { PersonaProfile } from "@/lib/server/audience-twin/types.ts";
 import type { InstagramResearchReport } from "@/lib/server/social/instagram-research.ts";
+import type { ReverseThinkingResult } from "@/lib/server/audience-twin/reverse-thinking.ts";
 import { PersonaCard } from "@/components/audience/AudienceCard.tsx";
 import {
   MOBILE_CREATIVE_PANES,
@@ -39,10 +40,12 @@ export default function CreativeIntelligenceView({
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [mobilePane, setMobilePane] = useState<MobileCreativePane>("brief");
 
-  // 受眾雙生雙頁籤與 PersonaProfile 畫像狀態
-  const [audienceTab, setAudienceTab] = useState<"feedback" | "personas">("feedback");
+  // 受眾雙生 3 大視角（辯論評估 / 逆向思考 / 立體畫像）與資料狀態
+  const [audienceTab, setAudienceTab] = useState<"feedback" | "reverse" | "personas">("feedback");
   const [activePersonas, setActivePersonas] = useState<PersonaProfile[]>([]);
   const [loadingPersonas, setLoadingPersonas] = useState(false);
+  const [reverseThinkingMap, setReverseThinkingMap] = useState<Record<string, ReverseThinkingResult | null>>({});
+  const [loadingReverse, setLoadingReverse] = useState(false);
 
   // 敏感操作二次確認彈窗與 IG 調研狀態
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -250,6 +253,46 @@ export default function CreativeIntelligenceView({
       cancelled = true;
     };
   }, [currentDirection?.audienceFeedback?.domain, activeProject]);
+
+  // 載入當前方向之逆向創意思考（路人滑掉風險與抗性分析）
+  const fetchReverseThinking = async (dir: CreativeDirection) => {
+    if (!dir || reverseThinkingMap[dir.id]) return;
+    setLoadingReverse(true);
+    try {
+      const domain =
+        dir.audienceFeedback?.domain ||
+        (activeProject.includes("ntu") ? "ntu" : activeProject.includes("personal") ? "general" : "tamkang");
+      const res = await fetch("/api/audience-twin/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conceptTitle: dir.title,
+          description: dir.hook,
+          visualNotes: dir.visualConcept,
+          copyExcerpt: dir.igCaption?.body || "",
+          domain,
+          reverse: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok && data.reverseThinking) {
+        setReverseThinkingMap((prev) => ({
+          ...prev,
+          [dir.id]: data.reverseThinking,
+        }));
+      }
+    } catch {
+      // 容錯靜默處理
+    } finally {
+      setLoadingReverse(false);
+    }
+  };
+
+  useEffect(() => {
+    if (audienceTab === "reverse" && currentDirection && !reverseThinkingMap[currentDirection.id]) {
+      fetchReverseThinking(currentDirection);
+    }
+  }, [audienceTab, currentDirection?.id]);
 
   return (
     <div className="creative-os-container">
@@ -1049,7 +1092,7 @@ export default function CreativeIntelligenceView({
                   </div>
                 </div>
 
-                {/* 雙視角頁籤切換：辯論評估 vs 5 大 PersonaProfile 畫像 */}
+                {/* 3 大視角頁籤切換：辯論評估 vs 逆向思考與滑掉風險 vs 5 大 PersonaProfile 畫像 */}
                 <div className="audience-subnav-tabs">
                   <button
                     type="button"
@@ -1060,6 +1103,18 @@ export default function CreativeIntelligenceView({
                   </button>
                   <button
                     type="button"
+                    className={`audience-subnav-btn ${audienceTab === "reverse" ? "active" : ""}`}
+                    onClick={() => {
+                      setAudienceTab("reverse");
+                      if (currentDirection && !reverseThinkingMap[currentDirection.id]) {
+                        fetchReverseThinking(currentDirection);
+                      }
+                    }}
+                  >
+                    🔄 逆向思考與滑掉風險
+                  </button>
+                  <button
+                    type="button"
                     className={`audience-subnav-btn ${audienceTab === "personas" ? "active" : ""}`}
                     onClick={() => setAudienceTab("personas")}
                   >
@@ -1067,7 +1122,7 @@ export default function CreativeIntelligenceView({
                   </button>
                 </div>
 
-                {audienceTab === "feedback" ? (
+                {audienceTab === "feedback" && (
                   <>
                     {/* 雷達指標長條圖 */}
                     <div className="score-bars-container">
@@ -1159,7 +1214,128 @@ export default function CreativeIntelligenceView({
                       ))}
                     </div>
                   </>
-                ) : (
+                )}
+
+                {audienceTab === "reverse" && (
+                  <div className="audience-reverse-column">
+                    <div className="reverse-truth-notice">
+                      <span className="notice-icon">🛡️</span>
+                      <div className="notice-content">
+                        <div className="notice-title">console_fixture · AI 模擬啟發式評估（非真人受訪）</div>
+                        <div className="notice-sub">
+                          路人視角模擬為啟發式推論（Heuristic Simulation），不代表真實點擊率（CTR）或轉換率。
+                        </div>
+                      </div>
+                    </div>
+
+                    {loadingReverse ? (
+                      <div className="personas-loading-state">正在模擬路人第一眼直覺與流失風險...</div>
+                    ) : (() => {
+                      const reverseData = currentDirection ? reverseThinkingMap[currentDirection.id] : null;
+                      if (!reverseData) {
+                        return (
+                          <div className="empty-state">
+                            <p>尚無逆向思考資料</p>
+                            {currentDirection && (
+                              <button
+                                type="button"
+                                className="btn-retry-reverse"
+                                onClick={() => fetchReverseThinking(currentDirection)}
+                              >
+                                重新載入逆向分析
+                              </button>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <>
+                          {/* 滑掉風險橫幅 */}
+                          <div className={`swipe-risk-banner risk-${reverseData.swipeRisk.label}`}>
+                            <div className="risk-score-col">
+                              <span className="risk-label">路人滑掉風險指標</span>
+                              <div className="risk-score-wrap">
+                                <span className="risk-score">{reverseData.swipeRisk.score}</span>
+                                <span className="risk-score-denom">/ 100</span>
+                              </div>
+                            </div>
+                            <div className="risk-info-col">
+                              <span className="risk-level-badge">
+                                {reverseData.swipeRisk.label === "high"
+                                  ? "🚨 高風險 (易直接滑過)"
+                                  : reverseData.swipeRisk.label === "medium"
+                                  ? "⚠️ 中度流失風險"
+                                  : "✓ 低流失風險 (停留意願高)"}
+                              </span>
+                              <p className="risk-desc">{reverseData.swipeRisk.note}</p>
+                            </div>
+                          </div>
+
+                          {/* 5 位受眾的「路人第一眼」直覺檢視 */}
+                          <div className="perspectives-list">
+                            <div className="perspectives-header">
+                              <span>5 位虛擬受眾「路人第一眼」直覺檢視 (Bystander First Glance)：</span>
+                            </div>
+                            {reverseData.perspectives.map((p) => (
+                              <div key={p.personaId} className="perspective-card">
+                                <div className="perspective-top">
+                                  <div className="p-name-role">
+                                    <strong>{p.name}</strong>
+                                    <span className="p-persona-id">
+                                      {p.personaId === "bystander" ? "路人視角 ⭐" : p.personaId}
+                                    </span>
+                                  </div>
+                                  <span className={`swipe-status-tag ${p.wouldSwipeAway ? "swipe-away" : "stay"}`}>
+                                    {p.wouldSwipeAway ? "🚨 容易直接滑掉" : "👀 願意停駐關注"}
+                                  </span>
+                                </div>
+                                <p className="p-first-glance">「{p.firstGlance}」</p>
+                                <div className="p-details-grid">
+                                  <div className="p-detail-box negative">
+                                    <span className="box-tag">滑掉主因</span>
+                                    <span>{p.swipeReason}</span>
+                                  </div>
+                                  <div className="p-detail-box positive">
+                                    <span className="box-tag">停駐關鍵</span>
+                                    <span>{p.keepReason}</span>
+                                  </div>
+                                </div>
+                                <div className="p-revision-ask">
+                                  <strong>💡 受眾修改請求：</strong>{p.revisionAsk}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 抗性破除建議清單 */}
+                          <div className="recommended-revisions-card">
+                            <div className="rev-header">
+                              <span>💡 受眾抗性破除與優化建議：</span>
+                              <button
+                                type="button"
+                                className="btn-copy-revisions"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(reverseData.recommendedRevisions.join("\n"));
+                                  showToast("優化建議已複製至剪貼簿！");
+                                }}
+                              >
+                                複製建議
+                              </button>
+                            </div>
+                            <ul className="revisions-bullet-list">
+                              {reverseData.recommendedRevisions.map((rev, i) => (
+                                <li key={i}>{rev}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {audienceTab === "personas" && (
                   <div className="audience-personas-column">
                     <div className="personas-view-header">
                       <span className="personas-view-subtitle">

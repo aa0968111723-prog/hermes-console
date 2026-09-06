@@ -74,6 +74,7 @@ export function runReverseThinkingEvaluation(input: {
   projectId?: string;
   institution?: string;
   location?: string;
+  forceTriggered?: boolean;
 }): ReverseThinkingResult {
   const prompt = input.prompt || input.conceptTitle;
   const title = input.conceptTitle;
@@ -157,7 +158,7 @@ export function runReverseThinkingEvaluation(input: {
   ].slice(0, 5);
 
   return {
-    triggered: wantsReverseThinking(prompt),
+    triggered: Boolean(input.forceTriggered || wantsReverseThinking(prompt)),
     triggers: reverseThinkingTriggers(prompt),
     order: REVERSE_ORDER,
     perspectives,

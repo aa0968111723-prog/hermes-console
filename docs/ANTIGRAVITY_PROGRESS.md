@@ -550,11 +550,43 @@
 
 ---
 
+## 週期 21 (Iteration 21) Audience Twin 3 大視角升級：逆向創意思考與路人滑掉風險分析面板
+
+本週期針對操作艙受眾雙生模擬（Audience Twin）在創意思考深度上的最後一哩路——「創作者易陷入自我感動，缺乏路人冷眼視角與滑掉（Swipe Away）流失原因分析」的缺口，完成以下 4 大核心加固：
+
+1. **Audience Twin 3 大視角無縫導航 (`components/CreativeIntelligenceView.tsx`)**：
+   - 擴充受眾雙生面板導航為 3 頁籤體系：
+     - `💬 辯論評估與回饋`：多角色共識結論、指標長條圖與逐字評論。
+     - `🔄 逆向思考與滑掉風險`：路人視角首瞥直覺、流失抗性破除與滑掉風險評估。
+     - `👤 5 大受眾立體畫像`：當前校園領域下 5 位 Persona 的背景設定與避雷名單。
+
+2. **逆向創意思考面板與路人滑掉風險指數 (`CreativeIntelligenceView.tsx`, `app/globals.css`)**：
+   - **出處誠實橫幅**：明確標註 `🛡️ console_fixture · AI 模擬啟發式評估（非真人受訪）`，強調啟發式推論（Heuristic Simulation），絕不偽造真實點擊率（CTR）或轉換率。
+   - **滑掉風險指數卡片 (`SwipeRiskBanner`)**：呈現 0~100 數值、風險等級徽章（高風險 `HIGH` / 中風險 `MEDIUM` / 低風險 `LOW`）與風險評估筆記。
+   - **5 位虛擬受眾「路人第一眼」直覺檢視 (`FirstGlancePerspectives`)**：
+     - 依 `REVERSE_ORDER`（路人 bystander 優先）呈現。
+     - 包含：受眾角色名稱、滑掉判定標籤（`🚨 容易直接滑掉` vs `👀 願意停駐關注`）、第一眼直覺感官（`firstGlance`）、滑掉主因（`swipeReason`）、停駐關鍵（`keepReason`）與具體修改請求（`revisionAsk`）。
+   - **受眾抗性破除與優化建議清單 (`RecommendedRevisions`)**：結構化列出破除抗性的建議，並提供「複製建議」按鈕。
+
+3. **後端 API 旗標強化與跨校園動態適配 (`app/api/audience-twin/simulate/route.ts`, `lib/server/audience-twin/reverse-thinking.ts`)**：
+   - 在 `runReverseThinkingEvaluation` 擴充 `forceTriggered` 旗標，確保前端帶入 `reverse: true` 時，即使概念標題未包含文字關鍵字，也能順利觸發完整的逆向分析負載。
+   - 支援校園領域（淡江、臺大、通用大專）動態脈絡適配與地標事實嚴格隔離。
+
+4. **全套測試與 Next.js 生產建置驗證 (`tests/phase6_reverse_thinking.test.ts`)**：
+   - 在 `tests/phase6_reverse_thinking.test.ts` 新增測試驗證 `POST /api/audience-twin/simulate` 帶入 `reverse: true` 之下返回的 `reverseThinking` 結構、5 位受眾視角與滑掉風險標籤。
+   - `npm test`：**156 / 156 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
 
 

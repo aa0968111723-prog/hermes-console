@@ -78,4 +78,38 @@ test("Phase 6 reverse thinking and simulated evaluation", async (t) => {
     assert.equal(reverse.reverseThinking?.method, "ai_heuristic");
     assert.equal(reverse.reverseThinking?.perspectives[0].sourceKind, "console_fixture");
   });
+
+  await t.test("POST /api/audience-twin/simulate with reverse: true returns full reverseThinking payload", async () => {
+    const simulateRoute = await import("../app/api/audience-twin/simulate/route.ts");
+    const req = new Request("http://localhost:3240/api/audience-twin/simulate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "http://localhost:3240",
+      },
+      body: JSON.stringify({
+        conceptTitle: "淡江克難坡茶席",
+        description: "15 分鐘心靈茶席與選課避雷指南",
+        domain: "tamkang",
+        reverse: true,
+      }),
+    });
+    const res = await simulateRoute.POST(req as any);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.equal(json.ok, true);
+    assert.ok(json.result);
+    assert.ok(json.reverseThinking);
+    assert.equal(json.reverseThinking.triggered, true);
+    assert.equal(json.reverseThinking.method, "ai_heuristic");
+    assert.equal(json.reverseThinking.perspectives.length, 5);
+    assert.equal(json.reverseThinking.perspectives[0].personaId, "bystander");
+    assert.ok(typeof json.reverseThinking.perspectives[0].wouldSwipeAway === "boolean");
+    assert.ok(json.reverseThinking.perspectives[0].swipeReason);
+    assert.ok(json.reverseThinking.perspectives[0].revisionAsk);
+    assert.ok(json.reverseThinking.swipeRisk.score >= 0);
+    assert.ok(["high", "medium", "low"].includes(json.reverseThinking.swipeRisk.label));
+    assert.ok(json.reverseThinking.recommendedRevisions.length > 0);
+  });
 });
+

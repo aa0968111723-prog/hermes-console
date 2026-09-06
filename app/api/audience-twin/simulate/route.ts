@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
             visualNotes,
             copyExcerpt,
             projectId: targetContext,
+            forceTriggered: reverse === true,
           })
         : null;
 
