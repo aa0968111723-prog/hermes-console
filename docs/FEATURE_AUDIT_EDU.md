@@ -2,25 +2,25 @@
 
 盤點對象：目前 `main` 上的 Hermes Creative Intelligence（正式站 [https://344.zeabur.app](https://344.zeabur.app)）。評等只描述**程式與部署可觀察到的狀態**，不是行銷承諾。
 
-評等：`live`＝此分支已接上真實路徑（仍可能缺上游憑證）；`stub`＝有介面或計畫物件，尚未執行真實來源；`missing`＝教心所研究／行政場景需要但沒有。
+評等：`live`＝此分支已接上真實路徑（仍可能缺上游憑證）；`stub`＝有介面或計畫物件，尚未執行真實來源；`missing`＝教心所研究／行政場景需要但沒有；`regressed`＝曾經在 tip／正式站，後來從 `main` 消失。
 
-## 產品現況（與 JieWorld 的關係）
+## 產品現況（與 JieWorld／SillyWorld 的關係）
 
 | 表面 | 狀態 | 說明 |
 | --- | --- | --- |
-| `/` Hermes 控制台 | **live** | 聊天、專案、靈感、Agent、龜龜助手。本 PR 在此加上創作／研究／行政模式。 |
-| `/create` SillyWorld（水光火森） | **missing（本分支）** | `feat/jie-world` 有較早的聊天／專案控制台；已關閉的 PR #6 未進 `main`。正式站目前是 Hermes，不是「倢的／傻的創作小天地」。 |
-| 文件標題「倢的」vs h1「傻的」 | 不適用於本分支 | 屬 JieWorld／SillyWorld 待辦。 |
-| 窄螢幕「專案」與森林球重疊 | 不適用於本分支 | 同上。 |
+| `/` Hermes 控制台 | **live** | 聊天、專案、靈感、Agent、龜龜助手。本 PR 在此加上創作／研究／行政模式。沒有用 JieWorld 取代首頁。 |
+| `/create` SillyWorld（水光火森） | **regressed on tip／prod；本 PR 恢復** | `c250bdb`／`fcc8895`（9/4）曾在 tip 與 https://344.zeabur.app/create。之後約 21 次合併把檔案沖掉；`main` tip `fdb6613` 與正式站現為 **HTTP 404**。這不是有意下架：沒有「刪除 SillyWorld」的提交。AGENTS.md 不禁止本地粉彩舞台（沒有假大腦）。本 PR 從該祖先 re-port，**不**把 `/` 改回 JieWorld。 |
+| 文件標題 vs h1 | 本 PR 對齊 | `/create` metadata／h1 都用「傻的創作小天地」，不再沿用「倢的」。 |
+| 窄螢幕「專案」與森林球重疊 | 本 PR 縮小短／窄視窗的球 | 仍屬 UX 細節，請在 390 寬再看一次。 |
 
-本 PR **不重建、也不刪除** `/create`。若之後把 JieWorld 合回 `main`，研究／行政模式應掛在 `/` 聊天，不要改 SillyWorld。
+研究／行政模式只掛在 `/` 聊天，不改 SillyWorld 的本地問候。
 
 ## 路由
 
 | 路徑 | 評等 | 教心所用途 |
 | --- | --- | --- |
 | `/` | live | 主要工作面：對話 + 模式切換。 |
-| `/create` | missing | 本分支沒有；正式站 404。 |
+| `/create` | **regressed on current main／prod（404）**；本 PR 恢復為 live stub（本地舞台，無真實生成） | 創作玩法，不是研究工具。 |
 | 其他頁面路由 | missing | 沒有獨立研究案、IRB、參與者或所務後台頁。 |
 
 ## 工作區 API
@@ -75,14 +75,15 @@
 3. **文獻不是真的查完**：除非 Hermes 端有已授權搜尋工具且實際回傳，否則書目必須當待查。
 4. **沒有參與者個資治理**：上傳訪談稿／問卷即進同一 SQLite；沒有保留期限、分級或自動去識別。
 5. **閘道與 Hermes 金鑰**：正式站沒有正確 `CONSOLE_GATEWAY_SECRET` 與 Hermes 憑證就無法對話。本機需 `CONSOLE_ALLOW_LOCAL_ACCESS=true`。
-6. **`/create` SillyWorld 不在本產品線**：若夥伴記得水光火森，那是另一分支，不是這次研究／行政模式。
+6. **`/create` 在 tip／正式站為 REGRESSED（404）**：9/4 曾上線，`main` tip 與 https://344.zeabur.app/create 現為 404。本 PR 恢復本地舞台；它**不是**研究工具，也不能當作已接上生成。
 
 ## 有了更好、但不擋試用的項目
 
 - 多租戶或「研究案」空間、匯出／同意紀錄、文獻資料庫連線
 - 所辦表單與行事曆的官方來源（目前行政模式刻意不發明）
 - 淡江 MCP 真實課表／公告（現為 Unconfigured）
-- JieWorld／SillyWorld 與本控制台並存時的導覽
+- `/create` 接上真實生成（目前只有 greetingAck）
+- JieWorld 首頁若要與 Hermes `/` 並存，需另開產品決策
 - 中斷任務的遠端確認、多 replica
 
 ## 本 PR 之後夥伴怎麼試
@@ -93,10 +94,12 @@
 2. `CONSOLE_ALLOW_LOCAL_ACCESS=true`，填入已確認的 `HERMES_API_URL`／`HERMES_API_KEY`（不要用曾公開的舊鑰）
 3. `npm run dev`，開啟 `/`
 4. 在歡迎區切換 **研究** 或 **行政**，用建議句或貼上自己的筆記送出
+5. 側欄或歡迎區進 **創作小天地**（`/create`）確認水光火森與本地問候
 
 **正式站**
 
 - 產品網址：https://344.zeabur.app（須由已授權閘道進入）
-- 部署本 PR 後，同一條聊天即可切模式；`/create` 仍不存在，直到另開 JieWorld 合入
+- **現況：** `/` = 200，`/create` = **404（REGRESSED）**
+- 部署本 PR 後：同一條聊天可切模式；`/create` 應再回 200
 
 契約測試（`npm test`）只證明模式提示與 API 契約，**不是** Zeabur 或教心所實機審查證據。

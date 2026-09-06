@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ArrowUp,
   Check,
@@ -24,6 +25,7 @@ import {
   Link as LinkIcon,
   ExternalLink,
   Download,
+  Palette,
 } from "lucide-react";
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
@@ -675,6 +677,10 @@ export default function HermesConsole() {
           <Bot size={19} />
           Agent
         </button>
+        <Link href="/create">
+          <Palette size={19} />
+          創作小天地
+        </Link>
       </nav>
       <div className="side-section">
         <span>專案</span>
@@ -923,6 +929,11 @@ export default function HermesConsole() {
                       disabled={busy}
                     />
                     <p className="mode-disclaimer">{modeMeta.disclaimer}</p>
+                    <p className="create-link">
+                      或去{" "}
+                      <Link href="/create">創作小天地</Link>
+                      （水光火森，本地舞台）
+                    </p>
                     <button
                       className="primary"
                       onClick={() => input.current?.focus()}
