@@ -5241,3 +5241,294 @@ summary .badge {
 
 
 
+
+/* ─── 📑 全管線創意策略企劃案匯出與交付工作台 (Export Brief Hub) ─── */
+.export-brief-hub-card {
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: var(--radius-lg, 12px);
+  padding: 18px 20px;
+  margin-top: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.export-hub-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.export-brief-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-export-action {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+  background: var(--bg-surface-raised, #1e293b);
+  color: var(--text-primary, #f8fafc);
+  text-decoration: none;
+}
+
+.btn-export-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-copy-md {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.btn-copy-md:hover {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: #60a5fa;
+  color: #93c5fd;
+}
+
+.btn-download-md {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.btn-download-md:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: #34d399;
+  color: #6ee7b7;
+}
+
+.btn-download-json {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+}
+
+.btn-download-json:hover {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: #c084fc;
+  color: #d8b4fe;
+}
+
+.btn-toggle-preview {
+  background: var(--bg-surface-raised, #1e293b);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: var(--text-secondary, #94a3b8);
+  margin-left: auto;
+}
+
+.btn-toggle-preview:hover,
+.btn-toggle-preview.active {
+  background: rgba(148, 163, 184, 0.15);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+/* 展開企劃書預覽區域 */
+.brief-preview-wrapper {
+  margin-top: 16px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--radius-md, 8px);
+  overflow: hidden;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.brief-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(30, 41, 59, 0.6);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.preview-meta-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.preview-tag {
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.preview-char-count {
+  color: var(--text-muted, #64748b);
+}
+
+.preview-standard {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.preview-mode-toggles {
+  display: flex;
+  gap: 4px;
+}
+
+.mode-toggle-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mode-toggle-btn.active {
+  background: var(--bg-surface-raised, #334155);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+.brief-preview-content-box {
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.brief-raw-code {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11.5px;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.brief-formatted-view {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.brief-doc-header h5 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 4px;
+}
+
+.brief-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  margin: 0 0 8px;
+}
+
+.brief-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.brief-badge {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.brief-doc-section {
+  padding: 10px 12px;
+  background: rgba(30, 41, 59, 0.4);
+  border-radius: 6px;
+  border-left: 3px solid #38bdf8;
+}
+
+.brief-doc-section h6 {
+  font-size: 12px;
+  font-weight: 700;
+  color: #38bdf8;
+  margin: 0 0 6px;
+}
+
+.brief-doc-section p {
+  margin: 4px 0;
+  color: #cbd5e1;
+}
+
+.brief-landmarks-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.brief-landmark-pill {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.brief-caption-snippet {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 10px;
+  border-radius: 4px;
+  color: #e2e8f0;
+  margin: 6px 0;
+  border-left: 2px solid #a855f7;
+}
+
+.brief-hashtags-line {
+  color: #38bdf8;
+  font-size: 11px;
+}
+
+.brief-doc-disclaimer {
+  font-size: 10.5px;
+  color: #94a3b8;
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px solid rgba(234, 179, 8, 0.2);
+  padding: 8px 10px;
+  border-radius: 6px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .export-brief-actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn-toggle-preview {
+    margin-left: 0;
+  }
+  .brief-preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

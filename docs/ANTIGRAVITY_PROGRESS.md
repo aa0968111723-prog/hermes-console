@@ -608,6 +608,48 @@
 
 ---
 
+## 週期 23 (Iteration 23) 全管線創意策略企劃案匯出與交付工作台 (Strategy Brief Export Hub)
+
+本週期針對 Hermes 操作艙中「全管線已生成核心洞察、Audience Twin 評分、逆向思考滑掉風險、Canva 4:5 藍圖與 IG 發布文案，但缺乏一鍵彙整成高專業度 Markdown 企劃書、交付文件下載與完整 Pipeline JSON Bundle 匯出工作台」之最後交付缺口，完成以下 4 大核心加固：
+
+1. **全管線創意策略企劃案組裝與匯出核心模組 (`lib/client/export-brief.ts`)**：
+   - **七大結構化企劃書章節組裝器 (`generateCreativeStrategyMarkdown`)**：
+     - 一、 創意核心策略與主題定位（方向 ID、主標題、副標題、第一眼 Hook、核心洞察、視覺調性與主色盤 HEX 表格）。
+     - 二、 校園地標與在地脈絡深度融合（淡江/臺大/通用大專嚴格隔離地標、學生生活情境與專案大腦檢索之關聯記憶）。
+     - 三、 Audience Twin 5 大受眾雙生立體畫像與辯論審查（綜合加權評分總表、指標長條圖意涵、角色逐字審查與共識結論）。
+     - 四、 逆向思考（Reverse Thinking）與路人滑掉風險分析（滑掉風險評級指數、5 位受眾第一眼直覺與滑掉原因、專家抗性破除清單）。
+     - 五、 Canva 4:5 視覺化草稿藍圖與手作三色光印章規範（1080×1350 直式滿版 Feed 規格、5 層分層藍圖規格、36px 手作圓形三色光邊角印章規範：紅外圈 `#D64045` ➔ 黃中圈 `#E9B44C` ➔ 綠內核 `#4F772D`，嚴禁變更為紅綠燈或商業標靶）。
+     - 六、 Instagram 社群文案、Hashtags 與 3 大生活發布時段（完整貼文文案、3 大生活發布時段模型表、即時發布契合度指數）。
+     - 七、 誠實整合與 AI 模擬啟發式免責宣告（標註 `ai_heuristic` / `console_fixture` / `sandbox_blueprint` / `Security Confirmation Token`）。
+   - **純客戶端安全下載與命名工具 (`downloadMarkdownFile`, `downloadJsonBundle`, `getStrategyBriefFilename`)**：
+     - 透過 UTF-8 Blob 觸發 `.md` 企劃書與 `.json` 交付包自動下載；Node 執行期安全容錯返回 `false` 不崩潰。
+     - 自動清洗標題特殊字元，組裝符合校園標籤與日期的規範檔名。
+
+2. **前端操作艙「📑 企劃案匯出與交付工作台」面板整合 (`components/CreativeIntelligenceView.tsx`)**：
+   - 位於文案卡片下方，具備響應式行動工作區（`mobile-pane copy` / `brief`）無縫適配。
+   - **4 大操作工具列**：
+     - `📋 一鍵複製 Markdown`：自動調用產生器寫入剪貼簿並彈出 Toast。
+     - `💾 下載 .md 企劃書`：以 Blob 觸發 `.md` 檔案下載。
+     - `📦 下載完整 JSON Bundle`：打包當前方向、編排任務、逆向分析、社群調研與整合健康度全量 JSON 交付包。
+     - `👁️ 展開 / 收合企劃書預覽`：切換預覽視窗。
+   - **即時預覽視窗 (`brief-preview-wrapper`)**：
+     - 提供「排版檢視」與「原始 Markdown」兩種雙模切換，展示字元數、標準規範徽章與結構化預覽。
+
+3. **匯出工作台深色主題樣式與行動適配 (`app/globals.css`)**：
+   - 新增 `.export-brief-hub-card`、`.btn-export-action` 系列按鈕漸層與微互動動效。
+   - 企劃書預覽視窗深色等寬代碼面板與卡片排版樣式。
+   - 手機小螢幕（`< 760px`）按鈕自適應垂直堆疊與標題自動換行。
+
+4. **單元測試、全套回歸與生產驗證 (`tests/phase11_export_brief.test.ts`)**：
+   - 新增 6 個專屬單元測試，全面覆蓋校園地標嚴格隔離（淡江不得含椰林大道、臺大不得含克難坡）、檔案命名安全性、7 大章節結構與三色光印章標籤驗證、Node 環境安全降級。
+   - `npm test`：**163 / 163 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：233 個檔案掃描通過，0 洩漏。
+   - `tests/phase10_nologin_security.test.ts`：6 / 6 測試 100% 通過，嚴格維持零登入資安防護。
+   - `npm run build`：Next.js 43 個路由成功最佳化生成。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。

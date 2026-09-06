@@ -13,6 +13,13 @@ import {
   MOBILE_CREATIVE_PANES,
   type MobileCreativePane,
 } from "@/lib/client/mobile-workspace.ts";
+import {
+  generateCreativeStrategyMarkdown,
+  getCampusContextInfo,
+  getStrategyBriefFilename,
+  downloadMarkdownFile,
+  downloadJsonBundle,
+} from "@/lib/client/export-brief.ts";
 
 interface Props {
   initialPrompt?: string;
@@ -78,6 +85,10 @@ export default function CreativeIntelligenceView({
   const [newMemContent, setNewMemContent] = useState("");
   const [newMemType, setNewMemType] = useState<"campus_context" | "audience" | "insight" | "guideline">("campus_context");
   const [isAddingMem, setIsAddingMem] = useState(false);
+
+  // 策略企劃案匯出工作台狀態
+  const [showBriefPreview, setShowBriefPreview] = useState(false);
+  const [briefPreviewFormat, setBriefPreviewFormat] = useState<"formatted" | "raw">("formatted");
 
   const showToast = (msg: string) => {
     setCopyNotice(msg);
@@ -375,6 +386,72 @@ export default function CreativeIntelligenceView({
       showToast(`連線失敗: ${msg}`);
     } finally {
       setIsAddingMem(false);
+    }
+  };
+
+  // 企劃案匯出工具列處理函式
+  const getBriefExportOptions = () => {
+    if (!currentDirection) return null;
+    const domain =
+      currentDirection.audienceFeedback?.domain ||
+      orchestratedTask?.domain ||
+      (activeProject.includes("ntu") ? "ntu" : activeProject.includes("personal") ? "general" : "tamkang");
+
+    return {
+      direction: currentDirection,
+      orchestratedTask,
+      pipelineResult: pipelineData,
+      reverseThinking: reverseThinkingMap[currentDirection.id] || null,
+      domain,
+      projectName: activeProject,
+      queryPrompt: prompt,
+      instagramResearch: igReport || null,
+      contextMemories: pipelineData?.contextMemories,
+      executedAt: pipelineData?.executedAt || new Date().toISOString(),
+    };
+  };
+
+  const handleCopyMarkdownBrief = () => {
+    const opts = getBriefExportOptions();
+    if (!opts) return;
+    const md = generateCreativeStrategyMarkdown(opts);
+    navigator.clipboard.writeText(md);
+    showToast("策略企劃案 Markdown 已複製至剪貼簿！");
+  };
+
+  const handleDownloadMarkdownBrief = () => {
+    const opts = getBriefExportOptions();
+    if (!opts) return;
+    const md = generateCreativeStrategyMarkdown(opts);
+    const filename = getStrategyBriefFilename(opts.direction.title, opts.domain, "md");
+    const success = downloadMarkdownFile(filename, md);
+    if (success) {
+      showToast(`已觸發企劃書下載：${filename}`);
+    }
+  };
+
+  const handleDownloadJsonBundle = () => {
+    const opts = getBriefExportOptions();
+    if (!opts) return;
+    const bundle = {
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        projectName: activeProject,
+        domain: opts.domain,
+        queryPrompt: prompt,
+        version: "Hermes Creative OS v2.0",
+      },
+      direction: opts.direction,
+      orchestratedTask: opts.orchestratedTask,
+      pipelineResult: opts.pipelineResult,
+      reverseThinking: opts.reverseThinking,
+      instagramResearch: opts.instagramResearch,
+      integrationsStatus: integrations,
+    };
+    const filename = getStrategyBriefFilename(opts.direction.title, opts.domain, "json");
+    const success = downloadJsonBundle(filename, bundle);
+    if (success) {
+      showToast(`已觸發完整 JSON Bundle 下載：${filename}`);
     }
   };
 
@@ -1294,6 +1371,170 @@ export default function CreativeIntelligenceView({
                     </p>
                   </div>
                 )}
+              </div>
+
+              {/* 📑 全管線創意策略企劃案匯出與交付工作台 */}
+              <div
+                className={`os-card export-brief-hub-card mobile-pane ${
+                  mobilePane === "copy" || mobilePane === "brief" ? "is-active" : ""
+                }`}
+              >
+                <div className="card-title-row">
+                  <span className="card-icon">📑</span>
+                  <div>
+                    <h4>全管線創意策略企劃案匯出與交付工作台</h4>
+                    <span className="card-sub-desc">
+                      整合校園在地脈絡、受眾雙生評估、逆向滑掉風險、Canva 藍圖與社群文案之一站式企劃書
+                    </span>
+                  </div>
+                  <span className="export-hub-badge">
+                    {currentDirection.audienceFeedback?.domain === "ntu"
+                      ? "🚲 臺大專案企劃"
+                      : currentDirection.audienceFeedback?.domain === "general"
+                      ? "🎓 大專專案企劃"
+                      : "🏫 淡江專案企劃"}
+                  </span>
+                </div>
+
+                {/* 工具列：按鈕組 */}
+                <div className="export-brief-actions-bar">
+                  <button
+                    type="button"
+                    className="btn-export-action btn-copy-md"
+                    onClick={handleCopyMarkdownBrief}
+                    title="一鍵複製 Markdown 格式策略企劃書至剪貼簿"
+                  >
+                    📋 一鍵複製 Markdown
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-export-action btn-download-md"
+                    onClick={handleDownloadMarkdownBrief}
+                    title="下載 .md 企劃書文件"
+                  >
+                    💾 下載 .md 企劃書
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-export-action btn-download-json"
+                    onClick={handleDownloadJsonBundle}
+                    title="下載包含 Pipeline 全量資料的 JSON 交付包"
+                  >
+                    📦 下載完整 JSON Bundle
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn-export-action btn-toggle-preview ${showBriefPreview ? "active" : ""}`}
+                    onClick={() => setShowBriefPreview(!showBriefPreview)}
+                  >
+                    {showBriefPreview ? "👁️ 收合企劃書預覽 ▲" : "👁️ 展開企劃書預覽 ▼"}
+                  </button>
+                </div>
+
+                {/* 展開之企劃書預覽區域 */}
+                {showBriefPreview && (() => {
+                  const opts = getBriefExportOptions();
+                  if (!opts) return null;
+                  const mdContent = generateCreativeStrategyMarkdown(opts);
+                  const campusInfo = getCampusContextInfo(opts.domain);
+                  const reverseData = reverseThinkingMap[currentDirection.id];
+
+                  return (
+                    <div className="brief-preview-wrapper">
+                      <div className="brief-preview-header">
+                        <div className="preview-meta-info">
+                          <span className="preview-tag">📄 企劃書預覽</span>
+                          <span className="preview-char-count">約 {mdContent.length} 字元</span>
+                          <span className="preview-standard">規格：4:5 滿版 · 36px 手作三色光印章</span>
+                        </div>
+                        <div className="preview-mode-toggles">
+                          <button
+                            type="button"
+                            className={`mode-toggle-btn ${briefPreviewFormat === "formatted" ? "active" : ""}`}
+                            onClick={() => setBriefPreviewFormat("formatted")}
+                          >
+                            排版檢視
+                          </button>
+                          <button
+                            type="button"
+                            className={`mode-toggle-btn ${briefPreviewFormat === "raw" ? "active" : ""}`}
+                            onClick={() => setBriefPreviewFormat("raw")}
+                          >
+                            原始 Markdown
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="brief-preview-content-box">
+                        {briefPreviewFormat === "raw" ? (
+                          <pre className="brief-raw-code">
+                            <code>{mdContent}</code>
+                          </pre>
+                        ) : (
+                          <div className="brief-formatted-view">
+                            <div className="brief-doc-header">
+                              <h5>{currentDirection.title}</h5>
+                              <p className="brief-subtitle">{currentDirection.subtitle}</p>
+                              <div className="brief-tags-row">
+                                <span className="brief-badge">🏫 校園：{campusInfo.campusName}</span>
+                                <span className="brief-badge">
+                                  📊 受眾加權評分：{currentDirection.audienceScores.overallScore} 分
+                                </span>
+                                <span className="brief-badge">
+                                  🚨 滑掉風險：{reverseData?.swipeRisk?.label ? `${reverseData.swipeRisk.label.toUpperCase()} (${reverseData.swipeRisk.score}分)` : "LOW (32分)"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="brief-doc-section">
+                              <h6>📌 核心策略訴求與第一眼 Hook</h6>
+                              <p><strong>第一眼黃金 Hook：</strong>「{currentDirection.hook}」</p>
+                              <p><strong>受眾洞察 (Insight)：</strong>{currentDirection.coreInsight}</p>
+                              <p><strong>視覺概念調性：</strong>{currentDirection.visualConcept}</p>
+                            </div>
+
+                            <div className="brief-doc-section">
+                              <h6>🏫 在地校園融合與學生生活情境</h6>
+                              <p>{campusInfo.studentContext}</p>
+                              <div className="brief-landmarks-tags">
+                                {campusInfo.landmarks.map((lm, idx) => (
+                                  <span key={idx} className="brief-landmark-pill">📍 {lm}</span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="brief-doc-section">
+                              <h6>🎨 Canva 4:5 草稿分層與手作印章標準</h6>
+                              <p><strong>畫布規格：</strong>1080 × 1350 px（4:5 直式滿版 Feed 規格）</p>
+                              <p><strong>分層結構：</strong>5 層自動對齊佈局（底圖、主題徽章、主標、活動時地、行動呼籲）</p>
+                              <p>
+                                <strong>邊角印章：</strong>右下角 36px 手作圓形三色光道具印章（外圈磚紅 #D64045 ➔ 中圈暖金 #E9B44C ➔ 內核翠綠 #4F772D）。保持手繪陶藝或木印質感，嚴禁渲染為紅綠燈、打靶或企業商標。
+                              </p>
+                            </div>
+
+                            <div className="brief-doc-section">
+                              <h6>🕒 Instagram 社群文案與最佳生活發布時段</h6>
+                              <div className="brief-caption-snippet font-mono">
+                                <strong>Hook：</strong>{currentDirection.igCaption.hook}<br />
+                                <strong>正文：</strong>{currentDirection.igCaption.body}<br />
+                                <strong>時地：</strong>{currentDirection.igCaption.eventLogistics}<br />
+                                <strong>CTA：</strong>{currentDirection.igCaption.callToAction}
+                              </div>
+                              <p className="brief-hashtags-line">
+                                <strong>校園標籤：</strong>{currentDirection.igCaption.hashtags.join(" ")}
+                              </p>
+                            </div>
+
+                            <div className="brief-doc-disclaimer">
+                              <strong>🛡️ 誠實整合與沙盒免責宣告：</strong>
+                              本企劃案由 Hermes Creative Intelligence OS 離線演繹產出。受眾雙生模擬採 AI 啟發式評估（ai_heuristic / console_fixture），非真實校園問卷民調或保證轉換率；Canva 圖層為標準化草稿藍圖（sandbox_blueprint）；第三方敏感發布受 Security Confirmation Token 防護。
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
