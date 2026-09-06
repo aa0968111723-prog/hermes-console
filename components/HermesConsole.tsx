@@ -33,6 +33,9 @@ import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
 import InspirationBoard from "./inspiration/InspirationBoard";
+import ProjectWorkbench from "./ProjectWorkbench";
+import LearningMap from "./LearningMap";
+import MemberAccess from "./MemberAccess";
 import IntegrationHealth from "./settings/IntegrationHealth";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
@@ -136,7 +139,7 @@ async function api<T>(
     throw new Error(data.error?.message || "操作失敗，請稍後重試。");
   return data as T;
 }
-export default function HermesConsole() {
+export default function HermesConsole({ member, onLogout }: { member: {email: string; role: string}; onLogout: () => Promise<void> }) {
   const [auth, setAuth] = useState<"loading" | "ready">("loading");
   const [data, setData] = useState<Workspace>(EMPTY);
   const [health, setHealth] = useState<Health | null>(null);
@@ -1296,6 +1299,13 @@ export default function HermesConsole() {
           <section className="secondary-page">
             <p className="eyebrow">收好靈感，接著創作</p>
             <h1>素材與靈感</h1>
+            <ProjectWorkbench key={project} projectId={project} materials={data.materials} workflows={workflows}
+              onCompose={(text) => {
+                if (busy) { setError("請先等目前任務結束或停止，再接續其他作品。"); return; }
+                fresh();
+                replaceDraft("project:" + project, { ...emptyDraft(), text });
+              }}
+            />
             <p className="muted">
               保存來源與你的素材，不將參考作品視為可直接發佈的素材。
             </p>
@@ -1608,7 +1618,7 @@ export default function HermesConsole() {
                   tabs[next]?.click();
                 }}
               >
-                {["外觀", "連線", "記憶", "使用量", "專案"].map((tab) => (
+                {["外觀", "連線", "記憶", "使用量", "成員", "專案"].map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -1843,13 +1853,17 @@ export default function HermesConsole() {
                         </details>
                       ))}
                   </div>
+                ) : settingsTab === "成員" ? (
+                  <MemberAccess member={member} onLogout={onLogout} />
                 ) : settingsTab === "記憶" ? (
                   <div className="settings-stack">
                     <h3>記憶與會話</h3>
+                    <LearningMap key={project} projectId={project} skills={health?.skills || []} materials={data.materials}
+                      onTask={id => { setSelectedTask(id); setPanel("task"); }} />
                     <p>{data.memory.scope}</p>
                     <p className="muted">
-                      未取得可驗證的記憶管理介面，不提供假同步、假刪除或本地記憶清單。Console
-                      對話歷史與 Hermes 長期記憶是不同資料。
+                      上方節點是學習請求與執行紀錄，不是遠端記憶鏡像。Console
+                      對話歷史與 Hermes 長期記憶是不同資料；遠端保存或刪除需另外查證。
                     </p>
                     <button
                       disabled={!activeConv?.hermesSessionId}

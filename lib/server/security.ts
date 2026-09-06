@@ -6,6 +6,7 @@ import {
 } from "node:crypto";
 import { z } from "zod";
 import { db, get, put, transaction } from "./store";
+import { currentMember } from "./invitations";
 
 export const WORKSPACE_OWNER = "workspace";
 
@@ -54,13 +55,15 @@ export function checkOrigin(request: Request) {
     );
 }
 export function authenticate(request: Request, mutation = false): string {
-  verifyGateway(request);
+  if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
+    verifyGateway(request);
+  currentMember(request);
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;
 }
 
-// No Console login: only an authenticated/private gateway may assert workspace access.
+// Optional defense in depth; invitation membership is still required by authenticate.
 // The gateway must replace this header, never forward a browser-provided value.
 export function verifyGateway(request: Request) {
   const secret = process.env.CONSOLE_GATEWAY_SECRET || "";

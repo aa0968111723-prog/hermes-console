@@ -1,43 +1,22 @@
 import { z } from "zod";
-import {
-  checkOrigin,
-  jsonBody,
-  respond,
-  route,
-  WORKSPACE_OWNER,
-  verifyGateway,
-} from "@/lib/server/security";
+import { authenticate, checkOrigin, jsonBody, respond, route } from "@/lib/server/security";
+import { currentMember, requestLogin, redeemLogin, endSession, sessionHeader, emailInput } from "@/lib/server/invitations";
 export const runtime = "nodejs";
-export const GET = route(async (request) => {
-  verifyGateway(request);
-  return respond({
-    workspace: { id: WORKSPACE_OWNER, mode: "no-login" },
-  });
+export const GET = route(async req => {
+  authenticate(req);
+  const member = currentMember(req);
+  return respond({ member: { email: member.email, role: member.role }, mode: "email-invitation" });
 });
-export const POST = route(async (request) => {
-  checkOrigin(request);
-  z.object({})
-    .passthrough()
-    .parse(await jsonBody(request, 2000));
-  return respond(
-    {
-      error: {
-        code: "login_removed",
-        message: "此工作區為免登入單一空間，不接受帳號密碼。",
-      },
-    },
-    410,
-  );
+export const POST = route(async req => {
+  checkOrigin(req);
+  const input = z.discriminatedUnion("action", [
+    z.object({ action: z.literal("request_link"), email: emailInput }).strict(),
+    z.object({ action: z.literal("redeem"), token: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
+  ]).parse(await jsonBody(req, 2000));
+  if (input.action === "request_link") return respond(await requestLogin(input.email), 202);
+  return respond({ signedIn: true }, 200, { "Set-Cookie": sessionHeader(redeemLogin(input.token)) });
 });
-export const DELETE = route(async (request) => {
-  checkOrigin(request);
-  return respond(
-    {
-      error: {
-        code: "login_removed",
-        message: "此工作區沒有登出流程。",
-      },
-    },
-    410,
-  );
+export const DELETE = route(async req => {
+  checkOrigin(req); endSession(req);
+  return respond({ signedOut: true }, 200, { "Set-Cookie": sessionHeader() });
 });

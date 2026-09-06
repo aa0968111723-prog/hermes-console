@@ -1,6 +1,6 @@
 # Hermes Creative Intelligence
 
-明亮、免登入的單一工作區。開啟網址即可與 Hermes 對話。Hermes 執行工具；Console 保存會話對應、任務與素材，不另建模板大腦。
+明亮、電子信箱邀請制的團隊工作區。Hermes 執行工具；Console 保存會話、任務、活動、文案版本與學習請求，不另建模板大腦。
 
 ## 啟動
 
@@ -9,14 +9,14 @@
 1. `npm ci`
 2. 複製 `.env.example` 到 `.env.local`，依註解設定。
 3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。
-4. 本機 loopback 開發明確設定 `CONSOLE_ALLOW_LOCAL_ACCESS=true`；正式環境保持 false 並配置存取閘道秘密。
+4. 設定 `CONSOLE_ADMIN_EMAILS`、`RESEND_API_KEY` 與已驗證寄件網域的 `CONSOLE_EMAIL_FROM`；用管理員信箱要求一次性登入連結。沒有公共註冊或正式環境登入繞過。
 5. `npm run dev`；正式環境使用 `npm run build` 與 `npm start`。
 
-# No Login
+## 電子信箱邀請制
 
-開啟網站即可使用。不需要帳號、密碼、註冊或 session 登入閘。資料寫入固定後端 namespace `workspace`，不會在介面顯示。
+管理員設定於後端環境變數，登入後在「設定 → 成員」邀請或撤銷成員。登入連結 15 分鐘有效、一次性使用，會話 12 小時有效；撤銷即阻止後續 API 存取。資料仍寫入原 `workspace`，保留既有歷史。目前成員共享資料，不宣稱個人隔離。
 
-正式環境必須經受控存取閘道：先驗證身份或私人網路權限，再由閘道覆寫 `X-Console-Gateway`。後端以全新 `CONSOLE_GATEWAY_SECRET` 驗證；沒有配置時 API 拒絕存取。秘密不可送到瀏覽器，也不能使用公開、無條件注入標頭的代理代替身份驗證。詳見 [部署說明](docs/DEPLOYMENT.md)。
+可另外保留受控存取閘道：設定 `CONSOLE_GATEWAY_SECRET` 後後端同時要求閘道與受邀會話；閘道不能取代邀請登入。詳見 [部署說明](docs/DEPLOYMENT.md)。
 
 ## 重要安全操作
 
@@ -26,4 +26,4 @@
 
 ## 驗證與限制
 
-最新接續見 [PR #11 真實執行與閘道紀錄](docs/PR11_RELIABILITY.md)。契約測試使用明確隔離的測試伺服器，不是 Zeabur／Canva 實機整合驗證。
+最新接續見 [活動、學習地圖與邀請制](docs/LEARNING_INVITATIONS.md)。舊 PR #11／#14 文件僅為歷史紀錄，其免登入方案已由本輪要求取代。契約測試不是 Zeabur／Canva／電子郵件收件匣的實機驗證。

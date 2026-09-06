@@ -55,6 +55,30 @@
   font-size: 13px;
   color: var(--muted);
 }
+.invite-entry { min-height: 100dvh; display: grid; place-items: center; padding: 20px; }
+.invite-entry section { max-width: 440px; width: 100%; }
+.invite-entry label { display: grid; gap: 8px; margin-block: 20px; }
+.invite-entry button, .invite-entry input { min-height: 44px; margin: 6px 0; }
+.invite-entry input { width: 100%; }
+.learning-root { padding: 14px; border-radius: 12px; background: var(--selection); color: var(--text); }
+.learning-tree, .learning-tree ul { list-style: none; padding-left: 12px; margin-left: 4px; border-left: 2px solid var(--selection); }
+.learning-tree li { overflow-wrap: anywhere; min-width: 0; }
+.learning-tree small { display: block; color: var(--muted); }
+.learning-map a { overflow-wrap: anywhere; }
+.workbench { margin: 24px 0; padding: 18px 0; border-block: 1px solid var(--line); }
+.workbench form, .workbench details { margin: 14px 0; }
+.workbench-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; }
+.workbench fieldset { min-width: 0; display: grid; gap: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+.workbench legend { font-size: 14px; padding: 0 5px; }
+.workbench label { display: grid; gap: 6px; margin-block: 10px; }
+.workbench input, .workbench select, .workbench textarea { width: 100%; min-width: 0; max-width: 100%; }
+.workbench button, .workbench .button-link, .workbench summary { min-height: 44px; }
+.workbench summary { padding-block: 12px; overflow-wrap: anywhere; cursor: pointer; }
+.workbench .check-row { display: flex; align-items: center; min-height: 44px; }
+.workbench .check-row input { width: 20px; }
+.fact-row { padding: 14px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+.fact-row p { margin: 6px 0; }
+.preserve-lines { white-space: pre-wrap; overflow-wrap: anywhere; }
 .canva-result {
   background: #fff;
   border: 1px solid var(--line);

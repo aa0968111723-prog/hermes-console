@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp } from "node:fs/promises";
@@ -74,25 +75,26 @@ function request(path: string, method = "GET", body?: unknown, origin = true) {
     method,
     headers: {
       "Content-Type": "application/json",
+      Cookie: seedSession().cookie,
       ...(origin ? { Origin: process.env.CONSOLE_ORIGIN! } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
-test("no-login workspace, confirmation, discovery and creative intelligence", async (t) => {
-  await t.test("anonymous APIs do not require login", async () => {
+test("invited workspace, confirmation, discovery and creative intelligence", async (t) => {
+  await t.test("invited sessions access APIs; password login is rejected", async () => {
     assert.equal((await workspace.GET(request("workspace"))).status, 200);
     assert.equal((await healthRoute.GET(request("health"))).status, 200);
     const auth = await (await authRoute.GET(request("auth"))).json();
-    assert.equal(auth.workspace.mode, "no-login");
+    assert.equal(auth.mode, "email-invitation");
     assert.equal(
       (
         await authRoute.POST(
           request("auth", "POST", { username: "x", password: "y" }),
         )
       ).status,
-      410,
+      400,
     );
     const text = JSON.stringify(auth);
     assert.ok(!/請先登入|login required/i.test(text));
@@ -125,7 +127,7 @@ test("no-login workspace, confirmation, discovery and creative intelligence", as
           security.authenticate(
             new Request("http://localhost:3211/api/tasks", {
               method: "POST",
-              headers: { Origin: "https://attacker.example" },
+              headers: { Origin: "https://attacker.example", Cookie: seedSession().cookie },
             }),
             true,
           ),
@@ -510,6 +512,7 @@ test("no-login workspace, confirmation, discovery and creative intelligence", as
           method: "POST",
           headers: {
             Origin: process.env.CONSOLE_ORIGIN!,
+            Cookie: seedSession().cookie,
             "Content-Type": "application/pdf",
             "x-file-name": encodeURIComponent("brief.pdf"),
           },

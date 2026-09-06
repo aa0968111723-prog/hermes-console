@@ -6,10 +6,11 @@
 
 - 單一 replica，掛載可寫持久化卷到 `/app/data`。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
-- # No Login：產品本身不要求 Console 帳號密碼。`CONSOLE_USERNAME`／`CONSOLE_PASSWORD_HASH` 不是啟動必要條件。
-- 必须使用受控存取閘道或私人網路，不在 Console UI 恢復登入。後端需配置至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`；閘道在完成身份或私人網路檢查後，覆寫 `X-Console-Gateway` 為相同秘密。不要透傳瀏覽器傳入的標頭，不在前端加秘密。缺設定會回 503，缺少／錯誤標頭回 401。
+- 電子信箱邀請制取代免登入。設定 `CONSOLE_ADMIN_EMAILS`（逗號分隔的初始管理員）、新的 `RESEND_API_KEY` 與 `CONSOLE_EMAIL_FROM`（已在 Resend 驗證的寄件網域）。不沿用舊帳號密碼。寄信服務接受請求不等於已送達收件匣。
+- 登入連結只存雜湊，15 分鐘到期、一次性使用；網址 fragment 不進 HTTP request URL，使用者需按確認才核銷。登入 cookie 使用 HttpOnly、SameSite=Lax、HTTPS Secure、12 小時期限。每個 API 重新驗證成員是否仍有效。
+- 如需額外閘道，設定至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`，或 `CONSOLE_REQUIRE_GATEWAY=true` 要求設定；未設定時仍強制邀請登入。配置閘道後需先驗證身份或私人網路，再覆寫 `X-Console-Gateway`。不要把秘密放前端。
 - 閘道本身必須驗證存取權；一個公開且無條件注入標頭的 reverse proxy 不算保護。建議限制 Console upstream 僅由 gateway 的私人網路可達。不要相信未驗證的 X-Forwarded-User 或僅靠 Origin。
-- `CONSOLE_ALLOW_LOCAL_ACCESS=true` 只供隔離 localhost／127.0.0.1 開發與測試，仍要同協定與 port；正式環境保持 false。若配置了閘道秘密，此開關不能繞過它。
+- `CONSOLE_ALLOW_LOCAL_ACCESS` 僅影響閘道的 loopback 檢查，不能繞過電子信箱邀請登入。正式環境沒有測試登入開關。
 - 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。撤銷所有曾公開的 Hermes API Key 並重新產生。
 - 定期備份 SQLite 和 uploads；備份也必須存取受控。不要把資料卷提交 Git。
 - 未實作多 replica 鎖／分散式佇列。不要水平扩展此版本。
@@ -29,7 +30,7 @@
 
 Console 支援 Streamable HTTP 的 2025-03-26／2025-06-18 協定；GET 回應 405，POST 接受 JSON-RPC。不支援舊式獨立 SSE endpoint。
 
-初始只列出工作區參考與三方向保存工具。完成 Canva 授權及設計清單驗證後，重新連接／刷新 Hermes MCP 工具清單，才會看到 Canva 操作工具。
+工作區 MCP 現在也列出專案上下文、活動讀写與逐頁文案讀寫。資料確認、方向和版本選定仍只開放已登入使用者，不給模型自我確認工具。完成 Canva 授權及設計清單驗證後，刷新 Hermes 工具清單才會看到 Canva 操作工具。
 
 新增 `workspace_read_material` 讀取真實 PNG／TXT；PDF 僅保存原檔，尚未文字抽取，不向 Hermes 傳送假內容。`MCP_REQUIRE_TASK_CONTEXT=true` 是預設：工具需帶 Console 提供的 taskId；已停止或跨專案請求會拒絕。僅隔離管理者測試可設 false。`CONSOLE_MAX_TOOL_CALLS=40` 計算每任務 Console MCP 嘗試，不是全 Hermes 預算／供應商費用；達上限保留資料，需由使用者檢視後建立接續任務。
 
@@ -47,7 +48,7 @@ Console 支援 Streamable HTTP 的 2025-03-26／2025-06-18 協定；GET 回應 4
 
 可使用 VPN＋網路 ACL，或先驗證身份的 SSO gateway。驗證通过後才在轉送 Console 前覆寫 `X-Console-Gateway`；例如 Caddy 已有受控網路／身份 policy 的 reverse_proxy 區塊內可用 `header_up X-Console-Gateway {$CONSOLE_GATEWAY_SECRET}`。這一行本身**不是身份驗證設定**，不可單獨暴露到 Internet。若使用 Cloudflare Access，必須先驗證 Access assertion 或以受控 tunnel 保證來源；目前程式沒有內建該 JWT 驗證器。
 
-上線前：匿名直接訪問 backend `/api/workspace` 應 401；沒有 gateway secret 的部署應 503；未授權 gateway 使用者應被 gateway 拒絕；已授權使用者可免 Console 登入操作，瀏覽器不能看到 gateway secret。驗證 Canva OAuth callback 能經同一 gateway 完成。MCP `/api/mcp` 使用獨立 Bearer 認證；不要因此把全部 `/api/*` 設為公開。
+上線前：匿名直接訪問 backend `/api/workspace` 應 401；明確要求 gateway 卻沒有設定 secret 時應 503。配置閘道時，未授權使用者應被 gateway 拒絕，通過閘道仍需受邀信箱登入；瀏覽器不能看到 gateway secret。驗證 Canva OAuth callback 能帶著邀請登入 session 經同一 gateway 完成。MCP `/api/mcp` 使用獨立 Bearer 認證；不要因此把全部 `/api/*` 設為公開。
 
 尚未執行正式閘道部署或 Zeabur 資料卷／記憶還原；本輪實測與限制見 [PR #11 接續紀錄](PR11_RELIABILITY.md)。
 

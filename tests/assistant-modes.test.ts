@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -25,6 +26,7 @@ function request(path: string, method = "GET", body?: unknown) {
   return new Request("http://localhost:3220/api/" + path, {
     method,
     headers: {
+      Cookie: seedSession().cookie,
       "Content-Type": "application/json",
       Origin: process.env.CONSOLE_ORIGIN!,
     },

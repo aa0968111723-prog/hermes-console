@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { randomUUID, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
@@ -31,6 +32,7 @@ const req = (
   new Request(process.env.CONSOLE_ORIGIN + "/api/intelligence", {
     method: body === undefined ? "GET" : "POST",
     headers: {
+      Cookie: seedSession().cookie,
       Origin: origin,
       "Content-Type": "application/json",
       "X-Console-Gateway": gateway,
@@ -51,6 +53,7 @@ test("gateway is fail-closed and cannot be replaced by Origin or forwarded ident
     403,
   );
   process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
+  process.env.CONSOLE_REQUIRE_GATEWAY = "true";
   delete process.env.CONSOLE_GATEWAY_SECRET;
   assert.equal((await workspace.GET(req())).status, 503);
   const spoofed = new Request("https://console.example/api/workspace", {

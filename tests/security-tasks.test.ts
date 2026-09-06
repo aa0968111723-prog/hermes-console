@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, readFile } from "node:fs/promises";
@@ -115,9 +116,7 @@ const taskRoute = await import("../app/api/tasks/route");
 const healthRoute = await import("../app/api/health/route");
 const { saveUpload, attachmentParts } = await import("../lib/server/materials");
 const { integrations } = await import("../lib/server/integrations");
-const cookie = security.sessionCookie(
-  security.login("fixture-owner", password),
-);
+const cookie = seedSession().cookie;
 function request(
   path: string,
   method = "GET",
@@ -157,15 +156,15 @@ async function settle(id: string) {
   throw new Error("Fixture task did not settle");
 }
 test("security, honest health, durable tasks, uploads and ownership", async (t) => {
-  await t.test("workspace APIs do not require login cookies", async () => {
+  await t.test("workspace APIs require an invited session", async () => {
     assert.equal(
       (await healthRoute.GET(request("health", "GET", undefined, false)))
         .status,
-      200,
+      401,
     );
     assert.equal(
       (await authRoute.GET(request("auth", "GET", undefined, false))).status,
-      200,
+      401,
     );
     const body = await (
       await authRoute.GET(request("auth", "GET", undefined, false))
@@ -181,10 +180,10 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
           }),
         )
       ).status,
-      403,
+      401,
     );
   });
-  await t.test("mutations stay origin-bound without a login gate", async () => {
+  await t.test("invited mutations stay origin-bound; legacy login is rejected", async () => {
     assert.equal(
       (
         await authRoute.POST(
@@ -194,7 +193,7 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
           }),
         )
       ).status,
-      410,
+      400,
     );
     assert.throws(
       () =>
@@ -206,13 +205,13 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         ),
       /來源/,
     );
-    assert.equal(
-      security.authenticate(
+    assert.throws(
+      () => security.authenticate(
         new Request("http://localhost:3210/api/tasks", {
           headers: { Cookie: "hermes_session=forged" },
         }),
       ),
-      "workspace",
+      /登入/,
     );
   });
   await t.test("client destinations and credentials rejected", async () => {

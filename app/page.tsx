@@ -1,7 +1,7 @@
 "use client";
 
-import HermesConsole from "@/components/HermesConsole";
+import InvitationGate from "@/components/InvitationGate";
 
 export default function Page() {
-  return <HermesConsole />;
+  return <InvitationGate />;
 }
