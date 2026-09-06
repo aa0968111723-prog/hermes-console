@@ -18,6 +18,7 @@ import {
   visibleText,
 } from "@/lib/server/hermes";
 import type { Conversation, Message } from "@/lib/contracts";
+import { parseAssistantMode } from "@/lib/assistant-modes";
 export const runtime = "nodejs";
 const timestamp = () => new Date().toISOString();
 const projectId = z
@@ -92,6 +93,7 @@ export const POST = route(async (req) => {
       projectId: projectId.default("personal"),
       parentId: z.string().uuid().optional(),
       beforeMessageId: z.string().uuid().optional(),
+      assistantMode: z.enum(["creative", "research", "admin"]).optional(),
     })
     .strict()
     .parse(await jsonBody(req));
@@ -120,6 +122,7 @@ export const POST = route(async (req) => {
     createdAt: timestamp(),
     updatedAt: timestamp(),
     parentId: body.parentId,
+    assistantMode: parseAssistantMode(body.assistantMode),
   };
   return respond({ conversation: put("conversation", owner, conv) }, 201);
 });

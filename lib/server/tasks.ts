@@ -19,6 +19,10 @@ import {
 import { recordTaskUsage } from "./usage";
 import { attachmentParts, material } from "./materials";
 import { frames } from "./sse";
+import {
+  parseAssistantMode,
+  specialistInstructions,
+} from "../assistant-modes";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -38,6 +42,7 @@ export const taskInput = z
     requestKey: z.string().uuid(),
     input: z.string().trim().min(1).max(20_000),
     attachments: z.array(z.string().uuid()).max(4).default([]),
+    mode: z.enum(["creative", "research", "admin"]).optional(),
   })
   .strict();
 function save(owner: string, task: Task) {
@@ -213,6 +218,7 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       attachments: input.attachments,
       taskId: task.id,
     });
+    conv.assistantMode = parseAssistantMode(input.mode ?? conv.assistantMode);
     conv.updatedAt = now();
     put("conversation", owner, conv);
     return task;
@@ -275,12 +281,15 @@ async function execute(
           : m.content,
       })),
     );
+    const mode = parseAssistantMode(conv.assistantMode);
     const instructions =
-      creativeInstructions +
+      (specialistInstructions(mode) || creativeInstructions) +
       "\n目前專案識別：" +
       conv.projectId +
       "；Console taskId：" +
       task.id +
+      "。助手模式：" +
+      mode +
       "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。";
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");

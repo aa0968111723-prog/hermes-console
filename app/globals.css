@@ -351,13 +351,26 @@ nav button[aria-current="page"] {
   border: 0;
   background: transparent;
   text-align: left;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   font-size: 12px;
   min-height: 44px;
   padding: 10px 12px;
+}
+.history button > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-mode {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--green);
+  background: #e8f0df;
+  border-radius: 999px;
+  padding: 2px 8px;
 }
 .history button[aria-current="true"] {
   background: #e1ebd6;
@@ -473,6 +486,50 @@ nav button[aria-current="page"] {
 }
 .starters button svg {
   color: #6d835b;
+}
+.mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 0;
+}
+.mode-switch button {
+  min-height: 44px;
+  min-width: 72px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #d5e0cc;
+  color: var(--ink);
+  font-size: 13px;
+}
+.mode-switch button[aria-checked="true"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.mode-switch button:disabled {
+  opacity: 0.6;
+}
+.mode-disclaimer {
+  max-width: 36rem;
+  margin: 12px auto 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.composer-modes {
+  max-width: var(--reading-width, 780px);
+  margin: 0 auto 8px;
+}
+.composer-modes .mode-switch {
+  justify-content: flex-start;
+  margin: 0;
+}
+.composer-modes .mode-disclaimer {
+  margin: 8px 0 0;
+  text-align: left;
 }
 .turtle {
   border: 0;
@@ -1384,6 +1441,20 @@ summary .badge {
   }
   .composer-mode {
     display: none;
+  }
+  .mode-switch {
+    gap: 6px;
+  }
+  .mode-switch button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 8px;
+  }
+  .composer-modes .mode-disclaimer,
+  .welcome .mode-disclaimer {
+    font-size: 11px;
+    margin-left: 8px;
+    margin-right: 8px;
   }
   .composer-tools .send-button {
     margin-left: auto;
