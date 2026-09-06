@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -15,6 +16,7 @@ const { put } = await import("../lib/server/store");
 const request = (body?: unknown, authorized = true) => new Request("https://console.example/api/inspiration", {
   method: body === undefined ? "GET" : "POST",
   headers: {
+    Cookie: seedSession().cookie,
     Origin: "https://console.example", "Content-Type": "application/json",
     "X-Console-Gateway": authorized ? process.env.CONSOLE_GATEWAY_SECRET! : "wrong",
   },

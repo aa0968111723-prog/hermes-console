@@ -1,6 +1,8 @@
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { listInspiration } from "./inspiration";
+import { activityInput, copyInput } from "../creative";
+import { activity, copyDocument, publicActivity, publicCopy, projectContext, saveActivity, saveCopy, checkCopy } from "./creative";
 import { z } from "zod";
 import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
 import { get, list, put, transaction } from "./store";
@@ -42,6 +44,11 @@ const context = {
 };
 const id = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
 const schemas = {
+  workspace_project_context: z.object({ projectId: id, ...context }).strict(),
+  workspace_get_activity: z.object({ activityId: z.string().uuid(), ...context }).strict(),
+  workspace_save_activity: activityInput.extend(context).strict(),
+  workspace_get_copy: z.object({ copyId: z.string().uuid(), ...context }).strict(),
+  workspace_save_copy: copyInput.extend(context).strict(),
   workspace_read_material: z
     .object({ materialId: z.string().uuid(), ...context })
     .strict(),
@@ -76,6 +83,11 @@ const schemas = {
 };
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
+  workspace_project_context: "查回目前專案活動、文案版本、素材與任務索引；不是長期記憶。先查回再接續，不要重建無關作品。",
+  workspace_get_activity: "讀取公開活動資訊、來源與核對狀態；私人資料與歷史不提供給網宣工具。",
+  workspace_save_activity: "保存活動候選資訊或修訂同一活動。Hermes 新資訊必定待核對，不能自行確認；用同一 operationId 重試，expectedRevision 防止覆寫。",
+  workspace_get_copy: "讀取同一文案的實際逐頁版本、選定版本及核對提醒；查明要改的版本和頁面再保存。",
+  workspace_save_copy: "保存貼文、輪播、限動或短影音文字草稿。沿用 id 修改並保存歷史，不能包含私人活動資訊，不代表已發佈。引用 workflowId 時必須由使用者先選定方向。",
   workspace_read_material:
     "讀取此任務專案已保存的真實 PNG 圖片（MCP image content）或 UTF-8 TXT；純連結和未解析 PDF 明確回報不可分析，不把檔名當內容。",
   workspace_list_references:
@@ -107,7 +119,7 @@ export function toolsList(owner: string) {
       description: descriptions[name as ToolName],
       inputSchema: z.toJSONSchema(schema),
       annotations: {
-        readOnlyHint: /list|search|get|dataset/.test(name),
+        readOnlyHint: /list|search|get|dataset|read|context/.test(name),
         destructiveHint: false,
         idempotentHint: true,
         openWorldHint: name.startsWith("canva_"),
@@ -162,6 +174,23 @@ async function execute(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   switch (name) {
+    case "workspace_project_context":
+      return projectContext(owner, schemas[name].parse(args).projectId);
+    case "workspace_get_activity":
+      return publicActivity(activity(owner, schemas[name].parse(args).activityId));
+    case "workspace_save_activity": {
+      const { taskId, toolCallId, ...input } = schemas[name].parse(args);
+      return publicActivity(saveActivity(owner, input, "hermes"));
+    }
+    case "workspace_get_copy": {
+      const document = publicCopy(owner, schemas[name].parse(args).copyId);
+      return { ...document, check: checkCopy(owner, document) };
+    }
+    case "workspace_save_copy": {
+      const { taskId, toolCallId, ...input } = schemas[name].parse(args);
+      const document = saveCopy(owner, input, "hermes");
+      return { ...publicCopy(owner, document.id), check: checkCopy(owner, document) };
+    }
     case "workspace_read_material": {
       const asset = material(owner, schemas[name].parse(args).materialId);
       if (asset.kind === "reference")
@@ -341,6 +370,8 @@ export async function callTool(
         );
         const scopes = [
           args.projectId,
+          args.activityId ? activity(owner, String(args.activityId)).projectId : undefined,
+          args.copyId ? copyDocument(owner, String(args.copyId)).projectId : undefined,
           args.materialId
             ? material(owner, String(args.materialId)).projectId
             : undefined,

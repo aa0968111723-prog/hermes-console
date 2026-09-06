@@ -1,4 +1,5 @@
 import { chromium, expect } from "@playwright/test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir } from "node:fs/promises";
@@ -8,6 +9,7 @@ import { join, resolve } from "node:path";
 // Real browser + real Console backend, isolated temporary workspace/data.
 // No Hermes/Canva credentials: screenshots show honest unconfigured status.
 const dataDir = await mkdtemp(join(tmpdir(), "hermes-ui-"));
+const inviteSession = seedSession(dataDir);
 const port = Number(process.env.UI_TEST_PORT || 3215),
   base = "http://127.0.0.1:" + port;
 const child = spawn(
@@ -61,6 +63,7 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   const page = await context.newPage();
+  await context.addCookies([{ name: "hermes_invite_session", value: inviteSession.token, url: base }]);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   async function assertNoLogin(target = page) {
@@ -320,6 +323,7 @@ try {
 
   // Storage may be denied by browser policy; it must not crash the workspace.
   const restricted = await browser.newContext();
+  await restricted.addCookies([{ name: "hermes_invite_session", value: inviteSession.token, url: base }]);
   // Literal browser code avoids tsx's function-name helper leaking into serialization.
   await restricted.addInitScript({
     content: `for (const method of ["getItem", "setItem", "removeItem"]) {
@@ -349,7 +353,7 @@ try {
   await restricted.close();
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
+    "PASS: invited-session fixture workspace, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
 } finally {
