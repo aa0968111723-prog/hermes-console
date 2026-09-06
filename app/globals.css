@@ -1527,8 +1527,58 @@ summary .badge {
 .hero-badge-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-back-nav {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-back-nav:hover {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--accent);
+}
+
+.project-switcher-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.proj-pill {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.proj-pill:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.proj-pill.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 700;
+  border-color: var(--accent);
 }
 
 .hero-pill-tag {
@@ -1550,6 +1600,7 @@ summary .badge {
   padding: 3px 9px;
   border-radius: var(--radius-full);
 }
+
 
 .hero-title {
   margin: 0 0 10px;

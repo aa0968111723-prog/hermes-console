@@ -87,7 +87,12 @@ async function testOrchestrator() {
 
   assert.strictEqual(result.status, "completed", "任務編排必須成功執行完成");
   assert.strictEqual(result.activeProject, "tku-zen-agent");
+  assert.strictEqual(result.domain, "tamkang", "預設任務領域必須判定為 tamkang");
+  assert.strictEqual(result.assignedProfile.id, "tku", "指派專家應為淡江校園脈絡專家");
+  assert.strictEqual(result.domainMeta.campusName, "淡江大學");
+  assert.strictEqual(result.domainMeta.clubName, "領袖禪學社");
   assert.strictEqual(result.subtasks.length, 9, "必須精確包含 9 大子任務階段");
+
 
   const expectedSubtaskIds = [
     "memory_retrieval",
@@ -147,7 +152,12 @@ async function testOrchestratorNtu() {
   });
 
   assert.strictEqual(result.status, "completed", "NTU 任務編排必須成功完成");
+  assert.strictEqual(result.domain, "ntu", "NTU 任務領域必須判定為 ntu");
+  assert.strictEqual(result.assignedProfile.id, "ntu", "指派專家應為臺大校園脈絡專家");
+  assert.strictEqual(result.domainMeta.campusName, "臺灣大學");
+  assert.strictEqual(result.domainMeta.clubName, "禪學社");
   assert.strictEqual(result.subtasks.length, 9, "必須精確包含 9 大子任務");
+
 
   // 子任務 1 記憶檢索地標隔離
   const memoryTask = result.subtasks[0];

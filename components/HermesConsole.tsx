@@ -1429,8 +1429,11 @@ export default function HermesConsole() {
         ) : nav === "creative_os" ? (
           <CreativeIntelligenceView
             initialPrompt="幫我做給淡江大學大一新生看的禪學社茶會網宣"
+            defaultProject={project}
+            onSelectProject={(p) => setProject(p)}
             onBack={() => setNav("chat")}
           />
+
         ) : (
           <section className="secondary-page">
             <AgentPanel agents={agents} brain={[]} />

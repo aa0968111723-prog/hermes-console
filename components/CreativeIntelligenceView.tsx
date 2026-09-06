@@ -11,6 +11,7 @@ import {
 
 interface Props {
   initialPrompt?: string;
+  defaultProject?: string;
   onSelectProject?: (proj: string) => void;
   onSendChatMessage?: (msg: string) => void;
   onBack?: () => void;
@@ -18,12 +19,14 @@ interface Props {
 
 export default function CreativeIntelligenceView({
   initialPrompt = "幫我做給淡江大學大一新生看的禪學社茶會網宣",
+  defaultProject = "tku-zen-agent",
   onSelectProject,
   onSendChatMessage,
   onBack
 }: Props) {
   const [prompt, setPrompt] = useState(initialPrompt);
-  const [activeProject, setActiveProject] = useState("tku-zen-agent");
+  const [activeProject, setActiveProject] = useState(defaultProject);
+
   const [isRunning, setIsRunning] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [pipelineData, setPipelineData] = useState<CreativePipelineResult | null>(null);
@@ -91,11 +94,12 @@ export default function CreativeIntelligenceView({
         query: task.userPrompt,
         executedAt: new Date(task.finishedAt).toISOString(),
         activeProject: task.activeProject,
-        assignedProfile: {
+        assignedProfile: task.assignedProfile || {
           id: "tku",
           name: "淡江校園脈絡專家",
           role: "Tamkang Campus Specialist & Creative Orchestrator"
         },
+
         contextMemories: (task.subtasks[0]?.outputData as any[]) || [],
         campusIntel: {
           currentWeekEvents: (task.subtasks[1]?.outputData as any)?.calendar,
@@ -171,15 +175,66 @@ export default function CreativeIntelligenceView({
       {/* 頂部英雄面板 */}
       <div className="os-hero-card">
         <div className="hero-badge-row">
+          {onBack && (
+            <button
+              type="button"
+              className="btn-back-nav"
+              onClick={onBack}
+              title="返回對話工作台"
+            >
+              ← 返回對話
+            </button>
+          )}
           <span className="hero-pill-tag">✨ HERMES CREATIVE INTELLIGENCE OS</span>
-          <span className="hero-pill-status">全自動 7 階段協同</span>
+          <span className="hero-pill-status">
+            {orchestratedTask?.assignedProfile
+              ? `${orchestratedTask.assignedProfile.name} 協同`
+              : "全自動 9 階任務協同"}
+          </span>
+          <div className="project-switcher-pills">
+            <button
+              type="button"
+              className={`proj-pill ${activeProject === "tku-zen-agent" ? "active" : ""}`}
+              onClick={() => {
+                setActiveProject("tku-zen-agent");
+                onSelectProject?.("tku-zen-agent");
+                showToast("已切換至淡江大學禪學社專案");
+              }}
+            >
+              🏫 淡江專案
+            </button>
+            <button
+              type="button"
+              className={`proj-pill ${activeProject === "ntu" ? "active" : ""}`}
+              onClick={() => {
+                setActiveProject("ntu");
+                onSelectProject?.("ntu");
+                showToast("已切換至臺灣大學校園專案");
+              }}
+            >
+              🚲 臺大專案
+            </button>
+            <button
+              type="button"
+              className={`proj-pill ${activeProject === "personal" ? "active" : ""}`}
+              onClick={() => {
+                setActiveProject("personal");
+                onSelectProject?.("personal");
+                showToast("已切換至個人 / 通用大專專案");
+              }}
+            >
+              🎓 通用大專
+            </button>
+          </div>
         </div>
         <h2 className="hero-title">
-          <span className="hero-title-full">淡江大學領袖禪學社・大一新生茶會網宣工作流</span>
+          <span className="hero-title-full">
+            {orchestratedTask?.domainMeta?.themeTitle || "淡江大學領袖禪學社・大一新生茶會網宣工作流"}
+          </span>
           <span className="hero-title-short">創意工作流</span>
         </h2>
         <p className="hero-desc hide-on-mobile">
-          零登入直接驅動：整合專案記憶庫、淡江 MCP 在地適配、萬象靈感引擎、Audience Twin 5 人受眾雙生模擬、Canva 設計草稿與安全社群發布審核機制。
+          零登入直接驅動：整合專案記憶庫、跨校園 MCP 在地適配、萬象靈感引擎、Audience Twin 5 人受眾雙生模擬、Canva 設計草稿與安全社群發布審核機制。
         </p>
 
         {/* 快速提示詞輸入列 */}
@@ -214,7 +269,7 @@ export default function CreativeIntelligenceView({
               handleRunPipeline("幫我做給淡江大學大一新生看的禪學社茶會網宣");
             }}
           >
-            🌿 核心任務：淡江大一新生禪學社茶會網宣
+            🌿 淡江大一新生禪學社茶會網宣
           </button>
           <button
             className="preset-chip"
@@ -233,6 +288,24 @@ export default function CreativeIntelligenceView({
             }}
           >
             🦢 福園池畔高顏值微光貼文
+          </button>
+          <button
+            className="preset-chip"
+            onClick={() => {
+              setPrompt("以臺大椰林大道迎新與醉月湖畔微光野餐為靈感，設計大一放鬆茶會文宣");
+              handleRunPipeline("以臺大椰林大道迎新與醉月湖畔微光野餐為靈感，設計大一放鬆茶會文宣");
+            }}
+          >
+            🚴 臺大椰林湖畔迎新茶會
+          </button>
+          <button
+            className="preset-chip"
+            onClick={() => {
+              setPrompt("針對大專院校大一新生開學適應與選課壓力，設計無負擔草坪靜心茶席網宣");
+              handleRunPipeline("針對大專院校大一新生開學適應與選課壓力，設計無負擔草坪靜心茶席網宣");
+            }}
+          >
+            ☕ 通用大專選課減壓茶席
           </button>
         </div>
 
@@ -279,9 +352,14 @@ export default function CreativeIntelligenceView({
             <div className="stage-arrow">→</div>
             <div className="stage-item done">
               <span className="stage-num">2</span>
-              <span className="stage-label">淡江 MCP 調用</span>
-              <span className="stage-meta">第 2 週迎新時程</span>
+              <span className="stage-label">
+                {orchestratedTask?.domainMeta?.stage2Label || "校園 MCP 調用"}
+              </span>
+              <span className="stage-meta">
+                {orchestratedTask?.domainMeta?.stage2Meta || "第 2 週迎新時程"}
+              </span>
             </div>
+
             <div className="stage-arrow">→</div>
             <div className="stage-item done">
               <span className="stage-num">3</span>

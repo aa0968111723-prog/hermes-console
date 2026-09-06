@@ -200,4 +200,76 @@ export function getSocialLogisticsForDomain(domain: AudienceDomain): DomainSocia
       "#選課不踩雷", "#宮燈教室", "#大腦重開機", "#大學社團生活", "#茶會"
     ]
   };
-}
+}
+
+export interface CampusDomainMeta {
+  domain: AudienceDomain;
+  campusName: string;
+  clubName: string;
+  themeTitle: string;
+  stage2Label: string;
+  stage2Meta: string;
+}
+
+export interface AssignedProfile {
+  id: string;
+  name: string;
+  role: string;
+  description: string;
+}
+
+export function getDomainCampusMeta(domain: AudienceDomain): CampusDomainMeta {
+  if (domain === "ntu") {
+    return {
+      domain: "ntu",
+      campusName: "臺灣大學",
+      clubName: "禪學社",
+      themeTitle: "臺灣大學禪學社・椰林迎新茶會網宣工作流",
+      stage2Label: "臺大 MCP 校園調研",
+      stage2Meta: "活大多功能室 / 醉月湖"
+    };
+  }
+  if (domain === "general") {
+    return {
+      domain: "general",
+      campusName: "大專院校",
+      clubName: "青年心靈茶席社",
+      themeTitle: "大專院校青年心靈茶席・新生茶會網宣工作流",
+      stage2Label: "大專 MCP 校園調研",
+      stage2Meta: "多功能教室 / 減壓時程"
+    };
+  }
+  return {
+    domain: "tamkang",
+    campusName: "淡江大學",
+    clubName: "領袖禪學社",
+    themeTitle: "淡江大學領袖禪學社・大一新生茶會網宣工作流",
+    stage2Label: "淡江 MCP 校園調研",
+    stage2Meta: "第 2 週迎新時程"
+  };
+}
+
+export function getDomainAssignedProfile(domain: AudienceDomain): AssignedProfile {
+  if (domain === "ntu") {
+    return {
+      id: "ntu",
+      name: "臺大校園脈絡專家",
+      role: "NTU Campus Specialist & Youth Culture Orchestrator",
+      description: "熟悉臺大椰林大道、醉月湖、活大社團生態與單車通勤減壓"
+    };
+  }
+  if (domain === "general") {
+    return {
+      id: "general",
+      name: "大專青年脈絡專家",
+      role: "Higher Education Youth Culture & Creative Specialist",
+      description: "精通大專青年心理、開學適應期、低社交防禦與靜心茶席"
+    };
+  }
+  return {
+    id: "tku",
+    name: "淡江校園脈絡專家",
+    role: "Tamkang Campus Specialist & Creative Orchestrator",
+    description: "熟悉淡江克難坡、宮燈教室、福園黑天鵝與禪學社茶會文化"
+  };
+}

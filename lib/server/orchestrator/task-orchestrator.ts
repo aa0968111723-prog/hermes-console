@@ -5,7 +5,14 @@ import { simulateAudienceReaction, resolvePersonasForContext, resolveContextDoma
 import type { AudienceScore, AudienceSimulationResult } from "../audience-twin/types.ts";
 import { generateConfirmationToken } from "../mcp/registry.ts";
 import type { CreativeDirection } from "../creative-workflow/pipeline.ts";
-import { getRawDirectionsForDomain, getSocialLogisticsForDomain } from "../creative-workflow/directions.ts";
+import {
+  getRawDirectionsForDomain,
+  getSocialLogisticsForDomain,
+  getDomainCampusMeta,
+  getDomainAssignedProfile,
+  type CampusDomainMeta,
+  type AssignedProfile
+} from "../creative-workflow/directions.ts";
 import { researchInstagramTrends } from "../social/instagram-research.ts";
 import { TASK_LIMITS, clampTaskList } from "./limits.ts";
 import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
@@ -59,6 +66,9 @@ export interface OrchestratedTaskResult {
   status: "completed" | "failed";
   activeProject: string;
   sessionKey: string;
+  domain: "tamkang" | "ntu" | "general";
+  assignedProfile: AssignedProfile;
+  domainMeta: CampusDomainMeta;
   subtasks: OrchestratedSubtask[];
   directions: CreativeDirection[];
   topDirection: CreativeDirection;
@@ -72,6 +82,7 @@ export interface OrchestratedTaskResult {
   };
   limits: typeof TASK_LIMITS;
 }
+
 
 /**
  * 依據 Canva 設計草稿分層藍圖進行動態圖層評估 (Dynamic Layer Evaluation)
@@ -200,8 +211,11 @@ export async function executeOrchestratedTask(
   const sessionKey = options?.sessionKey || `project:${activeProject}`;
   const domain = resolveContextDomain(userPrompt, activeProject);
   const logistics = getSocialLogisticsForDomain(domain);
+  const assignedProfile = getDomainAssignedProfile(domain);
+  const domainMeta = getDomainCampusMeta(domain);
 
   const subtasks: OrchestratedSubtask[] = [];
+
 
   // ─── 子任務 1: 專案記憶與校園脈絡檢索 ───
   const t1Start = Date.now();
@@ -651,8 +665,12 @@ export async function executeOrchestratedTask(
     status: "completed",
     activeProject,
     sessionKey,
+    domain,
+    assignedProfile,
+    domainMeta,
     subtasks,
     directions: sorted,
+
     topDirection,
     draftReevaluations,
     actionConfirmation: {

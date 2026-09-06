@@ -341,9 +341,41 @@
 
 ---
 
+## 週期 14 (Iteration 14) 跨校園領域元資料解耦、指派 Profile 前後端動態適配與操作艙體驗加固
+
+本週期針對 Creative Intelligence OS 操作艙與任務編排器在非淡江情境下前端硬編碼專家與主題標題之缺口，完成以下 4 大核心加固：
+
+1. **跨校園領域元資料與專家指派解耦模組 (`lib/server/creative-workflow/directions.ts`)**：
+   - 實作 `CampusDomainMeta` 與 `AssignedProfile` 介面。
+   - 實作 `getDomainCampusMeta(domain)` 與 `getDomainAssignedProfile(domain)`：
+     - `tamkang`：淡江大學領袖禪學社、淡江校園脈絡專家（第 2 週迎新時程、克難坡/宮燈/福園）。
+     - `ntu`：臺灣大學禪學社、臺大校園脈絡專家（活大多功能室/醉月湖畔、椰林大道單車減壓）。
+     - `general`：大專院校青年心靈茶席社、大專青年脈絡專家（多功能教室/減壓時程、選課調適）。
+
+2. **9 大子任務編排器動態元資料輸出 (`lib/server/orchestrator/task-orchestrator.ts`)**：
+   - 在 `OrchestratedTaskResult` 擴充 `domain`、`assignedProfile` 與 `domainMeta` 標準回傳欄位。
+   - 在 `executeOrchestratedTask` 中自動依據使用者提示詞與專案脈絡動態解析領域，打通 `/api/orchestrator/task` 路由。
+
+3. **前端操作艙體驗與專案切換器打通 (`components/CreativeIntelligenceView.tsx`, `HermesConsole.tsx`, `globals.css`)**：
+   - 支援 `defaultProject` 外部同步，並新增專案切換膠囊按鈕（`🏫 淡江專案`、`🚲 臺大專案`、`🎓 通用大專`）。
+   - 補齊「← 返回對話」導航回航按鈕，無縫切換回到主聊天室。
+   - 英雄標題動態對齊 `domainMeta.themeTitle`，協同專家徽章動態反映 `assignedProfile.name`。
+   - 管線進度 Stage 2 節點標籤動態適配 `stage2Label` 與 `stage2Meta`（如 `臺大 MCP 調用 / 活大多功能室 / 醉月湖`）。
+   - 新增推薦情境快捷標籤：`🚴 臺大椰林湖畔迎新茶會`、`☕ 通用大專選課減壓茶席`。
+
+4. **全套測試與 Next.js 生產建置驗證**：
+   - 在 `tests/phase9_orchestrator_truth.test.ts` 加入 Tamkang 與 NTU 任務之 `domain`、`assignedProfile` 與 `domainMeta` 嚴格斷言驗證。
+   - `npm test`：**150 / 150 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
