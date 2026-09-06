@@ -3652,5 +3652,180 @@ summary .badge {
   padding-top: 6px;
 }
 
+/* Audience Twin Persona Profile Card */
+.persona-profile-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.persona-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.persona-profile-avatar {
+  font-size: 24px;
+  background: var(--bg-surface-raised);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.persona-profile-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.persona-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.persona-name-row strong {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.persona-profile-tag {
+  font-size: 10px;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.persona-profile-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.persona-domain-pill {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.persona-domain-pill.domain-tamkang {
+  background: rgba(225, 48, 108, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(225, 48, 108, 0.3);
+}
+
+.persona-domain-pill.domain-ntu {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.persona-domain-pill.domain-general {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.persona-profile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.persona-section {
+  background: var(--bg-surface-raised);
+  border-radius: 4px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--border);
+}
+
+.persona-section.mindset {
+  border-left-color: #eab308;
+  font-style: italic;
+}
+
+.section-label {
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-size: 11px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.section-text {
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.persona-tags-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.persona-pills-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pills-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.pills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.trigger-pill {
+  font-size: 10px;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.dislike-pill {
+  font-size: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.persona-profile-footer {
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+
 
 

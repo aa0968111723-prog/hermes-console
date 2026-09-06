@@ -432,11 +432,36 @@
 
 ---
 
+## 週期 17 (Iteration 17) Audience Twin Personas 跨校園動態適配、情境模擬端點加固與 Persona 卡片視覺化
+
+本週期針對 Audience Twin 系統在「Personas API 僅回傳單一淡江設定、未依據情境動態解析」、「模擬端點未解耦 domain 參數」以及「AudienceCard 缺少立體 Persona 呈現」之架構缺口，完成以下 4 大核心加固：
+
+1. **Audience Twin Personas 端點跨校園動態適配 (`app/api/audience-twin/personas/route.ts`)**：
+   - 支援 `domain` 與 `projectId` 查詢參數，並以 TypeScript 函數重載確保 100% 相容無參數呼叫與 Next.js App Router 路由規範。
+   - 動態解析並回傳對應校園之 5 大立體 Persona（淡江：小涵/阿倫/廷宇/小琪/V導；臺大：宇軒/品妍/子揚/詠晴/V導；通用：宜庭/冠霖/哲偉/品萱/V導），保持 `console_fixture` 出處與 `ai_heuristic` 模擬標記。
+
+2. **模擬端點情境脈絡動態傳遞 (`app/api/audience-twin/simulate/route.ts`)**：
+   - 支援請求主體中之 `domain` 與 `projectId`，使跨校園評估與逆向思考評估能夠動態適配至對應情境與專屬地標。
+
+3. **AudienceCard 結構化升級與 PersonaProfile 展示 (`components/audience/AudienceCard.tsx`, `app/globals.css`)**：
+   - 擴充 `AudienceCard` 組件支援 `PersonaProfile` 結構與獨立匯出之 `PersonaCard`。
+   - 展示角色頭像、姓名、定位標籤、痛點視角、內心獨白，並以綠/紅高對比膠囊展示有感觸發（`trigger-pill`）與踩雷排斥（`dislike-pill`）。
+
+4. **全套測試與 Next.js 生產建置驗證 (`tests/phase5_audience_twin.test.ts`)**：
+   - 驗證預設無參數呼叫回傳淡江 Persona、`domain=ntu` 回傳臺大 Persona 且零淡江地標洩漏、`domain=general` 回傳通用大專 Persona。
+   - `npm test`：**152 / 152 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
 
 

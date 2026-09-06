@@ -98,4 +98,38 @@ test("Phase 5 Audience Twin is contextual and evidence grounded", async (t) => {
     const ntuFacts = ntu.facts?.map((f) => f.statement).join(" ") || "";
     assert.ok(!ntuFacts.includes("克難坡"));
   });
+
+  await t.test("personas API dynamically adapts to domain and preserves console_fixture provenance", async () => {
+    const { GET: getPersonas } = await import("../app/api/audience-twin/personas/route.ts");
+    
+    // 預設調用（無參數）
+    const resDefault = await getPersonas();
+    assert.equal(resDefault.status, 200);
+    const dataDefault = await resDefault.json();
+    assert.equal(dataDefault.ok, true);
+    assert.equal(dataDefault.domain, "tamkang");
+    assert.equal(dataDefault.count, 5);
+    assert.equal(dataDefault.personas[0].name, "大一新生・小涵 (企管系)");
+
+    // NTU 領域
+    const reqNtu = new Request("http://localhost:3240/api/audience-twin/personas?domain=ntu");
+    const resNtu = await getPersonas(reqNtu);
+    assert.equal(resNtu.status, 200);
+    const dataNtu = await resNtu.json();
+    assert.equal(dataNtu.domain, "ntu");
+    assert.equal(dataNtu.personas[0].name, "大一新生・宇軒 (電機系)");
+    assert.ok(dataNtu.personas.every((p: any) => p.domain === "ntu"));
+    const ntuStr = JSON.stringify(dataNtu.personas);
+    assert.ok(!ntuStr.includes("克難坡"));
+    assert.ok(!ntuStr.includes("福園"));
+
+    // 通用大專領域
+    const reqGen = new Request("http://localhost:3240/api/audience-twin/personas?domain=general");
+    const resGen = await getPersonas(reqGen);
+    assert.equal(resGen.status, 200);
+    const dataGen = await resGen.json();
+    assert.equal(dataGen.domain, "general");
+    assert.equal(dataGen.personas[0].name, "大一新生・宜庭 (新鮮人)");
+    assert.ok(dataGen.personas.every((p: any) => p.domain === "general"));
+  });
 });

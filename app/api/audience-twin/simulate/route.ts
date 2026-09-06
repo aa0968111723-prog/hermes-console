@@ -18,17 +18,19 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { conceptTitle, description, visualNotes, copyExcerpt, projectId, reverse } = body;
+    const { conceptTitle, description, visualNotes, copyExcerpt, projectId, reverse, domain } = body;
     if (!conceptTitle) {
       return NextResponse.json({ error: "概念標題為必填" }, { status: 400 });
     }
+
+    const targetContext = domain || projectId;
 
     const result = simulateAudienceReaction(
       conceptTitle,
       description || "",
       visualNotes || "",
       copyExcerpt || "",
-      projectId
+      targetContext
     );
     const prompt = `${conceptTitle} ${description || ""} ${copyExcerpt || ""}`;
     const reverseThinking =
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
             description,
             visualNotes,
             copyExcerpt,
-            projectId,
+            projectId: targetContext,
           })
         : null;
 
