@@ -3,7 +3,7 @@
 - Use Traditional Chinese and a fixed light, mobile-first interface.
 - Never commit credentials or echo upstream secrets, errors, configuration, or authorization headers.
 - Hermes is the only agent. No synthetic brain, XML tool execution, fabricated progress, or static connected states.
-- This Console is No Login. Bind records to the fixed workspace owner. Verify origin for mutations. Rate-limit, redact, and keep secrets server-side. Backend controls service targets.
+- This Console is No Login behind an authenticated/private access gateway. Enforce the backend gateway secret on workspace APIs; never put it in the browser. Bind records to the fixed workspace owner. Verify origin for mutations. Rate-limit, redact, and keep secrets server-side. Backend controls service targets. Public deployment must fail closed without gateway configuration.
 - Tools execute in Hermes. Frontend renders structured events; never display internal reasoning.
 - Preserve histories, project ownership, idempotency, and explicit uncertainty around interrupted operations.
 - Verify real behavior. Distinguish contract tests from live integration evidence.

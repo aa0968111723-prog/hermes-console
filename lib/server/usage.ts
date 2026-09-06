@@ -14,15 +14,18 @@ export interface UsageEvent {
   outputTokens: number | null;
   totalTokens: number | null;
   durationMs: number | null;
-  toolCalls: number;
-  toolErrors: number;
+  toolCalls: number | null;
+  toolErrors: number | null;
   timestamp: string;
 }
 
-export function recordUsage(event: Omit<UsageEvent, "id">) {
+export function recordUsage(
+  event: Omit<UsageEvent, "id">,
+  id: string = randomUUID(),
+) {
   return put("usage_event", WORKSPACE_OWNER, {
     ...event,
-    id: randomUUID(),
+    id,
   } satisfies UsageEvent);
 }
 
@@ -34,20 +37,23 @@ export function recordTaskUsage(
   const toolErrors = task.events.filter(
     (event) => event.toolName && event.error,
   ).length;
-  return recordUsage({
-    agentId: extra.agentId || "general",
-    model: task.usage.model,
-    projectId: extra.projectId || null,
-    conversationId: task.conversationId,
-    runId: task.remoteId,
-    inputTokens: task.usage.inputTokens,
-    outputTokens: task.usage.outputTokens,
-    totalTokens: task.usage.totalTokens,
-    durationMs: task.usage.durationMs,
-    toolCalls,
-    toolErrors,
-    timestamp: task.endedAt || task.updatedAt,
-  });
+  return recordUsage(
+    {
+      agentId: extra.agentId || "general",
+      model: task.usage.model,
+      projectId: extra.projectId || null,
+      conversationId: task.conversationId,
+      runId: task.remoteId,
+      inputTokens: task.usage.inputTokens,
+      outputTokens: task.usage.outputTokens,
+      totalTokens: task.usage.totalTokens,
+      durationMs: task.usage.durationMs,
+      toolCalls: toolCalls || null,
+      toolErrors: toolCalls ? toolErrors : null,
+      timestamp: task.endedAt || task.updatedAt,
+    },
+    "task:" + task.id,
+  );
 }
 
 function inRange(timestamp: string, since: number | null) {
@@ -68,7 +74,9 @@ export function aggregateUsage(range: "today" | "7d" | "30d" | "all" = "all") {
     inRange(row.timestamp, start),
   );
   const sum = (pick: (row: UsageEvent) => number | null) => {
-    const values = rows.map(pick).filter((value): value is number => value !== null);
+    const values = rows
+      .map(pick)
+      .filter((value): value is number => value !== null);
     return values.length ? values.reduce((a, b) => a + b, 0) : null;
   };
   const group = (key: (row: UsageEvent) => string) => {
@@ -86,8 +94,8 @@ export function aggregateUsage(range: "today" | "7d" | "30d" | "all" = "all") {
   const durations = rows
     .map((row) => row.durationMs)
     .filter((value): value is number => value !== null);
-  const toolCalls = rows.reduce((sum, row) => sum + row.toolCalls, 0);
-  const toolErrors = rows.reduce((sum, row) => sum + row.toolErrors, 0);
+  const toolCalls = sum((row) => row.toolCalls);
+  const toolErrors = sum((row) => row.toolErrors);
   return {
     range,
     totalTokens: sum((row) => row.totalTokens),
@@ -98,7 +106,8 @@ export function aggregateUsage(range: "today" | "7d" | "30d" | "all" = "all") {
     byProject: group((row) => row.projectId || "none"),
     toolCalls,
     toolErrors,
-    errorRate: toolCalls ? toolErrors / toolCalls : null,
+    errorRate: toolCalls && toolErrors !== null ? toolErrors / toolCalls : null,
+    toolCountBasis: "recorded_events_not_provider_billing",
     averageDurationMs: durations.length
       ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
       : null,

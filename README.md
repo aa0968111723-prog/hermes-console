@@ -9,13 +9,14 @@
 1. `npm ci`
 2. 複製 `.env.example` 到 `.env.local`，依註解設定。
 3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。
-4. `npm run dev`；正式環境使用 `npm run build` 與 `npm start`。
+4. 本機 loopback 開發明確設定 `CONSOLE_ALLOW_LOCAL_ACCESS=true`；正式環境保持 false 並配置存取閘道秘密。
+5. `npm run dev`；正式環境使用 `npm run build` 與 `npm start`。
 
 # No Login
 
 開啟網站即可使用。不需要帳號、密碼、註冊或 session 登入閘。資料寫入固定後端 namespace `workspace`，不會在介面顯示。
 
-若把 Console 網域直接暴露在公開 Internet，任何知道網址的人都可能消耗 Hermes／MCP 資源。請使用可選的部署層保護（Zeabur private networking、reverse proxy、Cloudflare Access、VPN、IP allowlist），不要在 Console UI 恢復登入。
+正式環境必須經受控存取閘道：先驗證身份或私人網路權限，再由閘道覆寫 `X-Console-Gateway`。後端以全新 `CONSOLE_GATEWAY_SECRET` 驗證；沒有配置時 API 拒絕存取。秘密不可送到瀏覽器，也不能使用公開、無條件注入標頭的代理代替身份驗證。詳見 [部署說明](docs/DEPLOYMENT.md)。
 
 ## 重要安全操作
 
@@ -25,4 +26,4 @@
 
 ## 驗證與限制
 
-請參閱 `docs/DELIVERY.md`。契約測試使用明確隔離的測試伺服器，不是 Zeabur／Canva 實機整合驗證。
+最新接續見 [PR #11 真實執行與閘道紀錄](docs/PR11_RELIABILITY.md)。契約測試使用明確隔離的測試伺服器，不是 Zeabur／Canva 實機整合驗證。

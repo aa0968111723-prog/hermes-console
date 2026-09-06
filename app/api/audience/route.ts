@@ -21,7 +21,7 @@ export const GET = route(async (req) => {
     reverse: wantsReverseThinking(prompt),
     disclaimer: AUDIENCE_DISCLAIMER,
     simulation: true,
-    method: "ai_heuristic",
+    method: "rule_heuristic",
     twin: /淡江|新生/.test(prompt) ? tamkangFreshmanSeed([]) : null,
   });
 });
@@ -49,7 +49,7 @@ export const POST = route(async (req) => {
       twin: tamkangFreshmanSeed([]),
       disclaimer: AUDIENCE_DISCLAIMER,
       simulation: true,
-      method: "ai_heuristic",
+      method: "rule_heuristic",
     });
   if (body.action === "profile") {
     const profile = buildProfile({
@@ -62,7 +62,7 @@ export const POST = route(async (req) => {
       profile,
       graph: contextGraph(profile.institution),
       simulation: true,
-      method: "ai_heuristic",
+      method: "rule_heuristic",
     });
   }
   if (body.action === "evaluate") {
@@ -86,7 +86,7 @@ export const POST = route(async (req) => {
     return respond({
       ...normalizeScores(body.scores || {}),
       simulation: true,
-      method: "ai_heuristic",
+      method: "rule_heuristic",
     });
   return respond(
     debateSummary({

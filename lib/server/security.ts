@@ -54,9 +54,48 @@ export function checkOrigin(request: Request) {
     );
 }
 export function authenticate(request: Request, mutation = false): string {
+  verifyGateway(request);
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;
+}
+
+// No Console login: only an authenticated/private gateway may assert workspace access.
+// The gateway must replace this header, never forward a browser-provided value.
+export function verifyGateway(request: Request) {
+  const secret = process.env.CONSOLE_GATEWAY_SECRET || "";
+  if (secret.length >= 32) {
+    const provided = request.headers.get("x-console-gateway") || "";
+    if (
+      !timingSafeEqual(Buffer.from(hash(secret)), Buffer.from(hash(provided)))
+    )
+      throw new ApiError(
+        401,
+        "gateway_required",
+        "請從已授權的存取閘道開啟工作區。",
+      );
+    return;
+  }
+  // Explicit isolated local development only. Ignore forwarded/Host headers.
+  let local = false;
+  try {
+    const configured = new URL(process.env.CONSOLE_ORIGIN || "");
+    const incoming = new URL(request.url);
+    local =
+      ["localhost", "127.0.0.1", "[::1]"].includes(configured.hostname) &&
+      ["localhost", "127.0.0.1", "[::1]"].includes(incoming.hostname) &&
+      incoming.protocol === configured.protocol &&
+      incoming.port === configured.port;
+  } catch {
+    /* fail closed */
+  }
+  if (process.env.CONSOLE_ALLOW_LOCAL_ACCESS === "true" && local && !secret)
+    return;
+  throw new ApiError(
+    503,
+    "gateway_unconfigured",
+    "工作區尚未設定受控存取閘道，API 已暫停對外使用。",
+  );
 }
 
 export type ConfirmationRecord = {
@@ -79,7 +118,8 @@ export function mintConfirmation(input: {
   ttlMs?: number;
 }) {
   const token = randomBytes(32).toString("hex");
-  const expiresAt = Date.now() + Math.min(input.ttlMs || 5 * 60_000, 15 * 60_000);
+  const expiresAt =
+    Date.now() + Math.min(input.ttlMs || 5 * 60_000, 15 * 60_000);
   put("confirmation", WORKSPACE_OWNER, {
     id: hash(token),
     action: input.action,

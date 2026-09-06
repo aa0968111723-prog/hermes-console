@@ -98,12 +98,15 @@ const fixture = createServer(async (req, res) => {
   res.writeHead(404).end();
 });
 await new Promise<void>((resolve) => fixture.listen(0, "127.0.0.1", resolve));
-const base = "http://127.0.0.1:3216";
+const chatPort = process.env.CHAT_TEST_PORT || "3216";
+const base = "http://127.0.0.1:" + chatPort;
 const data = await mkdtemp(join(tmpdir(), "hermes-browser-contract-"));
 const environment: NodeJS.ProcessEnv = {
   ...process.env,
   NODE_ENV: "production",
   CONSOLE_ORIGIN: base,
+  CONSOLE_ALLOW_LOCAL_ACCESS: "true",
+  CONSOLE_GATEWAY_SECRET: "",
   CONSOLE_DATA_DIR: data,
   HERMES_API_URL:
     "http://127.0.0.1:" + (fixture.address() as { port: number }).port,
@@ -125,7 +128,7 @@ async function start() {
       "node_modules/next/dist/bin/next",
       "start",
       "-p",
-      "3216",
+      chatPort,
       "-H",
       "127.0.0.1",
     ],
@@ -166,13 +169,11 @@ try {
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
   const textarea = page.getByRole("textbox", { name: "訊息", exact: true });
-  await page
-    .locator('input[type="file"]')
-    .setInputFiles({
-      name: "branch-reference.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("契約測試附件，分支必須保留。"),
-    });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "branch-reference.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("契約測試附件，分支必須保留。"),
+  });
   await expect(page.locator(".upload-chip")).toContainText("已保存");
   await textarea.fill("隔離契約：長任務穿越背景監測週期");
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();

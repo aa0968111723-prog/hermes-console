@@ -16,14 +16,16 @@ export function analyzeReference(input: {
   const caption = input.caption || "";
   const injected = containsInjectionAttempt(caption);
   return {
-    visualAnalysis: "僅依使用者提供的連結／圖檔描述層級與風格，未抓取原站。",
+    visualAnalysis: null,
+    imageRead: false,
+    method: "caption_rules",
     copyAnalysis: caption
       ? wrapUntrusted("caption", caption).slice(0, 400)
       : "沒有 caption。",
     ctaAnalysis: /報名|來參加|連結|swipe/i.test(caption)
       ? "文案含行動呼籲跡象。"
       : "未見明確 CTA。",
-    whyRelevant: "可借鑑結構與層級，不可原樣複製。",
+    whyRelevant: "尚未讀取圖片，無法評估構圖、配色與適用性。",
     risks: injected
       ? "caption 含指令式文字，已當不可信資料。"
       : "參考素材不代表可用於正式發佈。",
@@ -78,7 +80,7 @@ export function resolveInspirationUrl(input: {
   return {
     ...item,
     analysis: analysis.copyAnalysis,
-    borrow: ["層級", "配色節奏", "CTA 位置"].slice(0, analysis.injectionAttempt ? 0 : 3),
+    borrow: [],
     fit: analysis.whyRelevant,
     risk: analysis.risks,
     sourceUrl: canonicalUrl(item.sourceUrl),

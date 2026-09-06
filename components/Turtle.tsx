@@ -24,7 +24,7 @@ export function turtleState(task: Task | undefined, offline: boolean) {
   if (tool && ["running", "queued"].includes(tool.status)) {
     const name = tool.toolName || "";
     if (/tku|tamkang|tamsui/i.test(name))
-      return { id: "researching", label: "正在研究淡江新生" };
+      return { id: "researching", label: "正在查詢已授權資料" };
     if (
       /pinterest|instagram|inspiration|search|browse|fetch|extract/i.test(name)
     )

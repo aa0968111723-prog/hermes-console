@@ -5,7 +5,6 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-
 // Real browser + real Console backend, isolated temporary workspace/data.
 // No Hermes/Canva credentials: screenshots show honest unconfigured status.
 const dataDir = await mkdtemp(join(tmpdir(), "hermes-ui-"));
@@ -28,6 +27,8 @@ const child = spawn(
       ...process.env,
       NODE_ENV: "production",
       CONSOLE_ORIGIN: base,
+      CONSOLE_ALLOW_LOCAL_ACCESS: "true",
+      CONSOLE_GATEWAY_SECRET: "",
       CONSOLE_DATA_DIR: dataDir,
       HERMES_API_URL: "",
       HERMES_API_KEY: "",
@@ -88,7 +89,9 @@ try {
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
-  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toBeVisible();
   await assertNoLogin();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
