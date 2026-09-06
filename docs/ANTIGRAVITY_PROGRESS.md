@@ -296,6 +296,26 @@
 
 ---
 
+## 週期 12 (Iteration 12) origin/main 雙向匯流、修復試算表 CSV 語法錯誤與 142/142 全量驗證
+
+本週期完成 `origin/main`（含 PR #12 Gemini Spark 與試算表增量匯入功能）向 `feat/hermes-creative-intelligence-loop` 之雙向匯流與修復：
+
+1. **雙向匯流與衝突解決 (`app/api/inspiration/route.ts`)**：
+   - 合併 `origin/main`（commit `ef1df0f`、`d24da9c`、`95fb0ce`、`d275513`）。
+   - 解決 `app/api/inspiration/route.ts` 衝突：同時保留 `sheetsSync` 試算表同步結果與 `fullSiteSearch: false`、`liveFetch: false` 真實探測標記，並維持 `runInspirationPipeline`。
+
+2. **修復試算表 CSV 解析語法錯誤 (`lib/server/inspiration/sheets-sync.ts`)**：
+   - 修復 `parseCsv` 中由上游 PR 引入的未閉合字串常值錯誤（將 `ch === """` 修正為 `ch === '"'`），解決導致 `tests/parallel-intelligence.test.ts` 與 CI 構建崩潰的語法問題。
+
+3. **全系統驗收與質量指標**：
+   - `npm test`：**142 / 142 測試 100% 全數通過 (0 失敗、0 略過)**，覆蓋 Phase 0 至 Phase 12 全量場景。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：226 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+   - PR #10 合併衝突完全排除，恢復 `MERGEABLE` 狀態。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。

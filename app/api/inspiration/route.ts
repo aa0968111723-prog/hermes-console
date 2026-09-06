@@ -8,10 +8,14 @@ import {
 } from "@/lib/server/inspiration";
 import { resolveInspirationUrl, runInspirationPipeline } from "@/lib/server/inspiration/engine";
 import { providerHealth } from "@/lib/server/inspiration/providers";
+import { syncSheetsInspiration } from "@/lib/server/inspiration/sheets-sync";
+
 export const runtime = "nodejs";
+
 export const GET = route(async (req) => {
   authenticate(req);
   const projectId = new URL(req.url).searchParams.get("projectId") || undefined;
+  const sync = await syncSheetsInspiration();
   return respond({
     items: listInspiration(projectId),
     instagram: instagramResearchLimits(),
@@ -20,8 +24,10 @@ export const GET = route(async (req) => {
     providers: providerHealth(),
     fullSiteSearch: false,
     liveFetch: false,
+    sheetsSync: sync,
   });
 });
+
 export const POST = route(async (req) => {
   authenticate(req, true);
   const body = z
