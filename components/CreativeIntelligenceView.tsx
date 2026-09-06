@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import type { CreativePipelineResult, CreativeDirection } from "@/lib/server/creative-workflow/pipeline.ts";
 import type { OrchestratedTaskResult } from "@/lib/server/orchestrator/task-orchestrator.ts";
 import type { IntegrationCheckResult } from "@/lib/server/integrations/truth-status.ts";
+import type { PersonaProfile } from "@/lib/server/audience-twin/types.ts";
+import { PersonaCard } from "@/components/audience/AudienceCard.tsx";
 import {
   MOBILE_CREATIVE_PANES,
   type MobileCreativePane,
@@ -35,6 +37,11 @@ export default function CreativeIntelligenceView({
   const [activeDirIndex, setActiveDirIndex] = useState(0);
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [mobilePane, setMobilePane] = useState<MobileCreativePane>("brief");
+
+  // 受眾雙生雙頁籤與 PersonaProfile 畫像狀態
+  const [audienceTab, setAudienceTab] = useState<"feedback" | "personas">("feedback");
+  const [activePersonas, setActivePersonas] = useState<PersonaProfile[]>([]);
+  const [loadingPersonas, setLoadingPersonas] = useState(false);
 
   // 敏感操作二次確認彈窗狀態
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
@@ -167,6 +174,32 @@ export default function CreativeIntelligenceView({
   const currentDirection: CreativeDirection | null = pipelineData
     ? pipelineData.directions[activeDirIndex] || pipelineData.topDirection
     : null;
+
+  // 載入當前方向校園脈絡對應的 5 大 PersonaProfile
+  useEffect(() => {
+    let cancelled = false;
+    const domain =
+      currentDirection?.audienceFeedback?.domain ||
+      (activeProject.includes("ntu") ? "ntu" : activeProject.includes("personal") ? "general" : "tamkang");
+    setLoadingPersonas(true);
+    fetch(`/api/audience-twin/personas?domain=${encodeURIComponent(domain)}`, {
+      credentials: "same-origin",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && data.ok && Array.isArray(data.personas)) {
+          setActivePersonas(data.personas);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoadingPersonas(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentDirection?.audienceFeedback?.domain, activeProject]);
 
   return (
     <div className="creative-os-container">
@@ -687,95 +720,144 @@ export default function CreativeIntelligenceView({
                   </div>
                 </div>
 
-                {/* 雷達指標長條圖 */}
-                <div className="score-bars-container">
-                  <div className="score-bar-row">
-                    <span className="bar-label">拇指停留率 (Stop Intent)</span>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.stopIntent}%` }} />
-                    </div>
-                    <span className="bar-val">{currentDirection.audienceScores.stopIntent}%</span>
-                  </div>
-
-                  <div className="score-bar-row">
-                    <span className="bar-label">痛點關聯度 (Relevance)</span>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.relevance}%` }} />
-                    </div>
-                    <span className="bar-val">{currentDirection.audienceScores.relevance}%</span>
-                  </div>
-
-                  <div className="score-bar-row">
-                    <span className="bar-label">同儕轉傳率 (Peer Affinity)</span>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.peerAffinity}%` }} />
-                    </div>
-                    <span className="bar-val">{currentDirection.audienceScores.peerAffinity}%</span>
-                  </div>
-
-                  <div className="score-bar-row">
-                    <span className="bar-label">行動清晰度 (CTA Clarity)</span>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.ctaClarity}%` }} />
-                    </div>
-                    <span className="bar-val">{currentDirection.audienceScores.ctaClarity}%</span>
-                  </div>
-
-                  <div className="score-bar-row">
-                    <span className="bar-label">無壓信賴感 (Safety Index)</span>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.safetyIndex}%` }} />
-                    </div>
-                    <span className="bar-val">{currentDirection.audienceScores.safetyIndex}%</span>
-                  </div>
+                {/* 雙視角頁籤切換：辯論評估 vs 5 大 PersonaProfile 畫像 */}
+                <div className="audience-subnav-tabs">
+                  <button
+                    type="button"
+                    className={`audience-subnav-btn ${audienceTab === "feedback" ? "active" : ""}`}
+                    onClick={() => setAudienceTab("feedback")}
+                  >
+                    💬 辯論評估與回饋
+                  </button>
+                  <button
+                    type="button"
+                    className={`audience-subnav-btn ${audienceTab === "personas" ? "active" : ""}`}
+                    onClick={() => setAudienceTab("personas")}
+                  >
+                    👤 5 大受眾立體畫像 ({activePersonas.length || 5})
+                  </button>
                 </div>
 
-                {/* 辯論共識與標籤拆解 */}
-                <div className="debate-summary-box">
-                  <div className="debate-title">📢 模擬受眾辯論共識結論</div>
-                  <p className="debate-text">{currentDirection.audienceFeedback.debateSummary}</p>
-                  <div className="evidence-hypothesis-row">
-                    <div className="eh-column">
-                      <span className="eh-tag verified">真實證據 Evidence</span>
-                      <ul>
-                        {currentDirection.audienceFeedback.evidencePoints.map((p, i) => (
-                          <li key={i}>{p}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="eh-column">
-                      <span className="eh-tag hypothesis">推論假設 Hypothesis</span>
-                      <ul>
-                        {currentDirection.audienceFeedback.hypothesisPoints.map((p, i) => (
-                          <li key={i}>{p}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+                {audienceTab === "feedback" ? (
+                  <>
+                    {/* 雷達指標長條圖 */}
+                    <div className="score-bars-container">
+                      <div className="score-bar-row">
+                        <span className="bar-label">拇指停留率 (Stop Intent)</span>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.stopIntent}%` }} />
+                        </div>
+                        <span className="bar-val">{currentDirection.audienceScores.stopIntent}%</span>
+                      </div>
 
-                {/* 5 位 Persona 回饋卡片清單 */}
-                <div className="personas-feedback-list">
-                  <div className="personas-header">5 位虛擬受眾逐字評論：</div>
-                  {currentDirection.audienceFeedback.feedback.map((f) => (
-                    <div key={f.personaId} className="persona-quote-card">
-                      <div className="persona-top">
-                        <span className="persona-avatar">{f.avatar}</span>
-                        <div className="persona-info">
-                          <span className="persona-name">{f.name}</span>
-                          <span className="persona-score">評分：{f.score} / 100</span>
+                      <div className="score-bar-row">
+                        <span className="bar-label">痛點關聯度 (Relevance)</span>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.relevance}%` }} />
+                        </div>
+                        <span className="bar-val">{currentDirection.audienceScores.relevance}%</span>
+                      </div>
+
+                      <div className="score-bar-row">
+                        <span className="bar-label">同儕轉傳率 (Peer Affinity)</span>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.peerAffinity}%` }} />
+                        </div>
+                        <span className="bar-val">{currentDirection.audienceScores.peerAffinity}%</span>
+                      </div>
+
+                      <div className="score-bar-row">
+                        <span className="bar-label">行動清晰度 (CTA Clarity)</span>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.ctaClarity}%` }} />
+                        </div>
+                        <span className="bar-val">{currentDirection.audienceScores.ctaClarity}%</span>
+                      </div>
+
+                      <div className="score-bar-row">
+                        <span className="bar-label">無壓信賴感 (Safety Index)</span>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${currentDirection.audienceScores.safetyIndex}%` }} />
+                        </div>
+                        <span className="bar-val">{currentDirection.audienceScores.safetyIndex}%</span>
+                      </div>
+                    </div>
+
+                    {/* 辯論共識與標籤拆解 */}
+                    <div className="debate-summary-box">
+                      <div className="debate-title">📢 模擬受眾辯論共識結論</div>
+                      <p className="debate-text">{currentDirection.audienceFeedback.debateSummary}</p>
+                      <div className="evidence-hypothesis-row">
+                        <div className="eh-column">
+                          <span className="eh-tag verified">真實證據 Evidence</span>
+                          <ul>
+                            {currentDirection.audienceFeedback.evidencePoints.map((p, i) => (
+                              <li key={i}>{p}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div className="eh-column">
+                          <span className="eh-tag hypothesis">推論假設 Hypothesis</span>
+                          <ul>
+                            {currentDirection.audienceFeedback.hypothesisPoints.map((p, i) => (
+                              <li key={i}>{p}</li>
+                            ))}
+                          </ul>
                         </div>
                       </div>
-                      <p className="persona-reaction">「{f.reaction}」</p>
-                      <div className="persona-critique">
-                        <strong>檢驗點：</strong>{f.critique}
-                      </div>
-                      <div className="persona-suggestion">
-                        <strong>💡 建設性建議：</strong>{f.constructiveSuggestion}
-                      </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* 5 位 Persona 回饋卡片清單 */}
+                    <div className="personas-feedback-list">
+                      <div className="personas-header">5 位虛擬受眾逐字評論：</div>
+                      {currentDirection.audienceFeedback.feedback.map((f) => (
+                        <div key={f.personaId} className="persona-quote-card">
+                          <div className="persona-top">
+                            <span className="persona-avatar">{f.avatar}</span>
+                            <div className="persona-info">
+                              <span className="persona-name">{f.name}</span>
+                              <span className="persona-score">評分：{f.score} / 100</span>
+                            </div>
+                          </div>
+                          <p className="persona-reaction">「{f.reaction}」</p>
+                          <div className="persona-critique">
+                            <strong>檢驗點：</strong>{f.critique}
+                          </div>
+                          <div className="persona-suggestion">
+                            <strong>💡 建設性建議：</strong>{f.constructiveSuggestion}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="audience-personas-column">
+                    <div className="personas-view-header">
+                      <span className="personas-view-subtitle">
+                        🎯 當前適配脈絡：
+                        {currentDirection.audienceFeedback.domain === "ntu"
+                          ? "🚲 臺灣大學"
+                          : currentDirection.audienceFeedback.domain === "general"
+                          ? "🎓 通用大專"
+                          : "🏫 淡江大學"}
+                        {" · "}5 位立體受眾設定
+                      </span>
+                    </div>
+                    {loadingPersonas ? (
+                      <div className="personas-loading-state">載入受眾雙生畫像中...</div>
+                    ) : activePersonas.length > 0 ? (
+                      <div className="personas-cards-list">
+                        {activePersonas.map((p) => (
+                          <PersonaCard key={p.id} persona={p} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="empty-state">
+                        <p>尚未載入受眾畫像資料</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

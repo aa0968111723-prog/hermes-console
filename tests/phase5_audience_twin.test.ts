@@ -132,4 +132,30 @@ test("Phase 5 Audience Twin is contextual and evidence grounded", async (t) => {
     assert.equal(dataGen.personas[0].name, "大一新生・宜庭 (新鮮人)");
     assert.ok(dataGen.personas.every((p: any) => p.domain === "general"));
   });
+
+  await t.test("PersonaProfile structure integrity and PersonaCard export", async () => {
+    const { resolvePersonasForContext } = await import("../lib/server/audience-twin/engine.ts");
+    for (const domain of ["tamkang", "ntu", "general"] as const) {
+      const { personas } = resolvePersonasForContext("", domain);
+      assert.equal(personas.length, 5);
+      for (const p of personas) {
+        assert.ok(p.id, "persona must have id");
+        assert.ok(p.name, "persona must have name");
+        assert.ok(p.tag, "persona must have tag");
+        assert.ok(p.role, "persona must have role");
+        assert.ok(p.avatar, "persona must have avatar");
+        assert.ok(p.perspective, "persona must have perspective");
+        assert.ok(p.mindset, "persona must have mindset");
+        assert.ok(Array.isArray(p.triggers) && p.triggers.length > 0, "persona must have triggers");
+        assert.ok(Array.isArray(p.dislikes) && p.dislikes.length > 0, "persona must have dislikes");
+        assert.equal(p.domain, domain);
+        assert.equal(p.sourceKind, "console_fixture");
+        assert.equal(p.simulation, true);
+        assert.equal(p.method, "ai_heuristic");
+      }
+    }
+
+    const { PersonaCard } = await import("../components/audience/AudienceCard.tsx");
+    assert.equal(typeof PersonaCard, "function");
+  });
 });

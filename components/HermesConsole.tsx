@@ -1460,7 +1460,7 @@ export default function HermesConsole() {
 
         ) : (
           <section className="secondary-page">
-            <AgentPanel agents={agents} brain={[]} />
+            <AgentPanel agents={agents} brain={[]} project={project} />
             <p className="eyebrow">每一步都有紀錄</p>
             <h1>任務</h1>
             <p className="muted">這裡只呈現後端儲存及 Hermes 回報的狀態。</p>

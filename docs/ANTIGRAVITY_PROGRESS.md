@@ -456,6 +456,35 @@
 
 ---
 
+## 週期 18 (Iteration 18) AgentPanel 雙頁籤升級、Audience Twin 角色庫校園切換與 CreativeIntelligenceView 雙視角對照
+
+本週期針對操作艙中「Audience Twin 立體 Persona 角色畫像僅存在於後端型別與 API，前端 AgentPanel 與創意操作艙尚未整合雙生畫像瀏覽與切換」之視覺化斷層，完成以下核心升級：
+
+1. **AgentPanel 雙頁籤與跨校園受眾角色庫 (`components/agents/AgentPanel.tsx`)**：
+   - 升級 `AgentPanel` 支援雙頁籤切換：`🤖 系統代理` 與 `👥 受眾雙生 (Audience Twin)`。
+   - 在受眾雙生頁籤中，提供目標校園領域切換按鈕組（🏫 淡江大學 / 🚲 臺灣大學 / 🎓 通用大專），並根據當前專案自動預選初始領域。
+   - 動態由 `/api/audience-twin/personas?domain={domain}` 載入 5 位立體 Persona，以 `PersonaCard` 完整呈現角色頭像、痛點視角、內心獨白、有感觸發（`trigger-pill`）與踩雷排斥（`dislike-pill`）。
+   - 保持誠實出處聲明：`🛡️ console_fixture · AI 模擬啟發式評估（非真人受訪）`。
+
+2. **HermesConsole 專案脈絡傳遞 (`components/HermesConsole.tsx`)**：
+   - 在主導航中呼叫 `<AgentPanel agents={agents} brain={[]} project={project} />`，確保專案脈絡自動感知並無縫傳遞至受眾面板。
+
+3. **CreativeIntelligenceView 雙視角切換對照 (`components/CreativeIntelligenceView.tsx`)**：
+   - 在右欄 Audience Twin 操作卡片中新增雙頁籤導航：`💬 辯論評估與回饋` 與 `👤 5 大受眾立體畫像`。
+   - 讓創作者在檢視虛擬受眾逐字評語與雷達指標時，能一鍵切換查看當前校園領域下 5 位 Persona 的完整背景、痛點、心理狀態與踩雷排斥清單，大幅提升決策透明度與可解釋性。
+
+4. **響應式排版與美學樣式擴充 (`app/globals.css`)**：
+   - 新增 `agent-panel-tabs`、`agent-tab-btn`、`domain-selector-bar`、`domain-pill-btn`、`personas-showcase-grid`、`audience-subnav-tabs` 等深色專業主題樣式。
+
+5. **全套測試與 Next.js 生產建置驗證 (`tests/phase5_audience_twin.test.ts`)**：
+   - 擴充 `tests/phase5_audience_twin.test.ts`，增加 3 大領域（淡江、臺大、通用）5 位 PersonaProfile 欄位完整性與 `PersonaCard` 組件匯出斷言。
+   - `npm test`：**153 / 153 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由編譯全數通過。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
