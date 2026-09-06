@@ -1,7 +1,12 @@
 "use client";
 
-import InvitationGate from "@/components/InvitationGate";
+import ConsoleErrorBoundary from "@/components/ConsoleErrorBoundary";
+import HermesConsole from "@/components/HermesConsole";
 
 export default function Page() {
-  return <InvitationGate />;
+  return (
+    <ConsoleErrorBoundary>
+      <HermesConsole />
+    </ConsoleErrorBoundary>
+  );
 }

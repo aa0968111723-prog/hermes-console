@@ -3,17 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { randomBytes, createHash } from "node:crypto";
-import { DatabaseSync } from "node:sqlite";
 import { spawn } from "node:child_process";
-import { seedSession } from "./session-fixture";
 const data = await mkdtemp(join(tmpdir(), "hermes-workbench-ui-"));
-seedSession(data); // Invited identity fixture, not a mail-delivery simulation.
-const database = new DatabaseSync(join(data, "console.sqlite"));
-const token = randomBytes(32).toString("hex"), digest = createHash("sha256").update(token).digest("hex");
-database.prepare("INSERT INTO records VALUES(?,?,?,?)").run("login_link", "access", digest,
-  JSON.stringify({id: digest, memberId: "fixture-admin", used: false, expires: Date.now() + 900000}));
-database.close();
 const port = Number(process.env.WORKBENCH_TEST_PORT || 3418), base = "http://127.0.0.1:" + port;
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port), "-H", "127.0.0.1"], {
   windowsHide: true, stdio: "pipe", env: { ...process.env, NODE_ENV: "production", CONSOLE_ORIGIN: base,
@@ -34,19 +25,12 @@ try {
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", e=>errors.push(e.message));
-  page.on("request", request=>assert.ok(!request.url().includes(token), "login token must not enter request URL"));
   await page.goto(base);
-  await expect(page.getByRole("heading", {name:"歡迎回到 Hermes"})).toBeVisible();
-  assert.equal((await context.request.get(base+"/api/workspace")).status(),401);
-  await page.screenshot({path:join(output,"invitation-mobile-390.png"),fullPage:true});
-  await page.goto(base+"/#login="+token);
-  await page.reload(); // Ensure the fragment is processed by the mounted entry component.
-  await expect(page.getByRole("button",{name:"確認登入工作區",exact:true})).toBeVisible();
-  assert.ok(!page.url().includes(token));
-  assert.equal((await context.request.get(base+"/api/workspace")).status(),401, "opening a link cannot consume it");
-  await page.getByRole("button",{name:"確認登入工作區",exact:true}).click();
   await expect(page.getByRole("heading",{name:"今天想做什麼？"})).toBeVisible();
-  assert.equal((await context.request.post(base+"/api/auth",{headers:{Origin:base},data:{action:"redeem",token}})).status(),401);
+  assert.equal((await context.request.get(base+"/api/workspace")).status(),200);
+  const body = await page.locator("body").innerText();
+  for (const word of ["受邀電子信箱","寄送登入連結","歡迎回到 Hermes","正在驗證工作區存取"])
+    assert.ok(!body.includes(word), "invitation UI visible: "+word);
   await page.getByRole("button",{name:"開啟導覽"}).click();
   await page.getByRole("button",{name:"專案",exact:true}).click();
   await page.getByRole("button",{name:"建立活動資料",exact:true}).click();
@@ -106,15 +90,9 @@ try {
   await page.reload();
   await expect(page.getByRole("heading",{name:"今天想做什麼？"})).toBeVisible();
   assert.equal((await (await context.request.get(base+"/api/learning")).json()).nodes.length,2);
-  await page.getByRole("button",{name:"外觀設定"}).click();
-  await page.getByRole("tab",{name:"成員",exact:true}).click();
-  await expect(page.getByLabel("邀請電子信箱",{exact:true})).toBeVisible();
-  await page.getByRole("button",{name:"登出此裝置",exact:true}).click();
-  await expect(page.getByRole("heading",{name:"歡迎回到 Hermes"})).toBeVisible();
-  assert.equal((await context.request.get(base+"/api/creative")).status(),401);
-  assert.ok(!logs.includes(token));
+  assert.equal((await context.request.get(base+"/api/creative")).status(),200);
   assert.deepEqual(errors,[]);
-  console.log("PASS: real production browser invitation redemption/replay/logout; activity confirmation; two-page revisions/export; persistent learning tree with honest unconfigured state. Email delivery, Hermes memory and Canva NOT live verified.");
+  console.log("PASS: real production browser no-login workbench; activity confirmation; two-page revisions/export; persistent learning tree with honest unconfigured state. Hermes memory and Canva NOT live verified.");
 } catch (error) {
   const page = browser.contexts()[0]?.pages()[0];
   if (page) {

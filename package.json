@@ -9,6 +9,7 @@
     "start": "next start",
     "test": "tsx --test tests/*.test.ts",
     "test:ui": "tsx tests/verify-ui.ts",
+    "test:entry": "tsx tests/verify-entry.ts",
     "test:chat": "tsx tests/verify-chat.ts",
     "test:gateway": "tsx tests/verify-gateway.ts",
     "test:workbench": "tsx tests/verify-workbench.ts",

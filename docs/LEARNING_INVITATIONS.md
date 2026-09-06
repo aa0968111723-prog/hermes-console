@@ -1,6 +1,6 @@
 # 活動工作流、學習地圖與電子信箱邀請制
 
-本輪依最新要求，以電子信箱邀請登入取代免登入；尚未部署、寄出真實邀請或更動既有正式資料。現有 SQLite 工作區、對話與素材保留，沒有重寫 Git 歷史。
+產品不變量：Hermes Console 是免登入單一工作區。電子信箱邀請模組為休眠選項，不得擋住 `/` 或工作區 API。現有 SQLite 工作區、對話與素材保留，沒有重寫 Git 歷史。
 
 ## 可以實際操作的內容
 
@@ -46,7 +46,7 @@ Console 的節點是「希望學習的資料與提交紀錄」，不是 Hermes �
 
 ## 驗證方法
 
-- `npm test`：65 個測試通過。包含真實 HTTP handler／MCP 協定與隔離 SQLite；Hermes、Canva、寄信供應商回應有明確測試 fixture，不是外部實機證據。
+- `npm test`：73 個測試通過。包含真實 HTTP handler／MCP 協定與隔離 SQLite；Hermes、Canva、寄信供應商回應有明確測試 fixture，不是外部實機證據。
 - `npm run build`：production build 通過。
 - `npm run test:workbench`：真實本地 production 瀏覽器完成一次性連結核銷、防重用、登出、活動核對、兩頁文案修訂與下載、學習樹關聯及刷新恢復；登入身份由隔離測試資料庫建立，不寄信。
 - `npm run test:ui`：四種寬度、IME、Shift+Enter、短視窗、減少動畫、對話草稿、鍵盤與焦點回復回歸通過；使用已受邀 session fixture。

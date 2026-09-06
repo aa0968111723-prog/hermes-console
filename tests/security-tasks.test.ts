@@ -156,20 +156,18 @@ async function settle(id: string) {
   throw new Error("Fixture task did not settle");
 }
 test("security, honest health, durable tasks, uploads and ownership", async (t) => {
-  await t.test("workspace APIs require an invited session", async () => {
+  await t.test("workspace APIs are no-login single workspace", async () => {
     assert.equal(
       (await healthRoute.GET(request("health", "GET", undefined, false)))
         .status,
-      401,
+      200,
     );
     assert.equal(
-      (await authRoute.GET(request("auth", "GET", undefined, false))).status,
-      401,
+      security.authenticate(
+        new Request("http://localhost:3210/api/workspace"),
+      ),
+      "workspace",
     );
-    const body = await (
-      await authRoute.GET(request("auth", "GET", undefined, false))
-    ).json();
-    assert.ok(!/請先登入|login required/i.test(JSON.stringify(body)));
     assert.equal(
       (
         await taskRoute.POST(
@@ -180,10 +178,10 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
           }),
         )
       ).status,
-      401,
+      403,
     );
   });
-  await t.test("invited mutations stay origin-bound; legacy login is rejected", async () => {
+  await t.test("mutations stay origin-bound; legacy login is rejected", async () => {
     assert.equal(
       (
         await authRoute.POST(
@@ -205,13 +203,13 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         ),
       /來源/,
     );
-    assert.throws(
-      () => security.authenticate(
+    assert.equal(
+      security.authenticate(
         new Request("http://localhost:3210/api/tasks", {
           headers: { Cookie: "hermes_session=forged" },
         }),
       ),
-      /登入/,
+      "workspace",
     );
   });
   await t.test("client destinations and credentials rejected", async () => {

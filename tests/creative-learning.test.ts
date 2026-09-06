@@ -32,7 +32,7 @@ function taskContext(projectId = "personal") {
 const fact = (field: "name" | "date" | "location" | "contact", value: string, visibility: "public" | "private" = "public") =>
   ({ field, value, visibility, sources: [] });
 test("activity → selected directions → pages → revision → download uses persistent handlers and actual MCP calls", async () => {
-  assert.equal((await creativeApi.GET(req("GET", undefined, "", false))).status, 401);
+  assert.equal((await creativeApi.GET(req("GET", undefined, "", false))).status, 200);
   const taskId = taskContext();
   const args = { projectId: "personal", title: "TEST ONLY 活動", expectedRevision: 0, operationId: randomUUID(),
     facts: [fact("name", "測試活動"), fact("date", "2026-10-01"), fact("date", "2026-10-02"), fact("location", "測試場地"), fact("contact", "私", "private")] };
@@ -77,7 +77,7 @@ test("activity → selected directions → pages → revision → download uses 
 });
 
 test("learning tree persists revisions, rejects cycles/scopes/secrets and does not claim offline learning", async () => {
-  assert.equal((await learningApi.GET(req("GET", undefined, "", false))).status, 401);
+  assert.equal((await learningApi.GET(req("GET", undefined, "", false))).status, 200);
   const input = { projectId: "personal", operationId: randomUUID(), expectedRevision: 0, parentId: null,
     title: "品牌", category: "brand" as const, content: "使用清楚、親切的語氣。", sources: [] };
   const root = l.saveLearning("workspace", input);

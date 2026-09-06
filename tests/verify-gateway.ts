@@ -1,7 +1,6 @@
 // Real Chromium -> isolated access-proxy fixture -> real production Console.
 // The fixture models an already authenticated gateway session, NOT live SSO/Zeabur verification.
 import { chromium, expect } from "@playwright/test";
-import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { spawn } from "node:child_process";
@@ -11,7 +10,6 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const data = await mkdtemp(join(tmpdir(), "hermes-gateway-browser-"));
-const invited = seedSession(data);
 const backendPort = Number(process.env.GATEWAY_TEST_PORT || 3371);
 const backend = "http://127.0.0.1:" + backendPort;
 const secret = randomBytes(32).toString("hex"),
@@ -122,7 +120,6 @@ try {
   });
   await context.addCookies([
     { name: "gateway_fixture", value: session, url: origin },
-    { name: "hermes_invite_session", value: invited.token, url: origin },
   ]);
   const page = await context.newPage();
   const errors: string[] = [];

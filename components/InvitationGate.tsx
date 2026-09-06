@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import HermesConsole from "./HermesConsole";
+/** Dormant optional multi-user entry. Homepage must not import this. */
 export default function InvitationGate() {
   const [member, setMember] = useState<{email: string; role: string} | null>(null);
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
@@ -38,11 +39,7 @@ export default function InvitationGate() {
     finally { setBusy(false); }
   }
   if (loading) return <main className="invite-entry"><p role="status">正在驗證工作區存取…</p></main>;
-  if (member) return <HermesConsole member={member} onLogout={async () => {
-    const response = await fetch("/api/auth", { method: "DELETE", signal: AbortSignal.timeout(15_000) });
-    if (!response.ok) throw new Error("登出未完成，請檢查連線後重試。");
-    setMember(null); setToken("");
-  }} />;
+  if (member) return <HermesConsole />;
   return <main className="invite-entry"><section>
     <h1>歡迎回到 Hermes</h1>
     <p>這是電子信箱邀請制工作區，沒有公開註冊。請使用管理員邀請的信箱。</p>

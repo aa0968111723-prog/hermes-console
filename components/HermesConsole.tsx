@@ -36,7 +36,6 @@ import RuntimeInspector from "./RuntimeInspector";
 import InspirationBoard from "./inspiration/InspirationBoard";
 import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
-import MemberAccess from "./MemberAccess";
 import IntegrationHealth from "./settings/IntegrationHealth";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
@@ -140,7 +139,7 @@ async function api<T>(
     throw new Error(data.error?.message || "操作失敗，請稍後重試。");
   return data as T;
 }
-export default function HermesConsole({ member, onLogout }: { member: {email: string; role: string}; onLogout: () => Promise<void> }) {
+export default function HermesConsole() {
   const [auth, setAuth] = useState<"loading" | "ready">("loading");
   const [data, setData] = useState<Workspace>(EMPTY);
   const [health, setHealth] = useState<Health | null>(null);
@@ -739,13 +738,6 @@ export default function HermesConsole({ member, onLogout }: { member: {email: st
       </button>
     </>
   );
-
-  if (auth === "loading")
-    return (
-      <main className="workspace-loading">
-        <p role="status">正在開啟工作區…</p>
-      </main>
-    );
 
   return (
     <div
@@ -1626,7 +1618,7 @@ export default function HermesConsole({ member, onLogout }: { member: {email: st
                   tabs[next]?.click();
                 }}
               >
-                {["外觀", "連線", "記憶", "使用量", "成員", "專案"].map((tab) => (
+                {["外觀", "連線", "記憶", "使用量", "專案"].map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -1861,8 +1853,6 @@ export default function HermesConsole({ member, onLogout }: { member: {email: st
                         </details>
                       ))}
                   </div>
-                ) : settingsTab === "成員" ? (
-                  <MemberAccess member={member} onLogout={onLogout} />
                 ) : settingsTab === "記憶" ? (
                   <div className="settings-stack">
                     <h3>記憶與會話</h3>

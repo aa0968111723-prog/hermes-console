@@ -6,9 +6,9 @@ import {
 } from "node:crypto";
 import { z } from "zod";
 import { db, get, put, transaction } from "./store";
-import { currentMember } from "./invitations";
 
 export const WORKSPACE_OWNER = "workspace";
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 export class ApiError extends Error {
   constructor(
@@ -43,27 +43,57 @@ export function limited(key: string, maximum: number, windowMs: number) {
   if (Number(row.count) > maximum)
     throw new ApiError(429, "rate_limited", "請稍後再試，請求次數已達限制。");
 }
+function requestOrigin(request: Request) {
+  try {
+    return new URL(request.url).origin;
+  } catch {
+    return "";
+  }
+}
+function isLoopbackOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    return LOOPBACK_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
 export function checkOrigin(request: Request) {
-  const configured = process.env.CONSOLE_ORIGIN;
-  if (!configured)
-    throw new ApiError(503, "setup_required", "後端尚未設定 CONSOLE_ORIGIN。");
-  if (request.headers.get("origin") !== new URL(configured).origin)
-    throw new ApiError(
-      403,
-      "origin_rejected",
-      "來源驗證失敗，請重新載入工作區。",
-    );
+  const origin = request.headers.get("origin") || "";
+  const configured = process.env.CONSOLE_ORIGIN?.trim();
+  if (configured) {
+    let expected = "";
+    try {
+      expected = new URL(configured).origin;
+    } catch {
+      throw new ApiError(503, "setup_required", "後端尚未設定 CONSOLE_ORIGIN。");
+    }
+    if (origin !== expected)
+      throw new ApiError(
+        403,
+        "origin_rejected",
+        "來源驗證失敗，請重新載入工作區。",
+      );
+    return;
+  }
+  const incoming = requestOrigin(request);
+  if (origin && incoming && origin === incoming && isLoopbackOrigin(origin))
+    return;
+  throw new ApiError(
+    503,
+    "setup_required",
+    "後端尚未設定 CONSOLE_ORIGIN。",
+  );
 }
 export function authenticate(request: Request, mutation = false): string {
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
-  currentMember(request);
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;
 }
 
-// Optional defense in depth; invitation membership is still required by authenticate.
+// Optional deployment-level protection. Not an account login.
 // The gateway must replace this header, never forward a browser-provided value.
 export function verifyGateway(request: Request) {
   const secret = process.env.CONSOLE_GATEWAY_SECRET || "";

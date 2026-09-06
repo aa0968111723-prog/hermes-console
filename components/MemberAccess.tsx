@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { Member } from "@/lib/server/invitations";
+/** Dormant optional multi-user settings. Not part of the no-login workspace. */
 export default function MemberAccess({ member, onLogout }: {
   member: {email: string; role: string}; onLogout: () => Promise<void>;
 }) {

@@ -1,3 +1,4 @@
+// Dormant optional multi-user helpers. Workspace APIs must not require these.
 import { randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { ApiError, hash, limited, WORKSPACE_OWNER } from "./security";

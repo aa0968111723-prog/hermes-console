@@ -83,11 +83,11 @@ function request(path: string, method = "GET", body?: unknown, origin = true) {
 }
 
 test("invited workspace, confirmation, discovery and creative intelligence", async (t) => {
-  await t.test("invited sessions access APIs; password login is rejected", async () => {
+  await t.test("workspace APIs work without a member session", async () => {
+    const anonymous = new Request("http://localhost:3211/api/workspace");
+    assert.equal((await workspace.GET(anonymous)).status, 200);
     assert.equal((await workspace.GET(request("workspace"))).status, 200);
     assert.equal((await healthRoute.GET(request("health"))).status, 200);
-    const auth = await (await authRoute.GET(request("auth"))).json();
-    assert.equal(auth.mode, "email-invitation");
     assert.equal(
       (
         await authRoute.POST(
@@ -96,8 +96,6 @@ test("invited workspace, confirmation, discovery and creative intelligence", asy
       ).status,
       400,
     );
-    const text = JSON.stringify(auth);
-    assert.ok(!/請先登入|login required/i.test(text));
   });
 
   await t.test(

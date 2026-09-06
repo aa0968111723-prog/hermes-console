@@ -1,5 +1,4 @@
 import { chromium, expect } from "@playwright/test";
-import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:http";
@@ -165,7 +164,6 @@ try {
     viewport: { width: 1280, height: 900 },
   });
   const page = await context.newPage();
-  await context.addCookies([{ name: "hermes_invite_session", value: seedSession(data).token, url: base }]);
   await page.goto(base);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
@@ -279,7 +277,7 @@ try {
   assert.match(String(canva.detail), /Needs Canva Authorization|尚未/);
   assert.ok(!logs.includes(fixtureKey));
   console.log(
-    "PASS: invited-session fixture browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP. NOT live email or Zeabur validation.",
+    "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP. NOT live Zeabur validation.",
   );
 } finally {
   await browser.close();
