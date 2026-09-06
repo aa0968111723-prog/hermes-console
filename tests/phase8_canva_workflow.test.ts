@@ -60,4 +60,31 @@ test("Phase 8 connect creative intelligence to Canva workflow", async (t) => {
     assert.ok(!String(result.message).includes("無縫導入"));
     assert.ok(String(result.exportUrl).includes("canva.com"));
   });
+
+  await t.test("MCP export_canva_design_draft supports png, jpg, pdf in truthful sandbox mode", async () => {
+    const formats = ["png", "jpg", "pdf"] as const;
+    for (const fmt of formats) {
+      const res = await executeMcpTool("export_canva_design_draft", {
+        designId: "blueprint_test_design",
+        draftId: `test_draft_${fmt}`,
+        format: fmt,
+      });
+      assert.equal(res.success, true);
+      const data = res.result as {
+        mode: string;
+        format: string;
+        draftId: string;
+        exportUrl: string;
+        previewDimensions: string;
+        message: string;
+      };
+      assert.equal(data.mode, "sandbox_blueprint");
+      assert.equal(data.format, fmt);
+      assert.equal(data.previewDimensions, "1080x1350");
+      assert.ok(data.exportUrl.includes(`format=${fmt}`));
+      assert.ok(data.exportUrl.includes("canva.com/design/export_preview"));
+      assert.match(data.message, /沙盒規格|未連線 Canva/);
+    }
+  });
 });
+

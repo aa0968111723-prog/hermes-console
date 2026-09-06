@@ -521,11 +521,41 @@
 
 ---
 
+## 週期 20 (Iteration 20) Canva 4:5 直式畫布微縮預覽、草稿匯出控制器與手作三色光道具規範
+
+本週期針對 Canva 設計草稿藍圖卡片（`canva-blueprint-card`）在視覺呈現與格式匯出上的缺口，完成以下 4 大核心加固：
+
+1. **4:5 直式微縮畫布視覺預覽 (Visual Canvas Mockup, `components/CreativeIntelligenceView.tsx`)**：
+   - 依照 1080×1350（4:5 直式滿版）規格，以 CSS 與色票漸層呈現真實社群主視覺微縮。
+   - 動態提取方向專屬之雙色漸層底色與氛圍光感（`.canvas-ambient-glow`）。
+   - 結構化呈現 L2 視覺氛圍徽章、L3 主標題字體排版、L4 活動時間場地副標與 L5 行動呼籲（CTA）膠囊標籤。
+   - 忠實融入規範之 **36px 手作圓形三色光邊角印章**（紅外圈、黃中圈、綠核心），作為微縮畫布的視覺錨點，明確標記非標靶、非交通燈。
+
+2. **Canva 草稿匯出控制器 (`CanvaExportController`, `components/CreativeIntelligenceView.tsx`)**：
+   - 提供 PNG、JPG、PDF 匯出格式即時切換標籤。
+   - 實作 `handleExportCanvaDraft`，非同步調用 `/api/mcp/execute`（`export_canva_design_draft`）工具。
+   - 產出成功後展示「✓ 草稿規格產出成功」狀態面板，包含作業編號、1080x1350 規格尺寸、沙盒藍圖出處標記、開啟預覽連結與清除按鈕。
+
+3. **出處誠實標示 (Truthful Provenance Badge) 與樣式加固 (`app/globals.css`)**：
+   - 頂部明確標註 `📁 本機沙盒藍圖 (created: false)` 或 `⚡ 已連線官方 API`。
+   - 明確標示誠實免責宣告：未連線 Canva 官方付費 API 憑證時，系統以高擬真沙盒規格產出 1080×1350 本地規格與預覽，絕不偽造雲端即時存取。
+   - 在 `app/globals.css` 中追加完整的深色主題微縮畫布、手作三色光圓形印章、控制器與格式標籤樣式，兼顧行動端響應式排版。
+
+4. **全套測試與 Next.js 生產建置驗證 (`tests/phase8_canva_workflow.test.ts`)**：
+   - 在 `tests/phase8_canva_workflow.test.ts` 新增測試驗證 `export_canva_design_draft` 工具在 PNG、JPG、PDF 三種格式下皆正確產出 `sandbox_blueprint` 出處、1080x1350 規格尺寸與誠實沙盒訊息。
+   - `npm test`：**155 / 155 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
 
 

@@ -52,6 +52,19 @@ export default function CreativeIntelligenceView({
   const [copyNotice, setCopyNotice] = useState("");
   const [showIgResearch, setShowIgResearch] = useState(false);
 
+  // Canva 草稿匯出控制器狀態
+  const [exportFormat, setExportFormat] = useState<"png" | "jpg" | "pdf">("png");
+  const [isExportingCanva, setIsExportingCanva] = useState(false);
+  const [canvaExportResult, setCanvaExportResult] = useState<{
+    mode?: string;
+    format?: string;
+    draftId?: string;
+    jobId?: string;
+    exportUrl?: string;
+    previewDimensions?: string;
+    message?: string;
+  } | null>(null);
+
   const showToast = (msg: string) => {
     setCopyNotice(msg);
     setTimeout(() => setCopyNotice(""), 2500);
@@ -170,6 +183,37 @@ export default function CreativeIntelligenceView({
       alert(`發布失敗: ${err.message}`);
     } finally {
       setIsPublishing(false);
+    }
+  };
+
+  const handleExportCanvaDraft = async () => {
+    if (!currentDirection) return;
+    setIsExportingCanva(true);
+    try {
+      const res = await fetch("/api/mcp/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "export_canva_design_draft",
+          args: {
+            designId: "blueprint_mock_design_id",
+            draftId: `draft_${currentDirection.id}_${exportFormat}`,
+            format: exportFormat
+          }
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.result) {
+        setCanvaExportResult(data.result);
+        showToast(`Canva ${exportFormat.toUpperCase()} 草稿規格已順利產出！`);
+      } else {
+        showToast(data.error || "Canva 匯出請求失敗");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(`連線失敗: ${msg}`);
+    } finally {
+      setIsExportingCanva(false);
     }
   };
 
@@ -510,7 +554,10 @@ export default function CreativeIntelligenceView({
                 <button
                   key={dir.id}
                   className={`dir-tab-btn ${idx === activeDirIndex ? "active" : ""}`}
-                  onClick={() => setActiveDirIndex(idx)}
+                  onClick={() => {
+                    setActiveDirIndex(idx);
+                    setCanvaExportResult(null);
+                  }}
                 >
                   <span className="dir-tab-rank">#{idx + 1}</span>
                   <span className="dir-tab-name">{dir.title}</span>
@@ -576,43 +623,181 @@ export default function CreativeIntelligenceView({
                 </div>
               </div>
 
-              {/* Canva 設計草稿藍圖 */}
+              {/* Canva 設計草稿分層藍圖與微縮畫布 */}
               <div className={`os-card canva-blueprint-card mobile-pane ${mobilePane === "design" ? "is-active" : ""}`}>
                 <div className="card-title-row">
-                  <span className="card-icon">📐</span>
-                  <h4>Canva 設計草稿分層藍圖</h4>
-                  <span className="ratio-tag">{currentDirection.canvaBlueprint.dimensions}</span>
+                  <div className="title-left-group">
+                    <span className="card-icon">📐</span>
+                    <div>
+                      <h4>Canva 設計草稿分層藍圖</h4>
+                      <span className="card-sub-desc">1080x1350 規格 (4:5 直式滿版) 與 36px 手作三色光邊角印章規範</span>
+                    </div>
+                  </div>
+                  <div className="title-badge-group">
+                    <span className="ratio-tag">{currentDirection.canvaBlueprint.dimensions} (4:5)</span>
+                    <span className="provenance-tag">
+                      {currentDirection.canvaBlueprint.created ? "⚡ 已連線官方 API" : "📁 本機沙盒藍圖 (created: false)"}
+                    </span>
+                  </div>
                 </div>
-                <div className="blueprint-layers-list">
-                  {currentDirection.canvaBlueprint.layers.map((l) => (
-                    <div key={l.layer} className="layer-row">
-                      <span className="layer-idx">L{l.layer}</span>
-                      <span className="layer-type">{l.type}</span>
-                      <div className="layer-desc">
-                        {l.content && <strong className="layer-content">{l.content}</strong>}
-                        {l.note && <span className="layer-note">{l.note}</span>}
+
+                {/* 誠實出處告示 */}
+                <div className="blueprint-truth-notice">
+                  <span className="notice-icon">ℹ️</span>
+                  <span>
+                    未連線 Canva 官方付費 API 憑證，系統以高擬真 1080×1350 規格進行本地結構生成與預覽，絕不偽造在線存取。
+                  </span>
+                </div>
+
+                <div className="blueprint-workspace-grid">
+                  {/* 左欄：4:5 直式畫布微縮預覽 */}
+                  <div className="mockup-column">
+                    <div className="mockup-header-label">
+                      <span>畫布微縮預覽 (4:5)</span>
+                      <span className="mockup-dim">1080 × 1350</span>
+                    </div>
+                    <div
+                      className="blueprint-canvas-preview"
+                      style={{
+                        background: `linear-gradient(155deg, ${currentDirection.colorPalette[0]?.hex || "#1e293b"} 0%, ${currentDirection.colorPalette[1]?.hex || "#0f172a"} 100%)`
+                      }}
+                    >
+                      <div className="canvas-ambient-glow" />
+                      <div className="canvas-content-wrapper">
+                        <div className="canvas-top-badge">
+                          {currentDirection.canvaBlueprint.layers.find((l) => l.layer === 2)?.content || currentDirection.title}
+                        </div>
+                        <div className="canvas-headline">
+                          {currentDirection.canvaBlueprint.layers.find((l) => l.layer === 3)?.content || currentDirection.title}
+                        </div>
+                        <div className="canvas-subtitle">
+                          {currentDirection.canvaBlueprint.layers.find((l) => l.layer === 4)?.content || "克難坡茶席 | 12:15-13:00"}
+                        </div>
+                        <div className="canvas-cta-pill">
+                          {currentDirection.canvaBlueprint.layers.find((l) => l.layer === 5)?.content || "🍵 立即卡位領茶"}
+                        </div>
+                      </div>
+
+                      {/* 手作三色光邊角印章 (36px 圓形道具規範：紅外圈、黃中圈、綠中心) */}
+                      <div className="mockup-craft-stamp" title="36px 手作圓形三色光邊角印章 (非標靶/非紅綠燈)">
+                        <div className="stamp-ring-red">
+                          <div className="stamp-ring-yellow">
+                            <div className="stamp-core-green" />
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="blueprint-actions">
-                  <a
-                    href={currentDirection.canvaBlueprint.exportDraftUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-open-canva"
-                  >
-                    在 Canva 畫布中開啟草稿藍圖 ↗
-                  </a>
-                  <button
-                    className="btn-copy-blueprint"
-                    onClick={() => {
-                      navigator.clipboard.writeText(JSON.stringify(currentDirection.canvaBlueprint, null, 2));
-                      showToast("Canva 藍圖 JSON 已複製至剪貼簿！");
-                    }}
-                  >
-                    複製藍圖 JSON
-                  </button>
+                  </div>
+
+                  {/* 右欄：分層結構與匯出控制器 */}
+                  <div className="layers-controller-column">
+                    <div className="layers-header-label">分層圖層定義 (Layers)</div>
+                    <div className="blueprint-layers-list">
+                      {currentDirection.canvaBlueprint.layers.map((l) => (
+                        <div key={l.layer} className="layer-row">
+                          <span className="layer-idx">L{l.layer}</span>
+                          <span className="layer-type">{l.type}</span>
+                          <div className="layer-desc">
+                            {l.content && <strong className="layer-content">{l.content}</strong>}
+                            {l.note && <span className="layer-note">{l.note}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Canva 草稿匯出控制器 */}
+                    <div className="canva-export-controller">
+                      <div className="export-controller-title">
+                        <span>📥 Canva 草稿規格匯出</span>
+                        <div className="format-picker">
+                          {(["png", "jpg", "pdf"] as const).map((fmt) => (
+                            <button
+                              key={fmt}
+                              type="button"
+                              className={`format-chip ${exportFormat === fmt ? "is-selected" : ""}`}
+                              onClick={() => setExportFormat(fmt)}
+                            >
+                              {fmt.toUpperCase()}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="blueprint-actions">
+                        <button
+                          type="button"
+                          className="btn-trigger-export"
+                          onClick={handleExportCanvaDraft}
+                          disabled={isExportingCanva}
+                        >
+                          {isExportingCanva ? "匯出規格產出中..." : `📥 產生 ${exportFormat.toUpperCase()} 規格`}
+                        </button>
+                        <a
+                          href={currentDirection.canvaBlueprint.exportDraftUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-open-canva"
+                        >
+                          在新分頁開啟草稿 ↗
+                        </a>
+                        <button
+                          type="button"
+                          className="btn-copy-blueprint"
+                          onClick={() => {
+                            navigator.clipboard.writeText(JSON.stringify(currentDirection.canvaBlueprint, null, 2));
+                            showToast("Canva 藍圖 JSON 已複製至剪貼簿！");
+                          }}
+                        >
+                          複製藍圖 JSON
+                        </button>
+                      </div>
+
+                      {/* 匯出結果橫幅 */}
+                      {canvaExportResult && (
+                        <div className="canva-export-result-panel">
+                          <div className="export-result-header">
+                            <div className="export-result-title">
+                              <span className="export-check-icon">✓</span>
+                              <strong>{canvaExportResult.format?.toUpperCase()} 草稿規格產出成功</strong>
+                            </div>
+                            <span className="export-mode-tag">
+                              {canvaExportResult.mode === "live_connected" ? "⚡ 官方 API 連線" : "📁 沙盒藍圖 (1080x1350)"}
+                            </span>
+                          </div>
+                          <div className="export-result-details">
+                            <div className="detail-item">
+                              <span className="detail-k">作業編號：</span>
+                              <span className="detail-v font-mono">{canvaExportResult.jobId || canvaExportResult.draftId}</span>
+                            </div>
+                            <div className="detail-item">
+                              <span className="detail-k">預覽尺寸：</span>
+                              <span className="detail-v">{canvaExportResult.previewDimensions || "1080x1350"}</span>
+                            </div>
+                          </div>
+                          <p className="export-result-msg">{canvaExportResult.message}</p>
+                          <div className="export-result-actions">
+                            {canvaExportResult.exportUrl && (
+                              <a
+                                href={canvaExportResult.exportUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn-preview-download"
+                              >
+                                開啟草稿預覽連結 ↗
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              className="btn-dismiss-export"
+                              onClick={() => setCanvaExportResult(null)}
+                            >
+                              ✕ 清除
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
