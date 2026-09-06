@@ -650,6 +650,39 @@
 
 ---
 
+## 週期 24 (Iteration 24) 創意策略方向與對話工作台深聊橋樑 (Chat Bridge & Collaborative Extension)
+
+本週期針對操作艙與對話工作台（Chat Workspace）之間「使用者在創意智能 OS 產出策略後，若想進一步針對特定方向深聊主持稿、互動卡片或限動腳本，缺乏一鍵跨模態帶入對話並自動聚焦輸入框的橋樑」之體驗割裂缺口，完成以下 4 大核心加固：
+
+1. **創意方向對話深聊結構化 Prompt 生成模組 (`lib/client/chat-bridge.ts`)**：
+   - **4 大延伸創作快捷主題 (`EXTENSION_SHORTCUTS`)**：
+     - `🎤 破冰主持講稿 (host_script)`：自動提取首句 Hook 與視覺概念，要求生成 3 分鐘親和開場、呼應活動理念與降低防禦感的主持詞。
+     - `🏷️ 現場互動卡 (interactive_cards)`：融入主色盤色票名稱，規劃 5 張校園生活、選課與減壓趣味話題卡。
+     - `📱 IG 限動 3 篇腳本 (story_script)`：規劃 9:16 倒數兩天、前一天與當天的發布動線與互動貼圖建議。
+     - `💬 深度對話討論 (custom_chat)`：支援自訂提問輸入，並自動附帶校園前綴、方向主副標與核心洞察。
+   - **校園地標與脈絡前綴隔離**：淡江前綴 `【淡江大學】`、臺大前綴 `【臺灣大學】`、通用大專前綴 `【大專院校】`，確保 Prompt 脈絡精確不混淆。
+
+2. **操作艙「💬 延伸創作與對話深聊」膠囊列整合 (`components/CreativeIntelligenceView.tsx`)**：
+   - 位於當前方向概觀卡片視覺概念與色盤下方。
+   - 結構化快捷按鈕列：一鍵點擊即可將方向脈絡帶入 Hermes 對話工作台。
+   - 自訂深聊展開輸入框：支援直接輸入客製需求並支援 Enter 鍵快速提交。
+   - 雙模式容錯：若工作台支援 `onSendChatMessage`，自動跳轉並填寫輸入框；若為獨立頁面，則自動複製至剪貼簿並彈出 Toast 提示。
+
+3. **HermesConsole 對話工作台雙向互通串接 (`components/HermesConsole.tsx`, `app/globals.css`)**：
+   - 在 `HermesConsole.tsx` 中為 `<CreativeIntelligenceView />` 傳入 `onSendChatMessage` 回呼函式。
+   - 點擊後自動切換至 `nav = "chat"`、透過 `setText(msg)` 帶入完整 prompt，並延遲 100ms 自動聚焦輸入框 `input.current?.focus()`。
+   - 在 `app/globals.css` 新增 `.chat-bridge-section`、`.btn-chat-bridge-pill`、`.custom-chat-input-box` 等深色玻璃擬態與按鈕微互動樣式。
+
+4. **單元測試、全套回歸與生產建置驗證 (`tests/phase12_chat_creative_bridge.test.ts`)**：
+   - 新增 6 個專屬測試驗證 4 大延伸主題結構、色盤名稱注入、9:16 規格約束與校園前綴隔離。
+   - `npm test`：**169 / 169 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：235 個檔案掃描通過，0 洩漏。
+   - `tests/phase10_nologin_security.test.ts`：6 / 6 測試 100% 通過。
+   - `npm run build`：Next.js 43 個路由成功最佳化生成。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。

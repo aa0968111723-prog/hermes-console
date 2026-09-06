@@ -1455,6 +1455,11 @@ export default function HermesConsole() {
             initialPrompt="幫我做給淡江大學大一新生看的禪學社茶會網宣"
             defaultProject={project}
             onSelectProject={(p) => setProject(p)}
+            onSendChatMessage={(msg) => {
+              setText(msg);
+              setNav("chat");
+              setTimeout(() => input.current?.focus(), 100);
+            }}
             onBack={() => setNav("chat")}
           />
 

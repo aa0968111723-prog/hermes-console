@@ -20,6 +20,11 @@ import {
   downloadMarkdownFile,
   downloadJsonBundle,
 } from "@/lib/client/export-brief.ts";
+import {
+  buildDirectionChatPrompt,
+  EXTENSION_SHORTCUTS,
+  type ExtensionTopic,
+} from "@/lib/client/chat-bridge.ts";
 
 interface Props {
   initialPrompt?: string;
@@ -89,6 +94,10 @@ export default function CreativeIntelligenceView({
   // 策略企劃案匯出工作台狀態
   const [showBriefPreview, setShowBriefPreview] = useState(false);
   const [briefPreviewFormat, setBriefPreviewFormat] = useState<"formatted" | "raw">("formatted");
+
+  // 延伸對話深聊橋樑狀態
+  const [customChatPrompt, setCustomChatPrompt] = useState("");
+  const [showCustomChatInput, setShowCustomChatInput] = useState(false);
 
   const showToast = (msg: string) => {
     setCopyNotice(msg);
@@ -453,6 +462,32 @@ export default function CreativeIntelligenceView({
     if (success) {
       showToast(`已觸發完整 JSON Bundle 下載：${filename}`);
     }
+  };
+
+  // 延伸對話深聊處理函式
+  const handleChatBridge = (topic: ExtensionTopic) => {
+    if (!currentDirection) return;
+    const domain =
+      currentDirection.audienceFeedback?.domain ||
+      orchestratedTask?.domain ||
+      (activeProject.includes("ntu") ? "ntu" : activeProject.includes("personal") ? "general" : "tamkang");
+
+    const promptText = buildDirectionChatPrompt({
+      direction: currentDirection,
+      domain,
+      topic,
+      customPrompt: customChatPrompt,
+    });
+
+    if (onSendChatMessage) {
+      onSendChatMessage(promptText);
+      showToast("已將方向脈絡帶入對話工作台！");
+    } else {
+      navigator.clipboard.writeText(promptText);
+      showToast("已將深聊 Prompt 複製至剪貼簿！");
+    }
+    setShowCustomChatInput(false);
+    setCustomChatPrompt("");
   };
 
   return (
@@ -956,6 +991,62 @@ export default function CreativeIntelligenceView({
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* 💬 延伸創作與對話深聊 (Collaborate in Chat) */}
+                <div className="chat-bridge-section">
+                  <div className="chat-bridge-header">
+                    <span className="bridge-icon">💬</span>
+                    <span className="bridge-title">延伸創作與對話深聊：</span>
+                    <span className="bridge-sub">一鍵將此方向脈絡帶入 Hermes 對話工作台進一步討論</span>
+                  </div>
+                  <div className="chat-bridge-shortcuts-row">
+                    {EXTENSION_SHORTCUTS.map((sc) => (
+                      <button
+                        key={sc.topic}
+                        type="button"
+                        className={`btn-chat-bridge-pill ${
+                          sc.topic === "custom_chat" && showCustomChatInput ? "active" : ""
+                        }`}
+                        onClick={() => {
+                          if (sc.topic === "custom_chat") {
+                            setShowCustomChatInput(!showCustomChatInput);
+                          } else {
+                            handleChatBridge(sc.topic);
+                          }
+                        }}
+                        title={sc.desc}
+                      >
+                        <span className="pill-icon">{sc.icon}</span>
+                        <span className="pill-label">{sc.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {showCustomChatInput && (
+                    <div className="custom-chat-input-box">
+                      <input
+                        type="text"
+                        className="custom-chat-input"
+                        placeholder={`對【${currentDirection.title}】有什麼延伸想法？（例：幫我將主標改成日系文青感）`}
+                        value={customChatPrompt}
+                        onChange={(e) => setCustomChatPrompt(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleChatBridge("custom_chat");
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn-send-custom-chat"
+                        onClick={() => handleChatBridge("custom_chat")}
+                      >
+                        帶入對話 ↗
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
