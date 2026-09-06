@@ -164,6 +164,12 @@ try {
     });
   }
   await page.getByRole("button", { name: "開啟導覽" }).click();
+  await page.getByRole("button", { name: "Agent", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Agent Runtime", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Hermes Runtime 狀態" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "重新同步", exact: true })).toBeEnabled();
+  await page.screenshot({ path: join(output, "runtime-desktop.png"), fullPage: true });
+  await page.getByRole("button", { name: "開啟導覽" }).click();
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();

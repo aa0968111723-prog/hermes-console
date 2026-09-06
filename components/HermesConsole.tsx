@@ -32,6 +32,7 @@ import MessageBody from "./MessageBody";
 import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
+import RuntimeInspector from "./RuntimeInspector";
 import InspirationBoard from "./inspiration/InspirationBoard";
 import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
@@ -1425,9 +1426,16 @@ export default function HermesConsole({ member, onLogout }: { member: {email: st
             }}
             notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
           />
+        ) : nav === "agents" ? (
+          <section className="secondary-page">
+            <p className="eyebrow">即時能力與工具</p>
+            <h1>Agent Runtime</h1>
+            <p className="muted">Agent、Tools、Skills、Toolsets 與 MCP 以 Hermes Runtime 探索結果為準。</p>
+            <AgentPanel agents={agents} brain={[]} />
+            <RuntimeInspector />
+          </section>
         ) : (
           <section className="secondary-page">
-            <AgentPanel agents={agents} brain={[]} />
             <p className="eyebrow">每一步都有紀錄</p>
             <h1>任務</h1>
             <p className="muted">這裡只呈現後端儲存及 Hermes 回報的狀態。</p>

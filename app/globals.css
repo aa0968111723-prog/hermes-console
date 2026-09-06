@@ -46,6 +46,34 @@
   padding: 14px;
   text-align: left;
 }
+
+.runtime-inspector {
+  margin: 1.5rem auto;
+  max-width: 920px;
+  padding: 1.25rem;
+  border: 1px solid var(--line, #dbe5d7);
+  border-radius: 18px;
+  background: var(--surface, #fff);
+}
+.runtime-inspector > header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.runtime-actions { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:flex-end; }
+.runtime-state { border-radius:999px; padding:.35rem .65rem; font-size:.84rem; background:#e5f2df; color:#23623a; }
+.runtime-state.stale,.runtime-state.failed { background:#fff0e5; color:#9a441d; }
+.runtime-state.unknown,.runtime-state.unsupported { background:#eef1ec; color:#59675e; }
+.runtime-summary { display:flex; flex-wrap:wrap; gap:.55rem; margin:1rem 0; }
+.runtime-summary span { border:1px solid var(--line,#dbe5d7); border-radius:999px; padding:.4rem .7rem; font-size:.9rem; }
+.runtime-tool-groups { display:grid; gap:.6rem; }
+.runtime-tool-groups > details { border:1px solid var(--line,#dbe5d7); border-radius:12px; padding:.6rem .8rem; }
+.runtime-tool-groups ul { list-style:none; margin:.5rem 0 0; padding:0; display:grid; gap:.35rem; }
+.runtime-tool-summary { width:100%; min-height:44px; border:0; background:transparent; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; column-gap:.55rem; text-align:left; cursor:pointer; padding:.45rem; }
+.runtime-tool-summary strong { grid-column:2; }
+.runtime-tool-summary small { grid-column:2; color:var(--muted,#59675e); overflow-wrap:anywhere; }
+.runtime-status-dot { width:10px; height:10px; border-radius:50%; background:#97a39a; grid-row:1 / span 2; align-self:center; }
+.runtime-status-dot.available { background:#3f8c55; }.runtime-status-dot.partial { background:#d29a35; }.runtime-status-dot.failed,.runtime-status-dot.stale { background:#c4513c; }
+.runtime-tool-detail { margin:.2rem 0 .6rem 1.4rem; padding:.7rem; border-left:2px solid #dbe5d7; }
+.runtime-tool-detail dl { display:grid; grid-template-columns:max-content 1fr; gap:.25rem .8rem; font-size:.9rem; }.runtime-tool-detail dt { color:var(--muted,#59675e); }.runtime-tool-detail dd { margin:0; overflow-wrap:anywhere; }
+.runtime-tool-detail pre { max-height:240px; overflow:auto; white-space:pre-wrap; font-size:.78rem; background:#f5f8f3; padding:.6rem; border-radius:8px; }
+@media (max-width: 600px) { .runtime-inspector > header { flex-direction:column; }.runtime-actions { justify-content:flex-start; }.runtime-tool-detail { margin-left:0; } }
 .agent-card {
   flex-direction: column;
   align-items: flex-start;
