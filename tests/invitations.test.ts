@@ -78,3 +78,13 @@ test("invitation lifecycle uses real handlers; mail provider is an explicit fixt
       "re-adding an administrator cannot resurrect revoked sessions");
   } finally { globalThis.fetch = original; }
 });
+test("unset CONSOLE_ADMIN_EMAILS bootstraps the owner as administrator", async () => {
+  const previous = process.env.CONSOLE_ADMIN_EMAILS;
+  process.env.CONSOLE_ADMIN_EMAILS = "";
+  try {
+    const { members } = await import("../lib/server/invitations");
+    assert.ok(members().some(m => m.email === "aa0968111723@gmail.com" && m.role === "admin" && m.active && m.bootstrap));
+  } finally {
+    process.env.CONSOLE_ADMIN_EMAILS = previous;
+  }
+});

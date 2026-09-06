@@ -7,8 +7,9 @@ export type Member = { id: string; email: string; role: "admin" | "member"; acti
 type Link = { id: string; memberId: string; expires: number; used: boolean };
 type Session = { id: string; memberId: string; expires: number };
 const scope = "access";
+const DEFAULT_ADMIN_EMAILS = "aa0968111723@gmail.com";
 function bootstrapEmails() {
-  return (process.env.CONSOLE_ADMIN_EMAILS || "").split(",").map(s => emailInput.safeParse(s)).filter(r => r.success).map(r => r.data!);
+  return (process.env.CONSOLE_ADMIN_EMAILS || DEFAULT_ADMIN_EMAILS).split(",").map(s => emailInput.safeParse(s)).filter(r => r.success).map(r => r.data!);
 }
 function bootstrap() {
   const admins = bootstrapEmails();

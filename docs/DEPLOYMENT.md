@@ -6,7 +6,7 @@
 
 - 單一 replica，掛載可寫持久化卷到 `/app/data`。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
-- 電子信箱邀請制取代免登入。設定 `CONSOLE_ADMIN_EMAILS`（逗號分隔的初始管理員）、新的 `RESEND_API_KEY` 與 `CONSOLE_EMAIL_FROM`（已在 Resend 驗證的寄件網域）。不沿用舊帳號密碼。寄信服務接受請求不等於已送達收件匣。
+- 電子信箱邀請制取代免登入。設定 `CONSOLE_ADMIN_EMAILS`（逗號分隔的初始管理員；未設定時預設 `aa0968111723@gmail.com`）、新的 `RESEND_API_KEY` 與 `CONSOLE_EMAIL_FROM`（已在 Resend 驗證的寄件網域）。不沿用舊帳號密碼。寄信服務接受請求不等於已送達收件匣。
 - 登入連結只存雜湊，15 分鐘到期、一次性使用；網址 fragment 不進 HTTP request URL，使用者需按確認才核銷。登入 cookie 使用 HttpOnly、SameSite=Lax、HTTPS Secure、12 小時期限。每個 API 重新驗證成員是否仍有效。
 - 如需額外閘道，設定至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`，或 `CONSOLE_REQUIRE_GATEWAY=true` 要求設定；未設定時仍強制邀請登入。配置閘道後需先驗證身份或私人網路，再覆寫 `X-Console-Gateway`。不要把秘密放前端。
 - 閘道本身必須驗證存取權；一個公開且無條件注入標頭的 reverse proxy 不算保護。建議限制 Console upstream 僅由 gateway 的私人網路可達。不要相信未驗證的 X-Forwarded-User 或僅靠 Origin。

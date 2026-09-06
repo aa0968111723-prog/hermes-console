@@ -24,7 +24,7 @@ Console 的節點是「希望學習的資料與提交紀錄」，不是 Hermes �
 後端秘密儲存需設定：
 
 - `CONSOLE_ORIGIN`：Console 的真實 HTTPS origin。
-- `CONSOLE_ADMIN_EMAILS`：逗號分隔的管理員信箱。管理員可從入口要求自己的登入連結；移除管理員設定後，其舊登入連結與 session 失效，重新加入也不復活舊 session。
+- `CONSOLE_ADMIN_EMAILS`：逗號分隔的管理員信箱。未設定時預設 `aa0968111723@gmail.com`。管理員可從入口要求自己的登入連結；移除管理員設定後，其舊登入連結與 session 失效，重新加入也不復活舊 session。
 - `RESEND_API_KEY`：新產生的寄信服務金鑰。
 - `CONSOLE_EMAIL_FROM`：Resend 已驗證網域下的寄件信箱。
 - `CONSOLE_DATA_DIR`：單一 replica 的持久化私人資料卷；沿用既有資料，不清空。
@@ -46,7 +46,7 @@ Console 的節點是「希望學習的資料與提交紀錄」，不是 Hermes �
 
 ## 驗證方法
 
-- `npm test`：64 個測試通過。包含真實 HTTP handler／MCP 協定與隔離 SQLite；Hermes、Canva、寄信供應商回應有明確測試 fixture，不是外部實機證據。
+- `npm test`：65 個測試通過。包含真實 HTTP handler／MCP 協定與隔離 SQLite；Hermes、Canva、寄信供應商回應有明確測試 fixture，不是外部實機證據。
 - `npm run build`：production build 通過。
 - `npm run test:workbench`：真實本地 production 瀏覽器完成一次性連結核銷、防重用、登出、活動核對、兩頁文案修訂與下載、學習樹關聯及刷新恢復；登入身份由隔離測試資料庫建立，不寄信。
 - `npm run test:ui`：四種寬度、IME、Shift+Enter、短視窗、減少動畫、對話草稿、鍵盤與焦點回復回歸通過；使用已受邀 session fixture。
