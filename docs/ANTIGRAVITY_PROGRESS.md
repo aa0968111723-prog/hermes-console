@@ -581,11 +581,39 @@
 
 ---
 
+## 週期 22 (Iteration 22) 專案大腦在地記憶庫、校園地標知識中心與 Prompt 一鍵注入面板
+
+本週期針對 Hermes 核心記憶系統「後端具備中文分詞與記憶檢索能力，但在前端操作艙缺乏可視化在地記憶庫、地標知識展示與一鍵注入 Prompt 介面，且臺大/通用專案初始記憶種子不足」的缺口，完成以下 4 大核心加固：
+
+1. **跨校園專案大腦在地記憶種子庫擴充 (`lib/server/hermes/memory.ts`)**：
+   - **臺大專案 (`project: "ntu"`)**：新增 4 筆真實脈絡記憶，包含椰林大道與腳踏車大亂流、小福廣場/醉月湖/活大野餐茶席、新生同儕壓力與抗壓痛點、學霸思維降噪與高效學習工作坊。
+   - **通用大專專案 (`project: "personal"`)**：新增 2 筆大一轉銜期生活適應、分組焦慮與無壓第三空間充電站記憶。
+   - **嚴格地標隔離**：確保 `listMemories("ntu")` 與 `listMemories("tku-zen-agent")` 各自獨立，淡江克難坡/福園與臺大椰林大道絕不跨校洩漏。
+
+2. **前端專案大腦記憶庫折疊面板 (`components/CreativeIntelligenceView.tsx`)**：
+   - 位於英雄面板推薦情境下方，動態感知當前選中專案（淡江 / 臺大 / 通用）並展示記憶筆數。
+   - 結構化呈現記憶卡片：包含分類徽章（`🏫 校園地標`、`👥 新生洞察`、`✨ 核心價值`、`🎨 視覺規範`）、標題、內容摘要與標籤清單。
+   - **Prompt 一鍵注入功能 (`handleInjectMemoryToPrompt`)**：點擊卡片右上角「➕ 注入 Prompt」，自動將該記憶脈絡（如 `融入淡江克難坡與體力考驗（淡江地標、克難坡）脈絡`）追加至使用者提示詞中。
+
+3. **在地觀察記憶即時建立表單 (`components/CreativeIntelligenceView.tsx`)**：
+   - 提供「➕ 新增在地觀察記憶」展開式表單。
+   - 支援填寫標題、選擇記憶類型與輸入社群觀察內容，點擊後透過 `POST /api/hermes/memory` 即時持久化寫入專案記憶中心，並以 Toast 提示更新。
+
+4. **全套測試與 Next.js 生產建置驗證 (`tests/phase2_memory_usage.test.ts`)**：
+   - 在 `tests/phase2_memory_usage.test.ts` 新增測試驗證淡江、臺大與通用大專的記憶種子完整性、地標嚴格隔離無洩漏，以及 `searchMemories` 關鍵字精準檢索。
+   - `npm test`：**157 / 157 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
 
 

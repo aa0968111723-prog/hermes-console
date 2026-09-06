@@ -73,6 +73,74 @@ const INITIAL_MEMORIES: MemoryItem[] = [
     tags: ["視覺設計", "色彩規範", "三色光", "拒絕長輩圖"],
     createdAt: Date.now() - 86400000 * 6,
     sourceLayer: "console_seed"
+  },
+  // 臺大專案在地校園脈絡記憶
+  {
+    id: "mem_ntu_geo_01",
+    type: "campus_context",
+    project: "ntu",
+    title: "臺大椰林大道與腳踏車大亂流",
+    content: "椰林大道兩側與總圖前的自行車大陣是臺大人的共同日常。新生開學第一個月最容易在浩瀚校園中迷路與尋找車位焦慮，需要貼地氣的生活導航與避雷指南。",
+    evidenceType: "campus_observation",
+    tags: ["臺大地標", "椰林大道", "腳踏車", "校園迷路", "新生日常"],
+    createdAt: Date.now() - 86400000 * 10,
+    sourceLayer: "console_seed"
+  },
+  {
+    id: "mem_ntu_geo_02",
+    type: "campus_context",
+    project: "ntu",
+    title: "小福廣場、醉月湖與活大交流區",
+    content: "小福周邊是課間買點心與交朋友的高密度熱點；醉月湖與活大草坪則自帶悠閒沉思氣質，適合無壓力的戶外野餐茶席與跨領域話題交流。",
+    evidenceType: "campus_observation",
+    tags: ["臺大地標", "小福", "醉月湖", "活大", "野餐茶席"],
+    createdAt: Date.now() - 86400000 * 9,
+    sourceLayer: "console_seed"
+  },
+  {
+    id: "mem_ntu_freshman_01",
+    type: "audience",
+    project: "ntu",
+    title: "臺大新生同儕比較與抗壓痛點",
+    content: "臺大學生普遍具有高度自我要求與同儕競爭焦慮，極度討厭空洞的套路與雞湯式文宣。文宣應強調實證效益、學霸思維降噪法與硬核通識選課不踩雷情報。",
+    evidenceType: "creative_hypothesis",
+    tags: ["臺大新生", "抗壓降噪", "通識選課", "同儕焦慮", "乾貨導向"],
+    createdAt: Date.now() - 86400000 * 8,
+    sourceLayer: "console_seed"
+  },
+  {
+    id: "mem_ntu_usp_01",
+    type: "insight",
+    project: "ntu",
+    title: "高效率思維整理與抗焦慮工作坊",
+    content: "結合認知科學與深度專注放鬆禪，幫助臺大新生在大腦超載、期中修羅場與專題報告中瞬間回血，達到清晰聚焦的高效學習狀態。",
+    evidenceType: "creative_hypothesis",
+    tags: ["思維降噪", "高效學習", "專注放鬆", "科學實證"],
+    createdAt: Date.now() - 86400000 * 7,
+    sourceLayer: "console_seed"
+  },
+  // 通用大專脈絡記憶
+  {
+    id: "mem_gen_freshman_01",
+    type: "audience",
+    project: "personal",
+    title: "大一轉銜期的生活適應與分組焦慮",
+    content: "大一新鮮人初離家獨立生活，面對陌生的選課學分制、室友生活作息磨合與課堂分組壓力，渴望真誠接納的友善社群，排斥任何帶有說教或推銷感的活動。",
+    evidenceType: "campus_observation",
+    tags: ["大一適應", "生活轉銜", "分組焦慮", "友善社群"],
+    createdAt: Date.now() - 86400000 * 10,
+    sourceLayer: "console_seed"
+  },
+  {
+    id: "mem_gen_usp_01",
+    type: "insight",
+    project: "personal",
+    title: "大學生的無壓第三空間",
+    content: "提供大學生在課業、打工與社團之間的療癒充電站。透過一杯好茶與 10 分鐘靜心，重啟日常精神飽滿度。",
+    evidenceType: "creative_hypothesis",
+    tags: ["第三空間", "放鬆充電", "品茶交流", "情緒調節"],
+    createdAt: Date.now() - 86400000 * 9,
+    sourceLayer: "console_seed"
   }
 ];
 

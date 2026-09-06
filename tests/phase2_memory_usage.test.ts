@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getMemoryInventory, addMemory } from "../lib/server/hermes/memory.ts";
+import { getMemoryInventory, addMemory, listMemories, searchMemories } from "../lib/server/hermes/memory.ts";
 import { recordUsage, getUsageSummary } from "../lib/server/hermes/usage.ts";
 import { executeOrchestratedTask } from "../lib/server/orchestrator/task-orchestrator.ts";
 import { TASK_LIMITS } from "../lib/server/orchestrator/limits.ts";
@@ -28,6 +28,28 @@ test("Phase 2 memory layers, usage telemetry and task limits", async (t) => {
     });
     assert.equal(created.sourceLayer, "project_context");
   });
+
+  await t.test("campus context memories isolate NTU and Tamkang landmarks without leaking", () => {
+    const tkuMems = listMemories("tku-zen-agent");
+    const ntuMems = listMemories("ntu");
+    const genMems = listMemories("personal");
+
+    assert.ok(tkuMems.length >= 5);
+    assert.ok(ntuMems.length >= 4);
+    assert.ok(genMems.length >= 2);
+
+    // 驗證地標嚴格隔離
+    assert.ok(tkuMems.some((m: any) => m.title.includes("克難坡")));
+    assert.ok(!ntuMems.some((m: any) => m.content.includes("克難坡")));
+    assert.ok(ntuMems.some((m: any) => m.title.includes("椰林大道")));
+    assert.ok(!tkuMems.some((m: any) => m.content.includes("椰林大道")));
+
+    // 驗證 searchMemories 搜尋命中度
+    const ntuSearch = searchMemories("椰林大道與腳踏車", "ntu");
+    assert.ok(ntuSearch.length > 0);
+    assert.equal(ntuSearch[0].title, "臺大椰林大道與腳踏車大亂流");
+  });
+
 
   await t.test("usage records profile/project/run fields and does not invent USD cost", () => {
     recordUsage({

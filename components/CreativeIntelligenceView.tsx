@@ -7,6 +7,7 @@ import type { IntegrationCheckResult } from "@/lib/server/integrations/truth-sta
 import type { PersonaProfile } from "@/lib/server/audience-twin/types.ts";
 import type { InstagramResearchReport } from "@/lib/server/social/instagram-research.ts";
 import type { ReverseThinkingResult } from "@/lib/server/audience-twin/reverse-thinking.ts";
+import type { MemoryItem } from "@/lib/server/hermes/memory.ts";
 import { PersonaCard } from "@/components/audience/AudienceCard.tsx";
 import {
   MOBILE_CREATIVE_PANES,
@@ -67,6 +68,16 @@ export default function CreativeIntelligenceView({
     previewDimensions?: string;
     message?: string;
   } | null>(null);
+
+  // 專案大腦在地記憶庫狀態
+  const [showMemoryHub, setShowMemoryHub] = useState(false);
+  const [projectMemories, setProjectMemories] = useState<MemoryItem[]>([]);
+  const [loadingMemories, setLoadingMemories] = useState(false);
+  const [showAddMemForm, setShowAddMemForm] = useState(false);
+  const [newMemTitle, setNewMemTitle] = useState("");
+  const [newMemContent, setNewMemContent] = useState("");
+  const [newMemType, setNewMemType] = useState<"campus_context" | "audience" | "insight" | "guideline">("campus_context");
+  const [isAddingMem, setIsAddingMem] = useState(false);
 
   const showToast = (msg: string) => {
     setCopyNotice(msg);
@@ -294,6 +305,79 @@ export default function CreativeIntelligenceView({
     }
   }, [audienceTab, currentDirection?.id]);
 
+  // 載入當前專案的大腦記憶庫
+  const loadProjectMemories = async (proj: string) => {
+    setLoadingMemories(true);
+    try {
+      const res = await fetch(`/api/hermes/memory?project=${encodeURIComponent(proj)}`, {
+        credentials: "same-origin",
+      });
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.memories)) {
+        setProjectMemories(data.memories);
+      }
+    } catch {
+      // 容錯靜默處理
+    } finally {
+      setLoadingMemories(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProjectMemories(activeProject);
+  }, [activeProject]);
+
+  const handleInjectMemoryToPrompt = (mem: MemoryItem) => {
+    const injection = `融入${mem.title}（${mem.tags.slice(0, 2).join("、")}）脈絡`;
+    if (prompt.includes(injection)) {
+      showToast("提示詞中已包含該記憶脈絡！");
+      return;
+    }
+    setPrompt((prev) => (prev ? `${prev.trim()}，並${injection}` : injection));
+    showToast(`已將「${mem.title}」注入提示詞！`);
+  };
+
+  const handleCreateMemory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMemTitle.trim() || !newMemContent.trim()) {
+      showToast("請填寫記憶標題與內容！");
+      return;
+    }
+    setIsAddingMem(true);
+    try {
+      const res = await fetch("/api/hermes/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          project: activeProject,
+          type: newMemType,
+          title: newMemTitle.trim(),
+          content: newMemContent.trim(),
+          evidenceType: "campus_observation",
+          tags: [
+            activeProject === "ntu" ? "臺大在地" : activeProject === "personal" ? "通用大專" : "淡江在地",
+            newMemType === "campus_context" ? "校園脈絡" : newMemType === "audience" ? "受眾洞察" : "核心價值"
+          ]
+        })
+      });
+      const data = await res.json();
+      if (data.ok && data.memory) {
+        setProjectMemories((prev) => [data.memory, ...prev]);
+        setNewMemTitle("");
+        setNewMemContent("");
+        setShowAddMemForm(false);
+        showToast("🎉 大腦記憶已成功儲存至專案記憶中心！");
+      } else {
+        showToast(data.error || "儲存記憶失敗");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      showToast(`連線失敗: ${msg}`);
+    } finally {
+      setIsAddingMem(false);
+    }
+  };
+
   return (
     <div className="creative-os-container">
       {copyNotice && <div className="toast-notification">{copyNotice}</div>}
@@ -433,6 +517,138 @@ export default function CreativeIntelligenceView({
           >
             ☕ 通用大專選課減壓茶席
           </button>
+        </div>
+
+        {/* 專案大腦在地記憶庫折疊面板 */}
+        <div className="campus-memory-hub">
+          <div className="memory-hub-toggle-row">
+            <button
+              type="button"
+              className={`btn-toggle-memory-hub ${showMemoryHub ? "is-active" : ""}`}
+              onClick={() => setShowMemoryHub(!showMemoryHub)}
+            >
+              <span className="hub-toggle-icon">🧠</span>
+              <span className="hub-toggle-title">
+                {activeProject === "ntu" ? "臺灣大學" : activeProject === "personal" ? "通用大專" : "淡江大學"}
+                {" 專案大腦在地記憶庫 ("}
+                {projectMemories.length}
+                {" 筆在地智慧)"}
+              </span>
+              <span className="hub-toggle-chevron">{showMemoryHub ? "▲ 收合記憶" : "▼ 展開校園地標與洞察"}</span>
+            </button>
+          </div>
+
+          {showMemoryHub && (
+            <div className="memory-hub-expanded-panel">
+              <div className="hub-panel-header">
+                <div className="hub-header-left">
+                  <span className="hub-badge">CONSOLE_SEED · 校園地標與隱性知識庫</span>
+                  <span className="hub-subnote">點擊記憶卡片上的「➕ 注入」可一鍵將在地地標融入 Prompt 提示詞</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-open-add-mem"
+                  onClick={() => setShowAddMemForm(!showAddMemForm)}
+                >
+                  {showAddMemForm ? "✕ 取消新增" : "➕ 新增在地觀察記憶"}
+                </button>
+              </div>
+
+              {/* 新增記憶表單 */}
+              {showAddMemForm && (
+                <form className="add-memory-form" onSubmit={handleCreateMemory}>
+                  <div className="form-row-grid">
+                    <div className="form-group flex-2">
+                      <label>記憶標題（地標 / 特色）</label>
+                      <input
+                        type="text"
+                        value={newMemTitle}
+                        onChange={(e) => setNewMemTitle(e.target.value)}
+                        placeholder="例如：蛋捲廣場午後人潮、總圖前草坪野餐..."
+                        disabled={isAddingMem}
+                      />
+                    </div>
+                    <div className="form-group flex-1">
+                      <label>記憶類型</label>
+                      <select
+                        value={newMemType}
+                        onChange={(e) => setNewMemType(e.target.value as any)}
+                        disabled={isAddingMem}
+                      >
+                        <option value="campus_context">🏫 校園脈絡地標</option>
+                        <option value="audience">👥 受眾心理洞察</option>
+                        <option value="insight">✨ 核心價值 USP</option>
+                        <option value="guideline">🎨 視覺調性規範</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>記憶內容與社群觀察</label>
+                    <textarea
+                      rows={2}
+                      value={newMemContent}
+                      onChange={(e) => setNewMemContent(e.target.value)}
+                      placeholder="簡述此地標或社群觀察對新生的意義，例如生活作息、踩雷抗性或最佳體驗..."
+                      disabled={isAddingMem}
+                    />
+                  </div>
+                  <div className="form-actions-row">
+                    <button type="submit" className="btn-submit-memory" disabled={isAddingMem}>
+                      {isAddingMem ? "儲存中..." : "💾 儲存至專案記憶庫"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-cancel-mem"
+                      onClick={() => setShowAddMemForm(false)}
+                      disabled={isAddingMem}
+                    >
+                      取消
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* 記憶卡片網格 */}
+              {loadingMemories ? (
+                <div className="memories-loading">大腦記憶中心檢索中...</div>
+              ) : projectMemories.length > 0 ? (
+                <div className="memories-cards-grid">
+                  {projectMemories.map((mem) => (
+                    <div key={mem.id} className={`memory-card type-${mem.type}`}>
+                      <div className="mem-card-top">
+                        <span className="mem-type-pill">
+                          {mem.type === "campus_context"
+                            ? "🏫 校園地標"
+                            : mem.type === "audience"
+                            ? "👥 新生洞察"
+                            : mem.type === "insight"
+                            ? "✨ 核心價值"
+                            : "🎨 視覺規範"}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-inject-mem"
+                          onClick={() => handleInjectMemoryToPrompt(mem)}
+                          title="點擊將此記憶脈絡注入到提示詞中"
+                        >
+                          ➕ 注入 Prompt
+                        </button>
+                      </div>
+                      <h5 className="mem-title">{mem.title}</h5>
+                      <p className="mem-content">{mem.content}</p>
+                      <div className="mem-tags-row">
+                        {mem.tags.map((tag, i) => (
+                          <span key={i} className="mem-tag">#{tag}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-memories">此專案目前尚無在地記憶，點擊上方按鈕新增第一筆！</div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 生態系整合真實狀態列 (Truthful Integration Health) */}
