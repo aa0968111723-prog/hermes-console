@@ -10,11 +10,13 @@
     "test": "tsx --test tests/*.test.ts",
     "test:ui": "tsx tests/verify-ui.ts",
     "test:chat": "tsx tests/verify-chat.ts",
+    "test:gateway": "tsx tests/verify-gateway.ts",
     "typecheck": "tsc --noEmit",
     "check:secrets": "node scripts/check-secrets.mjs",
     "password:hash": "node scripts/password-hash.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
     "next": "15.5.25",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -36,7 +38,6 @@
     "@types/react-dom": "19.1.9",
     "typescript": "5.9.2",
     "tsx": "^4.20.0",
-    "@playwright/test": "1.63.0",
-    "@modelcontextprotocol/sdk": "1.30.0"
+    "@playwright/test": "1.63.0"
   }
 }

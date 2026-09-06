@@ -384,4 +384,5 @@ export const creativeInstructions = [
   "Canva 未授權時研究與創意流程仍完成，最後標記 Needs Canva Authorization，不得假裝設計成功。",
   "具備 Canva 工具授權時才製作可預覽、可編輯草稿並回傳實際連結。呼叫 Canva 後必須查回工作結果，不得將工作 ID 當成完成品。整理 IG 文案草稿但不發佈。",
   "若已連接 Console workspace MCP，使用 workspace_list_references 取得專案素材，使用 workspace_save_directions 保存方向，等待使用者於 Console 選擇。",
+  "Console MCP 呼叫必須帶目前 taskId，可附 toolCallId；工具上限或停止錯誤不可自行繞過。用 workspace_read_material 取得真實圖片或文字後才分析內容；只有來源網址不代表已讀圖。",
 ].join("\n");

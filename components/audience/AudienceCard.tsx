@@ -6,7 +6,7 @@ export default function AudienceCard({ twin }: { twin: AudienceTwin }) {
     <section className="audience-card">
       <h2>{twin.label}</h2>
       <p className="disclaimer">
-        {twin.disclaimer} simulation=true · method=ai_heuristic
+        {twin.disclaimer} simulation=true · method=rule_heuristic
       </p>
       <ul>
         {twin.facts.map((fact) => (

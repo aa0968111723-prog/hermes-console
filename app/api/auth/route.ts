@@ -5,16 +5,20 @@ import {
   respond,
   route,
   WORKSPACE_OWNER,
+  verifyGateway,
 } from "@/lib/server/security";
 export const runtime = "nodejs";
-export const GET = route(async () =>
-  respond({
+export const GET = route(async (request) => {
+  verifyGateway(request);
+  return respond({
     workspace: { id: WORKSPACE_OWNER, mode: "no-login" },
-  }),
-);
+  });
+});
 export const POST = route(async (request) => {
   checkOrigin(request);
-  z.object({}).passthrough().parse(await jsonBody(request, 2000));
+  z.object({})
+    .passthrough()
+    .parse(await jsonBody(request, 2000));
   return respond(
     {
       error: {

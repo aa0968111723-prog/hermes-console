@@ -4,19 +4,27 @@ export function socialDrafts(input: {
   cta: string;
   audience: string;
 }) {
-  const hashtags = ["淡江", "大一", "社團", "淡水"].map((tag) => "#" + tag);
+  // Formatting user-provided copy is not AI generation or image analysis.
   return {
     publish: false,
+    method: "text_formatting",
+    requiresReview: true,
     ig: {
-      shortCaption: `${input.title}。${input.cta}`.slice(0, 120),
-      longCaption: `${input.copy}\n\n${input.cta}\n給${input.audience}。`.slice(0, 500),
-      hashtags,
-      altText: `${input.title} 活動海報，含時間地點。`,
+      shortCaption: [input.title, input.cta]
+        .filter(Boolean)
+        .join("。")
+        .slice(0, 120),
+      longCaption: [input.copy, input.cta]
+        .filter(Boolean)
+        .join("\n\n")
+        .slice(0, 500),
+      hashtags: [],
+      altText: null,
       cta: input.cta,
     },
-    story: `${input.title}\n今天在校園，歡迎過來坐。`.slice(0, 80),
-    threads: `${input.copy}`.slice(0, 220),
+    story: [input.title, input.cta].filter(Boolean).join("\n").slice(0, 80),
+    threads: input.copy.slice(0, 220),
     poster: input.copy,
-    note: "同一活動在 Feed／Story／Threads／海報的文案刻意不同。此為草稿，不是發佈。",
+    note: "僅整理提供的文字，不會補造活動時間、地點或圖片替代文字；字数裁切仍需人工確認。",
   };
 }

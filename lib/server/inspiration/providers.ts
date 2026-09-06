@@ -37,11 +37,18 @@ export interface InspirationProvider {
 }
 
 function none(): ProviderCapabilities {
-  return { search: false, resolveUrl: false, globalSearch: false, analyze: false };
+  return {
+    search: false,
+    resolveUrl: false,
+    globalSearch: false,
+    analyze: false,
+  };
 }
 
 function storedMatch(platform: InspirationPlatform, projectId: string) {
-  return listInspiration(projectId).filter((item) => item.platform === platform);
+  return listInspiration(projectId).filter(
+    (item) => item.platform === platform,
+  );
 }
 
 export const webProvider: InspirationProvider = {
@@ -53,7 +60,7 @@ export const webProvider: InspirationProvider = {
     search: false,
     resolveUrl: true,
     globalSearch: false,
-    analyze: true,
+    analyze: false,
   }),
   health: () => ({
     id: "web",
@@ -64,8 +71,9 @@ export const webProvider: InspirationProvider = {
   search: (query, projectId) => storedMatch("web", projectId),
   resolveUrl: (url, projectId) =>
     classifyInspirationUrl(url) === "web"
-      ? storedMatch("web", projectId).find((item) => canonicalUrl(item.sourceUrl) === canonicalUrl(url)) ||
-        null
+      ? storedMatch("web", projectId).find(
+          (item) => canonicalUrl(item.sourceUrl) === canonicalUrl(url),
+        ) || null
       : null,
 };
 
@@ -78,7 +86,7 @@ export const instagramProvider: InspirationProvider = {
     search: false,
     resolveUrl: true,
     globalSearch: false,
-    analyze: true,
+    analyze: false,
   }),
   health: () => {
     const limits = instagramResearchLimits();
@@ -107,7 +115,7 @@ export const pinterestProvider: InspirationProvider = {
     search: false,
     resolveUrl: true,
     globalSearch: false,
-    analyze: true,
+    analyze: false,
   }),
   health: () => ({
     id: "pinterest",
@@ -132,7 +140,7 @@ export const canvaProvider: InspirationProvider = {
   platform: "canva",
   isConfigured: () => canvaConfigured(),
   capabilities: () => ({
-    search: canvaConfigured(),
+    search: false,
     resolveUrl: true,
     globalSearch: false,
     analyze: false,
@@ -191,12 +199,13 @@ export const uploadProvider: InspirationProvider = {
     search: false,
     resolveUrl: false,
     globalSearch: false,
-    analyze: true,
+    analyze: false,
   }),
   health: () => ({
     id: "upload",
-    state: "available",
-    detail: "分析使用者上傳的截圖／檔案；不是平台搜尋。",
+    state: "unconfigured",
+    detail:
+      "此 provider 尚未接入影像分析；請從對話送出實際附件給已配置的 Hermes。",
     capabilities: uploadProvider.capabilities(),
   }),
   search: () => [],

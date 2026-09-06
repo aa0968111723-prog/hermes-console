@@ -1,7 +1,7 @@
 import { DEFAULT_BUDGET } from "./budgets";
 
 export const AUDIENCE_DISCLAIMER =
-  "AI 模擬評估，不代表真實市場調查。";
+  "規則式模擬評估，未呼叫 AI 模型，不代表真實市場調查。";
 
 export const SCORE_KEYS = [
   "stopRate",
@@ -60,7 +60,10 @@ export interface AudienceScores {
   disclaimer: string;
 }
 
-export function classifyFact(value: string, source: string | null): TwinFact["kind"] {
+export function classifyFact(
+  value: string,
+  source: string | null,
+): TwinFact["kind"] {
   return source ? "evidence" : "hypothesis";
 }
 
@@ -118,24 +121,59 @@ export function debateSummary(input: {
   };
 }
 
-export function tamkangFreshmanSeed(sources: Array<{ text: string; url?: string }>) {
+export function tamkangFreshmanSeed(
+  sources: Array<{ text: string; url?: string }>,
+) {
   const known = sources.filter((item) => item.text.trim());
-  const items: Array<{ field: string; value: string; source?: string | null }> = [
-    { field: "年齡", value: "約 18–19 歲", source: null },
-    { field: "Life stage", value: "剛進入大學的生活轉換期", source: null },
-    { field: "校園階段", value: "淡江大學大一新生", source: null },
-    { field: "生活環境", value: "淡水校園與周邊生活圈", source: known[0]?.url || null },
-    { field: "日常情境", value: "通學、社團、找吃的、認識朋友", source: null },
-    { field: "關注事項", value: "社團、交通、住宿、餐飲、新生活動", source: null },
-    { field: "期待", value: "交到朋友、找到屬於自己的圈子", source: null },
-    { field: "疑問", value: "這裡好走嗎？有人跟我一樣嗎？", source: null },
-    { field: "壓力", value: "新環境、課業、人際與距離", source: null },
-    { field: "社交需求", value: "低門檻、可一起參加的實體活動", source: null },
-    { field: "可能使用的平台", value: "Instagram、Dcard、社團群組", source: null },
-    { field: "可能滑掉的內容", value: "抽象口號、過度宗教或廣告感", source: null },
-    { field: "可能停下來看的內容", value: "有淡江生活感、看得懂、跟我有關", source: null },
-    { field: "參與觸發因素", value: "同學邀約、現場好找、時間清楚", source: null },
-  ];
+  const items: Array<{ field: string; value: string; source?: string | null }> =
+    [
+      { field: "年齡", value: "約 18–19 歲", source: null },
+      { field: "Life stage", value: "剛進入大學的生活轉換期", source: null },
+      { field: "校園階段", value: "淡江大學大一新生", source: null },
+      {
+        field: "生活環境",
+        value: "淡水校園與周邊生活圈",
+        source: known[0]?.url || null,
+      },
+      {
+        field: "日常情境",
+        value: "通學、社團、找吃的、認識朋友",
+        source: null,
+      },
+      {
+        field: "關注事項",
+        value: "社團、交通、住宿、餐飲、新生活動",
+        source: null,
+      },
+      { field: "期待", value: "交到朋友、找到屬於自己的圈子", source: null },
+      { field: "疑問", value: "這裡好走嗎？有人跟我一樣嗎？", source: null },
+      { field: "壓力", value: "新環境、課業、人際與距離", source: null },
+      {
+        field: "社交需求",
+        value: "低門檻、可一起參加的實體活動",
+        source: null,
+      },
+      {
+        field: "可能使用的平台",
+        value: "Instagram、Dcard、社團群組",
+        source: null,
+      },
+      {
+        field: "可能滑掉的內容",
+        value: "抽象口號、過度宗教或廣告感",
+        source: null,
+      },
+      {
+        field: "可能停下來看的內容",
+        value: "有淡江生活感、看得懂、跟我有關",
+        source: null,
+      },
+      {
+        field: "參與觸發因素",
+        value: "同學邀約、現場好找、時間清楚",
+        source: null,
+      },
+    ];
   if (!known.length) {
     for (const item of items) item.source = null;
   }

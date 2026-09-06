@@ -24,6 +24,9 @@ export interface Usage {
   toolCost: number | null;
 }
 export interface TaskEvent {
+  toolCallId?: string | null;
+  errorCode?: string;
+  retryable?: boolean;
   id: string;
   taskId: string;
   toolName: string | null;

@@ -74,10 +74,9 @@ export function tamkangStatus(input?: {
       id: "tku",
       name: "淡江 MCP",
       state: (tamkangConfigured() ? "failed" : "unconfigured") as
-        | "failed"
-        | "unconfigured",
+        "failed" | "unconfigured",
       detail: tamkangConfigured()
-        ? "淡江 MCP 離線；改以網頁研究備援，不中斷 Console。"
+        ? "淡江 MCP 離線；可請 Hermes 使用已授權網頁工具，尚未執行備援查詢。"
         : "尚未設定 TKU_MCP_URL 與 TKU_MCP_TOKEN。",
       mapping: mapTamkangTools(input.tools || []),
       fallback: "web_research",

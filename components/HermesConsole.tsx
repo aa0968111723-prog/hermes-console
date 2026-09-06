@@ -36,6 +36,7 @@ import InspirationBoard from "./inspiration/InspirationBoard";
 import IntegrationHealth from "./settings/IntegrationHealth";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
+import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
 import {
   emptyDraft,
   useComposerDraft,
@@ -150,6 +151,7 @@ export default function HermesConsole() {
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
+  const [sheetsSync, setSheetsSync] = useState<SheetSyncResult | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(true);
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
@@ -607,8 +609,8 @@ export default function HermesConsole() {
         .then((result) => setAgents(result.agents))
         .catch(() => {});
     if (next === "inspiration")
-      api<{ items: InspirationItem[] }>("inspiration")
-        .then((result) => setInspiration(result.items))
+      api<{ items: InspirationItem[]; sheetsSync: SheetSyncResult | null }>("inspiration")
+        .then((result) => { setInspiration(result.items); setSheetsSync(result.sheetsSync); })
         .catch(() => {});
   };
   const navigation = (
@@ -1400,6 +1402,17 @@ export default function HermesConsole() {
         ) : nav === "inspiration" ? (
           <InspirationBoard
             items={inspiration}
+            syncStatus={sheetsSync}
+            onSync={async () => {
+              const result = await api<{ sheetsSync: SheetSyncResult }>("inspiration", "POST", { action: "sync_sheets" });
+              setSheetsSync(result.sheetsSync);
+              const [updated, workspace] = await Promise.all([
+                api<{ items: InspirationItem[] }>("inspiration"),
+                api<Workspace>("workspace"),
+              ]);
+              setInspiration(updated.items);
+              setData(workspace);
+            }}
             notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
           />
         ) : (

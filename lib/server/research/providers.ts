@@ -1,5 +1,4 @@
-import { mapTamkangTools, tamkangConfigured, tamkangStatus } from "../tamkang";
-import { classifyFact } from "../audience";
+import { mapTamkangTools, tamkangStatus } from "../tamkang";
 
 export interface SourceRecord {
   id: string;
@@ -7,13 +6,13 @@ export interface SourceRecord {
   provider: string;
   title: string;
   excerpt: string;
-  retrievedAt: string;
+  retrievedAt: string | null;
   publishedAt: string | null;
   official: boolean;
-  confidence: number;
+  confidence: number | null;
   usedFor: string;
+  verification: "not_fetched";
 }
-
 export const FRESHMAN_QUERIES = [
   "新生",
   "校園生活",
@@ -32,83 +31,46 @@ export const FRESHMAN_QUERIES = [
   "學習",
   "休閒",
 ];
-
 export function classifyResearchTools(
   tools: Array<{ name: string; description?: string }>,
 ) {
-  const mapped = mapTamkangTools(tools);
-  const byDescription: Record<string, string | null> = { ...mapped };
-  for (const tool of tools) {
-    const hay = tool.name + " " + (tool.description || "");
-    if (/club|society|社團/.test(hay) && !byDescription.tku_clubs)
-      byDescription.tku_clubs = tool.name;
-    if (/transport|mrt|捷運|交通/.test(hay) && !byDescription.tku_transport)
-      byDescription.tku_transport = tool.name;
-  }
-  return byDescription;
+  return mapTamkangTools(tools); // Name matches are hints, not verified execution capabilities.
 }
-
 export function officialWebSources(): SourceRecord[] {
-  const now = new Date().toISOString();
   return [
     {
       id: "tku-official",
       url: "https://www.tku.edu.tw/",
-      provider: "TamkangOfficialWebProvider",
-      title: "淡江大學",
-      excerpt: "淡江大學位於新北市淡水區。",
-      retrievedAt: now,
+      provider: "source_directory",
+      title: "淡江大學官方網站（待查詢入口）",
+      excerpt: "",
+      retrievedAt: null,
       publishedAt: null,
       official: true,
-      confidence: 0.8,
-      usedFor: "location",
+      confidence: null,
+      usedFor: "research_entry",
+      verification: "not_fetched",
     },
   ];
 }
-
 export function researchBundle(input: {
   prompt: string;
   mcpReachable?: boolean;
   tools?: Array<{ name: string; description?: string }>;
 }) {
-  const tku = tamkangStatus({
-    reachable: input.mcpReachable,
-    tools: input.tools,
-  });
-  const sources = officialWebSources();
-  const claims = [
-    { claim: "淡江大學位於淡水。", sourceId: sources[0].url, category: "location" },
-    {
-      claim: "大一新生剛到淡水會期待認識新朋友。",
-      sourceId: null,
-      category: "social",
-    },
-    {
-      claim: "All students love this event",
-      sourceId: "https://seo.example/fake",
-      category: "hype",
-    },
-  ];
-  const labeled = claims.map((item) => ({
-    ...item,
-    kind:
-      item.category === "hype"
-        ? "hypothesis"
-        : classifyFact(item.claim, item.sourceId),
-  }));
+  // This function constructs a plan only. Caller booleans must never attest a live service.
+  const tku = tamkangStatus();
   return {
     queries: /淡江|新生|淡水/.test(input.prompt) ? FRESHMAN_QUERIES : [],
     tamkang: tku,
-    fallback:
-      tku.state === "failed" || tku.state === "unconfigured"
-        ? "web_research"
-        : null,
+    fallback: null,
+    suggestedFallback: "ask_hermes_authorized_web_tool",
+    executed: false,
     message:
-      tku.state === "failed"
-        ? "Tamkang MCP unavailable，using web research。"
-        : tku.detail,
-    mapping: classifyResearchTools(input.tools || []),
-    sources,
-    claims: labeled,
+      "尚未執行研究；需由 Hermes 呼叫已授權來源，再保存實際結果與查詢時間。",
+    mapping: classifyResearchTools([]),
+    sources: [],
+    claims: [],
+    sourceDirectory: /淡江|淡水/.test(input.prompt) ? officialWebSources() : [],
   };
 }

@@ -11,6 +11,7 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-contract-"),
 );
 process.env.CONSOLE_ORIGIN = "http://localhost:3210";
+process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_USERNAME = "fixture-owner";
 const password = randomBytes(24).toString("hex"),
   salt = randomBytes(16).toString("hex");
@@ -105,12 +106,10 @@ const address = server.address() as { port: number };
 process.env.HERMES_API_URL = "http://127.0.0.1:" + address.port;
 const security = await import("../lib/server/security");
 const { get, put, list } = await import("../lib/server/store");
-const { health, visibleText, streamPreview, usage } = await import(
-  "../lib/server/hermes"
-);
-const { submit, reconcile, stop, taskFor } = await import(
-  "../lib/server/tasks"
-);
+const { health, visibleText, streamPreview, usage } =
+  await import("../lib/server/hermes");
+const { submit, reconcile, stop, taskFor } =
+  await import("../lib/server/tasks");
 const authRoute = await import("../app/api/auth/route");
 const taskRoute = await import("../app/api/tasks/route");
 const healthRoute = await import("../app/api/health/route");

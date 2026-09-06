@@ -11,6 +11,41 @@ try {
     stdio: ["ignore", "pipe", "ignore"],
   });
 } catch {}
+if (!baseline) {
+  try {
+    const removal = execFileSync(
+      "git",
+      [
+        "log",
+        "--all",
+        "--diff-filter=D",
+        "-1",
+        "--format=%H",
+        "--",
+        "lib/hermes-config.ts",
+      ],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      },
+    ).trim();
+    if (removal)
+      baseline = execFileSync(
+        "git",
+        ["show", removal + "^:lib/hermes-config.ts"],
+        {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        },
+      );
+  } catch {}
+}
+if (!baseline) {
+  console.error(
+    "Secret baseline unavailable. Fetch full repository history; scan cannot attest absence.",
+  );
+  process.exit(1);
+}
 const exposed = [];
 for (const line of baseline.split(/\r?\n/)) {
   if (!/(KEY|PASSWORD|PASSWD)/i.test(line)) continue;
