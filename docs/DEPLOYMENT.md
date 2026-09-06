@@ -30,6 +30,8 @@
 
 Console 支援 Streamable HTTP 的 2025-03-26／2025-06-18 協定；GET 回應 405，POST 接受 JSON-RPC。不支援舊式獨立 SSE endpoint。
 
+Runtime 能力以 `/api/runtime` snapshot 為準，包含 Hermes models／capabilities／skills／toolsets、MCP tools 與 Console tools；`/api/runtime/events` 提供單一 SSE 變更流。同步失敗會顯示最後快照為 `stale`，不保留綠色 Available 假象。MCP 新增工具不需改前端，工具名稱以來源 namespace 正規化。`/api/runtime/bindings` 可依專案／Agent 限制工具，保存於同一持久化卷。
+
 工作區 MCP 現在也列出專案上下文、活動讀写與逐頁文案讀寫。資料確認、方向和版本選定仍只開放已登入使用者，不給模型自我確認工具。完成 Canva 授權及設計清單驗證後，刷新 Hermes 工具清單才會看到 Canva 操作工具。
 
 新增 `workspace_read_material` 讀取真實 PNG／TXT；PDF 僅保存原檔，尚未文字抽取，不向 Hermes 傳送假內容。`MCP_REQUIRE_TASK_CONTEXT=true` 是預設：工具需帶 Console 提供的 taskId；已停止或跨專案請求會拒絕。僅隔離管理者測試可設 false。`CONSOLE_MAX_TOOL_CALLS=40` 計算每任務 Console MCP 嘗試，不是全 Hermes 預算／供應商費用；達上限保留資料，需由使用者檢視後建立接續任務。

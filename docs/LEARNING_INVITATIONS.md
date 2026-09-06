@@ -66,3 +66,15 @@ SQLite 節點／修訂透過同一資料卷持久化；備份時停止唯一 Con
 - [Canva Autofill](https://www.canva.dev/docs/connect/autofill-guide/)
 
 文件描述不代表目前實例具備全部介面；以實際部署探索與執行證據為準。
+
+## Runtime 與 MCP 動態同步
+
+`/api/runtime` 是唯一的 Hermes 能力快照入口；`/api/runtime/tools`、`/api/runtime/agents` 與 `/api/runtime/mcp` 只是同一快照的篩選視圖。`POST /api/runtime`（`{ "refresh": true }`）會重新探索模型、capabilities、skills、toolsets、MCP `initialize`／`tools/list` 與 Console workspace tools。所有請求仍需受邀 session，寫入動作另驗證 Origin。
+
+快照保存內容 hash、來源、同步／驗證時間、狀態、錯誤與診斷計數；只在內容變更時寫入新狀態。連線失敗時沿用最後快照但標示 `stale`，不把舊工具顯示成最新可用。MCP 工具採 `mcp.<server>.<tool>` 命名，Hermes 原生工具採 `hermes.<toolset>.<tool>`，避免同名工具碰撞。工具檢視器只顯示描述、schema、權限與來源，不顯示 token 或 credential 值。
+
+`/api/runtime/events` 是單一 SSE 控制平面事件流：先送 `runtime.snapshot`，有變更時送 `tools.updated`，無變更送 heartbeat；斷線由瀏覽器重連並重新查快照。Server 端以 single-flight 合併同一 owner 的同步，避免多個畫面重複打 Hermes。事件流每 8 秒重新探索；不是每秒輪詢所有 endpoint。
+
+工具綁定透過 `/api/runtime/bindings` 保存專案／Agent 範圍、啟用、優先序、允許／封鎖清單與權限覆寫；Router 只回傳目前 snapshot 中存在且符合 binding 的工具。新增 MCP 或工具不需新增 React 元件；若工具消失，binding 不會使其重新變為可用。Endpoint 仍只能由後端 `CONSOLE_MCP_SERVERS_JSON` 核准，禁止 localhost、私網、URL 憑證與 GitHub repo 偽裝 MCP。
+
+MCP registry 的 `GET /api/mcp-registry` 讀取目前伺服器，`POST` 執行受控的註冊／連線探測；`PATCH` 的 `refresh`／`test` 重新執行 `initialize` 與 `tools/list`，`enable` 重新探測，`disable` 必須先取得一次性 destructive confirmation。停用會清除該 server 的工具快照，下一次同步不會繼續把舊工具當作可用。

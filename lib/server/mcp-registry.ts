@@ -17,12 +17,14 @@ export interface McpEntry {
     name: string;
     description: string;
     inputSchema?: Record<string, unknown>;
+    annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; idempotentHint?: boolean };
   }>;
   status: McpStatus;
   verifiedAt: string | null;
   lastError: string | null;
   readonly: boolean;
   trustedLevel: "untrusted" | "workspace" | "external";
+  enabled: boolean;
 }
 const definition = z
   .object({
@@ -135,6 +137,7 @@ export function seedRegistry(): McpEntry[] {
       : "尚未設定 MCP_BRIDGE_TOKEN。",
     readonly: false,
     trustedLevel: "workspace",
+    enabled: true,
   };
   const configs = configuredMcp();
   const entries = configs.map((config): McpEntry => {
@@ -146,14 +149,15 @@ export function seedRegistry(): McpEntry[] {
       ...config,
       transport: "streamable-http",
       authMode: config.credentialReference ? "bearer" : "none",
-      tools: matches ? old.tools : [],
-      status: matches
+      tools: old?.enabled === false ? [] : matches ? old.tools : [],
+      enabled: old?.enabled !== false,
+      status: old?.enabled === false ? "unconfigured" : matches
         ? old.status === "verified"
           ? "partial"
           : old.status
         : "unconfigured",
       verifiedAt: matches ? old.verifiedAt : null,
-      lastError: matches ? old.lastError : "後端已配置，尚未驗證工具清單。",
+      lastError: old?.enabled === false ? "此 MCP 已停用。" : matches ? old.lastError : "後端已配置，尚未驗證工具清單。",
       trustedLevel: "external",
     };
   });
@@ -168,6 +172,7 @@ export function seedRegistry(): McpEntry[] {
         status: "unconfigured",
         verifiedAt: null,
         lastError: "舊連接未在後端核准清單中，已停用。",
+        enabled: false,
       });
   return [workspace, ...entries];
 }
@@ -206,6 +211,7 @@ export function registerMcp(input: {
     verifiedAt: null,
     lastError: null,
     trustedLevel: "external",
+    enabled: true,
   } satisfies McpEntry);
 }
 export function interpretVerification(steps: {
@@ -218,6 +224,7 @@ export function interpretVerification(steps: {
   return steps.safeRead ? "verified" : "partial";
 }
 export async function probeMcp(entry: McpEntry) {
+  if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
   const client = new Client({ name: "hermes-console-discovery", version: "2" });
   let connected = false;
@@ -282,6 +289,11 @@ export async function probeMcp(entry: McpEntry) {
           inputSchema: JSON.parse(
             redact(JSON.stringify(t.inputSchema)),
           ) as Record<string, unknown>,
+          annotations: t.annotations && {
+            readOnlyHint: t.annotations.readOnlyHint,
+            destructiveHint: t.annotations.destructiveHint,
+            idempotentHint: t.annotations.idempotentHint,
+          },
         })),
       );
       if (tools.length > 1000) throw new Error("MCP tool limit");
@@ -313,6 +325,12 @@ export async function probeMcp(entry: McpEntry) {
   } finally {
     await client.close().catch(() => {});
   }
+}
+export function setMcpEnabled(id: string, enabled: boolean) {
+  const entry = getMcp(id);
+  if (!entry || id === "workspace") throw new ApiError(404, "mcp_not_found", "找不到可管理的 MCP。");
+  const config = controlled(id);
+  return put("mcp_registry", WORKSPACE_OWNER, { ...entry, ...config, enabled, status: "unconfigured" as const, tools: [], verifiedAt: null, lastError: enabled ? "已啟用，尚未重新同步工具清單。" : "此 MCP 已停用。" });
 }
 export function getMcp(id: string) {
   return seedRegistry().find((item) => item.id === id) || null;
