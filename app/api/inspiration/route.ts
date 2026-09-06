@@ -6,7 +6,11 @@ import {
   listInspiration,
   pinterestResearchLimits,
 } from "@/lib/server/inspiration";
-import { resolveInspirationUrl, runInspirationPipeline } from "@/lib/server/inspiration/engine";
+import {
+  resolveInspirationUrl,
+  runInspirationPipeline,
+  searchInspirations,
+} from "@/lib/server/inspiration/engine";
 import { providerHealth } from "@/lib/server/inspiration/providers";
 import { syncSheetsInspiration } from "@/lib/server/inspiration/sheets-sync";
 
@@ -16,8 +20,13 @@ export const GET = route(async (req) => {
   authenticate(req);
   const projectId = new URL(req.url).searchParams.get("projectId") || undefined;
   const sync = await syncSheetsInspiration();
+  const domain =
+    projectId === "tamkang" || projectId === "ntu" || projectId === "general"
+      ? projectId
+      : undefined;
   return respond({
     items: listInspiration(projectId),
+    fixtures: searchInspirations(undefined, domain),
     instagram: instagramResearchLimits(),
     pinterest: pinterestResearchLimits(),
     plan: inspirationSearchPlan("幫我找靈感"),

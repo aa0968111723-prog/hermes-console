@@ -3321,4 +3321,336 @@ summary .badge {
   font-size: 10px;
 }
 
+.link-ext-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+/* 雙頁籤切換 */
+.inspiration-tabs-bar {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+}
+
+.inspiration-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.inspiration-tab-btn:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.inspiration-tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* 過濾與搜尋工具列 */
+.board-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.platform-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.platform-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.platform-filter-chip:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.platform-filter-chip.active {
+  background: var(--bg-surface-raised);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.chip-count {
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
+
+.board-search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  min-width: 260px;
+}
+
+.board-search-box .search-icon {
+  color: var(--text-muted);
+}
+
+.board-search-input {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+}
+
+.search-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+
+/* 內建風格庫卡片 */
+.curated-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.curated-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.curated-topbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.curated-domain-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.curated-domain-badge.domain-tamkang {
+  background: rgba(225, 48, 108, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(225, 48, 108, 0.3);
+}
+
+.curated-domain-badge.domain-ntu {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.curated-domain-badge.domain-general {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.curated-type-tag {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  background: var(--bg-surface-raised);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.curated-mood-tag {
+  font-size: 11px;
+  color: #eab308;
+  margin-left: auto;
+  font-weight: 600;
+}
+
+.curated-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.curated-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 色彩調色盤展示 */
+.palette-section {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.palette-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.palette-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.copy-toast {
+  font-size: 10px;
+  color: #10b981;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.palette-swatches-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.palette-swatch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.palette-swatch:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.palette-swatch.copied {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.swatch-color-box {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+.swatch-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.swatch-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.swatch-hex {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.swatch-copy-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* 排版建議 */
+.typography-box {
+  background: rgba(0, 0, 0, 0.12);
+  border-left: 3px solid var(--accent);
+  padding: 8px 10px;
+  border-radius: 0 4px 4px 0;
+  font-size: 11px;
+}
+
+.typography-label {
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  display: block;
+}
+
+.typography-text {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.curated-rights-note {
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+
 

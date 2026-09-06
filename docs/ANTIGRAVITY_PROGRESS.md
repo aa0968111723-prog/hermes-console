@@ -401,11 +401,43 @@
 
 ---
 
+## 週期 16 (Iteration 16) 萬象風格庫色票展示、色碼點擊複製、雙頁籤切換與多維即時搜尋篩選
+
+本週期針對萬象靈感庫在「內建風格與色票（console_fixture）無法於前端直觀檢視與複製」、「收藏項目缺少平台膠囊篩選與即時搜尋」之體驗缺口，完成以下 5 大核心實作：
+
+1. **靈感端點回傳風格色票庫 (`app/api/inspiration/route.ts`)**：
+   - 升級 `GET /api/inspiration`，依據專案脈絡（`tamkang`、`ntu`、`general`）動態透過 `searchInspirations(undefined, domain)` 回傳官方內建風格庫（`fixtures`），同時嚴格維持跨校園地標色票隔離。
+
+2. **主主控台風格庫狀態同步 (`components/HermesConsole.tsx`)**：
+   - 擴充 `fixtures` 狀態變數與 `CuratedInspirationItem` 型別。
+   - 於 `nav === "inspiration"` 切換時同步拉取 `items` 與 `fixtures`，並完整注入 `InspirationBoard`。
+
+3. **靈感板雙頁籤體驗與多維過濾器 (`components/inspiration/InspirationBoard.tsx`)**：
+   - 實作「📥 已收藏靈感」與「🎨 內建萬象風格庫」雙頁籤切換。
+   - 已收藏視圖：提供 6 大平台篩選膠囊（`全部`、`Instagram`、`Pinterest`、`Canva`、`Behance`、`一般網頁`）與動態筆數統計標籤。
+   - 即時全文搜尋框：即時過濾來源網址、帳號、文案摘要、標籤、版面分析、借鑑點與適合原因。
+   - 提升表單安全性：在收藏 POST 請求明確傳遞 `credentials: "same-origin"`。
+
+4. **風格色票互動卡片與點擊複製 (`components/inspiration/InspirationBoard.tsx`, `app/globals.css`)**：
+   - 展示校園專案脈絡標籤（`🏫 淡江脈絡`、`🚲 臺大脈絡`、`🎓 通用大專`）、風格類別與視覺情緒標籤。
+   - 實作視覺化色彩調色盤（Color Palette Swatches）：展示色塊預覽、色彩名稱與 HEX 色碼，點擊色票自動寫入剪貼簿並觸發「✓ 已複製 #HEX」動態視覺反饋。
+   - 整合排版字體建議（`typographySuggestion`）與誠實出處聲明（`console_fixture` 標籤，明確標記未抓取外部網路）。
+
+5. **全套測試與 Next.js 生產建置驗證 (`tests/phase4_inspiration_pipeline.test.ts`)**：
+   - 在 `tests/phase4_inspiration_pipeline.test.ts` 加入 `GET /api/inspiration` 之 `items` 與 `fixtures` 結構校驗及跨校園地標無洩漏斷言。
+   - `npm test`：**151 / 151 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
 
 

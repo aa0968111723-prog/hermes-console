@@ -37,6 +37,7 @@ import IntegrationHealth from "./settings/IntegrationHealth";
 import CreativeIntelligenceView from "./CreativeIntelligenceView";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
+import type { CuratedInspirationItem } from "@/lib/server/inspiration/engine";
 import {
   emptyDraft,
   useComposerDraft,
@@ -151,6 +152,7 @@ export default function HermesConsole() {
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
+  const [fixtures, setFixtures] = useState<CuratedInspirationItem[]>([]);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(true);
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
@@ -319,11 +321,12 @@ export default function HermesConsole() {
   }, [auth, refresh]);
   useEffect(() => {
     if (nav === "inspiration") {
-      api<{ items: InspirationItem[] }>(
+      api<{ items: InspirationItem[]; fixtures?: CuratedInspirationItem[] }>(
         `inspiration?projectId=${encodeURIComponent(project)}`,
       )
         .then((r) => {
           if (Array.isArray(r.items)) setInspiration(r.items);
+          if (Array.isArray(r.fixtures)) setFixtures(r.fixtures);
         })
         .catch(() => {});
     }
@@ -1436,6 +1439,7 @@ export default function HermesConsole() {
         ) : nav === "inspiration" ? (
           <InspirationBoard
             items={inspiration}
+            fixtures={fixtures}
             notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             projectId={project}
             onIngest={(newItem) => {

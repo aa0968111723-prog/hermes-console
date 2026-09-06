@@ -143,4 +143,24 @@ test("Phase 4 truthful universal inspiration pipeline", async (t) => {
     assert.ok(!data.includes("克難坡"));
     assert.ok(!data.includes("福園"));
   });
+
+  await t.test("GET /api/inspiration returns items and curated fixtures without leaking across domains", async () => {
+    const { GET } = await import("../app/api/inspiration/route.ts");
+    const reqAll = new Request("http://localhost:3220/api/inspiration");
+    const resAll = await GET(reqAll);
+    assert.equal(resAll.status, 200);
+    const dataAll = await resAll.json();
+    assert.ok(Array.isArray(dataAll.items));
+    assert.ok(Array.isArray(dataAll.fixtures));
+    assert.ok(dataAll.fixtures.length >= 3);
+
+    const reqNtu = new Request("http://localhost:3220/api/inspiration?projectId=ntu");
+    const resNtu = await GET(reqNtu);
+    assert.equal(resNtu.status, 200);
+    const dataNtu = await resNtu.json();
+    assert.ok(dataNtu.fixtures.every((f: any) => f.domain === "ntu"));
+    const ntuStr = JSON.stringify(dataNtu.fixtures);
+    assert.ok(!ntuStr.includes("克難坡"));
+    assert.ok(!ntuStr.includes("福園"));
+  });
 });
