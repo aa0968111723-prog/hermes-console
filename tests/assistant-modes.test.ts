@@ -13,8 +13,6 @@ process.env.HERMES_API_KEY = randomBytes(24).toString("hex");
 process.env.HERMES_API_URL = "https://hermes.example.invalid";
 
 const {
-  ASSISTANT_MODES,
-  ASSISTANT_MODE_META,
   parseAssistantMode,
   specialistInstructions,
   RESEARCH_INSTRUCTIONS,
@@ -34,28 +32,12 @@ function request(path: string, method = "GET", body?: unknown) {
   });
 }
 
-test("assistant modes parse, prompts and conversation persistence", async (t) => {
+test("assistant modes parse, prompts and API contracts", async (t) => {
   await t.test("unknown values fall back to creative", () => {
     assert.equal(parseAssistantMode(undefined), "creative");
     assert.equal(parseAssistantMode("silly"), "creative");
     assert.equal(parseAssistantMode("research"), "research");
     assert.equal(parseAssistantMode("admin"), "admin");
-  });
-
-  await t.test("each mode has Chinese UI copy and starters", () => {
-    for (const id of ASSISTANT_MODES) {
-      const meta = ASSISTANT_MODE_META[id];
-      assert.equal(meta.id, id);
-      assert.ok(meta.label.length >= 2);
-      assert.ok(meta.headline.length >= 4);
-      assert.ok(meta.disclaimer.length >= 12);
-      assert.equal(meta.starters.length, 6);
-      for (const [label, prompt] of meta.starters) {
-        assert.ok(label.length > 0);
-        assert.ok(prompt.length > 0);
-      }
-    }
-    assert.equal(ASSISTANT_MODE_META.creative.headline, "今天想做什麼？");
   });
 
   await t.test("research prompt is assistive and not IRB", () => {
@@ -81,7 +63,10 @@ test("assistant modes parse, prompts and conversation persistence", async (t) =>
       requestKey: randomUUID(),
       input: "幫我收斂研究問題",
     };
-    assert.equal(taskInput.parse({ ...base, mode: "research" }).mode, "research");
+    assert.equal(
+      taskInput.parse({ ...base, mode: "research" }).mode,
+      "research",
+    );
     assert.equal(taskInput.parse({ ...base, mode: "admin" }).mode, "admin");
     assert.equal(taskInput.parse(base).mode, undefined);
     assert.equal(taskInput.safeParse({ ...base, mode: "silly" }).success, false);
@@ -98,5 +83,14 @@ test("assistant modes parse, prompts and conversation persistence", async (t) =>
     const body = await created.json();
     assert.equal(body.conversation.assistantMode, "research");
     assert.equal(body.conversation.title, "教心所研究筆記");
+  });
+
+  await t.test("omitted mode keeps the default creative console path", async () => {
+    const created = await conversations.POST(
+      request("conversations", "POST", { title: "一般對話" }),
+    );
+    const body = await created.json();
+    assert.equal(body.conversation.assistantMode, "creative");
+    assert.equal(specialistInstructions("creative"), null);
   });
 });

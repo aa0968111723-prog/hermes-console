@@ -1,6 +1,5 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
   ArrowUp,
   Check,
@@ -25,7 +24,6 @@ import {
   Link as LinkIcon,
   ExternalLink,
   Download,
-  Palette,
 } from "lucide-react";
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
@@ -50,12 +48,6 @@ import {
   writePreference,
   removeLegacyPreference,
 } from "@/lib/client/storage";
-import {
-  ASSISTANT_MODE_META,
-  parseAssistantMode,
-  type AssistantMode,
-} from "@/lib/assistant-modes";
-import ModeSwitch from "./chat/ModeSwitch";
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -193,8 +185,6 @@ export default function HermesConsole() {
   const [refURL, setRefURL] = useState("");
   const [refTitle, setRefTitle] = useState("");
   const [search, setSearch] = useState("");
-  const [mode, setMode] = useState<AssistantMode>("creative");
-  const modeMeta = ASSISTANT_MODE_META[mode];
   const [jump, setJump] = useState(false);
   const [historySnapshot, setHistorySnapshot] = useState<{
     conversationId: string | null;
@@ -268,7 +258,6 @@ export default function HermesConsole() {
           : 100,
       });
       setLegacy(!!readPreference("hermes.conversations"));
-      chooseMode(parseAssistantMode(readPreference("hermes.assistantMode.v1")));
     } catch {}
     setHydrated(true);
     loadWorkspace()
@@ -279,8 +268,6 @@ export default function HermesConsole() {
         if (conv) {
           setActiveId(conv.id);
           setProject(conv.projectId);
-          if (conv.assistantMode)
-            chooseMode(parseAssistantMode(conv.assistantMode));
         }
       })
       .catch((e) => {
@@ -400,10 +387,6 @@ export default function HermesConsole() {
     },
     [],
   );
-  function chooseMode(next: AssistantMode) {
-    setMode(next);
-    writePreference("hermes.assistantMode.v1", next);
-  }
   function selectConversation(conv: Conversation) {
     if (busy) return;
     setRemoteHistory(null);
@@ -412,7 +395,6 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
-    if (conv.assistantMode) chooseMode(parseAssistantMode(conv.assistantMode));
     writePreference("hermes.active.v2", conv.id);
   }
   function fresh() {
@@ -439,7 +421,6 @@ export default function HermesConsole() {
         projectId: project,
         parentId,
         beforeMessageId,
-        assistantMode: mode,
       },
     );
     replaceDraft("conversation:" + result.conversation.id, initialDraft);
@@ -465,7 +446,6 @@ export default function HermesConsole() {
           ...uploads.flatMap((u) => (u.material ? [u.material.id] : [])),
           ...references,
         ],
-        mode,
       };
       const signature = JSON.stringify(payload);
       if (requestKey.current?.payload !== signature)
@@ -677,10 +657,6 @@ export default function HermesConsole() {
           <Bot size={19} />
           Agent
         </button>
-        <Link href="/create">
-          <Palette size={19} />
-          創作小天地
-        </Link>
       </nav>
       <div className="side-section">
         <span>專案</span>
@@ -735,12 +711,7 @@ export default function HermesConsole() {
               onClick={() => selectConversation(c)}
               title={c.title}
             >
-              <span>{c.title}</span>
-              {c.assistantMode && c.assistantMode !== "creative" && (
-                <small className="history-mode">
-                  {ASSISTANT_MODE_META[c.assistantMode].label}
-                </small>
-              )}
+              {c.title}
             </button>
           ))}
         {!data.conversations.some((c) => c.projectId === project) && (
@@ -826,11 +797,7 @@ export default function HermesConsole() {
           </button>
           <div className="topbar-title">
             {nav === "chat"
-              ? mode === "research"
-                ? "研究筆記"
-                : mode === "admin"
-                  ? "行政草稿"
-                  : "創作對話"
+              ? "創作對話"
               : nav === "projects"
                 ? "專案與素材"
                 : nav === "inspiration"
@@ -920,19 +887,12 @@ export default function HermesConsole() {
                         onClick={() => openTask()}
                       />
                     )}
-                    <p className="eyebrow">{modeMeta.eyebrow}</p>
-                    <h1>{modeMeta.headline}</h1>
-                    <p>{modeMeta.description}</p>
-                    <ModeSwitch
-                      mode={mode}
-                      onChange={chooseMode}
-                      disabled={busy}
-                    />
-                    <p className="mode-disclaimer">{modeMeta.disclaimer}</p>
-                    <p className="create-link">
-                      或去{" "}
-                      <Link href="/create">創作小天地</Link>
-                      （水光火森，本地舞台）
+                    <p className="eyebrow">歡迎使用 Hermes Creative Intelligence</p>
+                    <h1>今天想做什麼？</h1>
+                    <p>
+                      直接告訴龜龜你想做什麼。
+                      <br className="mobile-break" />
+                      不必自己挑選工具。
                     </p>
                     <button
                       className="primary"
@@ -941,7 +901,23 @@ export default function HermesConsole() {
                       開始使用
                     </button>
                     <div className="starters">
-                      {modeMeta.starters.map(([label, prompt]) => (
+                      {[
+                        ["幫我找網宣靈感", "幫我找網宣靈感。"],
+                        [
+                          "幫我做淡江新生海報",
+                          "幫我做一張給淡江大一新生看的社團茶會海報。",
+                        ],
+                        ["分析這張文宣", "請分析這張文宣。"],
+                        [
+                          "站在目標客群角度看看",
+                          "站在目標客群角度看看，路人會不會滑掉。",
+                        ],
+                        [
+                          "找 IG / Pinterest 參考",
+                          "幫我找 IG 與 Pinterest 參考，不要假裝已搜尋完整平台。",
+                        ],
+                        ["做 Canva 草稿", "幫我做 Canva 草稿。"],
+                      ].map(([label, prompt]) => (
                         <button
                           key={label}
                           onClick={() => {
@@ -973,9 +949,7 @@ export default function HermesConsole() {
                         className={"message " + message.role}
                       >
                         <div className="message-byline">
-                          {message.role === "user"
-                            ? "你"
-                            : modeMeta.byline}
+                          {message.role === "user" ? "你" : "Hermes"}
                           <time dateTime={message.createdAt}>
                             {time(message.createdAt)}
                           </time>
@@ -1051,7 +1025,7 @@ export default function HermesConsole() {
                       ) && (
                         <article className="message assistant">
                           <div className="message-byline">
-                            {modeMeta.byline}
+                            Hermes
                             <span className="task-status">
                               {taskLabels[currentTask.state]}
                             </span>
@@ -1126,18 +1100,6 @@ export default function HermesConsole() {
                   <ChevronDown size={16} />
                   回到最新訊息
                 </button>
-              )}
-              {!!activeConv?.messages.length && (
-                <div className="composer-modes">
-                  <ModeSwitch
-                    mode={mode}
-                    onChange={chooseMode}
-                    disabled={busy}
-                  />
-                  {mode !== "creative" && (
-                    <p className="mode-disclaimer">{modeMeta.disclaimer}</p>
-                  )}
-                </div>
               )}
               <div className="composer-row">
                 {prefs.turtle && !!activeConv?.messages.length && (
@@ -1229,7 +1191,7 @@ export default function HermesConsole() {
                     value={text}
                     rows={2}
                     maxLength={20_000}
-                    placeholder={modeMeta.placeholder}
+                    placeholder="說說你的想法，或加入參考素材…"
                     aria-label="訊息"
                     aria-describedby="composer-hint"
                     readOnly={busy}
@@ -1294,7 +1256,7 @@ export default function HermesConsole() {
                       <ImagePlus size={17} />
                       加入素材
                     </button>
-                    <span className="composer-mode">{modeMeta.composerHint}</span>
+                    <span className="composer-mode">Hermes · 草稿工作區</span>
                     {pending ? (
                       <button
                         className="send-button"
@@ -1325,7 +1287,7 @@ export default function HermesConsole() {
               <p className="composer-footnote" id="composer-hint">
                 {text || uploads.length || references.length
                   ? "草稿暫存於此分頁，重新整理將清除。"
-                  : modeMeta.disclaimer}
+                  : "請核對重要資訊與素材權利。"}
                 <span>Enter 送出 · Shift + Enter 換行</span>
               </p>
             </div>
