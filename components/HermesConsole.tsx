@@ -820,7 +820,11 @@ export default function HermesConsole() {
           </button>
           <div className="topbar-title">
             {nav === "chat"
-              ? "創作對話"
+              ? mode === "research"
+                ? "研究筆記"
+                : mode === "admin"
+                  ? "行政草稿"
+                  : "創作對話"
               : nav === "projects"
                 ? "專案與素材"
                 : nav === "inspiration"
