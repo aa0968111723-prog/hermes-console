@@ -80,6 +80,9 @@ test("Phase 13 Gemini Spark MCP tools and OAuth discovery metadata", async (t) =
     assert.equal(ingested.ingested, true);
     assert.ok(ingested.item);
     assert.ok(ingested.item.sourceUrl.includes("spark_sample_123"));
+    assert.ok(Array.isArray(ingested.item.borrow));
+    assert.ok(ingested.item.borrow.length > 0);
+    assert.ok(ingested.item.fit.includes("借鑑"));
 
     // 2. List
     const rawListed = await callTool("workspace", "inspiration_list", {
@@ -118,6 +121,9 @@ test("Phase 13 Gemini Spark MCP tools and OAuth discovery metadata", async (t) =
     });
     assert.equal(ingestRes.success, true);
     assert.equal((ingestRes.result as any).ingested, true);
+    assert.ok(Array.isArray((ingestRes.result as any).item.borrow));
+    assert.ok((ingestRes.result as any).item.borrow.length > 0);
+    assert.ok((ingestRes.result as any).item.fit.includes("借鑑"));
 
     // 2. List via executeMcpTool
     const listRes = await executeMcpTool("inspiration_list", {

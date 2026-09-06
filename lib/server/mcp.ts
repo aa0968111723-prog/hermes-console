@@ -15,7 +15,8 @@ import {
 import { filePath, material } from "./materials";
 import type { Material, Task, TaskEvent } from "../contracts";
 import { ingestUrl, listInspiration } from "./inspiration";
-import { runInspirationPipeline } from "./inspiration/engine";
+import { resolveInspirationUrl, runInspirationPipeline } from "./inspiration/engine";
+
 
 export function bridgeAuth(request: Request) {
   const configured = process.env.MCP_BRIDGE_TOKEN;
@@ -285,12 +286,11 @@ async function execute(
     }
     case "inspiration_ingest": {
       const input = schemas[name].parse(args);
-      const item = ingestUrl({
+      const item = resolveInspirationUrl({
         url: input.url,
         projectId: input.projectId,
         caption: input.caption,
         account: input.account,
-        sourceType: "user_url",
       });
       return {
         ingested: true,
@@ -298,6 +298,7 @@ async function execute(
         message: "已成功收藏進工作區靈感庫。",
       };
     }
+
     case "inspiration_search": {
       const input = schemas[name].parse(args);
       const pipeline = runInspirationPipeline({

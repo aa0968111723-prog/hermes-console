@@ -12,7 +12,8 @@ import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
 import { researchInstagramTrends } from "../social/instagram-research.ts";
 import { describeMcpSandboxPublish } from "../publish/safe-workflow.ts";
 import { ingestUrl, listInspiration } from "../inspiration.ts";
-import { runInspirationPipeline } from "../inspiration/engine.ts";
+import { resolveInspirationUrl, runInspirationPipeline } from "../inspiration/engine.ts";
+
 
 // 記憶體中暫存的確認 Token
 const confirmationTokens = new Map<string, ConfirmationTokenPayload>();
@@ -512,13 +513,13 @@ export async function executeMcpTool(
       const url = String(args.url || "");
       if (!url) return { success: false, error: "缺少 url 參數" };
       try {
-        const item = ingestUrl({
+        const item = resolveInspirationUrl({
           url,
           projectId: typeof args.projectId === "string" ? args.projectId : "personal",
           caption: typeof args.caption === "string" ? args.caption : undefined,
           account: typeof args.account === "string" ? args.account : undefined,
-          sourceType: "user_url",
         });
+
         return {
           success: true,
           result: {

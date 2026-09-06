@@ -318,6 +318,18 @@ export default function HermesConsole() {
     };
   }, [auth, refresh]);
   useEffect(() => {
+    if (nav === "inspiration") {
+      api<{ items: InspirationItem[] }>(
+        `inspiration?projectId=${encodeURIComponent(project)}`,
+      )
+        .then((r) => {
+          if (Array.isArray(r.items)) setInspiration(r.items);
+        })
+        .catch(() => {});
+    }
+  }, [nav, project]);
+  useEffect(() => {
+
     const textarea = input.current;
     if (!textarea) return;
     const resize = () => {
@@ -1425,8 +1437,16 @@ export default function HermesConsole() {
           <InspirationBoard
             items={inspiration}
             notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
+            projectId={project}
+            onIngest={(newItem) => {
+              setInspiration((prev) => [
+                newItem,
+                ...prev.filter((i) => i.id !== newItem.id),
+              ]);
+            }}
           />
         ) : nav === "creative_os" ? (
+
           <CreativeIntelligenceView
             initialPrompt="幫我做給淡江大學大一新生看的禪學社茶會網宣"
             defaultProject={project}

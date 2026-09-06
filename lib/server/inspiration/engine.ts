@@ -6,9 +6,12 @@ import {
   ingestUrl,
   listInspiration,
   type InspirationItem,
-} from "../inspiration";
-import { wrapUntrusted, containsInjectionAttempt } from "../untrusted";
+} from "../inspiration.ts";
+import { put } from "../store.ts";
+import { WORKSPACE_OWNER } from "../security.ts";
+import { wrapUntrusted, containsInjectionAttempt } from "../untrusted.ts";
 import { parseInspirationQuery, type InspirationQuery } from "./query";
+
 import { canonicalUrl, dedupeInspiration } from "./dedupe";
 import { PROVIDERS, providerHealth, type ProviderHealth } from "./providers";
 
@@ -327,7 +330,7 @@ export function resolveInspirationUrl(input: {
     platform: item.platform,
     sourceUrl: item.sourceUrl,
   });
-  return {
+  const updatedItem: InspirationItem = {
     ...item,
     analysis: analysis.copyAnalysis,
     borrow: ["層級", "配色節奏", "CTA 位置"].slice(0, analysis.injectionAttempt ? 0 : 3),
@@ -336,7 +339,9 @@ export function resolveInspirationUrl(input: {
     sourceUrl: canonicalUrl(item.sourceUrl),
     sourceType: "user_url",
   };
+  return put("inspiration", WORKSPACE_OWNER, updatedItem);
 }
+
 
 export function boardFor(projectId: string) {
   return {

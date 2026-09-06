@@ -18,7 +18,7 @@ const {
 const { providerHealth, instagramProvider, pinterestProvider, canvaProvider } =
   await import("../lib/server/inspiration/providers.ts");
 const { parseInspirationQuery } = await import("../lib/server/inspiration/query.ts");
-const { ingestUrl } = await import("../lib/server/inspiration.ts");
+const { ingestUrl, listInspiration } = await import("../lib/server/inspiration.ts");
 const { executeOrchestratedTask } = await import(
   "../lib/server/orchestrator/task-orchestrator.ts"
 );
@@ -118,6 +118,13 @@ test("Phase 4 truthful universal inspiration pipeline", async (t) => {
     });
     assert.equal(item.platform, "instagram");
     assert.equal(item.sourceType, "user_url");
+    assert.ok(item.borrow.length > 0);
+    assert.ok(item.fit.includes("借鑑"));
+    const listed = listInspiration("personal");
+    const found = listed.find((entry) => entry.sourceUrl.includes("Phase4Pin"));
+    assert.ok(found);
+    assert.ok(found.borrow.length > 0);
+    assert.ok(found.fit.includes("借鑑"));
     const search = searchInspiration({ prompt: "幫我找靈感", projectId: "personal" });
     assert.equal(search.fullSiteSearch, false);
     assert.equal(search.liveFetch, false);

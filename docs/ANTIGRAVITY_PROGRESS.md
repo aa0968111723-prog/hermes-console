@@ -372,10 +372,40 @@
 
 ---
 
+## 週期 15 (Iteration 15) 靈感庫即時收藏介面、結構化借鑑分析持久化與 Gemini Spark MCP 對齊
+
+本週期針對 PR #12 規格中「靈感庫板面缺少使用者輸入表單」、「未即時拉取 API」以及「`resolveInspirationUrl` 未持久化分析結果」之缺口，完成以下 5 大核心實作：
+
+1. **靈感庫分析持久化修復 (`lib/server/inspiration/engine.ts`)**：
+   - 修復 `resolveInspirationUrl` 未呼叫 `put` 寫入持久化資料庫之漏洞，升級為透過 `put("inspiration", WORKSPACE_OWNER, updatedItem)` 完整將 `analysis`、`borrow`、`fit`、`risk` 寫入 SQLite store。
+   - 解決 TypeScript ESM 模組目錄命名衝突，補齊明確 `.ts` 副檔名引用。
+
+2. **Gemini Spark MCP 工具靈感收藏深度分析 (`lib/server/mcp.ts`, `lib/server/mcp/registry.ts`)**：
+   - 將 `inspiration_ingest` 工具升級為呼叫 `resolveInspirationUrl`，使外部調用與 Gemini Spark 客戶端能獲得完整結構化借鑑點 (`borrow`)、適用性 (`fit`) 與版面分析 (`analysis`)。
+
+3. **靈感板即時收藏介面與卡片展示 (`components/inspiration/InspirationBoard.tsx`)**：
+   - 新增互動式公開 HTTPS 網址收藏表單（支援 URL、可選文案摘要、帳號、專案標籤、即時 loading 與錯誤回饋通知）。
+   - 卡片展示升級：平台標籤（IG/Pinterest/Canva/Behance/Web）、來源超連結、可借鑑點 pill、適合原因、著作權提醒。
+
+4. **主主控台靈感同步 (`components/HermesConsole.tsx`, `app/globals.css`)**：
+   - 於 `nav === "inspiration"` 時自動透過 `api("inspiration?projectId=...")` 拉取真實資料。
+   - 傳遞 `projectId` 與 `onIngest` 讓新收藏靈感即時寫入 state，免重新整理。
+   - 新增 `.inspiration-board-container`、`.inspiration-ingest-card`、`.platform-tag`、`.borrow-pill` 等完整樣式。
+
+5. **全套測試與 Next.js 生產建置驗證**：
+   - 擴充 `tests/phase4_inspiration_pipeline.test.ts` 與 `tests/phase13_gemini_spark_mcp.test.ts`，驗證 `item.borrow`、`item.fit` 與資料庫持久化查詢。
+   - `npm test`：**150 / 150 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。
 3. **誠實整合狀態原則 (Truthful Integrations)**：若遠端服務尚未綁定或未連線，系統誠實回報 `Partial (本地備援中)`、`Needs Authorization` 或 `Unconfigured`，絕不偽造連線成功狀態。
 4. **受眾雙生可解釋性**：Audience Twin 明確標註為模擬啟發式評估（Heuristic Scores），嚴格分離客觀證據 (Evidence) 與推論假設 (Hypothesis)。
+
 
 
