@@ -1,8 +1,11 @@
 import { ingestUrl, listInspiration, type InspirationItem } from "../inspiration";
-import { put } from "../store";
-import { WORKSPACE_OWNER } from "../security";
+import { get, put, transaction } from "../store";
+import { canonicalUrl } from "./dedupe";
+import { WORKSPACE_OWNER, redact } from "../security";
 
 export type SheetSyncResult = {
+  startedAt: string;
+  finishedAt: string;
   read: number;
   created: number;
   skipped: number;
@@ -59,143 +62,151 @@ const SHEETS: SheetSource[] = [
 ];
 
 let inflight: Promise<SheetSyncResult> | null = null;
-let lastSyncAt = 0;
-const COOLDOWN_MS = 10 * 60 * 1000;
+export function sheetsSyncStatus() {
+  return get<SheetSyncResult & { id: string }>("sheet_sync", WORKSPACE_OWNER, "latest");
+}
 
+// Explicit authenticated POST only; concurrent requests share the operation.
 export function syncSheetsInspiration(): Promise<SheetSyncResult> {
-  const now = Date.now();
   if (inflight) return inflight;
-  if (now - lastSyncAt < COOLDOWN_MS) {
-    return Promise.resolve({
-      read: 0,
-      created: 0,
-      skipped: 0,
-      failed: 0,
-      errors: [],
-    });
-  }
-  inflight = runSync()
-    .then((result) => {
-      lastSyncAt = Date.now();
-      return result;
-    })
-    .finally(() => {
-      inflight = null;
-    });
+  inflight = runSync().finally(() => { inflight = null; });
   return inflight;
 }
 
 async function runSync(): Promise<SheetSyncResult> {
-  const result: SheetSyncResult = {
-    read: 0,
-    created: 0,
-    skipped: 0,
-    failed: 0,
-    errors: [],
-  };
-  const existing = listInspiration();
-  const seen = new Set(
-    existing.flatMap((item) => [item.sourceUrl, item.account || ""]).filter(Boolean),
-  );
-
-  for (const sheet of SHEETS) {
+  const startedAt = new Date().toISOString();
+  const results = await Promise.all(SHEETS.map(async sheet => {
+    const result = { read: 0, created: 0, skipped: 0, failed: 0, errors: [] as string[] };
     try {
       const rows = await fetchSheetRows(sheet.id);
-      for (const cells of rows) {
+      for (const [index, cells] of rows.entries()) {
         const rowId = (cells[0] || "").trim();
         if (!sheet.accept.test(rowId)) continue;
-        result.read += 1;
-        const sourceUrl =
-          "https://docs.google.com/spreadsheets/d/" +
-          sheet.id +
-          "/edit?usp=sharing&row=" +
-          encodeURIComponent(rowId);
-        if (seen.has(sourceUrl) || seen.has(rowId)) {
-          result.skipped += 1;
-          continue;
-        }
+        result.read++;
+        // Stable row identity, not a Google Sheets cell anchor; opens the source sheet.
+        const sourceUrl = "https://docs.google.com/spreadsheets/d/" + sheet.id +
+          "/edit?usp=sharing&row=" + encodeURIComponent(rowId);
         try {
-          const item = ingestUrl({
-            url: sourceUrl,
-            projectId: sheet.projectId,
-            account: rowId,
-            caption: sheet.caption(cells),
-            sourceType: "public_index",
+          transaction(() => {
+            if (listInspiration(sheet.projectId).some(item =>
+              canonicalUrl(item.sourceUrl) === canonicalUrl(sourceUrl))) {
+              result.skipped++;
+              return;
+            }
+            const caption = sheet.caption(cells);
+            if (redact(caption) !== caption) throw new Error("sensitive_content");
+            if (!get("project", WORKSPACE_OWNER, sheet.projectId))
+              put("project", WORKSPACE_OWNER, {
+                id: sheet.projectId, name: sheet.label, createdAt: new Date().toISOString(),
+              });
+            const item = ingestUrl({
+              url: sourceUrl, projectId: sheet.projectId, account: rowId, caption,
+            });
+            const saved: InspirationItem = {
+              ...item, sourceType: "public_index",
+              analysis: "已讀取試算表文字摘要：" + caption,
+              borrow: [],
+              fit: "僅匯入文字，尚未分析圖片或核對活動資訊；來源連結開啟原始試算表。",
+              risk: "參考資料不代表已確認可公開使用；私人校務資訊不得自動加入文宣。",
+            };
+            put("inspiration", WORKSPACE_OWNER, saved);
+            result.created++;
           });
-          const saved: InspirationItem = {
-            ...item,
-            analysis: sheet.caption(cells),
-            borrow: [sheet.label, cells[1] || "試算表列"].filter(Boolean),
-            fit: "來自公開試算表的靈感卡，可借鑒結構不可原樣複製。",
-            risk: "參考素材不代表可用於正式發佈。",
-          };
-          put("inspiration", WORKSPACE_OWNER, saved);
-          seen.add(sourceUrl);
-          seen.add(rowId);
-          result.created += 1;
-        } catch (error) {
-          result.failed += 1;
-          result.errors.push(
-            rowId + ": " + (error instanceof Error ? error.message : "ingest_failed"),
-          );
+        } catch {
+          result.failed++;
+          result.errors.push(sheet.label + " 第 " + (index + 1) + " 列：匯入失敗，請檢查欄位或敏感資訊。");
         }
       }
     } catch (error) {
-      result.failed += 1;
-      result.errors.push(
-        sheet.label + ": " + (error instanceof Error ? error.message : "fetch_failed"),
-      );
+      result.failed++;
+      result.errors.push(sheet.label + "：" +
+        (error instanceof SheetFetchError ? error.message :
+          error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)
+            ? "csv_timeout" : "network_error"));
     }
+    return result;
+  }));
+  const result: SheetSyncResult = {
+    read: 0, created: 0, skipped: 0, failed: 0, errors: [],
+    startedAt, finishedAt: new Date().toISOString(),
+  };
+  for (const item of results) {
+    result.read += item.read; result.created += item.created;
+    result.skipped += item.skipped; result.failed += item.failed;
+    result.errors.push(...item.errors);
   }
+  put("sheet_sync", WORKSPACE_OWNER, { id: "latest", ...result });
   return result;
 }
 
+class SheetFetchError extends Error {}
 async function fetchSheetRows(fileId: string): Promise<string[][]> {
-  const url =
-    "https://docs.google.com/spreadsheets/d/" + fileId + "/export?format=csv";
-  const response = await fetch(url, {
-    cache: "no-store",
-    redirect: "follow",
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!response.ok) throw new Error("csv_http_" + response.status);
-  const text = await response.text();
-  if (/<!DOCTYPE html|<html/i.test(text.slice(0, 200)))
-    throw new Error("csv_not_public");
-  return parseCsv(text);
+  let url = new URL("https://docs.google.com/spreadsheets/d/" + fileId + "/export?format=csv");
+  const signal = AbortSignal.timeout(20_000);
+  for (let hop = 0; hop < 4; hop++) {
+    if (url.protocol !== "https:" || url.username || url.password ||
+        (url.port && url.port !== "443") ||
+        !(url.hostname === "docs.google.com" || url.hostname.endsWith(".googleusercontent.com")))
+      throw new SheetFetchError("redirect_blocked");
+    const response = await fetch(url, { cache: "no-store", redirect: "manual", signal });
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      await response.body?.cancel();
+      const location = response.headers.get("location");
+      if (!location) throw new SheetFetchError("redirect_missing");
+      url = new URL(location, url);
+      continue;
+    }
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new SheetFetchError("csv_http_" + response.status);
+    }
+    if (!response.body) throw new SheetFetchError("csv_empty");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let text = "", bytes = 0;
+    try {
+      while (true) {
+        const chunk = await reader.read();
+        if (chunk.done) break;
+        bytes += chunk.value.byteLength;
+        if (bytes > 2 * 1024 * 1024) throw new SheetFetchError("csv_too_large");
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+      text += decoder.decode();
+    } finally { await reader.cancel(); }
+    if (/<!DOCTYPE html|<html/i.test(text.slice(0, 200)))
+      throw new SheetFetchError("csv_not_public");
+    return parseCsv(text);
+  }
+  throw new SheetFetchError("too_many_redirects");
 }
 
-function parseCsv(text: string): string[][] {
+export function parseCsv(input: string): string[][] {
+  const text = input.replace(/^\uFEFF/, "");
   const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let quoted = false;
-  for (let i = 0; i < text.length; i += 1) {
+  let row: string[] = [], field = "", quoted = false, closed = false;
+  const endField = () => { row.push(field); field = ""; closed = false; };
+  for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (quoted) {
-      if (ch === """) {
-        if (text[i + 1] === """) {
-          field += """;
-          i += 1;
-        } else quoted = false;
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { quoted = false; closed = true; }
       } else field += ch;
       continue;
     }
-    if (ch === """) quoted = true;
-    else if (ch === ",") {
-      row.push(field);
-      field = "";
-    } else if (ch === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-    } else if (ch !== "\r") field += ch;
+    if (ch === ",") endField();
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      endField(); rows.push(row); row = [];
+    } else if (ch === '"' && !field && !closed) quoted = true;
+    else {
+      if (closed || ch === '"') throw new SheetFetchError("csv_malformed");
+      field += ch;
+    }
   }
-  if (field || row.length) {
-    row.push(field);
-    rows.push(row);
-  }
+  if (quoted) throw new SheetFetchError("csv_unterminated_quote");
+  if (field || row.length || closed) { endField(); rows.push(row); }
   return rows;
 }
 
