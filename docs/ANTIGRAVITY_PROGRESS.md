@@ -316,6 +316,31 @@
 
 ---
 
+## 週期 13 (Iteration 13) Gemini Spark 靈感庫 MCP 工具實作與 RFC 9728 OAuth 發現端點支援
+
+本週期針對 PR #12 引入之 `docs/GEMINI-SPARK.md` 與 `skills/hermes-inspiration-board/SKILL.md` 中宣告但尚未落地的 Gemini Spark MCP 工具與 OAuth Protected Resource 發現協定，完成以下核心實作：
+
+1. **Gemini Spark 靈感庫 3 大 MCP 工具實作 (`lib/server/mcp.ts`, `lib/server/mcp/registry.ts`)**：
+   - `inspiration_list`：列出指定專案（預設 `personal`）之已收藏靈感，標記 `readOnlyHint: true`, `idempotentHint: true`。
+   - `inspiration_ingest`：收藏公開 HTTPS 網址至靈感庫，提供來源 URL、專案、caption 摘要與帳號資訊，安全標記 `sourceType: "user_url"`。
+   - `inspiration_search`：執行萬象風格庫與調色盤檢索，整合 `runInspirationPipeline`。
+   - 在 `lib/server/mcp-registry.ts` 之 `seedRegistry()` 中為 `workspace` MCP 填入官方靈感工具種子。
+
+2. **RFC 9728 & RFC 8414 OAuth 發現端點支援**：
+   - 新增 `app/.well-known/oauth-protected-resource/[[...path]]/route.ts`：回傳標準 OAuth Protected Resource Metadata（包含 `resource: /api/mcp`、`authorization_servers`、`scopes_supported: ["inspiration:read", "inspiration:write", "mcp:tools"]`、`bearer_methods_supported: ["header"]`）。
+   - 新增 `app/.well-known/oauth-authorization-server/[[...path]]/route.ts`：回傳標準 OAuth Authorization Server Metadata。
+   - 升級 `lib/server/mcp.ts` 之 `bridgeAuth`：當未攜帶 Bearer Token 拋出 401 時，自動附帶標準 `WWW-Authenticate: Bearer resource_metadata="..."` 標頭，引導 Gemini Spark 自訂應用程式安全探索授權端點。
+   - 強化 `bridgeAuth` 之 Origin 安全防護：避免在未設定 `CONSOLE_ORIGIN` 時產生 URL 解析異常。
+
+3. **全系統驗收與質量指標**：
+   - 建立 `tests/phase13_gemini_spark_mcp.test.ts`（包含 7 大測試場景、8 項斷言）。
+   - `npm test`：**150 / 150 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：229 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 45 個路由（含 2 個 `.well-known` 動態端點）全部編譯成功。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。

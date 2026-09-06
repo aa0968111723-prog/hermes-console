@@ -61,7 +61,11 @@ export function seedRegistry(): McpEntry[] {
       transport: "streamable-http",
       authMode: "bearer",
       credentialReference: "MCP_BRIDGE_TOKEN",
-      tools: [],
+      tools: [
+        { name: "inspiration_list", description: "列出工作區已收藏的靈感項目" },
+        { name: "inspiration_ingest", description: "將公開 HTTPS 網址收藏進 Hermes Console 靈感庫" },
+        { name: "inspiration_search", description: "搜尋工作區靈感庫並執行萬象靈感調研管線" },
+      ],
       status: process.env.MCP_BRIDGE_TOKEN ? "partial" : "unconfigured",
       verifiedAt: null,
       lastError: null,

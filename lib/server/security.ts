@@ -162,6 +162,7 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    public headers: Record<string, string> = {},
   ) {
     super(message);
   }
@@ -388,7 +389,10 @@ export function route(fn: (req: Request) => Promise<Response>) {
         return respond(
           { error: { code: error.code, message: error.message } },
           error.status,
-          error.status === 429 ? { "Retry-After": "60" } : {},
+          {
+            ...(error.status === 429 ? { "Retry-After": "60" } : {}),
+            ...error.headers,
+          },
         );
       if (error instanceof z.ZodError)
         return respond(

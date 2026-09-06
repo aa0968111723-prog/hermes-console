@@ -11,6 +11,8 @@ import { getSocialLogisticsForDomain } from "../creative-workflow/directions.ts"
 import { connectCreativeToCanva } from "../creative/canva-workflow.ts";
 import { researchInstagramTrends } from "../social/instagram-research.ts";
 import { describeMcpSandboxPublish } from "../publish/safe-workflow.ts";
+import { ingestUrl, listInspiration } from "../inspiration.ts";
+import { runInspirationPipeline } from "../inspiration/engine.ts";
 
 // 記憶體中暫存的確認 Token
 const confirmationTokens = new Map<string, ConfirmationTokenPayload>();
@@ -181,6 +183,48 @@ export const MCP_TOOLS: McpToolDefinition[] = [
         idempotencyKey: { type: "string", description: "防重複發布冪等鍵" }
       },
       required: ["platform", "caption", "confirmationToken"]
+    }
+  },
+  {
+    name: "inspiration_list",
+    description: "列出工作區已收藏的靈感項目清單",
+    permissionTier: "read",
+    serverId: "hermes-ecosystem-mcp",
+    parameters: {
+      type: "object",
+      properties: {
+        projectId: { type: "string", description: "專案代碼 (預設 personal)" }
+      }
+    }
+  },
+  {
+    name: "inspiration_ingest",
+    description: "將公開 HTTPS 網址收藏進 Hermes Console 靈感庫",
+    permissionTier: "write",
+    serverId: "hermes-ecosystem-mcp",
+    parameters: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "公開 HTTPS 網址" },
+        projectId: { type: "string", description: "專案代碼 (預設 personal)" },
+        caption: { type: "string", description: "備註說明或文案摘要" },
+        account: { type: "string", description: "作者或社群帳號" }
+      },
+      required: ["url"]
+    }
+  },
+  {
+    name: "inspiration_search",
+    description: "搜尋工作區靈感庫並執行萬象靈感調研管線",
+    permissionTier: "read",
+    serverId: "hermes-ecosystem-mcp",
+    parameters: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "靈感搜尋提示詞" },
+        projectId: { type: "string", description: "專案代碼 (預設 personal)" },
+        url: { type: "string", description: "可選之參考網址" }
+      }
     }
   }
 ];
@@ -449,6 +493,58 @@ export async function executeMcpTool(
           idempotencyKey,
         }),
       };
+    }
+
+    case "inspiration_list": {
+      const projectId = typeof args.projectId === "string" ? args.projectId : undefined;
+      const items = listInspiration(projectId);
+      return {
+        success: true,
+        result: {
+          items,
+          count: items.length,
+          projectId: projectId || "personal",
+        },
+      };
+    }
+
+    case "inspiration_ingest": {
+      const url = String(args.url || "");
+      if (!url) return { success: false, error: "缺少 url 參數" };
+      try {
+        const item = ingestUrl({
+          url,
+          projectId: typeof args.projectId === "string" ? args.projectId : "personal",
+          caption: typeof args.caption === "string" ? args.caption : undefined,
+          account: typeof args.account === "string" ? args.account : undefined,
+          sourceType: "user_url",
+        });
+        return {
+          success: true,
+          result: {
+            ingested: true,
+            item,
+            message: "已成功收藏進工作區靈感庫。",
+          },
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { success: false, error: `靈感收藏失敗: ${msg}` };
+      }
+    }
+
+    case "inspiration_search": {
+      try {
+        const pipeline = runInspirationPipeline({
+          prompt: typeof args.prompt === "string" ? args.prompt : "幫我找靈感",
+          projectId: typeof args.projectId === "string" ? args.projectId : "personal",
+          url: typeof args.url === "string" ? args.url : undefined,
+        });
+        return { success: true, result: pipeline };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { success: false, error: `靈感搜尋失敗: ${msg}` };
+      }
     }
 
     default:
