@@ -3991,6 +3991,264 @@ summary .badge {
   gap: 12px;
 }
 
+/* ─── Instagram 校園調研面板與發布審核卡片 (Phase 10 UI) ─── */
+.ig-research-toggle-row {
+  margin-top: 12px;
+}
+
+.btn-toggle-ig-research {
+  width: 100%;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.btn-toggle-ig-research:hover {
+  background: var(--bg-surface);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.ig-research-expanded-box {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.readiness-banner {
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #10b981;
+}
+
+.readiness-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.readiness-title {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.readiness-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.readiness-pill.golden {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.readiness-pill.normal {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.readiness-tip {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.posting-schedule-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.posting-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.slot-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.slot-card.golden-slot {
+  border-color: rgba(234, 179, 8, 0.5);
+  background: rgba(234, 179, 8, 0.04);
+}
+
+.slot-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.slot-weight {
+  color: #eab308;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.slot-time {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.slot-retention {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.slot-rec {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.visual-guidelines-box {
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.specs-list {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.craft-stamp-rule {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.ig-research-disclaimer {
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+  line-height: 1.4;
+}
+
+/* ─── 發布審核通過紀錄卡片 ─── */
+.publish-audit-trail-box {
+  margin-top: 14px;
+  padding: 14px;
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-md);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.audit-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.audit-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.btn-clear-audit {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.btn-clear-audit:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.audit-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+
+.audit-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.audit-label {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.audit-val {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.audit-code {
+  font-family: monospace;
+  font-size: 10px;
+  color: #38bdf8;
+  background: var(--bg-surface);
+  padding: 2px 6px;
+  border-radius: 3px;
+  word-break: break-all;
+}
+
+.audit-disclaimer {
+  margin: 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  border-top: 1px dashed rgba(16, 185, 129, 0.2);
+  padding-top: 6px;
+}
+
 
 
 

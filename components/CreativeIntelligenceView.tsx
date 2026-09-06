@@ -5,6 +5,7 @@ import type { CreativePipelineResult, CreativeDirection } from "@/lib/server/cre
 import type { OrchestratedTaskResult } from "@/lib/server/orchestrator/task-orchestrator.ts";
 import type { IntegrationCheckResult } from "@/lib/server/integrations/truth-status.ts";
 import type { PersonaProfile } from "@/lib/server/audience-twin/types.ts";
+import type { InstagramResearchReport } from "@/lib/server/social/instagram-research.ts";
 import { PersonaCard } from "@/components/audience/AudienceCard.tsx";
 import {
   MOBILE_CREATIVE_PANES,
@@ -43,12 +44,13 @@ export default function CreativeIntelligenceView({
   const [activePersonas, setActivePersonas] = useState<PersonaProfile[]>([]);
   const [loadingPersonas, setLoadingPersonas] = useState(false);
 
-  // 敏感操作二次確認彈窗狀態
+  // 敏感操作二次確認彈窗與 IG 調研狀態
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [confirmationToken, setConfirmationToken] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishResult, setPublishResult] = useState<any>(null);
   const [copyNotice, setCopyNotice] = useState("");
+  const [showIgResearch, setShowIgResearch] = useState(false);
 
   const showToast = (msg: string) => {
     setCopyNotice(msg);
@@ -174,6 +176,10 @@ export default function CreativeIntelligenceView({
   const currentDirection: CreativeDirection | null = pipelineData
     ? pipelineData.directions[activeDirIndex] || pipelineData.topDirection
     : null;
+
+  const igReport: InstagramResearchReport | undefined =
+    pipelineData?.instagramResearch ||
+    (orchestratedTask?.subtasks?.find((s) => s.subtaskId === "social_caption_draft")?.outputData as any)?.instagramReport;
 
   // 載入當前方向校園脈絡對應的 5 大 PersonaProfile
   useEffect(() => {
@@ -700,12 +706,150 @@ export default function CreativeIntelligenceView({
                   </div>
                 </div>
 
+                {/* IG 校園發布調研建議展開切換按鈕 */}
+                {igReport && (
+                  <div className="ig-research-toggle-row">
+                    <button
+                      type="button"
+                      className="btn-toggle-ig-research"
+                      onClick={() => setShowIgResearch(!showIgResearch)}
+                    >
+                      {showIgResearch
+                        ? "收合校園社群調研與發布時機建議 ▲"
+                        : "📊 展開 Instagram 校園調研與最佳發布時段建議 ▼"}
+                    </button>
+                  </div>
+                )}
+
+                {/* 展開之 IG 社群調研面板 */}
+                {showIgResearch && igReport && (
+                  <div className="ig-research-expanded-box">
+                    {/* 即時發布契合度條 */}
+                    <div className="readiness-banner">
+                      <div className="readiness-header">
+                        <span className="readiness-title">
+                          ⚡ 即時發布契合度指數：<strong>{igReport.currentPostingReadiness.score} / 100</strong>
+                        </span>
+                        <span
+                          className={`readiness-pill ${
+                            igReport.currentPostingReadiness.isGoldenHourNow ? "golden" : "normal"
+                          }`}
+                        >
+                          {igReport.currentPostingReadiness.isGoldenHourNow
+                            ? "⭐ 目前正值黃金發布檔期"
+                            : igReport.currentPostingReadiness.currentSlot || "一般時段"}
+                        </span>
+                      </div>
+                      <p className="readiness-tip">{igReport.currentPostingReadiness.advice}</p>
+                    </div>
+
+                    {/* 3 大校園生活作息時段 */}
+                    <div className="posting-schedule-section">
+                      <div className="section-subtitle">🕒 校園作息最佳發布時段模型：</div>
+                      <div className="posting-slots-grid">
+                        {igReport.optimalPostingTimes.map((slot) => (
+                          <div
+                            key={slot.timeRange}
+                            className={`slot-card ${slot.isPrimeGoldenHour ? "golden-slot" : ""}`}
+                          >
+                            <div className="slot-title-row">
+                              <strong>{slot.name}</strong>
+                              <span className="slot-weight">權重 {slot.reachWeight}</span>
+                            </div>
+                            <div className="slot-time">{slot.timeRange}</div>
+                            <div className="slot-retention">
+                              停留：{slot.dwellTimeSec}s · 格式：
+                              {slot.formatRecommendation === "feed_portrait_4_5"
+                                ? "4:5 滿版 Feed"
+                                : slot.formatRecommendation === "story_9_16"
+                                ? "9:16 限動"
+                                : slot.formatRecommendation === "carousel"
+                                ? "輪播貼文"
+                                : "Threads 純文字"}
+                            </div>
+                            <p className="slot-rec">{slot.notes}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 4:5 視覺規範與手作三色光道具邊角印章 */}
+                    <div className="visual-guidelines-box">
+                      <div className="section-subtitle">📐 視覺規格與三色光道具規範：</div>
+                      <div className="specs-list">
+                        <div>
+                          • 推薦比例：<strong>{igReport.visualGuidelines.recommendedAspectRatio}</strong> (
+                          {igReport.visualGuidelines.dimensions.width}x{igReport.visualGuidelines.dimensions.height} px)
+                        </div>
+                        <div>
+                          • 安全邊界：頂部安全區 {igReport.visualGuidelines.safeZones.top}px、底部安全區{" "}
+                          {igReport.visualGuidelines.safeZones.bottom}px
+                        </div>
+                        <div>
+                          • 首屏折疊：前 {igReport.visualGuidelines.hookFoldLineChars} 字元為折疊前核心鉤子
+                        </div>
+                        <div className="craft-stamp-rule">• {igReport.visualGuidelines.craftStampRule}</div>
+                      </div>
+                    </div>
+
+                    <div className="ig-research-disclaimer">
+                      <span>🛡️ {igReport.truthStatus.message} · {igReport.disclaimer}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="caption-publish-row">
                   <button className="btn-trigger-publish" onClick={handleOpenPublishModal}>
                     🛡️ 審核並發布此文宣 (需二次確認)
                   </button>
                   <span className="publish-hint">安全機制：受限於 Publish 權限階層，防止未經審核的意外推播</span>
                 </div>
+
+                {/* 發布審核通過紀錄卡片 (Audit Trail) */}
+                {publishResult && (
+                  <div className="publish-audit-trail-box">
+                    <div className="audit-header-row">
+                      <span className="audit-badge">
+                        {publishResult.mode === "sandbox_simulation"
+                          ? "🛡️ 安全沙盒審核完成 (Sandbox Audit Trail)"
+                          : "🚀 已正式提交發布"}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn-clear-audit"
+                        onClick={() => setPublishResult(null)}
+                        title="清除發布紀錄"
+                      >
+                        ✕ 清除紀錄
+                      </button>
+                    </div>
+                    <div className="audit-details-grid">
+                      <div className="audit-detail-item">
+                        <span className="audit-label">狀態：</span>
+                        <span className="audit-val">{publishResult.status}</span>
+                      </div>
+                      <div className="audit-detail-item">
+                        <span className="audit-label">目標平台：</span>
+                        <span className="audit-val">{publishResult.platform}</span>
+                      </div>
+                      <div className="audit-detail-item">
+                        <span className="audit-label">防重複冪等鍵：</span>
+                        <code className="audit-code">{publishResult.idempotencyKey}</code>
+                      </div>
+                      <div className="audit-detail-item">
+                        <span className="audit-label">審核時間：</span>
+                        <span className="audit-val">
+                          {publishResult.auditTrail?.timestamp
+                            ? new Date(publishResult.auditTrail.timestamp).toLocaleTimeString()
+                            : new Date().toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="audit-disclaimer">
+                      {publishResult.auditTrail?.disclaimer || publishResult.note}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

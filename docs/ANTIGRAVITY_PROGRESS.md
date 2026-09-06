@@ -485,6 +485,42 @@
 
 ---
 
+## 週期 19 (Iteration 19) Instagram 社群調研面板視覺化、最佳發布時段模型與發布審核日誌卡片
+
+本週期針對操作艙中「社群發布（Publishing）敏感操作審核完成後缺少前端審核紀錄視覺化卡片，以及 Phase 10 之校園生活作息發布時段模型與 4:5 視覺規範未在文案區塊完整展示」之體驗缺口，完成以下 4 大核心加固：
+
+1. **社群文案區塊發布審核日誌卡片 (`PublishAuditCard`, `components/CreativeIntelligenceView.tsx`)**：
+   - 解決執行 `handleExecutePublish` 二次確認後僅有短暫 Toast 而無持久審核紀錄的缺失。
+   - 在文案卡片底部實作專屬審核通過紀錄卡片，展示：
+     - 審核標章：`🛡️ 安全沙盒審核完成 (Sandbox Audit Trail)`。
+     - 交付狀態：`已排程至安全沙盒預備發布隊列`。
+     - 目標平台、防重複冪等鍵（`idempotencyKey`）與審核時間戳。
+     - 誠實免責聲明：`安全沙盒模擬發布完成，具備完整審核軌跡，未向外部 Meta 發出真實請求。`
+     - 提供「✕ 清除紀錄」按鈕，允許創作者在需要時重設並再次發布。
+
+2. **Instagram 校園調研與排程建議展開面板 (`components/CreativeIntelligenceView.tsx`)**：
+   - 在文案卡片中加入可折疊式「📊 Instagram 校園調研與最佳發布時段建議」面板。
+   - **即時發布契合度指數 (Posting Readiness Score)**：展示當前時刻發布契合度（例如 `98/100`）與黃金檔期/離峰提醒。
+   - **3 大校園生活作息最佳發布時段模型**：
+     - 🍱 中午放空用餐檔 (12:00 - 13:30, 權重 82, 9:16 限動)
+     - 🌇 放學下課通勤檔 (17:30 - 19:00, 權重 88, 輪播貼文)
+     - 🌙 深夜宿舍黃金檔 (21:45 - 23:30, 權重 97, 4:5 滿版 Feed 主視覺 ⭐)
+   - **4:5 滿版視覺與手作三色光道具規範**：
+     - 建議尺寸：1080x1350，頂部安全區 120px、底部安全區 180px。
+     - 手作圓形三色光道具規範：紅外圈、黃中圈、綠核心，36px 邊角印章，嚴禁變形為標靶或商標。
+
+3. **樣式擴充與響應式排版 (`app/globals.css`)**：
+   - 新增 `ig-research-toggle-row`、`btn-toggle-ig-research`、`ig-research-expanded-box`、`readiness-banner`、`posting-slots-grid`、`visual-guidelines-box`、`publish-audit-trail-box` 等深色主題樣式。
+
+4. **全套測試與 Next.js 生產建置驗證 (`tests/phase10_instagram_publish.test.ts`)**：
+   - 在 `tests/phase10_instagram_publish.test.ts` 中增加 Test 4，驗證 `executeMcpTool("publish_social_campaign")` 回傳沙盒審核欄位及各校園調研報告結構契合前端展示需求。
+   - `npm test`：**154 / 154 測試 100% 全數通過 (0 失敗、0 略過)**。
+   - `npx tsc --noEmit`：0 錯誤。
+   - `npm run check:secrets`：231 個檔案掃描通過，0 洩漏。
+   - `npm run build`：Next.js 43 個路由成功編譯。
+
+---
+
 ## 關鍵資安規範
 1. **絕不硬編碼真實金鑰**：歷史洩漏金鑰視同廢止，所有範本一律使用 `<HERMES_API_KEY>` 佔位符。
 2. **零登入存取安全性**：無需登入即可使用創作工作區，但後端寫入與敏感發布操作均具備同源檢驗、單次 Token 與速率限制防護。

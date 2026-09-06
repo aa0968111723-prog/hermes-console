@@ -227,4 +227,51 @@ test("Instagram 發布真實狀態探測與安全發布加固 (Phase 10)", async
     assert.ok(prepared.confirmation?.token);
     console.log("  ✓ preparePublish 契約與安全攔截驗證通過");
   });
+
+  await t.test("4. UI 調研面板與發布審核卡片 (Audit Trail) 資料結構契約校驗", async () => {
+    // 驗證 executeMcpTool("publish_social_campaign") 回傳資料契合 UI 需求
+    const { generateConfirmationToken } = await import("../lib/server/mcp/registry.ts");
+    const confToken = generateConfirmationToken("發布測試", "publish_social_campaign", {
+      platform: "instagram",
+      caption: "淡江大一新生迎新文宣測試",
+    });
+    const mcpRes = await executeMcpTool("publish_social_campaign", {
+      platform: "instagram",
+      caption: "淡江大一新生迎新文宣測試",
+      confirmationToken: confToken.token,
+      idempotencyKey: "test_ui_idem_123",
+    });
+
+    assert.strictEqual(mcpRes.success, true);
+    assert.ok(mcpRes.result);
+    const result = mcpRes.result as any;
+    assert.strictEqual(result.platform, "instagram");
+    assert.strictEqual(result.idempotencyKey, "test_ui_idem_123");
+    assert.strictEqual(result.mode, "sandbox_simulation");
+    assert.ok(result.status.includes("安全沙盒"));
+    assert.ok(result.auditTrail);
+    assert.strictEqual(result.auditTrail.idempotencyKey, "test_ui_idem_123");
+    assert.ok(result.auditTrail.disclaimer.includes("安全沙盒模擬發布"));
+
+    // 驗證各校園 researchInstagramTrends 結構包含 UI 展開面板所須所有區塊
+    for (const domain of ["tamkang", "ntu", "general"] as const) {
+      const report = researchInstagramTrends({ domain });
+      assert.strictEqual(typeof report.currentPostingReadiness.score, "number");
+      assert.strictEqual(typeof report.currentPostingReadiness.advice, "string");
+      assert.strictEqual(typeof report.currentPostingReadiness.isGoldenHourNow, "boolean");
+      assert.ok(Array.isArray(report.optimalPostingTimes) && report.optimalPostingTimes.length === 3);
+      for (const slot of report.optimalPostingTimes) {
+        assert.ok(slot.name);
+        assert.ok(slot.timeRange);
+        assert.ok(typeof slot.reachWeight === "number");
+        assert.ok(typeof slot.dwellTimeSec === "number");
+        assert.ok(slot.formatRecommendation);
+        assert.ok(slot.notes);
+      }
+      assert.strictEqual(report.visualGuidelines.recommendedAspectRatio, "4:5");
+      assert.ok(report.visualGuidelines.craftStampRule.includes("36px"));
+      assert.ok(report.truthStatus.message);
+    }
+    console.log("  ✓ UI 調研面板與發布審核卡片資料結構契約校驗通過");
+  });
 });
