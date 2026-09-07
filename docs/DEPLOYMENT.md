@@ -62,6 +62,12 @@ Runtime 能力以 `/api/runtime` snapshot 為準，包含 Hermes models／capabi
 
 淡江 MCP 在本倉庫是 Bearer 權杖連線。設定頁可貼權杖並「測試連線」。若已存網址的同一來源提供 `/auth/login`、`/api/auth/login`、`/login` 或 JSON-RPC `auth/login`，後端可代為用校園使用者名稱／密碼交換權杖；沒有這些端點時不會假裝成學校 SSO，請改貼權杖。
 
+## Lumen 創作台 MCP
+
+Lumen 是獨立的 Streamable HTTP MCP（協定 2025-06-18）。設定 `LUMEN_MCP_URL`（公開 HTTPS，路徑 `/api/mcp`）與至少 32 字元的 `LUMEN_MCP_TOKEN` 後，核准清單會自動出現 id=`lumen`，不必把權杖寫進 JSON。
+
+Hermes 經 Console 工作區 MCP 也可呼叫 `lumen_*` 工具（需真實 taskId）。驗證只做 initialize／tools-list；部分可用代表有真實工具清單。選定方向仍只開放使用者，沒有 choose 工具。
+
 ## 閘道部署驗收
 
 可使用 VPN＋網路 ACL，或先驗證身份的 SSO gateway。驗證通过後才在轉送 Console 前覆寫 `X-Console-Gateway`；例如 Caddy 已有受控網路／身份 policy 的 reverse_proxy 區塊內可用 `header_up X-Console-Gateway {$CONSOLE_GATEWAY_SECRET}`。這一行本身**不是身份驗證設定**，不可單獨暴露到 Internet。若使用 Cloudflare Access，必須先驗證 Access assertion 或以受控 tunnel 保證來源；目前程式沒有內建該 JWT 驗證器。

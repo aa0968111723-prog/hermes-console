@@ -25,6 +25,11 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  lumen?: {
+    configured: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
   zeabur?: {
     token: FieldStatus;
     projectId: string;
@@ -78,6 +83,8 @@ export default function ConnectionSettings({
   const [mcpJson, setMcpJson] = useState("");
   const [tkuUrl, setTkuUrl] = useState("");
   const [tkuToken, setTkuToken] = useState("");
+  const [lumenUrl, setLumenUrl] = useState("");
+  const [lumenToken, setLumenToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -94,6 +101,7 @@ export default function ConnectionSettings({
     setHermesModel(next.fields.HERMES_MODEL?.value || "");
     setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
+    setLumenUrl(next.fields.LUMEN_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
     );
@@ -108,6 +116,7 @@ export default function ConnectionSettings({
     setHermesKey("");
     setMcpToken("");
     setTkuToken("");
+    setLumenToken("");
     setTkuPassword("");
     setZeaburToken("");
     setZeaburValue("");
@@ -195,6 +204,12 @@ export default function ConnectionSettings({
             ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
             : "讀取中"}
         </dd>
+        <dt>Lumen MCP</dt>
+        <dd>
+          {data?.lumen?.configured
+            ? `已設定（網址 ${SOURCE[data.lumen.urlSource]}／權杖 ${SOURCE[data.lumen.tokenSource]}）`
+            : "尚未設定"}
+        </dd>
       </dl>
 
       <form
@@ -209,6 +224,7 @@ export default function ConnectionSettings({
               HERMES_MODEL: hermesModel,
               CONSOLE_MCP_SERVERS_JSON: mcpJson,
               TKU_MCP_URL: tkuUrl,
+              LUMEN_MCP_URL: lumenUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
               ZEABUR_ENVIRONMENT_ID: zeaburEnv,
@@ -216,6 +232,7 @@ export default function ConnectionSettings({
             if (hermesKey) payload.HERMES_API_KEY = hermesKey;
             if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
+            if (lumenToken) payload.LUMEN_MCP_TOKEN = lumenToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
@@ -304,7 +321,43 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江可另外用下方欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江與 Lumen 可另外用下方欄位。
+        </p>
+
+        <h3>Lumen 創作台</h3>
+        <label>
+          Lumen MCP 網址
+          <input
+            value={lumenUrl}
+            onChange={(e) => setLumenUrl(e.target.value)}
+            placeholder="https://your-lumen.example/api/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          Lumen MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.LUMEN_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={lumenToken}
+            onChange={(e) => setLumenToken(e.target.value)}
+            placeholder="至少 32 個字元，與 Lumen 顯示的權杖相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("LUMEN_MCP_TOKEN")}
+            onChange={(e) => toggleClear("LUMEN_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存 Lumen 權杖
+        </label>
+        <p className="muted">
+          與 Lumen 創作台「接上 Console」複製的端點、權杖同一組。保存後會自動進入核准清單（id=lumen），Hermes 可呼叫 lumen_utter。
         </p>
 
         <h3>淡江 MCP</h3>
@@ -569,6 +622,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試淡江連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/lumen", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `Lumen 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 Lumen 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 Lumen 連線
           </button>
           <button
             type="button"

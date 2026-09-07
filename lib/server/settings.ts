@@ -37,6 +37,8 @@ export const credentialsInput = z
     CONSOLE_MCP_SERVERS_JSON: z.string().max(20_000).optional(),
     TKU_MCP_URL: z.string().max(500).optional(),
     TKU_MCP_TOKEN: z.string().max(2_000).optional(),
+    LUMEN_MCP_URL: z.string().max(500).optional(),
+    LUMEN_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -98,10 +100,14 @@ function validatePatch(patch: CredentialValues) {
     );
   if (patch.TKU_MCP_URL)
     patch.TKU_MCP_URL = validateHttpsServiceUrl(patch.TKU_MCP_URL, "mcp");
+  if (patch.LUMEN_MCP_URL)
+    patch.LUMEN_MCP_URL = validateHttpsServiceUrl(patch.LUMEN_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "淡江 MCP 權杖長度不足。");
+  if (patch.LUMEN_MCP_TOKEN && patch.LUMEN_MCP_TOKEN.length < 32)
+    throw new ApiError(400, "invalid_secret", "Lumen MCP 權杖至少需要 32 個字元。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -149,6 +155,11 @@ export function publicSettings() {
       ...tamkang,
       urlSource: credentialPresence("TKU_MCP_URL").source,
       tokenSource: credentialPresence("TKU_MCP_TOKEN").source,
+    },
+    lumen: {
+      configured: !!(runtimeEnv("LUMEN_MCP_URL") && runtimeEnv("LUMEN_MCP_TOKEN")),
+      urlSource: credentialPresence("LUMEN_MCP_URL").source,
+      tokenSource: credentialPresence("LUMEN_MCP_TOKEN").source,
     },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
@@ -199,6 +210,26 @@ export async function testTamkangConnection() {
       status: probed.status,
       toolsCount: probed.tools.length,
       lastError: probed.lastError,
+    },
+  };
+}
+
+export async function testLumenConnection() {
+  if (!runtimeEnv("LUMEN_MCP_URL"))
+    throw new ApiError(400, "lumen_unconfigured", "請先儲存 Lumen MCP 網址。");
+  if (!runtimeEnv("LUMEN_MCP_TOKEN"))
+    throw new ApiError(400, "lumen_token_missing", "請先貼上 Lumen MCP 權杖。");
+  const entry = getMcp("lumen");
+  if (!entry)
+    throw new ApiError(400, "lumen_unconfigured", "Lumen MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+      tools: probed.tools.map((item) => item.name),
     },
   };
 }

@@ -24,6 +24,13 @@ import {
   saveMemory,
 } from "./memory";
 import type { Material, Task, TaskEvent } from "../contracts";
+import {
+  forwardLumen,
+  lumenConfigured,
+  lumenDescriptions,
+  lumenSchemas,
+  type LumenToolName,
+} from "./lumen";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -106,6 +113,7 @@ const schemas = {
     })
     .strict(),
   canva_get_export: z.object({ jobId: id, ...context }).strict(),
+  ...lumenSchemas,
 };
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
@@ -141,11 +149,16 @@ const descriptions: Record<ToolName, string> = {
   canva_export_design:
     "將設計送交 Canva 匯出。使用固定 operationId，回傳工作 ID，需繼續查詢。不是發佈到社群。",
   canva_get_export: "查詢 Canva 匯出工作與下載連結；下載連結可能會到期。",
+  ...lumenDescriptions,
 };
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
   return Object.entries(schemas)
-    .filter(([name]) => !name.startsWith("canva_") || available)
+    .filter(([name]) => {
+      if (name.startsWith("canva_")) return available;
+      if (name.startsWith("lumen_")) return lumenConfigured();
+      return true;
+    })
     .map(([name, schema]) => ({
       name,
       description: descriptions[name as ToolName],
@@ -154,7 +167,7 @@ export function toolsList(owner: string) {
         readOnlyHint: /list|search|get|dataset|read|context/.test(name),
         destructiveHint: name.includes("delete_memory"),
         idempotentHint: true,
-        openWorldHint: name.startsWith("canva_"),
+        openWorldHint: name.startsWith("canva_") || name.startsWith("lumen_"),
       },
     }));
 }
@@ -349,6 +362,15 @@ async function execute(
     }
     case "canva_get_export":
       return canvaRequest(owner, "/exports/" + schemas[name].parse(args).jobId);
+    case "lumen_health":
+    case "lumen_utter":
+    case "lumen_get_session":
+    case "lumen_list_board":
+    case "lumen_get_research":
+    case "lumen_list_receipts":
+    case "lumen_lock_style":
+    case "lumen_save_directions":
+      return forwardLumen(name, args);
   }
 }
 export async function callTool(
@@ -467,6 +489,12 @@ export async function callTool(
         409,
         "canva_authorization_required",
         "Canva 尚未通過授權驗證。請先保存進度並等待使用者授權；沒有執行設計操作。",
+      );
+    if (name.startsWith("lumen_") && !lumenConfigured())
+      throw new ApiError(
+        409,
+        "lumen_unconfigured",
+        "Lumen 尚未通過網址與權杖設定。請先保存連線；沒有執行創作操作。",
       );
     const result = await execute(owner, name as ToolName, args);
     const object = z.record(z.string(), z.unknown()).parse(result);
