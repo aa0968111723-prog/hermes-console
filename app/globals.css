@@ -1201,6 +1201,16 @@ dialog::backdrop {
   gap: 10px;
   margin: 0;
 }
+.task-plan {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 8px;
+}
+.task-plan small {
+  display: block;
+  color: var(--muted);
+}
 .capability-cert {
   display: grid;
   gap: 14px;

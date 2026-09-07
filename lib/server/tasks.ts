@@ -28,7 +28,7 @@ import {
   researchBundle,
 } from "./research/providers";
 import { runtimeEnv } from "./credentials";
-import { memoryDigest } from "./memory";
+import { prepareOrchestration } from "./orchestrator/executor";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -49,6 +49,7 @@ export const taskInput = z
     input: z.string().trim().min(1).max(20_000),
     attachments: z.array(z.string().uuid()).max(4).default([]),
     mode: z.enum(["creative", "research", "admin"]).optional(),
+    budgetMode: z.enum(["fast", "balanced", "deep"]).optional(),
   })
   .strict();
 function save(owner: string, task: Task) {
@@ -194,6 +195,7 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
+    budgetMode: input.budgetMode || "balanced",
   };
   const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
   if (mode === "research") task.researchBundle = researchBundle({ prompt: input.input });
@@ -291,7 +293,21 @@ async function execute(
       })),
     );
     const mode = parseAssistantMode(conv.assistantMode);
-    const plan = task.researchBundle;
+    const researchPlan = task.researchBundle;
+    const orchestration = prepareOrchestration(
+      owner,
+      task,
+      conv,
+      task.budgetMode || "balanced",
+    );
+    task.goal = orchestration.goal;
+    task.plan = orchestration.plan;
+    event(task, "已整理目標與可見執行計畫。", "plan");
+    for (const step of orchestration.plan.steps)
+      event(task, "計畫：" + step.title, "queued");
+    for (const fallback of orchestration.plan.fallbacks)
+      event(task, fallback.userVisible, "fallback");
+    save(owner, task);
     const instructions =
       (specialistInstructions(mode) || creativeInstructions) +
       "\n目前專案識別：" +
@@ -301,8 +317,9 @@ async function execute(
       "。助手模式：" +
       mode +
       "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
-      (plan ? "\n" + formatResearchPlanForInstructions(plan) : "") +
-      memoryDigest(owner, conv.projectId);
+      "\n" +
+      orchestration.instructions +
+      (researchPlan ? "\n" + formatResearchPlanForInstructions(researchPlan) : "");
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);

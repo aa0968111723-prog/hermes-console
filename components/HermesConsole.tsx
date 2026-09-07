@@ -2045,6 +2045,24 @@ export default function HermesConsole() {
                 </>
               )}
               <Usage task={chosenTask} />
+              {chosenTask.plan?.steps?.length ? (
+                <>
+                  <h3>執行計畫</h3>
+                  <ol className="task-plan">
+                    {chosenTask.plan.steps.map((step) => (
+                      <li key={step.id}>
+                        {step.title}
+                        <small>{step.purpose}</small>
+                      </li>
+                    ))}
+                  </ol>
+                  {chosenTask.plan.fallbacks.map((item) => (
+                    <p key={item.userVisible} className="muted">
+                      {item.userVisible}
+                    </p>
+                  ))}
+                </>
+              ) : null}
               <h3>真實事件紀錄</h3>
               {chosenTask.events.map((e) => (
                 <details className="event" key={e.id}>

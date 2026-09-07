@@ -81,6 +81,43 @@ export interface Task {
   usage: Usage;
   stopSupported: boolean;
   researchBundle?: ResearchBundle;
+  goal?: StructuredGoal;
+  plan?: ExecutionPlan;
+  budgetMode?: BudgetMode;
+}
+export type BudgetMode = "fast" | "balanced" | "deep";
+export interface StructuredGoal {
+  goal: string;
+  audience: string | null;
+  output: string | null;
+  constraints: string[];
+  requiresResearch: boolean;
+  requiresDesign: boolean;
+  requiresAudienceEvaluation: boolean;
+  requiresTamkang: boolean;
+  requiresInspiration: boolean;
+}
+export interface PlanStep {
+  id: string;
+  title: string;
+  purpose: string;
+  dependencies: string[];
+  agent: string;
+  tool: string | null;
+  fallback: string | null;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+}
+export interface FallbackRecord {
+  from: string;
+  to: string;
+  reason: string;
+  userVisible: string;
+}
+export interface ExecutionPlan {
+  summary: string;
+  budgetMode: BudgetMode;
+  steps: PlanStep[];
+  fallbacks: FallbackRecord[];
 }
 export interface ResearchSourceRecord {
   id: string;

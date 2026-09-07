@@ -2,38 +2,33 @@
 
 ## Current Phase
 
-Phase 0 complete locally. Starting P0 Certification Framework.
+P1 Context / Goal / Planner / Tool Router / Fallback implemented locally. Next: P2 Research Executor.
 
 ## Completed
 
 - Confirmed current `main` is `6d168ef` (Merge pull request #20).
-- Read PR #19, PR #20, PR #21.
-- Created `feat/post-pr20-agent-os` from latest main. Did not merge PR #10.
-- First commit: `docs/LONG_TASK_PROGRESS.md`.
-- Phase 0 audit of docs, UI, API, server, persistence, external paths.
-- Wrote `docs/POST_PR20_BASELINE.md`.
-- Copied work contract `docs/POST_PR20_LONG_TASK.md` onto the implementation branch.
+- Phase 0 baseline: `docs/POST_PR20_BASELINE.md`.
+- P0 certification layer, API, settings panel, evidence kinds.
+- P1 context engine, goal interpreter, planner, tool router, visible fallbacks.
+- Task dialog shows the user-visible plan. Chat-first UI unchanged.
 
 ## In Progress
 
-- P0-A Certification types / registry / runner / store / evidence.
-- P0-B Hermes per-capability certification (do not promote models-list to whole-Hermes verified).
-- P0-C Zeabur read-only certification (no env/restart/redeploy in auto probe).
-- P0-D Evidence kinds: LOCAL_UNIT / LOCAL_CONTRACT / LOCAL_BROWSER / LIVE_EXTERNAL / UNVERIFIED.
+- P2 Research Executor (plan → query → source → evidence → claim). `executed=true` only with external evidence.
 
 ## Blocked
 
-- Live Hermes / Tamkang / Zeabur / Canva credentials are not assumed present. Live verification stays UNVERIFIED until an explicit live probe with real credentials succeeds.
+- Live Hermes / Tamkang / Zeabur / Canva credentials are not assumed present.
 
 ## Next Action
 
-- Implement `lib/server/certification/*`, `GET/POST /api/certification`, settings capability panel, and `tests/certification.test.ts`.
-- Then `npm run typecheck` and `npm test`.
+- Implement `lib/server/research/executor.ts` with allowlisted official-source fetch.
+- Then Zeabur mutation confirmation (P4-C).
 
 ## Tests
 
-- command: not run yet (Phase 0 was audit/docs)
-- result: pending P0 implementation
+- command: `npm run typecheck && npm test`
+- result: pass (112 tests) LOCAL_CONTRACT; sharp WASM used only in this android-arm64 agent environment, not committed
 
 ## Important Decisions
 
