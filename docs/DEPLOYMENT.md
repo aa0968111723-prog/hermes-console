@@ -15,7 +15,17 @@
 - 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。撤銷所有曾公開的 Hermes API Key 並重新產生。
 - **日常金鑰也可在 Console「設定 → 連線」填寫**：Hermes 網址／金鑰、MCP 橋接權杖、核准 MCP JSON、淡江 MCP 網址／權杖。前端只收集後 POST 到 `/api/settings/credentials`，後端加密寫入 `CONSOLE_DATA_DIR`，執行期覆寫同名環境變數。GET 只回傳是否已設定與末四碼，不回傳完整秘密。
 - 環境變數仍是後備。未設 `CONSOLE_VAULT_KEY` 時，程序會在資料目錄寫入一次性 `vault.key`（64 hex）並沿用；請備份該檔與 SQLite，遺失就無法解密已存憑證。正式部署仍建議把 vault key 放進受控秘密儲存。
-- **公開設定頁沒有邀請登入或 `CONSOLE_GATEWAY_SECRET` 額外保護。** 能開啟網站的人都可以覆寫工作區憑證。這是產品選擇，不是疏漏；公開 Internet 部署請用網路層限制。
+- **公開設定頁沒有邀請登入或 `CONSOLE_GATEWAY_SECRET` 額外保護。** 能開啟網站的人都可以覆寫工作區憑證與 Zeabur 部署權杖。這是產品選擇，不是疏漏；公開 Internet 部署請用網路層限制。
+- Zeabur：在 [Dashboard → Settings → API Keys](https://zeabur.com/docs/en-US/developer/public-api) 建立 Bearer 權杖。公開 API 沒有另外的細分 scope 核取方塊；權杖繼承該使用者／團隊對專案的既有權限（讀專案、改環境變數、重新部署）。GraphQL 端點為 `https://api.zeabur.com/graphql`。設定頁可測試連線、列出專案、寫入環境變數、把 Console 已存 Hermes／MCP 金鑰推上該服務，以及 `redeployService`／`restartService`。失敗時不回傳權杖。
+
+## 共用記憶
+
+Console SQLite（`CONSOLE_DATA_DIR`）是 Hermes 與控制台共用的記憶來源，不是兩套互相同步的遠端庫。
+
+- UI：設定 → 記憶 →「共用記憶庫」。CRUD 走 `/api/memory`。
+- Hermes 讀寫同一資料：Workspace MCP `workspace_list_memories`／`workspace_get_memory`／`workspace_save_memory`／`workspace_delete_memory`，以及任務指示裡的短摘要。
+- 學習地圖仍是「請 Hermes 學習／忘記」的請求紀錄。`HERMES_LEARNING_SCOPE_VERIFIED=true` 只表示管理者聲明遠端記憶範圍已查過，**不會**因此把 `synced` 設成 true。
+- 失敗模式：未接 MCP 時 Hermes 仍可從任務指示看到摘要；遠端 honcho／mem0 未驗證時狀態為 unverified／unsupported。記憶內容禁止含金鑰。
 - 定期備份 SQLite 和 uploads；備份也必須存取受控。不要把資料卷提交 Git。
 - 未實作多 replica 鎖／分散式佇列。不要水平扩展此版本。
 

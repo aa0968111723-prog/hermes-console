@@ -34,6 +34,8 @@
 | `GET /api/health` | live | Hermes 連線與能力探測；未設定會誠實顯示未設定。`configSource` 標示 hermes 網址／金鑰來自 vault 或環境，不回傳秘密。 |
 | `GET/POST /api/settings/credentials` | live | 免登入工作區可讀寫連線設定。GET 只回 masked 狀態；POST 加密保存並覆寫 runtime env。 |
 | `POST /api/settings/tamkang` | live | `test` 探測 initialize／tools-list；`login` 僅在已設定 TKU 來源暴露已知交換端點時代為換權杖。 |
+| `GET/POST/DELETE /api/memory` | live | 共用記憶 CRUD。SQLite 持久化於 `CONSOLE_DATA_DIR`；Hermes 經 Workspace MCP 與任務指示讀同一庫。遠端 memory 同步未驗證，`synced` 為 false。 |
+| `POST /api/settings/zeabur` | live | Zeabur GraphQL：測試、列出專案、變數鍵名、寫入變數、推送 Console 金鑰、重新部署／重啟。公開站可改部署。 |
 | `GET/POST/DELETE /api/auth` | **dormant** | 邀請模組仍在，**不是**產品入口。沒有邀請 session 時 GET 為 401；POST／DELETE 仍是邀請連結／登出，**不是**「GET 回 `no-login`、登入／登出 410」。工作區 API 不依賴此路徑。 |
 
 ## 驗證與部署依賴
@@ -119,3 +121,10 @@ POST /api/tasks
 2. 填 Hermes 網址與金鑰，按「儲存連線設定」。`GET /api/health` 應看到 `configSource.hermesKey=vault`（有有效金鑰時再驗證模型清單）。
 3. 淡江：填 MCP 網址與權杖後「測試連線」；若來源有已知帳密交換端點，可用「以校園憑證交換權杖」。
 4. **公開站任何人都可以覆寫這些欄位。** 這是明確的「不用保護」產品選擇。環境變數仍可當後備。
+5. 設定 → 連線也可保存 Zeabur API 權杖，並測試／寫入變數／推送 Console 金鑰／重新部署。公開站等同可改後端。
+
+## 共用記憶與 Zeabur
+
+- 設定 → 記憶：可新增／編輯／刪除 SQLite 共用記憶。Hermes 經 Workspace MCP 與任務指示讀同一批資料。
+- 遠端 Hermes memory API 未驗證時，畫面與 API 都寫「未宣稱已鏡像」。
+- 設定 → 連線：可保存 Zeabur API 權杖並操作該服務環境變數／重新部署。公開站等同可改後端。

@@ -28,6 +28,7 @@ import {
   researchBundle,
 } from "./research/providers";
 import { runtimeEnv } from "./credentials";
+import { memoryDigest } from "./memory";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -300,7 +301,8 @@ async function execute(
       "。助手模式：" +
       mode +
       "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
-      (plan ? "\n" + formatResearchPlanForInstructions(plan) : "");
+      (plan ? "\n" + formatResearchPlanForInstructions(plan) : "") +
+      memoryDigest(owner, conv.projectId);
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);
