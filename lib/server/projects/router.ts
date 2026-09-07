@@ -37,6 +37,15 @@ export const PROJECT_CATALOG: ProjectToolMapping[] = [
     enabled: true,
   },
   {
+    projectToolId: "lumen",
+    projectId: "lumen",
+    mcpServerId: "lumen",
+    capabilities: ["creative", "poster", "directions", "board"],
+    priority: 1,
+    allowedActions: ["read", "draft", "write"],
+    enabled: true,
+  },
+  {
     projectToolId: "aios",
     projectId: "aios",
     mcpServerId: "aios",
@@ -56,23 +65,32 @@ export function isFramelabIntent(intent: string) {
   );
 }
 
+/** Poster / Lumen studio intent. Checked after booth and FrameLab. */
+export function isLumenIntent(intent: string) {
+  return /Lumen|lumen|創作台|畫板|Style\s*DNA|風格鎖定|三個方向|招新|茶會|夜市|成果展|市集|分鏡|研究卡|海報|文宣|社團/.test(
+    intent,
+  );
+}
+
 export function routeToolsets(intent: string) {
   const selected: string[] = ["research"];
   if (/攤位|空間|3D|booth/i.test(intent)) selected.push("planform", "canva", "tamkang");
   else if (isFramelabIntent(intent)) selected.push("framelab");
   else if (/影片|剪輯|video/i.test(intent)) selected.push("cutos", "canva", "research");
-  else if (/海報|文宣|茶會|社團/i.test(intent))
-    selected.push("tamkang", "canva", "inspiration", "audience");
+  else if (isLumenIntent(intent))
+    selected.push("lumen", "tamkang", "canva", "inspiration", "audience");
   else selected.push("canva");
   const unique = [...new Set(selected)];
   return {
     intent,
     toolsets: unique,
     mappings: PROJECT_CATALOG.filter((item) => unique.includes(item.mcpServerId)),
-    note: unique.includes("framelab")
-      ? "動畫意圖走 FrameLab MCP（framelab_* / mcp.framelab.*）。GitHub 倉庫網址不是 MCP。"
-      : unique.includes("planform")
-        ? "planform-iso 未設定 endpoint 時保持 disabled。"
-        : "只依任務意圖挑選工具集，不灌入全部 MCP tools。",
+    note: unique.includes("lumen")
+      ? "文宣意圖走 Lumen MCP（lumen_* / mcp.lumen.*）。GitHub 倉庫網址不是 MCP。"
+      : unique.includes("framelab")
+        ? "動畫意圖走 FrameLab MCP（framelab_* / mcp.framelab.*）。GitHub 倉庫網址不是 MCP。"
+        : unique.includes("planform")
+          ? "planform-iso 未設定 endpoint 時保持 disabled。"
+          : "只依任務意圖挑選工具集，不灌入全部 MCP tools。",
   };
 }

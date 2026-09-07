@@ -33,6 +33,15 @@ import {
   type XunheToolName,
 } from "./xunhe";
 import {
+  invokeLumen,
+  isLumenTool,
+  lumenConfigured,
+  lumenDescriptions,
+  lumenSchemas,
+  lumenWriteTool,
+  type LumenToolName,
+} from "./lumen";
+import {
   invokeFramelab,
   isFramelabTool,
   framelabConfigured,
@@ -174,9 +183,7 @@ export function toolsList(owner: string) {
         openWorldHint: name.startsWith("canva_"),
       },
     }));
-  if (!xunheConfigured() && !framelabConfigured()) return local;
-  return [
-    ...local,
+  const extra = [
     ...(xunheConfigured()
       ? Object.entries(xunheSchemas).map(([name, schema]) => ({
           name,
@@ -187,6 +194,19 @@ export function toolsList(owner: string) {
             destructiveHint: false,
             idempotentHint: true,
             openWorldHint: true,
+          },
+        }))
+      : []),
+    ...(lumenConfigured()
+      ? Object.entries(lumenSchemas).map(([name, schema]) => ({
+          name,
+          description: lumenDescriptions[name as LumenToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: !lumenWriteTool(name),
+            destructiveHint: false,
+            idempotentHint: name !== "lumen_utter",
+            openWorldHint: false,
           },
         }))
       : []),
@@ -204,6 +224,7 @@ export function toolsList(owner: string) {
         }))
       : []),
   ];
+  return extra.length ? local.concat(extra) : local;
 }
 async function once(
   owner: string,
@@ -409,6 +430,12 @@ export async function callTool(
       throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");
     const args = xunheSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeXunhe(name, args));
+  }
+  if (isLumenTool(name)) {
+    if (!lumenConfigured())
+      throw new ApiError(503, "lumen_unconfigured", "尚未設定 LUMEN_MCP_URL 與 LUMEN_MCP_TOKEN。");
+    const args = lumenSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeLumen(name, args));
   }
   if (isFramelabTool(name)) {
     if (!framelabConfigured())

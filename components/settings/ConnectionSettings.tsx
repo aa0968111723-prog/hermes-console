@@ -39,6 +39,15 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  lumen?: {
+    id?: string;
+    name?: string;
+    state: string;
+    detail: string;
+    configured?: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
   framelab?: {
     id?: string;
     name?: string;
@@ -105,6 +114,8 @@ export default function ConnectionSettings({
   const [xunheToken, setXunheToken] = useState("");
   const [atlasUrl, setAtlasUrl] = useState("");
   const [atlasToken, setAtlasToken] = useState("");
+  const [lumenUrl, setLumenUrl] = useState("");
+  const [lumenToken, setLumenToken] = useState("");
   const [framelabUrl, setFramelabUrl] = useState("");
   const [framelabToken, setFramelabToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
@@ -125,6 +136,7 @@ export default function ConnectionSettings({
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
     setXunheUrl(next.fields.XUNHE_MCP_URL?.value || "");
     setAtlasUrl(next.fields.ATLAS_MCP_URL?.value || "");
+    setLumenUrl(next.fields.LUMEN_MCP_URL?.value || "");
     setFramelabUrl(next.fields.FRAMELAB_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
@@ -142,6 +154,7 @@ export default function ConnectionSettings({
     setTkuToken("");
     setXunheToken("");
     setAtlasToken("");
+    setLumenToken("");
     setFramelabToken("");
     setTkuPassword("");
     setZeaburToken("");
@@ -242,6 +255,12 @@ export default function ConnectionSettings({
             ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
             : "尚未設定"}
         </dd>
+        <dt>Lumen 創作台</dt>
+        <dd>
+          {data?.lumen
+            ? `${TAMKANG[data.lumen.state] || data.lumen.state} · ${data.lumen.detail}`
+            : "尚未設定"}
+        </dd>
         <dt>FrameLab MCP</dt>
         <dd>
           {data?.framelab
@@ -264,6 +283,7 @@ export default function ConnectionSettings({
               TKU_MCP_URL: tkuUrl,
               XUNHE_MCP_URL: xunheUrl,
               ATLAS_MCP_URL: atlasUrl,
+              LUMEN_MCP_URL: lumenUrl,
               FRAMELAB_MCP_URL: framelabUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
@@ -274,6 +294,7 @@ export default function ConnectionSettings({
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
             if (xunheToken) payload.XUNHE_MCP_TOKEN = xunheToken;
             if (atlasToken) payload.ATLAS_MCP_TOKEN = atlasToken;
+            if (lumenToken) payload.LUMEN_MCP_TOKEN = lumenToken;
             if (framelabToken) payload.FRAMELAB_MCP_TOKEN = framelabToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
@@ -363,7 +384,7 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、FrameLab、淡江與訊核可用下方專用欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江與訊核可用下方專用欄位。
         </p>
 
         <h3>場圖 Atlas MCP</h3>
@@ -438,6 +459,42 @@ export default function ConnectionSettings({
             onChange={(e) => toggleClear("FRAMELAB_MCP_TOKEN", e.target.checked)}
           />
           清除已存 FrameLab 權杖
+        </label>
+
+        <h3>Lumen 創作台</h3>
+        <p className="muted">
+          填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub 倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN 相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫 lumen_utter；按「測試 Lumen 連線」確認 initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
+        </p>
+        <label>
+          Lumen MCP 網址
+          <input
+            value={lumenUrl}
+            onChange={(e) => setLumenUrl(e.target.value)}
+            placeholder="https://your-lumen.example/api/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          Lumen MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.LUMEN_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={lumenToken}
+            onChange={(e) => setLumenToken(e.target.value)}
+            placeholder="與 Lumen 後端 LUMEN_MCP_TOKEN 相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("LUMEN_MCP_TOKEN")}
+            onChange={(e) => toggleClear("LUMEN_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存 Lumen 權杖
         </label>
 
         <h3>訊核即時情報 MCP</h3>
@@ -792,6 +849,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試場圖連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/lumen", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `Lumen 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 Lumen 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 Lumen 連線
           </button>
           <button
             type="button"
