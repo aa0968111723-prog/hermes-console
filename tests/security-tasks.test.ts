@@ -271,9 +271,11 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
     assert.equal(done.state, "completed");
     assert.equal(done.researchBundle?.executed, false);
     const sent = JSON.stringify(lastBody);
-    assert.match(sent, /尚未執行研究/);
+    assert.match(sent, /尚未取得外部 evidence/);
     assert.match(sent, /executed=false/);
+    assert.match(sent, /不得把計畫當成文獻/);
     assert.ok(!/已完成文獻檢索/.test(sent));
+    assert.ok(!/已抓取來源：[^（]/.test(sent));
     const conversation = get<{
       assistantMode?: string;
       researchBundle?: { executed: boolean; queries: string[] };
