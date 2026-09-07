@@ -24,6 +24,7 @@ import {
   saveMemory,
 } from "./memory";
 import type { Material, Task, TaskEvent } from "../contracts";
+import { callLumenThroughWorkspace, isLumenTool, lumenWorkspaceTools } from "./lumen-bridge";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -156,7 +157,8 @@ export function toolsList(owner: string) {
         idempotentHint: true,
         openWorldHint: name.startsWith("canva_"),
       },
-    }));
+    }))
+    .concat(lumenWorkspaceTools());
 }
 async function once(
   owner: string,
@@ -357,8 +359,11 @@ export async function callTool(
   input: unknown,
   rpcId?: string | number,
 ) {
-  if (!Object.prototype.hasOwnProperty.call(schemas, name))
+  if (!Object.prototype.hasOwnProperty.call(schemas, name)) {
+    if (isLumenTool(name))
+      return callLumenThroughWorkspace(owner, name, input, rpcId);
     throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");
+  }
   const args = schemas[name as ToolName].parse(input) as Record<
     string,
     unknown

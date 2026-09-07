@@ -35,6 +35,13 @@ export function integrations(owner: string, h: Health): Integration[] {
       requirements: ["連線設定或 TKU_MCP_URL／TKU_MCP_TOKEN", "實際 tools/list 驗證"],
     },
     {
+      id: "lumen",
+      name: "Lumen 創作台",
+      pattern: /lumen|創作台/,
+      detail: "經 Workspace MCP 呼叫 lumen_utter；選定方向留給使用者。",
+      requirements: ["連線設定或 LUMEN_MCP_URL／LUMEN_MCP_TOKEN", "實際 tools/list 驗證"],
+    },
+    {
       id: "canva",
       name: "Canva",
       pattern: /canva/i,
@@ -143,6 +150,21 @@ export function integrations(owner: string, h: Health): Integration[] {
     if (item.id === "tku") {
       item.state = tku.state as IntegrationState;
       item.detail = tku.detail;
+    }
+    if (item.id === "lumen") {
+      const lumen = registry.find((row) => row.id === "lumen");
+      item.state = (lumen
+        ? lumen.status === "partial" || lumen.status === "connected" || lumen.status === "verified"
+          ? "partial"
+          : lumen.status === "failed"
+            ? "failed"
+            : "unconfigured"
+        : "unconfigured") as IntegrationState;
+      item.detail = lumen?.lastError || (lumen?.tools.length
+        ? "已列出 Lumen 工具；成功連線不代表每個工具都已遠端執行。"
+        : "尚未驗證 Lumen MCP。");
+      item.tools = lumen?.tools.map((tool) => tool.name) || [];
+      item.verifiedAt = lumen?.verifiedAt || null;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";

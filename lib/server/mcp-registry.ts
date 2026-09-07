@@ -101,6 +101,14 @@ export function configuredMcp() {
       credentialReference: "TKU_MCP_TOKEN",
       readonly: true,
     });
+  if (!configs.some((c) => c.id === "lumen") && runtimeEnv("LUMEN_MCP_URL"))
+    configs.push({
+      id: "lumen",
+      name: "Lumen 創作台",
+      endpoint: runtimeEnv("LUMEN_MCP_URL"),
+      credentialReference: "LUMEN_MCP_TOKEN",
+      readonly: false,
+    });
   if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length
