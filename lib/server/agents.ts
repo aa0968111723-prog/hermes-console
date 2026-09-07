@@ -1,6 +1,7 @@
 import type { DiscoveryItem, Health } from "../contracts";
 import { WORKSPACE_OWNER } from "./security";
 import { list, put } from "./store";
+import { runtimeEnv } from "./credentials";
 
 export type AgentRole =
   | "general"
@@ -72,7 +73,7 @@ export function urlReferenceFor(role: AgentRole) {
 }
 
 function env(name: string) {
-  return (process.env[name] || "").trim();
+  return runtimeEnv(name);
 }
 
 export function profilePathFromUrl(url: string) {
@@ -154,7 +155,7 @@ export function defaultProfiles(): AgentProfile[] {
       baseUrl,
       profilePath: profilePathFromUrl(baseUrl),
       credentialReference: keyRef,
-      model: role === "general" ? process.env.HERMES_MODEL || "hermes-agent" : null,
+      model: role === "general" ? runtimeEnv("HERMES_MODEL") || "hermes-agent" : null,
       status: configured ? "configured" : "unconfigured",
       reachable: null,
       capabilities: emptyCapabilities(),

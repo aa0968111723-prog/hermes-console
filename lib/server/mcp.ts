@@ -5,6 +5,7 @@ import { activityInput, copyInput } from "../creative";
 import { activity, copyDocument, publicActivity, publicCopy, projectContext, saveActivity, saveCopy, checkCopy } from "./creative";
 import { z } from "zod";
 import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
+import { runtimeEnv } from "./credentials";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest, canvaStatus } from "./canva";
 import {
@@ -19,7 +20,7 @@ import { filePath, material } from "./materials";
 import type { Material, Task, TaskEvent } from "../contracts";
 
 export function bridgeAuth(request: Request) {
-  const configured = process.env.MCP_BRIDGE_TOKEN;
+  const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
   const provided =
     request.headers.get("authorization")?.replace(/^Bearer /, "") || "";
   if (

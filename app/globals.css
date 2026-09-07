@@ -1139,6 +1139,26 @@ dialog::backdrop {
 .settings-stack > button {
   width: fit-content;
 }
+.credential-warning {
+  border: 1px solid #e4c38a;
+  background: #fff8e8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 0;
+}
+.credential-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.credential-actions button {
+  width: fit-content;
+}
+.secret-hint {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
 .settings-stack label {
   font-size: 13px;
 }

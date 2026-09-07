@@ -32,7 +32,7 @@ export function integrations(owner: string, h: Health): Integration[] {
       name: "淡江 MCP",
       pattern: /tku|tamkang|tronclass|campus|tamsui/i,
       detail: tamkangStatus().detail,
-      requirements: ["TKU_MCP_URL", "TKU_MCP_TOKEN", "實際 tools/list 驗證"],
+      requirements: ["連線設定或 TKU_MCP_URL／TKU_MCP_TOKEN", "實際 tools/list 驗證"],
     },
     {
       id: "canva",
@@ -85,7 +85,7 @@ export function integrations(owner: string, h: Health): Integration[] {
       verifiedAt: h.checkedAt,
       tools: h.toolsets.flatMap((t) => t.tools || []),
       evidence: h.credential === "valid" ? "models" : null,
-      requirements: ["HERMES_API_URL", "HERMES_API_KEY"],
+      requirements: ["連線設定或 HERMES_API_URL／HERMES_API_KEY"],
     },
     {
       id: "workspace-mcp",

@@ -27,6 +27,7 @@ import {
   formatResearchPlanForInstructions,
   researchBundle,
 } from "./research/providers";
+import { runtimeEnv } from "./credentials";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -313,7 +314,7 @@ async function execute(
             headers: { ...headers, "Idempotency-Key": task.id },
             body: JSON.stringify({
               input: task.input,
-              model: process.env.HERMES_MODEL || "hermes-agent",
+              model: runtimeEnv("HERMES_MODEL") || "hermes-agent",
               instructions,
               session_id: conv.hermesSessionId || undefined,
               conversation_history: history,
@@ -342,7 +343,7 @@ async function execute(
         method: "POST",
         headers,
         body: JSON.stringify({
-          model: process.env.HERMES_MODEL || "hermes-agent",
+          model: runtimeEnv("HERMES_MODEL") || "hermes-agent",
           stream: true,
           messages: [
             { role: "system", content: instructions },

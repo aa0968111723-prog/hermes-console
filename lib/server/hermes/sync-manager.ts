@@ -7,6 +7,7 @@ import { get, list, put } from "../store";
 import type { Health } from "../../contracts";
 import type { HermesRuntimeSnapshot, RuntimeDiff, RuntimeMcpServer, RuntimeStatus, ToolDescriptor, ToolPermission } from "../../runtime";
 import { UnifiedToolRegistry } from "../tool-registry";
+import { credentialPresence } from "../credentials";
 
 const globalState = globalThis as typeof globalThis & {
   hermesRuntimeSync?: Map<string, Promise<HermesRuntimeSnapshot>>;
@@ -148,7 +149,7 @@ async function discover(owner: string, force: boolean): Promise<HermesRuntimeSna
   const normalizedTools = registry.all();
   const snapshotWithTools = { ...snapshotBase, tools: normalizedTools };
   const stableNormalized = { ...snapshotWithTools, fetchedAt: "", lastSyncedAt: "", tools: normalizedTools.map(tool => ({ ...tool, lastSeenAt: "", lastVerifiedAt: null })) };
-  const snapshot = { ...snapshotWithTools, hash: hash(JSON.stringify(stableNormalized)), diagnostics: { snapshotAgeMs:0, lastSuccessAt:at, lastFailureAt:errors.length ? at : before?.diagnostics.lastFailureAt || null, durationMs:Date.now()-started, toolCount:normalizedTools.length, skillCount:connection.skills.length, toolsetCount:connection.toolsets.length, mcpToolCount:mcpEntries.reduce((n,e)=>n+e.tools.length,0) } } satisfies HermesRuntimeSnapshot;
+  const snapshot = { ...snapshotWithTools, hash: hash(JSON.stringify(stableNormalized)), diagnostics: { snapshotAgeMs:0, lastSuccessAt:at, lastFailureAt:errors.length ? at : before?.diagnostics.lastFailureAt || null, durationMs:Date.now()-started, toolCount:normalizedTools.length, skillCount:connection.skills.length, toolsetCount:connection.toolsets.length, mcpToolCount:mcpEntries.reduce((n,e)=>n+e.tools.length,0), hermesUrlSource: credentialPresence("HERMES_API_URL").source, hermesKeySource: credentialPresence("HERMES_API_KEY").source } } satisfies HermesRuntimeSnapshot;
   if (!before || before.hash !== snapshot.hash) put("runtime_snapshot", owner, snapshot);
   put("runtime_diff", owner, { id: snapshot.hash, ...runtimeDiff(before, snapshot) });
   return snapshot;

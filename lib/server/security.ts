@@ -21,8 +21,16 @@ export class ApiError extends Error {
 }
 export const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
+let extraSecretValues: () => string[] = () => [];
+export function registerRedactionSecrets(fn: () => string[]) {
+  extraSecretValues = fn;
+}
 export function redact(text: string) {
   let output = text;
+  for (const value of extraSecretValues()) {
+    if (value && value.length >= 6)
+      output = output.split(value).join("[redacted]");
+  }
   for (const [name, value] of Object.entries(process.env)) {
     if (/(KEY|TOKEN|PASSWORD|SECRET)/i.test(name) && value && value.length >= 6)
       output = output.split(value).join("[redacted]");

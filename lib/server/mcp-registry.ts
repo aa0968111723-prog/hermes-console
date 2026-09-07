@@ -3,6 +3,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ApiError, WORKSPACE_OWNER, redact } from "./security";
 import { get, list, put } from "./store";
+import { runtimeEnv } from "./credentials";
 
 export type McpStatus =
   "unconfigured" | "connected" | "partial" | "verified" | "failed";
@@ -76,7 +77,7 @@ export function githubIsNotMcp(value: string) {
 export function configuredMcp() {
   let raw: unknown;
   try {
-    raw = JSON.parse(process.env.CONSOLE_MCP_SERVERS_JSON || "[]");
+    raw = JSON.parse(runtimeEnv("CONSOLE_MCP_SERVERS_JSON") || "[]");
   } catch {
     throw new ApiError(
       503,
@@ -92,11 +93,11 @@ export function configuredMcp() {
       "後端 MCP 核准清單格式錯誤。",
     );
   const configs = parsed.data;
-  if (!configs.some((c) => c.id === "tku") && process.env.TKU_MCP_URL)
+  if (!configs.some((c) => c.id === "tku") && runtimeEnv("TKU_MCP_URL"))
     configs.push({
       id: "tku",
       name: "Tamkang MCP",
-      endpoint: process.env.TKU_MCP_URL,
+      endpoint: runtimeEnv("TKU_MCP_URL"),
       credentialReference: "TKU_MCP_TOKEN",
       readonly: true,
     });
@@ -132,7 +133,7 @@ export function seedRegistry(): McpEntry[] {
     tools: [],
     status: "unconfigured",
     verifiedAt: null,
-    lastError: process.env.MCP_BRIDGE_TOKEN
+    lastError: runtimeEnv("MCP_BRIDGE_TOKEN")
       ? "已設定服務憑證，尚未由 Hermes 完成連線驗證。"
       : "尚未設定 MCP_BRIDGE_TOKEN。",
     readonly: false,
@@ -231,7 +232,7 @@ export async function probeMcp(entry: McpEntry) {
   try {
     const headers: Record<string, string> = {};
     if (config.credentialReference) {
-      const token = process.env[config.credentialReference];
+      const token = runtimeEnv(config.credentialReference);
       if (!token)
         throw new ApiError(
           503,

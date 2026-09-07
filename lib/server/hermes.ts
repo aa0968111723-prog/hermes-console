@@ -3,6 +3,7 @@ import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
 import { ApiError, redact } from "./security";
 import { get, put } from "./store";
+import { credentialPresence, runtimeEnv } from "./credentials";
 import {
   credentialReferenceFor,
   urlReferenceFor,
@@ -29,17 +30,17 @@ export function resolveAgent(agent?: HermesAgent) {
     agent?.credentialReference || credentialReferenceFor(role);
   if (!KEY_REF.test(credentialReference))
     throw new ApiError(500, "invalid_credential_ref", "憑證參照無效。");
-  const key = (process.env[credentialReference] || "").trim();
+  const key = runtimeEnv(credentialReference);
   const url =
     (agent?.baseUrl || "").trim() ||
-    (process.env[urlReferenceFor(role)] || "").trim() ||
-    (role === "general" ? (process.env.HERMES_API_URL || "").trim() : "");
+    runtimeEnv(urlReferenceFor(role)) ||
+    (role === "general" ? runtimeEnv("HERMES_API_URL") : "");
   if (!url || !key)
     throw new ApiError(
       503,
       "hermes_unconfigured",
       role === "general"
-        ? "請在後端設定已確認的 Hermes API 網域與新的金鑰。"
+        ? "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。"
         : "此 Agent 尚未設定後端網域與憑證參照。",
     );
   return { role, credentialReference, key, url };
@@ -47,11 +48,11 @@ export function resolveAgent(agent?: HermesAgent) {
 
 export function target(raw?: string, key?: string) {
   const urlValue = raw || resolveAgent().url;
-  if (raw && !key && !process.env.HERMES_API_KEY)
+  if (raw && !key && !runtimeEnv("HERMES_API_KEY"))
     throw new ApiError(
       503,
       "hermes_unconfigured",
-      "請在後端設定已確認的 Hermes API 網域與新的金鑰。",
+      "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。",
     );
   const url = new URL(urlValue);
   const local =
@@ -238,7 +239,11 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     credential: "missing",
     agent: "unverified",
     status: "unconfigured",
-    message: "尚未設定 Hermes 網域與新金鑰。",
+    message: "尚未在連線設定或後端環境變數提供 Hermes 網域與新金鑰。",
+    configSource: {
+      hermesUrl: credentialPresence("HERMES_API_URL").source,
+      hermesKey: credentialPresence("HERMES_API_KEY").source,
+    },
     httpStatus: null,
     features: {},
     models: [],
@@ -316,7 +321,7 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     state.message =
       error instanceof ApiError
         ? error.message
-        : "服務設定無效，請檢查後端環境變數。";
+        : "服務設定無效，請檢查連線設定或後端環境變數。";
   }
   put("health", owner, {
     ...state,
@@ -327,11 +332,7 @@ export async function health(owner: string, refresh = false): Promise<Health> {
 }
 import { hash } from "./security";
 export function serviceIdentity() {
-  return hash(
-    (process.env.HERMES_API_URL || "") +
-      "|" +
-      (process.env.HERMES_API_KEY || ""),
-  );
+  return hash(runtimeEnv("HERMES_API_URL") + "|" + runtimeEnv("HERMES_API_KEY"));
 }
 export function usage(
   raw: unknown,

@@ -4,7 +4,7 @@
 
 評等：`live`＝此分支已接上真實路徑（仍可能缺上游憑證）；`stub`＝有介面或計畫物件，尚未執行真實來源；`missing`＝教心所研究／行政場景需要但沒有；`regressed`＝曾經在 tip／正式站，後來從 `main` 消失。
 
-本 PR **不改使用者看到的 Console UI**。研究／行政能力在後端，呼叫端傳 `assistantMode`／`mode` 才會套用；瀏覽器預設仍是現有創作控制台。
+研究／行政能力在後端，呼叫端傳 `assistantMode`／`mode` 才會套用（**API only**，畫面上沒有 ModeSwitch）。瀏覽器預設仍是現有創作控制台。連線金鑰改可在「設定 → 連線」填寫，見文末。
 
 ## 產品現況（與 JieWorld／SillyWorld 的關係）
 
@@ -31,7 +31,9 @@
 | `GET/POST/PUT /api/conversations` | live | 建立／讀取／匯入舊對話。可選 `assistantMode`: `creative` \| `research` \| `admin`。省略則 `creative`。`research` 會附上尚未執行的 `researchBundle`。 |
 | `GET/POST/PATCH /api/tasks` | live | 真實 Hermes 任務。`POST /api/chat` 同一條。可選 `mode`；省略則用對話已存模式，再否則創作提示。`mode=research` 時任務與對話會帶 `researchBundle`（`executed: false`）。 |
 | `GET/POST /api/materials` | live | 圖／文字／PDF 附件，綁專案。 |
-| `GET /api/health` | live | Hermes 連線與能力探測；未設定會誠實顯示未設定。 |
+| `GET /api/health` | live | Hermes 連線與能力探測；未設定會誠實顯示未設定。`configSource` 標示 hermes 網址／金鑰來自 vault 或環境，不回傳秘密。 |
+| `GET/POST /api/settings/credentials` | live | 免登入工作區可讀寫連線設定。GET 只回 masked 狀態；POST 加密保存並覆寫 runtime env。 |
+| `POST /api/settings/tamkang` | live | `test` 探測 initialize／tools-list；`login` 僅在已設定 TKU 來源暴露已知交換端點時代為換權杖。 |
 | `GET/POST/DELETE /api/auth` | **dormant** | 邀請模組仍在，**不是**產品入口。沒有邀請 session 時 GET 為 401；POST／DELETE 仍是邀請連結／登出，**不是**「GET 回 `no-login`、登入／登出 410」。工作區 API 不依賴此路徑。 |
 
 ## 驗證與部署依賴
@@ -42,8 +44,8 @@
 | `CONSOLE_GATEWAY_SECRET` | live（**可選**部署閘道） | 瀏覽器拿不到。只有設定了 secret，或 `CONSOLE_REQUIRE_GATEWAY=true` 時才驗閘道。**未設定時公開 API 不會一律 503**；此時仍是免登入單一 `workspace` owner，寫入仍驗 Origin、限流。 |
 | `CONSOLE_ALLOW_LOCAL_ACCESS` | live | 僅本機 loopback，且只在閘道檢查路徑上放行。 |
 | `CONSOLE_ORIGIN` | live | 變更請求驗 Origin。正式環境未設定必須 fail closed。 |
-| `HERMES_API_URL` / `HERMES_API_KEY` | live（環境） | 未設定則聊天不能送出。 |
-| `TKU_MCP_URL` / `TKU_MCP_TOKEN` | stub／未設定 | 淡江 MCP 對應存在，正式站通常 Unconfigured。 |
+| `HERMES_API_URL` / `HERMES_API_KEY` | live（環境或連線設定 UI） | 未設定則聊天不能送出。UI 寫入優先於環境變數。 |
+| `TKU_MCP_URL` / `TKU_MCP_TOKEN` | live 路徑／正式站常未設定 | 可從設定頁保存或交換權杖；未驗證前狀態為 Unconfigured／待驗證，不假裝 Connected。 |
 | Canva / IG / Pinterest / Vault | stub／未設定 | 創作管線用；教心所研究非必要。 |
 | 多使用者／研究者帳號 | **missing** | 所有紀錄寫入同一 `workspace`。沒有租戶隔離。 |
 
@@ -110,3 +112,10 @@ POST /api/tasks
 ```
 
 `admin` 同理。省略欄位則維持創作提示。`research` 回應會含 `researchBundle`（`executed: false`、建議查詢詞、待查來源目錄）。契約測試證明欄位與提示詞，**不是** Zeabur、IRB 或真實文獻檢索的實機證據。
+
+## 連線設定 UI（金鑰不再只靠 Zeabur 環境面板）
+
+1. 開啟 `/` → 「設定與連線」→「連線」。
+2. 填 Hermes 網址與金鑰，按「儲存連線設定」。`GET /api/health` 應看到 `configSource.hermesKey=vault`（有有效金鑰時再驗證模型清單）。
+3. 淡江：填 MCP 網址與權杖後「測試連線」；若來源有已知帳密交換端點，可用「以校園憑證交換權杖」。
+4. **公開站任何人都可以覆寫這些欄位。** 這是明確的「不用保護」產品選擇。環境變數仍可當後備。
