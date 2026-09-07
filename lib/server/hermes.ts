@@ -387,4 +387,5 @@ export const creativeInstructions = [
   "若已連接 Console workspace MCP，先用 workspace_project_context 找回活動、文案及成果；workspace_get_activity 只提供公開資訊，候選資料用 workspace_save_activity 保存並等待使用者核對。來源日期只是提供的紀錄，不等於你已查證。",
   "使用 workspace_list_references 取得專案素材，使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
   "Console MCP 呼叫必須帶目前 taskId，可附 toolCallId；工具上限或停止錯誤不可自行繞過。用 workspace_read_material 取得真實圖片或文字後才分析內容；只有來源網址不代表已讀圖。",
+  "提到 FrameLab、動畫、時間軸、中間張、修壞格、RIFE、影格時：若工作區已有 framelab_* 或 Runtime 有 mcp.framelab.*，必須呼叫那些工具，不要用文字假裝已改像素。先 framelab_list_projects → framelab_get_timeline → framelab_get_frame_window。分析走 job，用 framelab_get_job 輪詢。寫入／生成需 confirmed=true。linear-blend 是快速預覽，不是 AI 中間張。GitHub 倉庫網址不是 MCP。未設定時請使用者到 FrameLab 首頁產生權杖，貼到「設定 → 連線」。",
 ].join("\n");

@@ -4,7 +4,7 @@ Hermes Console 把 [FrameLab](https://github.com/aa0968111723-prog/FrameLab) 當
 
 ## 連線
 
-1. 在 FrameLab 首頁按「產生連線權杖」，複製 `fl_…`。
+1. 在 FrameLab 工作室首頁按「產生連線權杖」，複製 `fl_…`。
 2. 在 Console 後端或「設定 → 連線」填：
    - `FRAMELAB_MCP_URL`：`https://<FrameLab>/api/mcp`，不含帳密與查詢參數
    - `FRAMELAB_MCP_TOKEN`：上述 Bearer 權杖
@@ -24,12 +24,17 @@ Hermes Console 把 [FrameLab](https://github.com/aa0968111723-prog/FrameLab) 當
 
 工作區 MCP（經 Console `/api/mcp`）：
 
-- `framelab_list_projects` / `framelab_get_project` / `framelab_create_project`
-- `framelab_get_timeline` / `framelab_get_frame_window`
+- `framelab_list_projects` / `framelab_get_project` / `framelab_create_project` / `framelab_create_sample_project`
+- `framelab_get_timeline` / `framelab_get_frame_window` / `framelab_get_keyframes`
 - `framelab_analyze_consistency` / `framelab_get_problem_frames` / `framelab_suggest_repair`
+- `framelab_create_inbetween_plan` / `framelab_generate_inbetweens` / `framelab_accept_generated_frames` / `framelab_undo`
 - `framelab_get_job` / `framelab_get_model_status`
-- `framelab_list_tools` / `framelab_call`（任意 FrameLab 工具，例如 `generate_inbetweens`）
+- `framelab_list_tools` / `framelab_call`（任意 FrameLab 工具）
 
 Runtime 探測後還有 `mcp.framelab.<name>`，與 FrameLab 目錄一對一。
 
-建議路徑：`list_projects` → `get_timeline` → `get_frame_window`。寫入／生成需 `confirmed=true`，並用 `get_job` 輪詢。不要把分析分數當成畫面。
+建議路徑：`list_projects` → `get_timeline` → `get_frame_window`。寫入／生成需 `confirmed=true`，並用 `get_job` 輪詢。不要把分析分數當成畫面。`linear-blend` 是快速預覽，不是 AI 中間張。
+
+## 意圖路由
+
+`routeToolsets` 在使用者提到 FrameLab、動畫、時間軸、中間張、影格、RIFE、修壞格時會選 `framelab`（優先於一般「影片／剪輯」的 cutos）。Hermes 任務指示在 `FRAMELAB_MCP_URL`＋`TOKEN` 已設定時會注入 `framelabTaskInstructions()`，要求 Agent 真的呼叫 `framelab_*`，不得用文字假裝已改像素。

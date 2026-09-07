@@ -38,6 +38,7 @@ import {
   framelabConfigured,
   framelabDescriptions,
   framelabSchemas,
+  framelabWriteTool,
   type FramelabToolName,
 } from "./framelab";
 import {
@@ -200,9 +201,9 @@ export function toolsList(owner: string) {
           description: framelabDescriptions[name as FramelabToolName],
           inputSchema: z.toJSONSchema(schema),
           annotations: {
-            readOnlyHint: !/create_project|suggest_repair|_call$/.test(name),
-            destructiveHint: false,
-            idempotentHint: true,
+            readOnlyHint: !framelabWriteTool(name),
+            destructiveHint: /generate_inbetweens|accept_generated|undo$/.test(name),
+            idempotentHint: !framelabWriteTool(name),
             openWorldHint: true,
           },
         }))
