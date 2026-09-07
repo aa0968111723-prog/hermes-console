@@ -255,6 +255,8 @@ test("research fallback, ranking, canva spec, social, router, publish", async ()
   assert.ok(!booth.toolsets.includes("cutos"));
   assert.ok(video.toolsets.includes("cutos"));
   assert.ok(!video.toolsets.includes("planform"));
+  const continuity = routeToolsets("幫我查角色聖經與 Golden 連戲");
+  assert.ok(continuity.toolsets.includes("consistencylab"));
   await assert.rejects(() =>
     metaPublisher.publish({
       confirmationToken: true,

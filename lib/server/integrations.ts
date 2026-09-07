@@ -8,6 +8,7 @@ import { galleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
 import { lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
+import { consistencylabConfigured } from "./consistencylab";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -69,6 +70,18 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /framelab|frame.?lab|animation|timeline|inbetween/i,
       detail: "Hermes 經 MCP 呼叫 FrameLab 動畫工具。GitHub 倉庫網址不是 MCP。",
       requirements: ["FRAMELAB_MCP_URL（FrameLab /api/mcp）", "FRAMELAB_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "consistencylab",
+      name: "ConsistencyLab 連戲",
+      pattern: /consistencylab|clab_|連戲|golden|character bible/i,
+      detail: consistencylabConfigured()
+        ? "已設定 ConsistencyLab 端點；Hermes 透過 clab_* 工作區工具呼叫。"
+        : "尚未設定 CONSISTENCYLAB_MCP_URL。",
+      requirements: [
+        "連線設定或 CONSISTENCYLAB_MCP_URL",
+        "Streamable HTTP initialize／tools/list 驗證",
+      ],
     },
     {
       id: "canva",
@@ -199,6 +212,12 @@ export function integrations(owner: string, h: Health): Integration[] {
       const framelab = framelabStatus();
       item.state = framelab.state as IntegrationState;
       item.detail = framelab.detail;
+    }
+    if (item.id === "consistencylab") {
+      item.state = (consistencylabConfigured() ? "partial" : "unconfigured") as IntegrationState;
+      item.detail = consistencylabConfigured()
+        ? "已設定 ConsistencyLab 端點；Hermes 透過 clab_* 工作區工具呼叫。"
+        : "尚未設定 CONSISTENCYLAB_MCP_URL。GitHub 倉庫網址不是 MCP。";
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";
