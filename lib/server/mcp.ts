@@ -8,6 +8,7 @@ import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
 import { runtimeEnv } from "./credentials";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest, canvaStatus } from "./canva";
+import { callGalleyTool } from "./galley";
 import {
   directionsInput,
   saveDirections,
@@ -106,6 +107,25 @@ const schemas = {
     })
     .strict(),
   canva_get_export: z.object({ jobId: id, ...context }).strict(),
+  galley_capability: z.object(context).strict(),
+  galley_research: z
+    .object({
+      question: z.string().trim().min(4).max(500),
+      kind: z.enum(["research", "intel"]).default("research"),
+      seedUrls: z.array(z.string().url()).max(4).default([]),
+      notes: z.string().max(500).optional(),
+      ...context,
+    })
+    .strict(),
+  galley_intel: z
+    .object({
+      question: z.string().trim().min(4).max(500),
+      kind: z.enum(["research", "intel"]).default("intel"),
+      seedUrls: z.array(z.string().url()).max(4).default([]),
+      notes: z.string().max(500).optional(),
+      ...context,
+    })
+    .strict(),
 };
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
@@ -141,6 +161,12 @@ const descriptions: Record<ToolName, string> = {
   canva_export_design:
     "將設計送交 Canva 匯出。使用固定 operationId，回傳工作 ID，需繼續查詢。不是發佈到社群。",
   canva_get_export: "查詢 Canva 匯出工作與下載連結；下載連結可能會到期。",
+  galley_capability:
+    "讀取 GALLEY 研究情報 MCP 能力與來源優先規則。未設定 GALLEY_MCP_URL／TOKEN 時回報未配置，不假裝已連線。GitHub 網址不是 MCP 端點。",
+  galley_research:
+    "請 GALLEY 做來源優先研究：先擷取真實網頁再分析。沒有可核對來源時標記資料不足，不得憑記憶填事實。NVIDIA／NIM／Omniverse 問題優先官方文件。",
+  galley_intel:
+    "請 GALLEY 依創作任務從已擷取來源推薦 AI 工具或模型。沒有來源證據的項目不列入；未設定金鑰不得標成可使用。",
 };
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
@@ -151,10 +177,10 @@ export function toolsList(owner: string) {
       description: descriptions[name as ToolName],
       inputSchema: z.toJSONSchema(schema),
       annotations: {
-        readOnlyHint: /list|search|get|dataset|read|context/.test(name),
+        readOnlyHint: /list|search|get|dataset|read|context|capability/.test(name),
         destructiveHint: name.includes("delete_memory"),
         idempotentHint: true,
-        openWorldHint: name.startsWith("canva_"),
+        openWorldHint: name.startsWith("canva_") || name.startsWith("galley_"),
       },
     }));
 }
@@ -349,6 +375,12 @@ async function execute(
     }
     case "canva_get_export":
       return canvaRequest(owner, "/exports/" + schemas[name].parse(args).jobId);
+    case "galley_capability":
+      return callGalleyTool("galley_capability", schemas[name].parse(args));
+    case "galley_research":
+      return callGalleyTool("galley_research", schemas[name].parse(args));
+    case "galley_intel":
+      return callGalleyTool("galley_intel", schemas[name].parse(args));
   }
 }
 export async function callTool(

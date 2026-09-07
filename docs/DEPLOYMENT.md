@@ -62,6 +62,8 @@ Runtime 能力以 `/api/runtime` snapshot 為準，包含 Hermes models／capabi
 
 淡江 MCP 在本倉庫是 Bearer 權杖連線。設定頁可貼權杖並「測試連線」。若已存網址的同一來源提供 `/auth/login`、`/api/auth/login`、`/login` 或 JSON-RPC `auth/login`，後端可代為用校園使用者名稱／密碼交換權杖；沒有這些端點時不會假裝成學校 SSO，請改貼權杖。
 
+GALLEY 研究情報 MCP 同樣用 `GALLEY_MCP_URL`／`GALLEY_MCP_TOKEN`（環境或設定 → 連線）。端點必須是 GALLEY 部署後的 HTTPS Streamable HTTP `/mcp`，**不能**填 GitHub 倉庫網址。權杖至少 32 字元，且須與 GALLEY 後端同一把。Hermes 只連 Console `/api/mcp`；工作區工具 `galley_capability`／`galley_research`／`galley_intel` 由 Console 代為呼叫 GALLEY。未設定時狀態為 Unconfigured，不得假裝已完成研究。
+
 ## 閘道部署驗收
 
 可使用 VPN＋網路 ACL，或先驗證身份的 SSO gateway。驗證通过後才在轉送 Console 前覆寫 `X-Console-Gateway`；例如 Caddy 已有受控網路／身份 policy 的 reverse_proxy 區塊內可用 `header_up X-Console-Gateway {$CONSOLE_GATEWAY_SECRET}`。這一行本身**不是身份驗證設定**，不可單獨暴露到 Internet。若使用 Cloudflare Access，必須先驗證 Access assertion 或以受控 tunnel 保證來源；目前程式沒有內建該 JWT 驗證器。

@@ -12,6 +12,7 @@ import {
 } from "./credentials";
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
+import { liveGalleyStatus } from "./galley";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -37,6 +38,8 @@ export const credentialsInput = z
     CONSOLE_MCP_SERVERS_JSON: z.string().max(20_000).optional(),
     TKU_MCP_URL: z.string().max(500).optional(),
     TKU_MCP_TOKEN: z.string().max(2_000).optional(),
+    GALLEY_MCP_URL: z.string().max(500).optional(),
+    GALLEY_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -98,10 +101,18 @@ function validatePatch(patch: CredentialValues) {
     );
   if (patch.TKU_MCP_URL)
     patch.TKU_MCP_URL = validateHttpsServiceUrl(patch.TKU_MCP_URL, "mcp");
+  if (patch.GALLEY_MCP_URL)
+    patch.GALLEY_MCP_URL = validateHttpsServiceUrl(patch.GALLEY_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "淡江 MCP 權杖長度不足。");
+  if (patch.GALLEY_MCP_TOKEN && patch.GALLEY_MCP_TOKEN.length < 32)
+    throw new ApiError(
+      400,
+      "invalid_secret",
+      "GALLEY MCP 權杖至少需要 32 個字元。",
+    );
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -150,6 +161,11 @@ export function publicSettings() {
       urlSource: credentialPresence("TKU_MCP_URL").source,
       tokenSource: credentialPresence("TKU_MCP_TOKEN").source,
     },
+    galley: {
+      ...liveGalleyStatus(),
+      urlSource: credentialPresence("GALLEY_MCP_URL").source,
+      tokenSource: credentialPresence("GALLEY_MCP_TOKEN").source,
+    },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
       "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證與 Zeabur 部署。",
@@ -192,6 +208,37 @@ export async function testTamkangConnection() {
   const entry = getMcp("tku");
   if (!entry)
     throw new ApiError(400, "tku_unconfigured", "淡江 MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
+export async function testGalleyConnection() {
+  if (!runtimeEnv("GALLEY_MCP_URL"))
+    throw new ApiError(
+      400,
+      "galley_unconfigured",
+      "請先儲存 GALLEY MCP 網址。GitHub 網址不是 MCP 端點。",
+    );
+  if (!runtimeEnv("GALLEY_MCP_TOKEN"))
+    throw new ApiError(
+      400,
+      "galley_token_missing",
+      "請先貼上 GALLEY MCP 權杖（至少 32 字元）。",
+    );
+  const entry = getMcp("galley");
+  if (!entry)
+    throw new ApiError(
+      400,
+      "galley_unconfigured",
+      "GALLEY MCP 尚未出現在核准清單。",
+    );
   const probed = await probeMcp(entry);
   return {
     ...publicSettings(),

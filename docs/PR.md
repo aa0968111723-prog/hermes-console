@@ -32,6 +32,7 @@
 
 - MCP Registry：initialize ≠ verified；tools/list = partial；安全讀取 = verified。GitHub URL 不是 MCP。
 - 淡江：`TKU_MCP_URL` / `TKU_MCP_TOKEN` + capability mapping；離線改網頁研究。
+- GALLEY：`GALLEY_MCP_URL` / `GALLEY_MCP_TOKEN` 自動列入核准清單；Hermes 經工作區 `galley_research` 呼叫來源優先研究。GitHub 不是 MCP。
 - Instagram 研究 vs 發佈；不宣稱搜尋完整 Instagram。
 - Pinterest Pin／看板 URL + 網頁；不假裝官方全站搜尋。
 - 「幫我找靈感」產生 Inspiration Board。

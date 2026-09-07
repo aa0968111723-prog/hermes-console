@@ -25,6 +25,12 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  galley?: {
+    state: string;
+    detail: string;
+    urlSource: string;
+    tokenSource: string;
+  };
   zeabur?: {
     token: FieldStatus;
     projectId: string;
@@ -80,6 +86,8 @@ export default function ConnectionSettings({
   const [tkuToken, setTkuToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
+  const [galleyUrl, setGalleyUrl] = useState("");
+  const [galleyToken, setGalleyToken] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
   const [zeaburProject, setZeaburProject] = useState("");
   const [zeaburService, setZeaburService] = useState("");
@@ -94,6 +102,7 @@ export default function ConnectionSettings({
     setHermesModel(next.fields.HERMES_MODEL?.value || "");
     setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
+    setGalleyUrl(next.fields.GALLEY_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
     );
@@ -109,6 +118,7 @@ export default function ConnectionSettings({
     setMcpToken("");
     setTkuToken("");
     setTkuPassword("");
+    setGalleyToken("");
     setZeaburToken("");
     setZeaburValue("");
   }, []);
@@ -195,6 +205,12 @@ export default function ConnectionSettings({
             ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
             : "讀取中"}
         </dd>
+        <dt>GALLEY MCP</dt>
+        <dd>
+          {data
+            ? `${TAMKANG[data.galley?.state || ""] || data.galley?.state || "未設定"} · ${data.galley?.detail || "尚未回報"}`
+            : "讀取中"}
+        </dd>
       </dl>
 
       <form
@@ -209,6 +225,7 @@ export default function ConnectionSettings({
               HERMES_MODEL: hermesModel,
               CONSOLE_MCP_SERVERS_JSON: mcpJson,
               TKU_MCP_URL: tkuUrl,
+              GALLEY_MCP_URL: galleyUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
               ZEABUR_ENVIRONMENT_ID: zeaburEnv,
@@ -216,6 +233,7 @@ export default function ConnectionSettings({
             if (hermesKey) payload.HERMES_API_KEY = hermesKey;
             if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
+            if (galleyToken) payload.GALLEY_MCP_TOKEN = galleyToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
@@ -304,7 +322,44 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江可另外用下方欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江與 GALLEY 可另外用下方欄位。
+        </p>
+
+        <h3>GALLEY 研究情報 MCP</h3>
+        <label>
+          GALLEY MCP 網址
+          <input
+            value={galleyUrl}
+            onChange={(e) => setGalleyUrl(e.target.value)}
+            placeholder="https://your-galley.example/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          GALLEY MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.GALLEY_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={galleyToken}
+            onChange={(e) => setGalleyToken(e.target.value)}
+            placeholder="至少 32 個字元，與 GALLEY 部署相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("GALLEY_MCP_TOKEN")}
+            onChange={(e) => toggleClear("GALLEY_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存 GALLEY 權杖
+        </label>
+        <p className="muted">
+          Hermes 經工作區工具 galley_research 呼叫 GALLEY。填入部署後的 HTTPS
+          /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端 GALLEY_MCP_TOKEN 相同。
         </p>
 
         <h3>淡江 MCP</h3>
@@ -569,6 +624,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試淡江連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/galley", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `GALLEY 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 GALLEY 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 GALLEY 連線
           </button>
           <button
             type="button"
