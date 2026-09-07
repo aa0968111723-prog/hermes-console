@@ -50,8 +50,6 @@ npm run test:workbench
 
 瀏覽器腳本在暫存資料夾啟動 production Console，需已安裝 Chrome。`test:runtime` 等待正常背景週期，驗證 300 工具搜尋、無手動刷新新增工具、offline／online 重連、360／390／768／1440px、選擇創作方向後 API 真的保存。截圖在忽略提交的 `output/playwright/`：`runtime-live-contract-*.png` 是明確隔離測試資料；`runtime-desktop.png`／`runtime-mobile-360.png` 是未設定外部服務的真實 UI。
 
-## 正式驗證所缺
-
 ## 本次驗證紀錄（2026-09-07）
 
 - 整合主分支 `7b55b41` 後：`npm test` 130 項通過，typecheck、production build 通過。
