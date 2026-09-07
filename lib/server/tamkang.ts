@@ -1,3 +1,5 @@
+import { runtimeEnv } from "./credentials";
+
 export const TAMKANG_CAPABILITIES = [
   "tku_search",
   "tku_news",
@@ -61,7 +63,7 @@ export function mapTamkangTools(tools: Array<{ name: string }>) {
 }
 
 export function tamkangConfigured() {
-  return !!(process.env.TKU_MCP_URL && process.env.TKU_MCP_TOKEN);
+  return !!(runtimeEnv("TKU_MCP_URL") && runtimeEnv("TKU_MCP_TOKEN"));
 }
 
 export function tamkangStatus(input?: {
@@ -77,7 +79,7 @@ export function tamkangStatus(input?: {
         "failed" | "unconfigured",
       detail: tamkangConfigured()
         ? "淡江 MCP 離線；可請 Hermes 使用已授權網頁工具，尚未執行備援查詢。"
-        : "尚未設定 TKU_MCP_URL 與 TKU_MCP_TOKEN。",
+        : "尚未在連線設定或後端環境變數提供 TKU_MCP_URL 與 TKU_MCP_TOKEN。",
       mapping: mapTamkangTools(input.tools || []),
       fallback: "web_research",
     };
@@ -86,7 +88,7 @@ export function tamkangStatus(input?: {
       id: "tku",
       name: "淡江 MCP",
       state: "unconfigured" as const,
-      detail: "尚未設定 TKU_MCP_URL 與 TKU_MCP_TOKEN。",
+      detail: "尚未在連線設定或後端環境變數提供 TKU_MCP_URL 與 TKU_MCP_TOKEN。",
       mapping: mapTamkangTools([]),
       fallback: "web_research",
     };

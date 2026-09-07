@@ -37,6 +37,7 @@ import InspirationBoard from "./inspiration/InspirationBoard";
 import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
+import ConnectionSettings from "./settings/ConnectionSettings";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -1775,9 +1776,19 @@ export default function HermesConsole() {
                       <RefreshCw size={16} />
                       {busy ? "驗證中…" : "重新驗證連線"}
                     </button>
-                    <p className="muted">
-                      網址、金鑰只在後端設定。此處不收集或顯示金鑰。
-                    </p>
+                    <ConnectionSettings
+                      onChanged={async () => {
+                        try {
+                          setHealth(await api<Health>("health", "POST", {}));
+                          const result = await api<{
+                            integrations: Integration[];
+                          }>("integrations");
+                          setIntegrations(result.integrations);
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    />
                     <IntegrationHealth items={integrations} />
                     <h3>Canva Connect 授權</h3>
                     <p>

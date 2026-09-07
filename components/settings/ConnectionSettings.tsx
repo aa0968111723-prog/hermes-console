@@ -1,0 +1,392 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
+
+type FieldStatus = {
+  configured: boolean;
+  last4: string | null;
+  source: "vault" | "env" | "none";
+  value?: string;
+};
+
+type SettingsPayload = {
+  vault: { ready: boolean; source: string };
+  fields: Record<string, FieldStatus>;
+  hermes: {
+    configured: boolean;
+    urlSource: string;
+    keySource: string;
+  };
+  mcpBridge: FieldStatus;
+  tamkang: {
+    state: string;
+    detail: string;
+    urlSource: string;
+    tokenSource: string;
+  };
+  openSettingsWarning: string;
+  probe?: { status: string; toolsCount: number; lastError: string | null };
+};
+
+const SOURCE: Record<string, string> = {
+  vault: "工作區儲存",
+  env: "環境變數",
+  none: "尚未設定",
+  file: "資料目錄金鑰",
+  generated: "一次性啟動金鑰",
+};
+
+const TAMKANG: Record<string, string> = {
+  unconfigured: "未設定",
+  awaiting_authorization: "待驗證",
+  available: "可用",
+  partial: "部分可用",
+  failed: "失敗",
+  connected: "已連線",
+  verified: "已驗證",
+};
+
+function secretHint(field?: FieldStatus) {
+  if (!field?.configured) return "尚未儲存";
+  return (
+    (SOURCE[field.source] || field.source) +
+    (field.last4 ? ` · 末四碼 ${field.last4}` : "")
+  );
+}
+
+export default function ConnectionSettings({
+  onChanged,
+}: {
+  onChanged?: () => Promise<void> | void;
+}) {
+  const [data, setData] = useState<SettingsPayload | null>(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [hermesUrl, setHermesUrl] = useState("");
+  const [hermesKey, setHermesKey] = useState("");
+  const [hermesModel, setHermesModel] = useState("");
+  const [mcpToken, setMcpToken] = useState("");
+  const [mcpJson, setMcpJson] = useState("");
+  const [tkuUrl, setTkuUrl] = useState("");
+  const [tkuToken, setTkuToken] = useState("");
+  const [tkuUser, setTkuUser] = useState("");
+  const [tkuPassword, setTkuPassword] = useState("");
+  const [clearKeys, setClearKeys] = useState<string[]>([]);
+
+  const apply = useCallback((next: SettingsPayload) => {
+    setData(next);
+    setHermesUrl(next.fields.HERMES_API_URL?.value || "");
+    setHermesModel(next.fields.HERMES_MODEL?.value || "");
+    setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
+    setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
+    setHermesKey("");
+    setMcpToken("");
+    setTkuToken("");
+    setTkuPassword("");
+  }, []);
+
+  const load = useCallback(async () => {
+    const response = await fetch("/api/settings/credentials", {
+      credentials: "same-origin",
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok)
+      throw new Error(body.error?.message || "無法讀取連線設定。");
+    apply(body as SettingsPayload);
+  }, [apply]);
+
+  useEffect(() => {
+    load().catch((e) => setError((e as Error).message));
+  }, [load]);
+
+  function toggleClear(name: string, checked: boolean) {
+    setClearKeys((current) =>
+      checked
+        ? [...new Set([...current, name])]
+        : current.filter((item) => item !== name),
+    );
+  }
+
+  async function postJson(path: string, body: unknown) {
+    const response = await fetch("/api/" + path, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(30_000),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok)
+      throw new Error(data.error?.message || "操作失敗，請稍後重試。");
+    return data;
+  }
+
+  async function afterSave(next: SettingsPayload, message: string) {
+    apply(next);
+    setClearKeys([]);
+    setNotice(message);
+    await onChanged?.();
+    document.querySelector(".credential-warning")?.scrollIntoView({
+      block: "start",
+      behavior: "auto",
+    });
+  }
+
+  return (
+    <div className="settings-stack credential-settings">
+      <p className="credential-warning">{data?.openSettingsWarning}</p>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+      {notice && <p className="muted">{notice}</p>}
+      <p className="muted">
+        金鑰只送到後端加密保存，不會寫進前端程式。讀取時只顯示是否已設定與末四碼。
+        環境變數仍可作為後備；工作區儲存優先。
+      </p>
+      <dl className="facts">
+        <dt>秘密儲存</dt>
+        <dd>
+          {data
+            ? SOURCE[data.vault.source] || data.vault.source
+            : "讀取中"}
+        </dd>
+        <dt>Hermes</dt>
+        <dd>
+          {data?.hermes.configured
+            ? `已設定（網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}）`
+            : "尚未設定"}
+        </dd>
+        <dt>淡江 MCP</dt>
+        <dd>
+          {data
+            ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
+            : "讀取中"}
+        </dd>
+      </dl>
+
+      <form
+        onSubmit={async (event) => {
+          event.preventDefault();
+          setBusy(true);
+          setError("");
+          setNotice("");
+          try {
+            const payload: Record<string, unknown> = {
+              HERMES_API_URL: hermesUrl,
+              HERMES_MODEL: hermesModel,
+              CONSOLE_MCP_SERVERS_JSON: mcpJson,
+              TKU_MCP_URL: tkuUrl,
+            };
+            if (hermesKey) payload.HERMES_API_KEY = hermesKey;
+            if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
+            if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
+            if (clearKeys.length) payload.clear = clearKeys;
+            const saved = (await postJson(
+              "settings/credentials",
+              payload,
+            )) as SettingsPayload;
+            await afterSave(saved, "連線設定已保存。");
+          } catch (e) {
+            setError((e as Error).message);
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        <h3>Hermes 憑證</h3>
+        <label>
+          Hermes API 網址
+          <input
+            value={hermesUrl}
+            onChange={(e) => setHermesUrl(e.target.value)}
+            placeholder="https://your-hermes.example"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          Hermes API 金鑰
+          <span className="secret-hint">
+            {secretHint(data?.fields.HERMES_API_KEY)}
+          </span>
+          <input
+            type="password"
+            value={hermesKey}
+            onChange={(e) => setHermesKey(e.target.value)}
+            placeholder="貼上新金鑰後儲存"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("HERMES_API_KEY")}
+            onChange={(e) => toggleClear("HERMES_API_KEY", e.target.checked)}
+          />
+          清除已存 Hermes 金鑰
+        </label>
+        <label>
+          選用模型
+          <input
+            value={hermesModel}
+            onChange={(e) => setHermesModel(e.target.value)}
+            placeholder="hermes-agent"
+            autoComplete="off"
+          />
+        </label>
+
+        <h3>Workspace MCP 橋接</h3>
+        <label>
+          MCP 橋接權杖
+          <span className="secret-hint">{secretHint(data?.mcpBridge)}</span>
+          <input
+            type="password"
+            value={mcpToken}
+            onChange={(e) => setMcpToken(e.target.value)}
+            placeholder="至少 32 個字元"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("MCP_BRIDGE_TOKEN")}
+            onChange={(e) => toggleClear("MCP_BRIDGE_TOKEN", e.target.checked)}
+          />
+          清除已存橋接權杖
+        </label>
+        <label>
+          核准 MCP 清單（JSON）
+          <textarea
+            rows={5}
+            value={mcpJson}
+            onChange={(e) => setMcpJson(e.target.value)}
+            placeholder='[{"id":"example","name":"範例","endpoint":"https://example.invalid/mcp","credentialReference":null,"readonly":true}]'
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </label>
+        <p className="muted">
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江可另外用下方欄位。
+        </p>
+
+        <h3>淡江 MCP</h3>
+        <label>
+          淡江 MCP 網址
+          <input
+            value={tkuUrl}
+            onChange={(e) => setTkuUrl(e.target.value)}
+            placeholder="https://tku-mcp.example/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          淡江 MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.TKU_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={tkuToken}
+            onChange={(e) => setTkuToken(e.target.value)}
+            placeholder="貼上 Bearer 權杖後儲存"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("TKU_MCP_TOKEN")}
+            onChange={(e) => toggleClear("TKU_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存淡江權杖
+        </label>
+        <label>
+          淡江使用者名稱（選用）
+          <input
+            value={tkuUser}
+            onChange={(e) => setTkuUser(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <label>
+          淡江密碼（選用）
+          <input
+            type="password"
+            value={tkuPassword}
+            onChange={(e) => setTkuPassword(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <p className="muted">
+          既有實作以網址加 Bearer 權杖為準。若伺服器在同一來源提供
+          /auth/login、/api/auth/login、/login 或 JSON-RPC auth/login，後端會代為交換權杖；沒有這些端點時請直接貼權杖。
+        </p>
+        <div className="credential-actions">
+          <button type="submit" disabled={busy}>
+            {busy ? "處理中…" : "儲存連線設定"}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/tamkang", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `淡江探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成淡江連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試淡江連線
+          </button>
+          <button
+            type="button"
+            disabled={busy || !tkuUser || !tkuPassword}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/tamkang", {
+                  action: "login",
+                  username: tkuUser,
+                  password: tkuPassword,
+                })) as SettingsPayload;
+                setTkuUser("");
+                await afterSave(result, "已用校園憑證交換權杖並探測連線。");
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            以校園憑證交換權杖
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}

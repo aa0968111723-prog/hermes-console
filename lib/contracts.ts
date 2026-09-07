@@ -132,6 +132,10 @@ export interface Health {
   models: string[];
   skills: DiscoveryItem[];
   toolsets: DiscoveryItem[];
+  configSource?: {
+    hermesUrl: "vault" | "env" | "none";
+    hermesKey: "vault" | "env" | "none";
+  };
 }
 export interface DiscoveryItem {
   name: string;
