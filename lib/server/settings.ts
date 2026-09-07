@@ -12,6 +12,7 @@ import {
 } from "./credentials";
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
+import { liveGalleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
 import { lumenConfigured, lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
@@ -41,6 +42,8 @@ export const credentialsInput = z
     CONSOLE_MCP_SERVERS_JSON: z.string().max(20_000).optional(),
     TKU_MCP_URL: z.string().max(500).optional(),
     TKU_MCP_TOKEN: z.string().max(2_000).optional(),
+    GALLEY_MCP_URL: z.string().max(500).optional(),
+    GALLEY_MCP_TOKEN: z.string().max(2_000).optional(),
     XUNHE_MCP_URL: z.string().max(500).optional(),
     XUNHE_MCP_TOKEN: z.string().max(2_000).optional(),
     ATLAS_MCP_URL: z.string().max(500).optional(),
@@ -112,6 +115,8 @@ function validatePatch(patch: CredentialValues) {
     );
   if (patch.TKU_MCP_URL)
     patch.TKU_MCP_URL = validateHttpsServiceUrl(patch.TKU_MCP_URL, "mcp");
+  if (patch.GALLEY_MCP_URL)
+    patch.GALLEY_MCP_URL = validateHttpsServiceUrl(patch.GALLEY_MCP_URL, "mcp");
   if (patch.XUNHE_MCP_URL)
     patch.XUNHE_MCP_URL = validateHttpsServiceUrl(patch.XUNHE_MCP_URL, "mcp");
   if (patch.ATLAS_MCP_URL)
@@ -126,6 +131,12 @@ function validatePatch(patch: CredentialValues) {
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "淡江 MCP 權杖長度不足。");
+  if (patch.GALLEY_MCP_TOKEN && patch.GALLEY_MCP_TOKEN.length < 32)
+    throw new ApiError(
+      400,
+      "invalid_secret",
+      "GALLEY MCP 權杖至少需要 32 個字元。",
+    );
   if (patch.XUNHE_MCP_TOKEN && patch.XUNHE_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "訊核 MCP 權杖長度不足。");
   if (patch.ATLAS_MCP_TOKEN && patch.ATLAS_MCP_TOKEN.length < 16)
@@ -195,6 +206,11 @@ export function publicSettings() {
       ...tamkang,
       urlSource: credentialPresence("TKU_MCP_URL").source,
       tokenSource: credentialPresence("TKU_MCP_TOKEN").source,
+    },
+    galley: {
+      ...liveGalleyStatus(),
+      urlSource: credentialPresence("GALLEY_MCP_URL").source,
+      tokenSource: credentialPresence("GALLEY_MCP_TOKEN").source,
     },
     atlas: {
       configured: !!(runtimeEnv("ATLAS_MCP_URL") && runtimeEnv("ATLAS_MCP_TOKEN")),
@@ -329,6 +345,37 @@ export async function testTamkangConnection() {
   const entry = getMcp("tku");
   if (!entry)
     throw new ApiError(400, "tku_unconfigured", "淡江 MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
+export async function testGalleyConnection() {
+  if (!runtimeEnv("GALLEY_MCP_URL"))
+    throw new ApiError(
+      400,
+      "galley_unconfigured",
+      "請先儲存 GALLEY MCP 網址。GitHub 網址不是 MCP 端點。",
+    );
+  if (!runtimeEnv("GALLEY_MCP_TOKEN"))
+    throw new ApiError(
+      400,
+      "galley_token_missing",
+      "請先貼上 GALLEY MCP 權杖（至少 32 字元）。",
+    );
+  const entry = getMcp("galley");
+  if (!entry)
+    throw new ApiError(
+      400,
+      "galley_unconfigured",
+      "GALLEY MCP 尚未出現在核准清單。",
+    );
   const probed = await probeMcp(entry);
   return {
     ...publicSettings(),

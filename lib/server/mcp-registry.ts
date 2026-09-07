@@ -101,6 +101,14 @@ export function configuredMcp() {
       credentialReference: "TKU_MCP_TOKEN",
       readonly: true,
     });
+  if (!configs.some((c) => c.id === "galley") && runtimeEnv("GALLEY_MCP_URL"))
+    configs.push({
+      id: "galley",
+      name: "GALLEY 研究情報",
+      endpoint: runtimeEnv("GALLEY_MCP_URL"),
+      credentialReference: "GALLEY_MCP_TOKEN",
+      readonly: false,
+    });
   if (!configs.some((c) => c.id === "xunhe") && runtimeEnv("XUNHE_MCP_URL"))
     configs.push({
       id: "xunhe",

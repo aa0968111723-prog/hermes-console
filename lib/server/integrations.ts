@@ -4,6 +4,7 @@ import { canvaStatus } from "./canva";
 import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
 import { tamkangStatus } from "./tamkang";
+import { galleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
 import { lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
@@ -37,6 +38,17 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /tku|tamkang|tronclass|campus|tamsui/i,
       detail: tamkangStatus().detail,
       requirements: ["連線設定或 TKU_MCP_URL／TKU_MCP_TOKEN", "實際 tools/list 驗證"],
+    },
+    {
+      id: "galley",
+      name: "GALLEY 研究情報",
+      pattern: /galley|nim|omniverse|source-first|情報/i,
+      detail: galleyStatus().detail,
+      requirements: [
+        "連線設定或 GALLEY_MCP_URL／GALLEY_MCP_TOKEN",
+        "實際 tools/list 驗證",
+        "來源優先；資料不足時不得改用記憶",
+      ],
     },
     {
       id: "xunhe",
@@ -169,12 +181,17 @@ export function integrations(owner: string, h: Health): Integration[] {
     } satisfies Integration;
   });
   const tku = tamkangStatus();
+  const galley = galleyStatus();
   const ig = instagramPublishStatus();
   const canva = canvaStatus(owner);
   for (const item of mapped) {
     if (item.id === "tku") {
       item.state = tku.state as IntegrationState;
       item.detail = tku.detail;
+    }
+    if (item.id === "galley") {
+      item.state = galley.state as IntegrationState;
+      item.detail = galley.detail;
     }
     if (item.id === "xunhe") {
       const xunhe = xunheStatus();

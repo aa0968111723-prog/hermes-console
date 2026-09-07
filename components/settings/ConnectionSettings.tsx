@@ -25,6 +25,13 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  galley?: {
+    state: string;
+    detail: string;
+    urlSource: string;
+    tokenSource: string;
+  };
+
   xunhe?: {
     id?: string;
     name?: string;
@@ -131,6 +138,8 @@ export default function ConnectionSettings({
   const [duigaoToken, setDuigaoToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
+  const [galleyUrl, setGalleyUrl] = useState("");
+  const [galleyToken, setGalleyToken] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
   const [zeaburProject, setZeaburProject] = useState("");
   const [zeaburService, setZeaburService] = useState("");
@@ -138,6 +147,11 @@ export default function ConnectionSettings({
   const [zeaburKey, setZeaburKey] = useState("");
   const [zeaburValue, setZeaburValue] = useState("");
   const [clearKeys, setClearKeys] = useState<string[]>([]);
+  const [pendingZeabur, setPendingZeabur] = useState<{
+    summary: string;
+    token: string;
+    payload: Record<string, unknown>;
+  } | null>(null);
 
   const apply = useCallback((next: SettingsPayload) => {
     setData(next);
@@ -145,6 +159,7 @@ export default function ConnectionSettings({
     setHermesModel(next.fields.HERMES_MODEL?.value || "");
     setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
+    setGalleyUrl(next.fields.GALLEY_MCP_URL?.value || "");
     setXunheUrl(next.fields.XUNHE_MCP_URL?.value || "");
     setAtlasUrl(next.fields.ATLAS_MCP_URL?.value || "");
     setLumenUrl(next.fields.LUMEN_MCP_URL?.value || "");
@@ -170,6 +185,7 @@ export default function ConnectionSettings({
     setFramelabToken("");
     setDuigaoToken("");
     setTkuPassword("");
+    setGalleyToken("");
     setZeaburToken("");
     setZeaburValue("");
   }, []);
@@ -213,6 +229,38 @@ export default function ConnectionSettings({
     return data;
   }
 
+  async function runZeabur(
+    payload: Record<string, unknown>,
+    onDone: (result: Record<string, unknown>) => void,
+  ) {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = (await postJson("settings/zeabur", payload)) as Record<
+        string,
+        unknown
+      > & { needsConfirmation?: boolean; token?: string; summary?: string };
+      if (result.needsConfirmation && result.token) {
+        const { confirmationToken: _ignored, ...rest } = payload;
+        void _ignored;
+        setPendingZeabur({
+          summary: String(result.summary || "此操作需要確認。"),
+          token: String(result.token),
+          payload: rest,
+        });
+        setNotice("請確認後才會真正變更 Zeabur。");
+        return;
+      }
+      setPendingZeabur(null);
+      onDone(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function afterSave(next: SettingsPayload, message: string) {
     apply(next);
     setClearKeys([]);
@@ -254,6 +302,12 @@ export default function ConnectionSettings({
         <dd>
           {data
             ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
+            : "讀取中"}
+        </dd>
+        <dt>GALLEY MCP</dt>
+        <dd>
+          {data
+            ? `${TAMKANG[data.galley?.state || ""] || data.galley?.state || "未設定"} · ${data.galley?.detail || "尚未回報"}`
             : "讀取中"}
         </dd>
         <dt>訊核 MCP</dt>
@@ -300,6 +354,7 @@ export default function ConnectionSettings({
               HERMES_MODEL: hermesModel,
               CONSOLE_MCP_SERVERS_JSON: mcpJson,
               TKU_MCP_URL: tkuUrl,
+              GALLEY_MCP_URL: galleyUrl,
               XUNHE_MCP_URL: xunheUrl,
               ATLAS_MCP_URL: atlasUrl,
               LUMEN_MCP_URL: lumenUrl,
@@ -312,6 +367,7 @@ export default function ConnectionSettings({
             if (hermesKey) payload.HERMES_API_KEY = hermesKey;
             if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
+            if (galleyToken) payload.GALLEY_MCP_TOKEN = galleyToken;
             if (xunheToken) payload.XUNHE_MCP_TOKEN = xunheToken;
             if (atlasToken) payload.ATLAS_MCP_TOKEN = atlasToken;
             if (lumenToken) payload.LUMEN_MCP_TOKEN = lumenToken;
@@ -405,7 +461,44 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、對稿、淡江與訊核可用下方專用欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。已整合服務可使用下方專用欄位。
+        </p>
+
+        <h3>GALLEY 研究情報 MCP</h3>
+        <label>
+          GALLEY MCP 網址
+          <input
+            value={galleyUrl}
+            onChange={(e) => setGalleyUrl(e.target.value)}
+            placeholder="https://your-galley.example/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          GALLEY MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.GALLEY_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={galleyToken}
+            onChange={(e) => setGalleyToken(e.target.value)}
+            placeholder="至少 32 個字元，與 GALLEY 部署相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("GALLEY_MCP_TOKEN")}
+            onChange={(e) => toggleClear("GALLEY_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存 GALLEY 權杖
+        </label>
+        <p className="muted">
+          Hermes 經工作區工具 galley_research 呼叫 GALLEY。填入部署後的 HTTPS
+          /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端 GALLEY_MCP_TOKEN 相同。
         </p>
 
         <h3>場圖 Atlas MCP</h3>
@@ -737,90 +830,73 @@ export default function ConnectionSettings({
           <button
             type="button"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                const result = (await postJson("settings/zeabur", {
-                  action: "push_console_keys",
-                })) as { updated?: string[] };
-                setNotice(
-                  "已推送到 Zeabur：" + (result.updated || []).join("、"),
-                );
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() =>
+              void runZeabur({ action: "push_console_keys" }, (result) =>
+                setNotice("已推送到 Zeabur：" + ((result.updated as string[]) || []).join("、")),
+              )
+            }
           >
             推送 Console 金鑰
           </button>
           <button
             type="button"
             disabled={busy || !zeaburKey || !zeaburValue}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                await postJson("settings/zeabur", {
+            onClick={() =>
+              void runZeabur(
+                {
                   action: "update_env",
                   variables: [{ key: zeaburKey, value: zeaburValue }],
-                });
-                setZeaburValue("");
-                setNotice("已更新 Zeabur 環境變數 " + zeaburKey);
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+                },
+                () => {
+                  setZeaburValue("");
+                  setNotice("已更新 Zeabur 環境變數 " + zeaburKey);
+                },
+              )
+            }
           >
             寫入變數
           </button>
           <button
             type="button"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                const result = (await postJson("settings/zeabur", {
-                  action: "redeploy",
-                })) as { status?: string };
-                setNotice("已要求重新部署：" + (result.status || "已送出"));
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() =>
+              void runZeabur({ action: "redeploy" }, (result) =>
+                setNotice("已要求重新部署：" + String(result.status || "已送出")),
+              )
+            }
           >
             重新部署
           </button>
           <button
             type="button"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                await postJson("settings/zeabur", { action: "restart" });
-                setNotice("已要求重啟服務。");
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() =>
+              void runZeabur({ action: "restart" }, () => setNotice("已要求重啟服務。"))
+            }
           >
             重啟服務
           </button>
         </div>
+        {pendingZeabur && (
+          <p className="credential-warning">
+            {pendingZeabur.summary}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void runZeabur(
+                  {
+                    ...pendingZeabur.payload,
+                    confirmationToken: pendingZeabur.token,
+                  },
+                  () => setNotice("已確認並執行 Zeabur 操作。"),
+                )
+              }
+            >
+              確認執行
+            </button>
+          </p>
+        )}
 
         <div className="credential-actions">
           <button type="submit" disabled={busy}>
@@ -852,6 +928,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試淡江連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/galley", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `GALLEY 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 GALLEY 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 GALLEY 連線
           </button>
           <button
             type="button"
