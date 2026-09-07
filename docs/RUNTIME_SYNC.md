@@ -1,6 +1,6 @@
 # Runtime 同步修復與能力盤點
 
-基準：從 `21a590f`（免登入工作區）接續，並整合最新 `7b55b41`（含共用記憶、加密設定、FrameLab、Lumen）。保留現有 SQLite、記憶學習樹、素材與對話，不修改部署、不合併 PR、不輪替部署憑證。
+基準：從 `21a590f`（免登入工作區）接續，整合 `7b55b41`（共用記憶、加密設定、FrameLab、Lumen），再同步遠端 `b3059a9`（GALLEY、Agent OS）。保留現有 SQLite、記憶學習樹、素材與對話，不修改部署、不合併 PR、不輪替部署憑證。
 
 ## 實際完成範圍
 
@@ -53,6 +53,7 @@ npm run test:workbench
 ## 本次驗證紀錄（2026-09-07）
 
 - 整合主分支 `7b55b41` 後：`npm test` 130 項通過，typecheck、production build 通過。
+- 再整合遠端 `b3059a9` 後：153 項測試、typecheck 與 production build 通過。
 - `check:secrets` 掃描 240 個來源／建置檔案通過；`npm audit --omit=dev` 0 項漏洞。這不是 Git 歷史或部署憑證撤銷證明。
 - 真實 Chrome：`test:runtime`、`test:ui`、`test:chat` 逐一執行通過；Hermes／MCP 使用隔離 HTTP fixtures，外部未驗證。
 - 早期多個瀏覽器腳本並行時，chat 曾因 15 秒等待工具紀錄逾時；單獨重跑及整合最新主分支後順序執行均通過。保留此測試穩定性限制，不寫成所有並行情境已驗證。
