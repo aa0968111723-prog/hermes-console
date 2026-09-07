@@ -101,6 +101,14 @@ export function configuredMcp() {
       credentialReference: "TKU_MCP_TOKEN",
       readonly: true,
     });
+  if (!configs.some((c) => c.id === "xunhe") && runtimeEnv("XUNHE_MCP_URL"))
+    configs.push({
+      id: "xunhe",
+      name: "訊核即時情報",
+      endpoint: runtimeEnv("XUNHE_MCP_URL"),
+      credentialReference: runtimeEnv("XUNHE_MCP_TOKEN") ? "XUNHE_MCP_TOKEN" : null,
+      readonly: false,
+    });
   if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length

@@ -25,6 +25,15 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  xunhe?: {
+    id?: string;
+    name?: string;
+    state: string;
+    detail: string;
+    configured?: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
   zeabur?: {
     token: FieldStatus;
     projectId: string;
@@ -78,6 +87,8 @@ export default function ConnectionSettings({
   const [mcpJson, setMcpJson] = useState("");
   const [tkuUrl, setTkuUrl] = useState("");
   const [tkuToken, setTkuToken] = useState("");
+  const [xunheUrl, setXunheUrl] = useState("");
+  const [xunheToken, setXunheToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -94,6 +105,7 @@ export default function ConnectionSettings({
     setHermesModel(next.fields.HERMES_MODEL?.value || "");
     setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
+    setXunheUrl(next.fields.XUNHE_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
     );
@@ -108,6 +120,7 @@ export default function ConnectionSettings({
     setHermesKey("");
     setMcpToken("");
     setTkuToken("");
+    setXunheToken("");
     setTkuPassword("");
     setZeaburToken("");
     setZeaburValue("");
@@ -195,6 +208,12 @@ export default function ConnectionSettings({
             ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
             : "讀取中"}
         </dd>
+        <dt>訊核 MCP</dt>
+        <dd>
+          {data?.xunhe
+            ? `${TAMKANG[data.xunhe.state] || data.xunhe.state} · ${data.xunhe.detail}`
+            : "尚未設定"}
+        </dd>
       </dl>
 
       <form
@@ -209,6 +228,7 @@ export default function ConnectionSettings({
               HERMES_MODEL: hermesModel,
               CONSOLE_MCP_SERVERS_JSON: mcpJson,
               TKU_MCP_URL: tkuUrl,
+              XUNHE_MCP_URL: xunheUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
               ZEABUR_ENVIRONMENT_ID: zeaburEnv,
@@ -216,6 +236,7 @@ export default function ConnectionSettings({
             if (hermesKey) payload.HERMES_API_KEY = hermesKey;
             if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
+            if (xunheToken) payload.XUNHE_MCP_TOKEN = xunheToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
@@ -304,8 +325,44 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江可另外用下方欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江與訊核可用下方專用欄位。
         </p>
+
+        <h3>訊核即時情報 MCP</h3>
+        <p className="muted">
+          填訊核的 Streamable HTTP 端點（路徑 /mcp 或 /api/mcp）。不能填 GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表 Hermes 能呼叫 xunhe_research。
+        </p>
+        <label>
+          訊核 MCP 網址
+          <input
+            value={xunheUrl}
+            onChange={(e) => setXunheUrl(e.target.value)}
+            placeholder="https://your-xunhe.example/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          訊核 MCP 權杖（選用）
+          <span className="secret-hint">
+            {secretHint(data?.fields.XUNHE_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={xunheToken}
+            onChange={(e) => setXunheToken(e.target.value)}
+            placeholder="與訊核後端 XUNHE_MCP_TOKEN 相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("XUNHE_MCP_TOKEN")}
+            onChange={(e) => toggleClear("XUNHE_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存訊核權杖
+        </label>
 
         <h3>淡江 MCP</h3>
         <label>
@@ -569,6 +626,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試淡江連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/xunhe", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `訊核探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成訊核連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試訊核連線
           </button>
           <button
             type="button"

@@ -24,6 +24,14 @@ import {
   saveMemory,
 } from "./memory";
 import type { Material, Task, TaskEvent } from "../contracts";
+import {
+  invokeXunhe,
+  isXunheTool,
+  xunheConfigured,
+  xunheDescriptions,
+  xunheSchemas,
+  type XunheToolName,
+} from "./xunhe";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -144,7 +152,7 @@ const descriptions: Record<ToolName, string> = {
 };
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
-  return Object.entries(schemas)
+  const local = Object.entries(schemas)
     .filter(([name]) => !name.startsWith("canva_") || available)
     .map(([name, schema]) => ({
       name,
@@ -157,6 +165,21 @@ export function toolsList(owner: string) {
         openWorldHint: name.startsWith("canva_"),
       },
     }));
+  if (!xunheConfigured()) return local;
+  return [
+    ...local,
+    ...Object.entries(xunheSchemas).map(([name, schema]) => ({
+      name,
+      description: xunheDescriptions[name as XunheToolName],
+      inputSchema: z.toJSONSchema(schema),
+      annotations: {
+        readOnlyHint: name !== "xunhe_research",
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    })),
+  ];
 }
 async function once(
   owner: string,
@@ -357,12 +380,29 @@ export async function callTool(
   input: unknown,
   rpcId?: string | number,
 ) {
+  if (isXunheTool(name)) {
+    if (!xunheConfigured())
+      throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");
+    const args = xunheSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeXunhe(name, args));
+  }
   if (!Object.prototype.hasOwnProperty.call(schemas, name))
     throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");
   const args = schemas[name as ToolName].parse(input) as Record<
     string,
     unknown
   >;
+  return finishToolCall(owner, name, args, rpcId, () =>
+    execute(owner, name as ToolName, args),
+  );
+}
+async function finishToolCall(
+  owner: string,
+  name: string,
+  args: Record<string, unknown>,
+  rpcId: string | number | undefined,
+  run: () => Promise<unknown>,
+) {
   if (args.taskId && !get("task", owner, String(args.taskId)))
     throw new ApiError(404, "task_not_found", "工具對應任務不存在。");
   const receipt: TaskEvent = {
@@ -468,7 +508,7 @@ export async function callTool(
         "canva_authorization_required",
         "Canva 尚未通過授權驗證。請先保存進度並等待使用者授權；沒有執行設計操作。",
       );
-    const result = await execute(owner, name as ToolName, args);
+    const result = await run();
     const object = z.record(z.string(), z.unknown()).parse(result);
     const imageData =
       name === "workspace_read_material" && typeof object.imageData === "string"

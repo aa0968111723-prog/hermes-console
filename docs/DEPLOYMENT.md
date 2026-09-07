@@ -13,7 +13,7 @@
 - 閘道本身必須驗證存取權；一個公開且無條件注入標頭的 reverse proxy 不算保護。建議限制 Console upstream 僅由 gateway 的私人網路可達。不要相信未驗證的 X-Forwarded-User 或僅靠 Origin。
 - `CONSOLE_ALLOW_LOCAL_ACCESS` 僅影響閘道的 loopback 檢查，不能繞過電子信箱邀請登入。正式環境沒有測試登入開關。
 - 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。撤銷所有曾公開的 Hermes API Key 並重新產生。
-- **日常金鑰也可在 Console「設定 → 連線」填寫**：Hermes 網址／金鑰、MCP 橋接權杖、核准 MCP JSON、淡江 MCP 網址／權杖。前端只收集後 POST 到 `/api/settings/credentials`，後端加密寫入 `CONSOLE_DATA_DIR`，執行期覆寫同名環境變數。GET 只回傳是否已設定與末四碼，不回傳完整秘密。
+- **日常金鑰也可在 Console「設定 → 連線」填寫**：Hermes 網址／金鑰、MCP 橋接權杖、核准 MCP JSON、訊核 MCP 網址／權杖、淡江 MCP 網址／權杖。前端只收集後 POST 到 `/api/settings/credentials`，後端加密寫入 `CONSOLE_DATA_DIR`，執行期覆寫同名環境變數。GET 只回傳是否已設定與末四碼，不回傳完整秘密。
 - 環境變數仍是後備。未設 `CONSOLE_VAULT_KEY` 時，程序會在資料目錄寫入一次性 `vault.key`（64 hex）並沿用；請備份該檔與 SQLite，遺失就無法解密已存憑證。正式部署仍建議把 vault key 放進受控秘密儲存。
 - **公開設定頁沒有邀請登入或 `CONSOLE_GATEWAY_SECRET` 額外保護。** 能開啟網站的人都可以覆寫工作區憑證與 Zeabur 部署權杖。這是產品選擇，不是疏漏；公開 Internet 部署請用網路層限制。
 - Zeabur：在 [Dashboard → Settings → API Keys](https://zeabur.com/docs/en-US/developer/public-api) 建立 Bearer 權杖。公開 API 沒有另外的細分 scope 核取方塊；權杖繼承該使用者／團隊對專案的既有權限（讀專案、改環境變數、重新部署）。GraphQL 端點為 `https://api.zeabur.com/graphql`。設定頁可測試連線、列出專案、寫入環境變數、把 Console 已存 Hermes／MCP 金鑰推上該服務，以及 `redeployService`／`restartService`。失敗時不回傳權杖。
@@ -58,7 +58,7 @@ Runtime 能力以 `/api/runtime` snapshot 為準，包含 Hermes models／capabi
 [{"id":"project-design","name":"專案製作","endpoint":"https://YOUR_VERIFIED_HOST/mcp","credentialReference":"PROJECT_DESIGN_MCP_TOKEN","readonly":true}]
 ```
 
-僅放環境變數名稱，不放 token 值；可在受控秘密儲存或「設定 → 連線」另外設定該變數。清單 JSON 本身仍不應內嵌 token。此例是未啟用的設定範本，不是真實服務。TKU_MCP_URL／TOKEN（環境或 UI）可建立 tku 定義。驗證只 initialize／tools-list，不自动挑選名稱看似讀取的工具執行；部分可用代表有真實工具清單，不代表安全／寫入授權。
+僅放環境變數名稱，不放 token 值；可在受控秘密儲存或「設定 → 連線」另外設定該變數。清單 JSON 本身仍不應內嵌 token。此例是未啟用的設定範本，不是真實服務。TKU_MCP_URL／TOKEN（環境或 UI）可建立 tku 定義。XUNHE_MCP_URL／TOKEN 可建立訊核即時情報定義；工作區 MCP 會在設定後一併列出 xunhe_* 工具，讓 Hermes 經 Console `/api/mcp` 呼叫。GitHub 倉庫網址不是 MCP。驗證只 initialize／tools-list，不自动挑選名稱看似讀取的工具執行；部分可用代表有真實工具清單，不代表安全／寫入授權。
 
 淡江 MCP 在本倉庫是 Bearer 權杖連線。設定頁可貼權杖並「測試連線」。若已存網址的同一來源提供 `/auth/login`、`/api/auth/login`、`/login` 或 JSON-RPC `auth/login`，後端可代為用校園使用者名稱／密碼交換權杖；沒有這些端點時不會假裝成學校 SSO，請改貼權杖。
 

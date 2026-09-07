@@ -12,6 +12,7 @@ import {
 } from "./credentials";
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
+import { xunheStatus } from "./xunhe";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -37,6 +38,8 @@ export const credentialsInput = z
     CONSOLE_MCP_SERVERS_JSON: z.string().max(20_000).optional(),
     TKU_MCP_URL: z.string().max(500).optional(),
     TKU_MCP_TOKEN: z.string().max(2_000).optional(),
+    XUNHE_MCP_URL: z.string().max(500).optional(),
+    XUNHE_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -98,10 +101,14 @@ function validatePatch(patch: CredentialValues) {
     );
   if (patch.TKU_MCP_URL)
     patch.TKU_MCP_URL = validateHttpsServiceUrl(patch.TKU_MCP_URL, "mcp");
+  if (patch.XUNHE_MCP_URL)
+    patch.XUNHE_MCP_URL = validateHttpsServiceUrl(patch.XUNHE_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "淡江 MCP 權杖長度不足。");
+  if (patch.XUNHE_MCP_TOKEN && patch.XUNHE_MCP_TOKEN.length < 8)
+    throw new ApiError(400, "invalid_secret", "訊核 MCP 權杖長度不足。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -145,6 +152,12 @@ export function publicSettings() {
       keySource: credentialPresence("HERMES_API_KEY").source,
     },
     mcpBridge: credentialPresence("MCP_BRIDGE_TOKEN"),
+    xunhe: {
+      ...xunheStatus(),
+      configured: !!runtimeEnv("XUNHE_MCP_URL"),
+      urlSource: credentialPresence("XUNHE_MCP_URL").source,
+      tokenSource: credentialPresence("XUNHE_MCP_TOKEN").source,
+    },
     tamkang: {
       ...tamkang,
       urlSource: credentialPresence("TKU_MCP_URL").source,
@@ -174,6 +187,23 @@ function liveTamkangStatus() {
     tools: entry.tools,
     verifiedRead: entry.status === "verified",
   });
+}
+
+export async function testXunheConnection() {
+  if (!runtimeEnv("XUNHE_MCP_URL"))
+    throw new ApiError(400, "xunhe_unconfigured", "請先儲存訊核 MCP 網址。");
+  const entry = getMcp("xunhe");
+  if (!entry)
+    throw new ApiError(400, "xunhe_unconfigured", "訊核 MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
 }
 
 export async function testTamkangConnection() {
