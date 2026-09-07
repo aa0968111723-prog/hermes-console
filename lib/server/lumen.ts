@@ -40,6 +40,13 @@ export const lumenSchemas = {
       ...context,
     })
     .strict(),
+  lumen_call: z
+    .object({
+      tool: z.string().regex(/^[a-z][a-z0-9_.]{1,80}$/),
+      arguments: z.record(z.string(), z.unknown()).optional(),
+      ...context,
+    })
+    .strict(),
 };
 
 export type LumenToolName = keyof typeof lumenSchemas;
@@ -59,6 +66,8 @@ export const lumenDescriptions: Record<LumenToolName, string> = {
   lumen_lock_style: "把目前配色與語氣寫入 Style DNA 並鎖定。沒有 DNA 時回「這次沒記住。」",
   lumen_save_directions:
     "保存 Hermes 依真實資料整理的三到五個方向（主張／視覺／文案／CTA／來源）到 Lumen 畫板。等待使用者在 Lumen 或 Console 選定。模型沒有選定工具。",
+  lumen_call:
+    "呼叫任意 Lumen MCP 工具（utter、save_directions、get_session…）。與 FrameLab 的 framelab_call 同一層。GitHub 倉庫網址不是 MCP。",
 };
 
 export function lumenConfigured() {
@@ -72,7 +81,7 @@ export function lumenTaskInstructions() {
   return [
     "",
     "Lumen 創作台已連線。提到開案、海報、文宣、招新、茶會、畫板、三個方向、Style DNA 時必須呼叫工作區 lumen_*（或 Runtime mcp.lumen.*），不要用文字假裝已開畫板。",
-    "先 lumen_list_tools 或 lumen_health，口語一律 lumen_utter。不要叫使用者填 prompt 表單。",
+    "先 lumen_list_tools 或 lumen_health，口語一律 lumen_utter。也可 lumen_call。不要叫使用者填 prompt 表單。",
     "你整理好的三到五個方向用 lumen_save_directions 放到畫板，等待使用者在 Lumen 或 Console 選定。不要呼叫不存在的 choose_direction。",
     "讀畫板走 lumen_get_session／lumen_list_board；校色未核到就標未確認。GitHub 倉庫網址不是 MCP。",
   ].join("\n");
@@ -83,7 +92,7 @@ export function isLumenTool(name: string): name is LumenToolName {
 }
 
 export function lumenWriteTool(name: string) {
-  return /lumen_utter|lumen_lock_style|lumen_save_directions/.test(name);
+  return /lumen_utter|lumen_lock_style|lumen_save_directions|lumen_call/.test(name);
 }
 
 export function lumenStatus() {
@@ -143,6 +152,7 @@ function remoteArgs(name: LumenToolName, args: Record<string, unknown>) {
   if (name === "lumen_utter") return { text: next.text };
   if (name === "lumen_save_directions")
     return { brief: next.brief, directions: next.directions };
+  if (name === "lumen_call") return { tool: next.tool, arguments: next.arguments || {} };
   return {};
 }
 
@@ -298,6 +308,15 @@ export async function invokeLumen(
         count: tools.length,
         runtimePrefix: "mcp.lumen",
       };
+    }
+    if (name === "lumen_call") {
+      const tool = String(args.tool || "");
+      const forwarded = { ...((args.arguments as Record<string, unknown>) || {}) };
+      if (typeof args.taskId === "string") forwarded.taskId = args.taskId;
+      if (typeof args.toolCallId === "string") forwarded.toolCallId = args.toolCallId;
+      return unwrapToolResult(
+        (await lumenRpc("tools/call", { name: tool, arguments: forwarded }, cachedSession, 60_000)).result,
+      );
     }
     const forwarded = {
       ...remoteArgs(name, args),
