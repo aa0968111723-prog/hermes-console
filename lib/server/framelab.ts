@@ -130,6 +130,19 @@ export function framelabConfigured() {
   return !!(runtimeEnv("FRAMELAB_MCP_URL") && runtimeEnv("FRAMELAB_MCP_TOKEN"));
 }
 
+/** Injected into Hermes task instructions so the agent actually calls framelab_*. */
+export function framelabTaskInstructions() {
+  if (!framelabConfigured()) return "";
+  return [
+    "",
+    "FrameLab 已連線。提到動畫、時間軸、中間張、修壞格、RIFE、影格時必須呼叫工作區 framelab_*（或 Runtime mcp.framelab.*），不要用文字假裝已改像素。",
+    "先 framelab_list_projects → framelab_get_timeline → framelab_get_frame_window。",
+    "分析用 framelab_analyze_consistency 再 framelab_get_job 輪詢；未完成時說尚未完成。",
+    "framelab_generate_inbetweens 與 framelab_accept_generated_frames 必須 confirmed=true。linear-blend 是快速預覽，不是 AI 中間張。",
+    "GitHub 倉庫網址不是 MCP。",
+  ].join("\n");
+}
+
 export function isFramelabTool(name: string): name is FramelabToolName {
   return Object.prototype.hasOwnProperty.call(framelabSchemas, name);
 }

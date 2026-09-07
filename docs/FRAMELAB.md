@@ -34,3 +34,7 @@ Hermes Console 把 [FrameLab](https://github.com/aa0968111723-prog/FrameLab) 當
 Runtime 探測後還有 `mcp.framelab.<name>`，與 FrameLab 目錄一對一。
 
 建議路徑：`list_projects` → `get_timeline` → `get_frame_window`。寫入／生成需 `confirmed=true`，並用 `get_job` 輪詢。不要把分析分數當成畫面。`linear-blend` 是快速預覽，不是 AI 中間張。
+
+## 意圖路由
+
+`routeToolsets` 在使用者提到 FrameLab、動畫、時間軸、中間張、影格、RIFE、修壞格時會選 `framelab`（優先於一般「影片／剪輯」的 cutos）。Hermes 任務指示在 `FRAMELAB_MCP_URL`＋`TOKEN` 已設定時會注入 `framelabTaskInstructions()`，要求 Agent 真的呼叫 `framelab_*`，不得用文字假裝已改像素。
