@@ -185,6 +185,12 @@ test("GALLEY MCP auto-seed and workspace proxy", async (t) => {
         (error: unknown) =>
           error instanceof ApiError && error.code === "ssrf_rejected",
       );
+      process.env.GALLEY_MCP_URL = "https://metadata.google.internal/mcp";
+      await assert.rejects(
+        () => callGalleyTool("galley_intel", {}),
+        (error: unknown) =>
+          error instanceof ApiError && error.code === "ssrf_rejected",
+      );
       process.env.GALLEY_MCP_URL = "http://mcp.example.invalid/mcp";
       await assert.rejects(
         () => callGalleyTool("galley_intel", {}),

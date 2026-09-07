@@ -61,8 +61,8 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
 
   await t.test("generic freshman wording does not bind Tamkang", () => {
     for (const prompt of [
-      "幫我做國立臺灣大學新生茶會文宣海報",
-      "成功大學大一新生迎新茶會活動策劃",
+      "國立臺灣大學新生茶會文宣海報",
+      "成功大學大一新生迎新茶會",
       "清華大學大一新生招新",
     ]) {
       const goal = interpretGoal(prompt);
@@ -74,9 +74,11 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
       const campus = routeTools(goal, [tamkang]).find((item) => item.id === "campus");
       assert.equal(campus, undefined, prompt);
     }
-    const tamkang = interpretGoal("幫我做給淡江大一新生看的禪學社茶會海報");
-    assert.equal(tamkang.requiresTamkang, true);
-    assert.equal(tamkang.audience, "淡江大一新生（模擬，不是民調）");
+    for (const prompt of ["淡江新生茶會", "淡江大一新生"]) {
+      const goal = interpretGoal(prompt);
+      assert.equal(goal.requiresTamkang, true, prompt);
+      assert.equal(goal.audience, "淡江大一新生（模擬，不是民調）");
+    }
   });
 
   await t.test("context budget does not dump the whole memory store", () => {

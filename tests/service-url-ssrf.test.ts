@@ -102,6 +102,33 @@ test("MCP registry rejects private endpoints", () => {
   delete process.env.CONSOLE_MCP_SERVERS_JSON;
 });
 
+test("GALLEY env bootstrap rejects private and metadata hosts", () => {
+  const previous = process.env.GALLEY_MCP_URL;
+  try {
+    process.env.GALLEY_MCP_URL = "https://169.254.169.254/mcp";
+    assert.throws(
+      () => configuredMcp(),
+      (error: unknown) =>
+        error instanceof ApiError && error.code === "ssrf_rejected",
+    );
+    process.env.GALLEY_MCP_URL = "https://10.0.0.5:8080/mcp";
+    assert.throws(
+      () => configuredMcp(),
+      (error: unknown) =>
+        error instanceof ApiError && error.code === "ssrf_rejected",
+    );
+    process.env.GALLEY_MCP_URL = "https://metadata.google.internal/mcp";
+    assert.throws(
+      () => configuredMcp(),
+      (error: unknown) =>
+        error instanceof ApiError && error.code === "ssrf_rejected",
+    );
+  } finally {
+    if (previous === undefined) delete process.env.GALLEY_MCP_URL;
+    else process.env.GALLEY_MCP_URL = previous;
+  }
+});
+
 test("lumenRpc and framelabRpc validate protocol and private hosts", async () => {
   process.env.LUMEN_MCP_TOKEN = randomBytes(24).toString("hex");
   process.env.FRAMELAB_MCP_TOKEN = "framelab-token-16";
