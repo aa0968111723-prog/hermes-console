@@ -47,8 +47,8 @@ export function integrations(owner: string, h: Health): Integration[] {
     {
       id: "lumen",
       name: "Lumen 創作台",
-      pattern: /lumen|創作台/,
-      detail: "Hermes 經 Workspace MCP 呼叫 lumen_utter；選定方向留給使用者。",
+      pattern: /lumen|創作台|海報|文宣|招新|茶會/,
+      detail: "文宣意圖走 lumen_*／mcp.lumen.*；選定方向留給使用者。GitHub 倉庫網址不是 MCP。",
       requirements: ["連線設定或 LUMEN_MCP_URL／LUMEN_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {

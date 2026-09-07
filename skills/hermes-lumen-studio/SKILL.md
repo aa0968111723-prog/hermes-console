@@ -11,17 +11,22 @@ Lumen 是獨立的 Streamable HTTP MCP。接線方式與 FrameLab 相同：設�
 
 - Runtime 已出現 `lumen_utter` 或 `mcp.lumen.lumen_utter`
 - 使用者要用口語開案、看畫板、保存方向
+- 任務意圖含海報、文宣、招新、茶會、畫板、三個方向、Style DNA（`routeToolsets` 會選 lumen）
+
+提到這些時**必須呼叫** `lumen_*`，不要用文字假裝已開畫板。
 
 ## 怎麼呼叫
 
-- 先 `lumen_get_session` 或 `lumen_health`，確認創作台可達。
+- 先 `lumen_list_tools` 或 `lumen_health`，確認創作台可達。
 - 口語一律 `lumen_utter`。不要叫使用者填 prompt 表單。
+- 回傳含頂層 `speech`、`name`、`cards`、`directions`。不要再拆 `data`。
 - 你整理好的三到五個方向用 `lumen_save_directions` 放到畫板，**等待使用者在 Lumen 或 Console 選定**。不要呼叫不存在的 `choose_direction`。
 - 每次呼叫帶目前 Console `taskId`。
 - 校色或校徽未核到就標未確認，不要自行補完。
 
 ## 工具
 
+- `lumen_list_tools`：列出遠端工具
 - `lumen_health`：探測
 - `lumen_utter`：開案／改畫板
 - `lumen_get_session`：讀專案

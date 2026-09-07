@@ -38,6 +38,7 @@ import {
   lumenConfigured,
   lumenDescriptions,
   lumenSchemas,
+  lumenWriteTool,
   type LumenToolName,
 } from "./lumen";
 import {
@@ -202,7 +203,7 @@ export function toolsList(owner: string) {
           description: lumenDescriptions[name as LumenToolName],
           inputSchema: z.toJSONSchema(schema),
           annotations: {
-            readOnlyHint: /health|get|list/.test(name),
+            readOnlyHint: !lumenWriteTool(name),
             destructiveHint: false,
             idempotentHint: name !== "lumen_utter",
             openWorldHint: false,

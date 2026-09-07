@@ -26,12 +26,17 @@ Hermes 連的是 Console 自己的 Workspace MCP（`/api/mcp`）。Console 收�
 
 Workspace MCP 名稱：
 
+- `lumen_list_tools`：列出遠端工具，Runtime 前綴 `mcp.lumen`
 - `lumen_health`：探測
 - `lumen_utter`：口語開案、改畫板
 - `lumen_get_session` / `lumen_list_board` / `lumen_get_research`
 - `lumen_save_directions`：保存 3–5 個方向，等待使用者選定
 - `lumen_lock_style` / `lumen_list_receipts`
 
-Runtime 名稱是 `mcp.lumen.lumen_utter`。兩個都指向同一創作台。選定方向沒有模型工具。
+Runtime 名稱是 `mcp.lumen.lumen_utter`。兩個都指向同一創作台。選定方向沒有模型工具。Hermes 讀得到頂層 `speech`／`name`／`cards`，不必再拆 `data`。
 
 探測通過只代表有真實工具清單。畫板上有沒有卡片，要看 `lumen_list_receipts` 是否出現 `hermes-console` 來源。
+
+## 意圖路由
+
+`routeToolsets` 在使用者提到 Lumen、創作台、海報、文宣、招新、茶會、畫板、三個方向、Style DNA 時會選 `lumen`（攤位仍走 planform，動畫仍走 FrameLab，一般剪輯仍走 cutos）。Hermes 任務指示在 `LUMEN_MCP_URL`＋至少 32 字元 `TOKEN` 已設定時會注入 `lumenTaskInstructions()`，要求 Agent 真的呼叫 `lumen_*`，不得用文字假裝已開畫板。選定方向留給使用者，不要呼叫 `choose_direction`。

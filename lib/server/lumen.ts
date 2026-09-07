@@ -20,6 +20,7 @@ const direction = z
   .strict();
 
 export const lumenSchemas = {
+  lumen_list_tools: z.object({ ...context }).strict(),
   lumen_health: z.object({ ...context }).strict(),
   lumen_utter: z
     .object({
@@ -44,6 +45,8 @@ export const lumenSchemas = {
 export type LumenToolName = keyof typeof lumenSchemas;
 
 export const lumenDescriptions: Record<LumenToolName, string> = {
+  lumen_list_tools:
+    "列出 Lumen MCP 工具名稱。Hermes 經 Workspace MCP 呼叫，不必另開第二條連線。GitHub 倉庫網址不是 MCP。",
   lumen_health:
     "探測 Lumen Streamable HTTP MCP 是否可達。只回傳協定與工具名稱，不含權杖。Hermes Console 驗證連線時可先呼叫。",
   lumen_utter:
@@ -63,8 +66,24 @@ export function lumenConfigured() {
   return !!(runtimeEnv("LUMEN_MCP_URL") && token && token.length >= 32);
 }
 
+/** Injected into Hermes task instructions so the agent actually calls lumen_*. */
+export function lumenTaskInstructions() {
+  if (!lumenConfigured()) return "";
+  return [
+    "",
+    "Lumen 創作台已連線。提到開案、海報、文宣、招新、茶會、畫板、三個方向、Style DNA 時必須呼叫工作區 lumen_*（或 Runtime mcp.lumen.*），不要用文字假裝已開畫板。",
+    "先 lumen_list_tools 或 lumen_health，口語一律 lumen_utter。不要叫使用者填 prompt 表單。",
+    "你整理好的三到五個方向用 lumen_save_directions 放到畫板，等待使用者在 Lumen 或 Console 選定。不要呼叫不存在的 choose_direction。",
+    "讀畫板走 lumen_get_session／lumen_list_board；校色未核到就標未確認。GitHub 倉庫網址不是 MCP。",
+  ].join("\n");
+}
+
 export function isLumenTool(name: string): name is LumenToolName {
   return Object.prototype.hasOwnProperty.call(lumenSchemas, name);
+}
+
+export function lumenWriteTool(name: string) {
+  return /lumen_utter|lumen_lock_style|lumen_save_directions/.test(name);
 }
 
 export function lumenStatus() {
@@ -95,7 +114,7 @@ export function lumenStatus() {
     id: "lumen",
     name: "Lumen 創作台",
     state: "partial" as const,
-    detail: "已設定端點與服務憑證。Hermes 可經 Workspace MCP 呼叫 lumen_utter；探測通過代表有真實工具清單。",
+    detail: "已設定端點與服務憑證。Hermes 可經 Workspace MCP 呼叫 lumen_*；探測通過代表有真實工具清單。文宣意圖必須真的呼叫，不要用文字假裝已開畫板。",
   };
 }
 
@@ -215,6 +234,7 @@ function unwrapToolResult(result: unknown): Record<string, unknown> {
       structuredContent?: Record<string, unknown>;
       content?: Array<{ type?: string; text?: string }>;
       isError?: boolean;
+      tools?: unknown;
     };
     if (rec.isError) {
       const text = rec.content?.find((c) => c.type === "text")?.text;
@@ -225,13 +245,16 @@ function unwrapToolResult(result: unknown): Record<string, unknown> {
       );
     }
     if (rec.structuredContent && typeof rec.structuredContent === "object")
-      return rec.structuredContent;
+      return flattenLumenPayload(rec.structuredContent);
+    if (Array.isArray(rec.tools)) {
+      return { tools: rec.tools, count: rec.tools.length, runtimePrefix: "mcp.lumen" };
+    }
     const text = rec.content?.find((c) => c.type === "text")?.text;
     if (text) {
       try {
         const parsed = JSON.parse(text) as unknown;
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
-          return parsed as Record<string, unknown>;
+          return flattenLumenPayload(parsed as Record<string, unknown>);
       } catch {
         return { text };
       }
@@ -240,25 +263,56 @@ function unwrapToolResult(result: unknown): Record<string, unknown> {
   throw new ApiError(502, "lumen_empty", "Lumen 沒有回傳可用結果。");
 }
 
+/** Hermes reads top-level fields. Keep project nested, also lift name/cards/directions. */
+export function flattenLumenPayload(sc: Record<string, unknown>): Record<string, unknown> {
+  const project = sc.project;
+  if (!project || typeof project !== "object" || Array.isArray(project)) return sc;
+  const p = project as Record<string, unknown>;
+  return {
+    ...sc,
+    name: sc.name ?? p.name,
+    speech: sc.speech ?? p.speech,
+    cards: sc.cards ?? p.cards,
+    directions: sc.directions ?? p.directions,
+    dna: sc.dna ?? p.dna,
+    research: sc.research ?? p.research,
+    selectedDirection: sc.selectedDirection ?? p.selectedDirection,
+  };
+}
+
 export async function invokeLumen(
   name: LumenToolName,
   args: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
-  const forwarded = {
-    ...remoteArgs(name, args),
-    ...(typeof args.taskId === "string" ? { taskId: args.taskId } : {}),
-    ...(typeof args.toolCallId === "string" ? { toolCallId: args.toolCallId } : {}),
-  };
-  const call = (sessionId?: string) =>
-    lumenRpc("tools/call", { name, arguments: forwarded }, sessionId, 60_000);
-  try {
+  const run = async (fresh: boolean) => {
+    if (fresh) cachedSession = undefined;
     cachedSession ??= await handshake();
-    return unwrapToolResult((await call(cachedSession)).result);
+    if (name === "lumen_list_tools") {
+      const listed = await lumenRpc("tools/list", {}, cachedSession, 20_000);
+      const tools =
+        listed.result && typeof listed.result === "object"
+          ? (listed.result as { tools?: Array<{ name: string; description?: string }> }).tools || []
+          : [];
+      return {
+        tools: tools.map((t) => ({ name: t.name, description: redact(t.description || "") })),
+        count: tools.length,
+        runtimePrefix: "mcp.lumen",
+      };
+    }
+    const forwarded = {
+      ...remoteArgs(name, args),
+      ...(typeof args.taskId === "string" ? { taskId: args.taskId } : {}),
+      ...(typeof args.toolCallId === "string" ? { toolCallId: args.toolCallId } : {}),
+    };
+    return unwrapToolResult(
+      (await lumenRpc("tools/call", { name, arguments: forwarded }, cachedSession, 60_000)).result,
+    );
+  };
+  try {
+    return await run(false);
   } catch (error) {
-    cachedSession = undefined;
-    cachedSession = await handshake();
     try {
-      return unwrapToolResult((await call(cachedSession)).result);
+      return await run(true);
     } catch {
       throw error;
     }

@@ -27,7 +27,7 @@
 
 ## Lumen 創作台 MCP
 
-Hermes 可呼叫 Lumen 創作台。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `LUMEN_MCP_URL`（`https://…/api/mcp`）與至少 32 字元的 `LUMEN_MCP_TOKEN`，再按「測試 Lumen 連線」。探測成功後 Hermes 可用工作區 `lumen_utter`／`lumen_save_directions`，Runtime 名稱是 `mcp.lumen.lumen_utter`。選定方向留給使用者，不要呼叫 choose。詳見 [Lumen MCP](docs/LUMEN.md)。
+Hermes 可呼叫 Lumen 創作台。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `LUMEN_MCP_URL`（`https://…/api/mcp`）與至少 32 字元的 `LUMEN_MCP_TOKEN`，再按「測試 Lumen 連線」。探測成功後，海報／文宣／招新／茶會意圖會走工作區 `lumen_*`（Runtime `mcp.lumen.*`），口語用 `lumen_utter`。選定方向留給使用者，不要呼叫 choose。詳見 [Lumen MCP](docs/LUMEN.md)。
 
 ## FrameLab 動畫 MCP
 
