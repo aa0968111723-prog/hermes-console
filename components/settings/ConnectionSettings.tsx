@@ -87,6 +87,11 @@ export default function ConnectionSettings({
   const [zeaburKey, setZeaburKey] = useState("");
   const [zeaburValue, setZeaburValue] = useState("");
   const [clearKeys, setClearKeys] = useState<string[]>([]);
+  const [pendingZeabur, setPendingZeabur] = useState<{
+    summary: string;
+    token: string;
+    payload: Record<string, unknown>;
+  } | null>(null);
 
   const apply = useCallback((next: SettingsPayload) => {
     setData(next);
@@ -150,6 +155,38 @@ export default function ConnectionSettings({
     if (!response.ok)
       throw new Error(data.error?.message || "操作失敗，請稍後重試。");
     return data;
+  }
+
+  async function runZeabur(
+    payload: Record<string, unknown>,
+    onDone: (result: Record<string, unknown>) => void,
+  ) {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = (await postJson("settings/zeabur", payload)) as Record<
+        string,
+        unknown
+      > & { needsConfirmation?: boolean; token?: string; summary?: string };
+      if (result.needsConfirmation && result.token) {
+        const { confirmationToken: _ignored, ...rest } = payload;
+        void _ignored;
+        setPendingZeabur({
+          summary: String(result.summary || "此操作需要確認。"),
+          token: String(result.token),
+          payload: rest,
+        });
+        setNotice("請確認後才會真正變更 Zeabur。");
+        return;
+      }
+      setPendingZeabur(null);
+      onDone(result);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function afterSave(next: SettingsPayload, message: string) {
@@ -454,90 +491,73 @@ export default function ConnectionSettings({
           <button
             type="button"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                const result = (await postJson("settings/zeabur", {
-                  action: "push_console_keys",
-                })) as { updated?: string[] };
-                setNotice(
-                  "已推送到 Zeabur：" + (result.updated || []).join("、"),
-                );
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() =>
+              void runZeabur({ action: "push_console_keys" }, (result) =>
+                setNotice("已推送到 Zeabur：" + ((result.updated as string[]) || []).join("、")),
+              )
+            }
           >
             推送 Console 金鑰
           </button>
           <button
             type="button"
             disabled={busy || !zeaburKey || !zeaburValue}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                await postJson("settings/zeabur", {
+            onClick={() =>
+              void runZeabur(
+                {
                   action: "update_env",
                   variables: [{ key: zeaburKey, value: zeaburValue }],
-                });
-                setZeaburValue("");
-                setNotice("已更新 Zeabur 環境變數 " + zeaburKey);
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+                },
+                () => {
+                  setZeaburValue("");
+                  setNotice("已更新 Zeabur 環境變數 " + zeaburKey);
+                },
+              )
+            }
           >
             寫入變數
           </button>
           <button
             type="button"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                const result = (await postJson("settings/zeabur", {
-                  action: "redeploy",
-                })) as { status?: string };
-                setNotice("已要求重新部署：" + (result.status || "已送出"));
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() =>
+              void runZeabur({ action: "redeploy" }, (result) =>
+                setNotice("已要求重新部署：" + String(result.status || "已送出")),
+              )
+            }
           >
             重新部署
           </button>
           <button
             type="button"
             disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              setError("");
-              setNotice("");
-              try {
-                await postJson("settings/zeabur", { action: "restart" });
-                setNotice("已要求重啟服務。");
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
+            onClick={() =>
+              void runZeabur({ action: "restart" }, () => setNotice("已要求重啟服務。"))
+            }
           >
             重啟服務
           </button>
         </div>
+        {pendingZeabur && (
+          <p className="credential-warning">
+            {pendingZeabur.summary}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void runZeabur(
+                  {
+                    ...pendingZeabur.payload,
+                    confirmationToken: pendingZeabur.token,
+                  },
+                  () => setNotice("已確認並執行 Zeabur 操作。"),
+                )
+              }
+            >
+              確認執行
+            </button>
+          </p>
+        )}
 
         <div className="credential-actions">
           <button type="submit" disabled={busy}>

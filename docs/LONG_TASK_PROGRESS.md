@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-P1 Context / Goal / Planner / Tool Router / Fallback implemented locally. Next: P2 Research Executor.
+P2 research executor and P4-C Zeabur confirmation done locally. Next: P3 budget UI / P4 resume UX / P5 task pill.
 
 ## Completed
 
@@ -10,25 +10,27 @@ P1 Context / Goal / Planner / Tool Router / Fallback implemented locally. Next: 
 - Phase 0 baseline: `docs/POST_PR20_BASELINE.md`.
 - P0 certification layer, API, settings panel, evidence kinds.
 - P1 context engine, goal interpreter, planner, tool router, visible fallbacks.
-- Task dialog shows the user-visible plan. Chat-first UI unchanged.
+- P2 allowlisted official-source research executor. `executed=true` only after a real page retrieve.
+- P4-C Zeabur update_env / push keys / redeploy / restart require a server-minted confirmation token.
 
 ## In Progress
 
-- P2 Research Executor (plan → query → source → evidence → claim). `executed=true` only with external evidence.
+- Remaining Agent OS: parallel agents, budget UI, resume sheet, mobile task pill, memory provenance, persistence docs.
 
 ## Blocked
 
-- Live Hermes / Tamkang / Zeabur / Canva credentials are not assumed present.
+- Live Hermes / Tamkang / Zeabur / Canva credentials are not assumed present. No LIVE_EXTERNAL certification yet.
 
 ## Next Action
 
-- Implement `lib/server/research/executor.ts` with allowlisted official-source fetch.
-- Then Zeabur mutation confirmation (P4-C).
+- Add memory provenance fields (source / createdBy / importance / lastUsedAt / confidence) without a second store.
+- Add Task Status pill + bottom sheet (P5) without changing primary nav.
+- Write PERSISTENCE_AUDIT / MULTI_REPLICA_READINESS / OPERATOR_SECURITY.
 
 ## Tests
 
-- command: `npm run typecheck && npm test`
-- result: pass (112 tests) LOCAL_CONTRACT; sharp WASM used only in this android-arm64 agent environment, not committed
+- command: `npm run typecheck && npm test && npm run check:secrets`
+- result: pass (116 tests) LOCAL_CONTRACT; secrets scan PASS. Browser journeys and live probes not run.
 
 ## Important Decisions
 
