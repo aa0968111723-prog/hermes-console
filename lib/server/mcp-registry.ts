@@ -119,6 +119,30 @@ export function configuredMcp() {
         : null,
       readonly: false,
     });
+  if (!configs.some((c) => c.id === "atlas") && runtimeEnv("ATLAS_MCP_URL"))
+    configs.push({
+      id: "atlas",
+      name: "場圖 Atlas",
+      endpoint: runtimeEnv("ATLAS_MCP_URL"),
+      credentialReference: "ATLAS_MCP_TOKEN",
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "lumen") && runtimeEnv("LUMEN_MCP_URL"))
+    configs.push({
+      id: "lumen",
+      name: "Lumen 創作台",
+      endpoint: runtimeEnv("LUMEN_MCP_URL"),
+      credentialReference: "LUMEN_MCP_TOKEN",
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "framelab") && runtimeEnv("FRAMELAB_MCP_URL"))
+    configs.push({
+      id: "framelab",
+      name: "FrameLab",
+      endpoint: runtimeEnv("FRAMELAB_MCP_URL"),
+      credentialReference: "FRAMELAB_MCP_TOKEN",
+      readonly: false,
+    });
   if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length
