@@ -5,6 +5,9 @@ import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
 import { tamkangStatus } from "./tamkang";
 import { galleyStatus } from "./galley";
+import { xunheStatus } from "./xunhe";
+import { lumenStatus } from "./lumen";
+import { framelabStatus } from "./framelab";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -45,6 +48,27 @@ export function integrations(owner: string, h: Health): Integration[] {
         "實際 tools/list 驗證",
         "來源優先；資料不足時不得改用記憶",
       ],
+    },
+    {
+      id: "xunhe",
+      name: "訊核即時情報",
+      pattern: /xunhe|訊核|intel/i,
+      detail: "Hermes 經 MCP 呼叫訊核研究、任務與報告工具。GitHub 倉庫網址不是 MCP。",
+      requirements: ["XUNHE_MCP_URL（訊核 /mcp）", "可選 XUNHE_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "lumen",
+      name: "Lumen 創作台",
+      pattern: /lumen|創作台|海報|文宣|招新|茶會/,
+      detail: "文宣意圖走 lumen_*／mcp.lumen.*；選定方向留給使用者。GitHub 倉庫網址不是 MCP。",
+      requirements: ["連線設定或 LUMEN_MCP_URL／LUMEN_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "framelab",
+      name: "FrameLab",
+      pattern: /framelab|frame.?lab|animation|timeline|inbetween/i,
+      detail: "Hermes 經 MCP 呼叫 FrameLab 動畫工具。GitHub 倉庫網址不是 MCP。",
+      requirements: ["FRAMELAB_MCP_URL（FrameLab /api/mcp）", "FRAMELAB_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "canva",
@@ -160,6 +184,21 @@ export function integrations(owner: string, h: Health): Integration[] {
     if (item.id === "galley") {
       item.state = galley.state as IntegrationState;
       item.detail = galley.detail;
+    }
+    if (item.id === "xunhe") {
+      const xunhe = xunheStatus();
+      item.state = xunhe.state as IntegrationState;
+      item.detail = xunhe.detail;
+    }
+    if (item.id === "lumen") {
+      const lumen = lumenStatus();
+      item.state = lumen.state as IntegrationState;
+      item.detail = lumen.detail;
+    }
+    if (item.id === "framelab") {
+      const framelab = framelabStatus();
+      item.state = framelab.state as IntegrationState;
+      item.detail = framelab.detail;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";

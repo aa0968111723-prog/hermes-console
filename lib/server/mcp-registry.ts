@@ -109,6 +109,38 @@ export function configuredMcp() {
       credentialReference: "GALLEY_MCP_TOKEN",
       readonly: false,
     });
+  if (!configs.some((c) => c.id === "xunhe") && runtimeEnv("XUNHE_MCP_URL"))
+    configs.push({
+      id: "xunhe",
+      name: "訊核即時情報",
+      endpoint: runtimeEnv("XUNHE_MCP_URL"),
+      credentialReference: runtimeEnv("XUNHE_MCP_TOKEN") ? "XUNHE_MCP_TOKEN" : null,
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "atlas") && runtimeEnv("ATLAS_MCP_URL"))
+    configs.push({
+      id: "atlas",
+      name: "場圖 Atlas",
+      endpoint: runtimeEnv("ATLAS_MCP_URL"),
+      credentialReference: "ATLAS_MCP_TOKEN",
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "lumen") && runtimeEnv("LUMEN_MCP_URL"))
+    configs.push({
+      id: "lumen",
+      name: "Lumen 創作台",
+      endpoint: runtimeEnv("LUMEN_MCP_URL"),
+      credentialReference: "LUMEN_MCP_TOKEN",
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "framelab") && runtimeEnv("FRAMELAB_MCP_URL"))
+    configs.push({
+      id: "framelab",
+      name: "FrameLab",
+      endpoint: runtimeEnv("FRAMELAB_MCP_URL"),
+      credentialReference: "FRAMELAB_MCP_TOKEN",
+      readonly: false,
+    });
   if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length
