@@ -1,6 +1,6 @@
 # Lumen 創作台 MCP
 
-Hermes Console 把 Lumen 當成外部 MCP 工具來源，接線方式與訊核相同。GitHub 倉庫網址不是 MCP。
+Hermes Console 把 Lumen 當成外部 MCP 工具來源，接線方式與訊核、FrameLab 相同。GitHub 倉庫網址不是 MCP。
 
 ## 連線
 
@@ -20,7 +20,9 @@ Hermes Console 把 Lumen 當成外部 MCP 工具來源，接線方式與訊核�
 
 本機預覽僅在 `HERMES_ALLOW_LOOPBACK_HTTP=true` 時允許 `http://127.0.0.1`。公開部署必須是 HTTPS。
 
-## Hermes 可呼叫的工具
+## Hermes 怎麼呼叫
+
+Hermes 連的是 Console 自己的 Workspace MCP（`/api/mcp`）。Console 收到 `lumen_utter` 後，用同一組權杖轉打 Lumen。不必在 Hermes 再加第二條 MCP。
 
 Workspace MCP 名稱：
 
@@ -31,3 +33,5 @@ Workspace MCP 名稱：
 - `lumen_lock_style` / `lumen_list_receipts`
 
 Runtime 名稱是 `mcp.lumen.lumen_utter`。兩個都指向同一創作台。選定方向沒有模型工具。
+
+探測通過只代表有真實工具清單。畫板上有沒有卡片，要看 `lumen_list_receipts` 是否出現 `hermes-console` 來源。

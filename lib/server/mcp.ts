@@ -40,6 +40,14 @@ import {
   lumenSchemas,
   type LumenToolName,
 } from "./lumen";
+import {
+  invokeFramelab,
+  isFramelabTool,
+  framelabConfigured,
+  framelabDescriptions,
+  framelabSchemas,
+  type FramelabToolName,
+} from "./framelab";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -197,6 +205,19 @@ export function toolsList(owner: string) {
             destructiveHint: false,
             idempotentHint: name !== "lumen_utter",
             openWorldHint: false,
+          },
+        }))
+      : []),
+    ...(framelabConfigured()
+      ? Object.entries(framelabSchemas).map(([name, schema]) => ({
+          name,
+          description: framelabDescriptions[name as FramelabToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: !/create_project|suggest_repair|_call$/.test(name),
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true,
           },
         }))
       : []),
@@ -413,6 +434,12 @@ export async function callTool(
       throw new ApiError(503, "lumen_unconfigured", "尚未設定 LUMEN_MCP_URL。");
     const args = lumenSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeLumen(name, args));
+  }
+  if (isFramelabTool(name)) {
+    if (!framelabConfigured())
+      throw new ApiError(503, "framelab_unconfigured", "尚未設定 FRAMELAB_MCP_URL。");
+    const args = framelabSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeFramelab(name, args));
   }
   if (!Object.prototype.hasOwnProperty.call(schemas, name))
     throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");

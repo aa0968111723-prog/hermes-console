@@ -6,6 +6,7 @@ import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration"
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
 import { lumenStatus } from "./lumen";
+import { framelabStatus } from "./framelab";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -49,6 +50,13 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /lumen|創作台/,
       detail: "Hermes 經 Workspace MCP 呼叫 lumen_utter；選定方向留給使用者。",
       requirements: ["連線設定或 LUMEN_MCP_URL／LUMEN_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "framelab",
+      name: "FrameLab",
+      pattern: /framelab|frame.?lab|animation|timeline|inbetween/i,
+      detail: "Hermes 經 MCP 呼叫 FrameLab 動畫工具。GitHub 倉庫網址不是 MCP。",
+      requirements: ["FRAMELAB_MCP_URL（FrameLab /api/mcp）", "FRAMELAB_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "canva",
@@ -169,6 +177,11 @@ export function integrations(owner: string, h: Health): Integration[] {
       const lumen = lumenStatus();
       item.state = lumen.state as IntegrationState;
       item.detail = lumen.detail;
+    }
+    if (item.id === "framelab") {
+      const framelab = framelabStatus();
+      item.state = framelab.state as IntegrationState;
+      item.detail = framelab.detail;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";
