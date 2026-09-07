@@ -105,6 +105,12 @@ export interface Health {
   models: string[];
   skills: DiscoveryItem[];
   toolsets: DiscoveryItem[];
+  discovery?: Partial<
+    Record<
+      "capabilities" | "skills" | "toolsets",
+      "available" | "unsupported" | "failed"
+    >
+  >;
 }
 export interface DiscoveryItem {
   name: string;

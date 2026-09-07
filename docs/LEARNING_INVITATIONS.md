@@ -69,12 +69,12 @@ SQLite 節點／修訂透過同一資料卷持久化；備份時停止唯一 Con
 
 ## Runtime 與 MCP 動態同步
 
-`/api/runtime` 是唯一的 Hermes 能力快照入口；`/api/runtime/tools`、`/api/runtime/agents` 與 `/api/runtime/mcp` 只是同一快照的篩選視圖。`POST /api/runtime`（`{ "refresh": true }`）會重新探索模型、capabilities、skills、toolsets、MCP `initialize`／`tools/list` 與 Console workspace tools。所有請求仍需受邀 session，寫入動作另驗證 Origin。
+`/api/runtime` 是 Runtime Inspector 的能力快照入口；`/api/runtime/tools`、`/api/runtime/agents` 與 `/api/runtime/mcp` 是同一快照的篩選視圖。旧 `/api/health` 等介面尚未全部改用此入口，不能宣稱全站只有一份探索邏輯。最新主分支採免登入工作區及可配置閘道；寫入動作驗證 Origin，不依賴受邀 session。
 
-快照保存內容 hash、來源、同步／驗證時間、狀態、錯誤與診斷計數；只在內容變更時寫入新狀態。連線失敗時沿用最後快照但標示 `stale`，不把舊工具顯示成最新可用。MCP 工具採 `mcp.<server>.<tool>` 命名，Hermes 原生工具採 `hermes.<toolset>.<tool>`，避免同名工具碰撞。工具檢視器只顯示描述、schema、權限與來源，不顯示 token 或 credential 值。
+快照的內容 hash 排除觀測時間；大清單只在內容變更時保存，小型檢查時間紀錄仍會更新。探索不等於工具執行驗證。MCP 工具採 `mcp.<server>.<tool>` 命名，Hermes 原生工具採 `hermes.<toolset>.<tool>`，避免同名工具碰撞。
 
-`/api/runtime/events` 是單一 SSE 控制平面事件流：先送 `runtime.snapshot`，有變更時送 `tools.updated`，無變更送 heartbeat；斷線由瀏覽器重連並重新查快照。Server 端以 single-flight 合併同一 owner 的同步，避免多個畫面重複打 Hermes。事件流每 8 秒重新探索；不是每秒輪詢所有 endpoint。
+`/api/runtime/events` 訂閱後端共用發布器，沒有每個瀏覽器獨立探索的迴圈。長駐後端約每 30 秒探索，錯誤退避最多約 120 秒並加入抖動；初始載入與手動同步共用 single-flight。每 15 秒 heartbeat；錯過事件 ID 時用完整快照重同步，不宣稱有持久化事件重播。詳見 [同步驗證與限制](RUNTIME_SYNC.md)。
 
-工具綁定透過 `/api/runtime/bindings` 保存專案／Agent 範圍、啟用、優先序、允許／封鎖清單與權限覆寫；Router 只回傳目前 snapshot 中存在且符合 binding 的工具。新增 MCP 或工具不需新增 React 元件；若工具消失，binding 不會使其重新變為可用。Endpoint 仍只能由後端 `CONSOLE_MCP_SERVERS_JSON` 核准，禁止 localhost、私網、URL 憑證與 GitHub repo 偽裝 MCP。
+`/api/runtime/bindings` 目前只接受 Console workspace 工具／general Agent，後端執行前檢查專案綁定，封鎖優先。Hermes 原生／外部 MCP 綁定及權限覆寫尚不支援，會拒絕儲存。MCP Endpoint 必須由後端核准，連線時檢查所有 DNS 答案並將核准 IP 固定到 socket；阻擋私網、metadata、URL 憑證及重導。只有明確啟用的 loopback 測試例外，不能宣稱所有 localhost 一律禁止。
 
 MCP registry 的 `GET /api/mcp-registry` 讀取目前伺服器，`POST` 執行受控的註冊／連線探測；`PATCH` 的 `refresh`／`test` 重新執行 `initialize` 與 `tools/list`，`enable` 重新探測，`disable` 必須先取得一次性 destructive confirmation。停用會清除該 server 的工具快照，下一次同步不會繼續把舊工具當作可用。

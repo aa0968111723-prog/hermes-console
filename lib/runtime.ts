@@ -9,14 +9,25 @@ export type RuntimeStatus =
   | "failed"
   | "stale";
 
-export type ToolPermission = "read" | "draft" | "write" | "publish" | "destructive" | "confirm";
+export type ToolPermission =
+  | "read"
+  | "draft"
+  | "write"
+  | "publish"
+  | "destructive"
+  | "confirm";
 
 export interface ToolDescriptor {
   id: string;
   canonicalName: string;
   displayName: string;
   description: string;
-  source: "hermes-native" | "mcp" | "console-workspace" | "oauth-api" | "project-api";
+  source:
+    | "hermes-native"
+    | "mcp"
+    | "console-workspace"
+    | "oauth-api"
+    | "project-api";
   sourceServer: string | null;
   toolset: string | null;
   inputSchema: Record<string, unknown>;
@@ -57,14 +68,43 @@ export interface HermesRuntimeSnapshot {
   profileId: string;
   models: string[];
   capabilities: Record<string, boolean>;
-  skills: Array<{ name: string; description: string; enabled?: boolean; tools?: string[] }>;
-  toolsets: Array<{ name: string; description: string; enabled?: boolean; tools?: string[] }>;
+  discovery?: Partial<
+    Record<
+      "capabilities" | "skills" | "toolsets",
+      "available" | "unsupported" | "failed"
+    >
+  >;
+  skills: Array<{
+    name: string;
+    description: string;
+    enabled?: boolean;
+    tools?: string[];
+  }>;
+  toolsets: Array<{
+    name: string;
+    description: string;
+    enabled?: boolean;
+    tools?: string[];
+  }>;
   tools: ToolDescriptor[];
   mcpServers: RuntimeMcpServer[];
-  agents: Array<Pick<AgentProfile, "id" | "name" | "displayName" | "description" | "status" | "role" | "enabled" | "lastVerifiedAt" | "lastError"> & {
-    capabilities: Record<string, CapabilityState>;
-    model: string | null;
-  }>;
+  agents: Array<
+    Pick<
+      AgentProfile,
+      | "id"
+      | "name"
+      | "displayName"
+      | "description"
+      | "status"
+      | "role"
+      | "enabled"
+      | "lastVerifiedAt"
+      | "lastError"
+    > & {
+      capabilities: Record<string, CapabilityState>;
+      model: string | null;
+    }
+  >;
   sessionsSupport: RuntimeStatus;
   runsSupport: RuntimeStatus;
   memorySupport: RuntimeStatus;
