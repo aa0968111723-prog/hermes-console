@@ -48,6 +48,9 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
     assert.match(RESEARCH_INSTRUCTIONS, /IRB/);
     assert.match(RESEARCH_INSTRUCTIONS, /不.*代替/);
     assert.match(RESEARCH_INSTRUCTIONS, /禁止捏造/);
+    assert.doesNotMatch(RESEARCH_INSTRUCTIONS, /已通過電子信箱邀請登入/);
+    assert.match(RESEARCH_INSTRUCTIONS, /免登入的共用工作區/);
+    assert.doesNotMatch(RESEARCH_INSTRUCTIONS, /租戶隔離|已通過 IRB/);
     assert.equal(specialistInstructions("research"), RESEARCH_INSTRUCTIONS);
     assert.equal(specialistInstructions("creative"), null);
   });
@@ -56,6 +59,8 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
     assert.match(ADMIN_INSTRUCTIONS, /禁止發明制度事實/);
     assert.match(ADMIN_INSTRUCTIONS, /待確認/);
     assert.match(ADMIN_INSTRUCTIONS, /不代表所辦/);
+    assert.doesNotMatch(ADMIN_INSTRUCTIONS, /已通過電子信箱邀請登入/);
+    assert.match(ADMIN_INSTRUCTIONS, /免登入的共用工作區/);
     assert.equal(specialistInstructions("admin"), ADMIN_INSTRUCTIONS);
   });
 
@@ -85,6 +90,15 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
     const body = await created.json();
     assert.equal(body.conversation.assistantMode, "research");
     assert.equal(body.conversation.title, "教心所研究筆記");
+    assert.equal(body.conversation.researchBundle.executed, false);
+    assert.ok(body.conversation.researchBundle.queries.length > 0);
+    assert.deepEqual(body.conversation.researchBundle.sources, []);
+    assert.ok(
+      body.conversation.researchBundle.sourceDirectory.every(
+        (item: { retrievedAt: string | null; verification: string }) =>
+          item.retrievedAt === null && item.verification === "not_fetched",
+      ),
+    );
   });
 
   await t.test("omitted mode keeps the default creative console path", async () => {
@@ -93,6 +107,7 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
     );
     const body = await created.json();
     assert.equal(body.conversation.assistantMode, "creative");
+    assert.equal(body.conversation.researchBundle, undefined);
     assert.equal(specialistInstructions("creative"), null);
   });
 });

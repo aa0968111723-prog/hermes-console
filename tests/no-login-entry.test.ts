@@ -44,6 +44,21 @@ test("no-login entry contracts", async (t) => {
     assert.ok(page.includes("HermesConsole"));
   });
 
+  await t.test("FEATURE_AUDIT matches no-login workspace and stub research", async () => {
+    const audit = await readFile(
+      new URL("../docs/FEATURE_AUDIT_EDU.md", import.meta.url),
+      "utf8",
+    );
+    assert.match(audit, /免登入/);
+    assert.match(audit, /InvitationGate/);
+    assert.match(audit, /researchBundle/);
+    assert.match(audit, /executed: false/);
+    assert.match(audit, /API only/);
+    assert.doesNotMatch(audit, /正式必填/);
+    assert.doesNotMatch(audit, /公開部署沒有閘道會 fail closed/);
+    assert.doesNotMatch(audit, /GET 回 `no-login`/);
+  });
+
   await t.test("authenticate is no-login single workspace", () => {
     assert.equal(
       security.authenticate(new Request("http://localhost:3212/api/workspace")),

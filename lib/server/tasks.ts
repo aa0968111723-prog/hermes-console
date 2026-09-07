@@ -23,6 +23,10 @@ import {
   parseAssistantMode,
   specialistInstructions,
 } from "../assistant-modes";
+import {
+  formatResearchPlanForInstructions,
+  researchBundle,
+} from "./research/providers";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -189,6 +193,8 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
   };
+  const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
+  if (mode === "research") task.researchBundle = researchBundle({ prompt: input.input });
   const reserved = transaction(() => {
     const duplicate = list<Task>("task", owner).find(
       (t) => t.requestKey === input.requestKey,
@@ -218,7 +224,8 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       attachments: input.attachments,
       taskId: task.id,
     });
-    conv.assistantMode = parseAssistantMode(input.mode ?? conv.assistantMode);
+    conv.assistantMode = mode;
+    if (task.researchBundle) conv.researchBundle = task.researchBundle;
     conv.updatedAt = now();
     put("conversation", owner, conv);
     return task;
@@ -282,6 +289,7 @@ async function execute(
       })),
     );
     const mode = parseAssistantMode(conv.assistantMode);
+    const plan = task.researchBundle;
     const instructions =
       (specialistInstructions(mode) || creativeInstructions) +
       "\n目前專案識別：" +
@@ -290,7 +298,8 @@ async function execute(
       task.id +
       "。助手模式：" +
       mode +
-      "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。";
+      "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
+      (plan ? "\n" + formatResearchPlanForInstructions(plan) : "");
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);
