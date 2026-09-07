@@ -827,7 +827,7 @@ export default function HermesConsole() {
                 ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
-                  : "Agent"}
+                  : nav === "tasks" ? "任務" : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
