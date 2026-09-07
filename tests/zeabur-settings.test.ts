@@ -154,31 +154,50 @@ test("Zeabur settings vault and mocked GraphQL operations", async (t) => {
         HERMES_API_URL: "https://hermes.example.invalid",
       }),
     );
-    const pushed = await zeaburRoute.POST(
+    const prepared = await zeaburRoute.POST(
       request("settings/zeabur", "POST", { action: "push_console_keys" }),
+    );
+    assert.equal(prepared.status, 200);
+    const prep = await prepared.json();
+    assert.equal(prep.needsConfirmation, true);
+    assert.equal(typeof prep.token, "string");
+
+    const pushed = await zeaburRoute.POST(
+      request("settings/zeabur", "POST", {
+        action: "push_console_keys",
+        confirmationToken: prep.token,
+      }),
     );
     assert.equal(pushed.status, 200);
     const body = await pushed.json();
     assert.ok(body.updated.includes("HERMES_API_KEY"));
     assert.ok(!JSON.stringify(body).includes("hermes-from-console-zzzz"));
 
-    const edited = await zeaburRoute.POST(
-      request("settings/zeabur", "POST", {
-        action: "update_env",
-        variables: [{ key: "HERMES_MODEL", value: "fixture-agent" }],
-      }),
-    );
+    async function confirm(actionBody: Record<string, unknown>) {
+      const first = await zeaburRoute.POST(
+        request("settings/zeabur", "POST", actionBody),
+      );
+      const minted = await first.json();
+      assert.equal(minted.needsConfirmation, true);
+      return zeaburRoute.POST(
+        request("settings/zeabur", "POST", {
+          ...actionBody,
+          confirmationToken: minted.token,
+        }),
+      );
+    }
+
+    const edited = await confirm({
+      action: "update_env",
+      variables: [{ key: "HERMES_MODEL", value: "fixture-agent" }],
+    });
     assert.equal(edited.status, 200);
 
-    const redeployed = await zeaburRoute.POST(
-      request("settings/zeabur", "POST", { action: "redeploy" }),
-    );
+    const redeployed = await confirm({ action: "redeploy" });
     assert.equal(redeployed.status, 200);
     assert.equal((await redeployed.json()).status, "BUILDING");
 
-    const restarted = await zeaburRoute.POST(
-      request("settings/zeabur", "POST", { action: "restart" }),
-    );
+    const restarted = await confirm({ action: "restart" });
     assert.equal(restarted.status, 200);
     assert.equal((await restarted.json()).ok, true);
   });
