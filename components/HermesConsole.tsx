@@ -28,16 +28,21 @@ import {
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
+import { buildDirectionChatPrompt, EXTENSION_SHORTCUTS, type ExtensionTopic } from "@/lib/client/chat-bridge";
 import MessageBody from "./MessageBody";
 import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
+import RuntimeInspector from "./RuntimeInspector";
 import InspirationBoard from "./inspiration/InspirationBoard";
+import ProjectWorkbench from "./ProjectWorkbench";
+import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
-import CreativeIntelligenceView from "./CreativeIntelligenceView";
+import ConnectionSettings from "./settings/ConnectionSettings";
+import SharedMemory from "./settings/SharedMemory";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
-import type { CuratedInspirationItem } from "@/lib/server/inspiration/engine";
+import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
 import {
   emptyDraft,
   useComposerDraft,
@@ -148,11 +153,11 @@ export default function HermesConsole() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
   const [nav, setNav] = useState<
-    "chat" | "projects" | "inspiration" | "agents" | "creative_os"
+    "chat" | "projects" | "inspiration" | "agents" | "tasks"
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
-  const [fixtures, setFixtures] = useState<CuratedInspirationItem[]>([]);
+  const [sheetsSync, setSheetsSync] = useState<SheetSyncResult | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(true);
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
@@ -320,19 +325,6 @@ export default function HermesConsole() {
     };
   }, [auth, refresh]);
   useEffect(() => {
-    if (nav === "inspiration") {
-      api<{ items: InspirationItem[]; fixtures?: CuratedInspirationItem[] }>(
-        `inspiration?projectId=${encodeURIComponent(project)}`,
-      )
-        .then((r) => {
-          if (Array.isArray(r.items)) setInspiration(r.items);
-          if (Array.isArray(r.fixtures)) setFixtures(r.fixtures);
-        })
-        .catch(() => {});
-    }
-  }, [nav, project]);
-  useEffect(() => {
-
     const textarea = input.current;
     if (!textarea) return;
     const resize = () => {
@@ -482,6 +474,28 @@ export default function HermesConsole() {
       setBusy(false);
     }
   }
+  async function extendDirection(record: Workflow, index: number, topic: ExtensionTopic) {
+    if (busy || record.projectId !== project) return;
+    setBusy(true);
+    setError("");
+    try {
+      const prompt = buildDirectionChatPrompt(record, index, topic);
+      const result = await api<{ conversation: Conversation }>("conversations", "POST", {
+        title: "延伸：" + record.directions[index].title.slice(0, 55),
+        projectId: record.projectId,
+      });
+      replaceDraft("conversation:" + result.conversation.id, { ...emptyDraft(), text: prompt });
+      setRemoteHistory(null);
+      setActiveId(result.conversation.id);
+      writePreference("hermes.active.v2", result.conversation.id);
+      setNav("chat");
+      await loadWorkspace();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "準備延伸對話失敗，請重試。");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function stopTask(task: Task) {
     try {
       const result = await api<{ task: Task }>("tasks", "PATCH", {
@@ -623,8 +637,8 @@ export default function HermesConsole() {
         .then((result) => setAgents(result.agents))
         .catch(() => {});
     if (next === "inspiration")
-      api<{ items: InspirationItem[] }>("inspiration")
-        .then((result) => setInspiration(result.items))
+      api<{ items: InspirationItem[]; sheetsSync: SheetSyncResult | null }>("inspiration")
+        .then((result) => { setInspiration(result.items); setSheetsSync(result.sheetsSync); })
         .catch(() => {});
   };
   const navigation = (
@@ -643,6 +657,10 @@ export default function HermesConsole() {
         <Pencil size={16} />
       </button>
       <nav aria-label="主要導覽">
+        <button aria-current={nav === "tasks" ? "page" : undefined} onClick={() => navigate("tasks")}>
+          <ListTodo size={19} />
+          任務
+        </button>
         <button
           aria-current={nav === "chat" ? "page" : undefined}
           onClick={() => navigate("chat")}
@@ -670,14 +688,6 @@ export default function HermesConsole() {
         >
           <Bot size={19} />
           Agent
-        </button>
-        <button
-          aria-current={nav === "creative_os" ? "page" : undefined}
-          onClick={() => navigate("creative_os")}
-        >
-          <Sparkles size={19} />
-          <span className="nav-label-full">創意智能 OS</span>
-          <span className="nav-label-short">創意</span>
         </button>
       </nav>
       <div className="side-section">
@@ -758,13 +768,6 @@ export default function HermesConsole() {
     </>
   );
 
-  if (auth === "loading")
-    return (
-      <main className="workspace-loading">
-        <p role="status">正在開啟工作區…</p>
-      </main>
-    );
-
   return (
     <div
       className={"app-shell " + (!sidebar ? "sidebar-closed" : "")}
@@ -824,23 +827,12 @@ export default function HermesConsole() {
                 ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
-                  : nav === "creative_os"
-                    ? "✨ 創意智能 OS"
-                    : "Agent"}
+                  : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
             </span>
           </div>
-          <button
-            type="button"
-            className={`btn-creative-os ${nav === "creative_os" ? "active" : ""}`}
-            onClick={() => navigate(nav === "creative_os" ? "chat" : "creative_os")}
-            title="開啟 Hermes Creative Intelligence OS 全管線"
-          >
-            <span className="nav-label-full">✨ 創意智能 OS</span>
-            <span className="nav-label-short">✨ 創意</span>
-          </button>
           <button
             className="connection-pill"
             onClick={() => {
@@ -935,10 +927,6 @@ export default function HermesConsole() {
                     </button>
                     <div className="starters">
                       {[
-                        [
-                          "🌿 淡江大一禪學社網宣 OS",
-                          "幫我做給淡江大學大一新生看的禪學社茶會網宣",
-                        ],
                         ["幫我找網宣靈感", "幫我找網宣靈感。"],
                         [
                           "幫我做淡江新生海報",
@@ -1333,6 +1321,13 @@ export default function HermesConsole() {
           <section className="secondary-page">
             <p className="eyebrow">收好靈感，接著創作</p>
             <h1>素材與靈感</h1>
+            <ProjectWorkbench key={project} projectId={project} materials={data.materials} workflows={workflows}
+              onCompose={(text) => {
+                if (busy) { setError("請先等目前任務結束或停止，再接續其他作品。"); return; }
+                fresh();
+                replaceDraft("project:" + project, { ...emptyDraft(), text });
+              }}
+            />
             <p className="muted">
               保存來源與你的素材，不將參考作品視為可直接發佈的素材。
             </p>
@@ -1439,33 +1434,29 @@ export default function HermesConsole() {
         ) : nav === "inspiration" ? (
           <InspirationBoard
             items={inspiration}
-            fixtures={fixtures}
-            notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
-            projectId={project}
-            onIngest={(newItem) => {
-              setInspiration((prev) => [
-                newItem,
-                ...prev.filter((i) => i.id !== newItem.id),
+            syncStatus={sheetsSync}
+            onSync={async () => {
+              const result = await api<{ sheetsSync: SheetSyncResult }>("inspiration", "POST", { action: "sync_sheets" });
+              setSheetsSync(result.sheetsSync);
+              const [updated, workspace] = await Promise.all([
+                api<{ items: InspirationItem[] }>("inspiration"),
+                api<Workspace>("workspace"),
               ]);
+              setInspiration(updated.items);
+              setData(workspace);
             }}
+            notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
           />
-        ) : nav === "creative_os" ? (
-
-          <CreativeIntelligenceView
-            initialPrompt="幫我做給淡江大學大一新生看的禪學社茶會網宣"
-            defaultProject={project}
-            onSelectProject={(p) => setProject(p)}
-            onSendChatMessage={(msg) => {
-              setText(msg);
-              setNav("chat");
-              setTimeout(() => input.current?.focus(), 100);
-            }}
-            onBack={() => setNav("chat")}
-          />
-
+        ) : nav === "agents" ? (
+          <section className="secondary-page">
+            <p className="eyebrow">即時能力與工具</p>
+            <h1>Agent Runtime</h1>
+            <p className="muted">Agent、Tools、Skills、Toolsets 與 MCP 以 Hermes Runtime 探索結果為準。</p>
+            <AgentPanel agents={agents} brain={[]} />
+            <RuntimeInspector />
+          </section>
         ) : (
           <section className="secondary-page">
-            <AgentPanel agents={agents} brain={[]} project={project} />
             <p className="eyebrow">每一步都有紀錄</p>
             <h1>任務</h1>
             <p className="muted">這裡只呈現後端儲存及 Hermes 回報的狀態。</p>
@@ -1543,6 +1534,20 @@ export default function HermesConsole() {
                             "選擇這個方向"
                           )}
                         </button>
+                        <details>
+                          <summary>延伸創作與匯出</summary>
+                          <p className="muted">準備同專案新對話草稿；按送出後才執行。原方向不會被覆寫。</p>
+                          <div className="credential-actions">
+                            {EXTENSION_SHORTCUTS.map(shortcut => (
+                              <button key={shortcut.topic} disabled={busy} onClick={() => extendDirection(w, index, shortcut.topic)}>
+                                {shortcut.label}
+                              </button>
+                            ))}
+                          </div>
+                          <a className="button-link" href={"/api/workflows/export?id=" + w.id + "&direction=" + index}>
+                            <Download size={16} />下載方向 Markdown
+                          </a>
+                        </details>
                       </article>
                     ))}
                   </div>
@@ -1813,9 +1818,19 @@ export default function HermesConsole() {
                       <RefreshCw size={16} />
                       {busy ? "驗證中…" : "重新驗證連線"}
                     </button>
-                    <p className="muted">
-                      網址、金鑰只在後端設定。此處不收集或顯示金鑰。
-                    </p>
+                    <ConnectionSettings
+                      onChanged={async () => {
+                        try {
+                          setHealth(await api<Health>("health", "POST", {}));
+                          const result = await api<{
+                            integrations: Integration[];
+                          }>("integrations");
+                          setIntegrations(result.integrations);
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    />
                     <IntegrationHealth items={integrations} />
                     <h3>Canva Connect 授權</h3>
                     <p>
@@ -1894,10 +1909,13 @@ export default function HermesConsole() {
                 ) : settingsTab === "記憶" ? (
                   <div className="settings-stack">
                     <h3>記憶與會話</h3>
+                    <SharedMemory projectId={project} />
+                    <LearningMap key={project} projectId={project} skills={health?.skills || []} materials={data.materials}
+                      onTask={id => { setSelectedTask(id); setPanel("task"); }} />
                     <p>{data.memory.scope}</p>
                     <p className="muted">
-                      未取得可驗證的記憶管理介面，不提供假同步、假刪除或本地記憶清單。Console
-                      對話歷史與 Hermes 長期記憶是不同資料。
+                      上方「共用記憶庫」是 Console SQLite，Hermes 可經 Workspace MCP 與任務指示讀寫同一批資料。
+                      學習地圖仍是「請 Hermes 學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
                     </p>
                     <button
                       disabled={!activeConv?.hermesSessionId}

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ApiError, hash, redact } from "./security";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest } from "./canva";
+import { activity } from "./creative";
 const url = z
   .string()
   .url()
@@ -31,6 +32,7 @@ const direction = z
 export const directionsInput = z
   .object({
     projectId: z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/),
+    activityId: z.string().uuid().optional(),
     brief: z.string().min(1).max(10_000),
     directions: z.array(direction).min(3).max(5),
   })
@@ -38,6 +40,7 @@ export const directionsInput = z
 export interface Workflow {
   id: string;
   projectId: string;
+  activityId?: string;
   brief: string;
   directions: z.infer<typeof direction>[];
   selected: number | null;
@@ -59,6 +62,17 @@ export function saveDirections(
   owner: string,
   input: z.infer<typeof directionsInput>,
 ) {
+  input = directionsInput.parse(input);
+  if (redact(JSON.stringify(input)) !== JSON.stringify(input))
+    throw new ApiError(400, "sensitive_content", "創作方向不能包含憑證。");
+  if (input.activityId) {
+    const info = activity(owner, input.activityId);
+    if (info.projectId !== input.projectId)
+      throw new ApiError(403, "activity_scope", "活動不屬於此專案。");
+    const text = JSON.stringify(input);
+    if (info.facts.some(f => f.visibility === "private" && text.includes(f.value)))
+      throw new ApiError(403, "private_content", "創作方向不能包含私人活動資訊。");
+  }
   if (input.projectId !== "personal" && !get("project", owner, input.projectId))
     throw new ApiError(404, "project_not_found", "專案不存在。");
   // Replay identical model calls without creating duplicate workflows.

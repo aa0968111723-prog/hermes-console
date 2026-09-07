@@ -65,3 +65,4 @@ None.
 
 ## Next Phase
 None. Phase 12 Done Gate committed. Scheduler should stop.
+> 歷史紀錄：下列為舊分支的階段敘述，不是目前能力或實測證據。新版相容處理及移除項目見 PR10_RECONCILIATION.md。

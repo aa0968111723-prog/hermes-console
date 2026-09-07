@@ -62,7 +62,12 @@ export const POST = route(async (req) => {
       });
     try {
       return result(
-        await callTool(owner, args.data.name, args.data.arguments || {}),
+        await callTool(
+          owner,
+          args.data.name,
+          args.data.arguments || {},
+          message.id,
+        ),
       );
     } catch {
       return respond({

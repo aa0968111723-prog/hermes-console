@@ -19,6 +19,18 @@ import {
 import { recordTaskUsage } from "./usage";
 import { attachmentParts, material } from "./materials";
 import { frames } from "./sse";
+import {
+  parseAssistantMode,
+  specialistInstructions,
+} from "../assistant-modes";
+import {
+  formatResearchPlanForInstructions,
+  researchBundle,
+} from "./research/providers";
+import { runtimeEnv } from "./credentials";
+import { memoryDigest } from "./memory";
+import { framelabTaskInstructions } from "./framelab";
+import { lumenTaskInstructions } from "./lumen";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -38,6 +50,7 @@ export const taskInput = z
     requestKey: z.string().uuid(),
     input: z.string().trim().min(1).max(20_000),
     attachments: z.array(z.string().uuid()).max(4).default([]),
+    mode: z.enum(["creative", "research", "admin"]).optional(),
   })
   .strict();
 function save(owner: string, task: Task) {
@@ -184,6 +197,8 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
   };
+  const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
+  if (mode === "research") task.researchBundle = researchBundle({ prompt: input.input });
   const reserved = transaction(() => {
     const duplicate = list<Task>("task", owner).find(
       (t) => t.requestKey === input.requestKey,
@@ -213,6 +228,8 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       attachments: input.attachments,
       taskId: task.id,
     });
+    conv.assistantMode = mode;
+    if (task.researchBundle) conv.researchBundle = task.researchBundle;
     conv.updatedAt = now();
     put("conversation", owner, conv);
     return task;
@@ -275,13 +292,21 @@ async function execute(
           : m.content,
       })),
     );
+    const mode = parseAssistantMode(conv.assistantMode);
+    const plan = task.researchBundle;
     const instructions =
-      creativeInstructions +
+      (specialistInstructions(mode) || creativeInstructions) +
       "\n目前專案識別：" +
       conv.projectId +
       "；Console taskId：" +
       task.id +
-      "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。";
+      "。助手模式：" +
+      mode +
+      "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
+      (plan ? "\n" + formatResearchPlanForInstructions(plan) : "") +
+      framelabTaskInstructions() +
+      lumenTaskInstructions() +
+      memoryDigest(owner, conv.projectId);
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);
@@ -295,7 +320,7 @@ async function execute(
             headers: { ...headers, "Idempotency-Key": task.id },
             body: JSON.stringify({
               input: task.input,
-              model: process.env.HERMES_MODEL || "hermes-agent",
+              model: runtimeEnv("HERMES_MODEL") || "hermes-agent",
               instructions,
               session_id: conv.hermesSessionId || undefined,
               conversation_history: history,
@@ -324,7 +349,7 @@ async function execute(
         method: "POST",
         headers,
         body: JSON.stringify({
-          model: process.env.HERMES_MODEL || "hermes-agent",
+          model: runtimeEnv("HERMES_MODEL") || "hermes-agent",
           stream: true,
           messages: [
             { role: "system", content: instructions },

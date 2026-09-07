@@ -1,7 +1,12 @@
 "use client";
 
+import ConsoleErrorBoundary from "@/components/ConsoleErrorBoundary";
 import HermesConsole from "@/components/HermesConsole";
 
 export default function Page() {
-  return <HermesConsole />;
+  return (
+    <ConsoleErrorBoundary>
+      <HermesConsole />
+    </ConsoleErrorBoundary>
+  );
 }

@@ -5,14 +5,11 @@ import {
   instagramPublishStatus,
   requestPublishConfirmation,
 } from "@/lib/server/publish";
-
 export const runtime = "nodejs";
-
 export const GET = route(async (req) => {
   authenticate(req);
   return respond(instagramPublishStatus());
 });
-
 export const POST = route(async (req) => {
   authenticate(req, true);
   const body = z
@@ -23,13 +20,10 @@ export const POST = route(async (req) => {
       token: z.string().optional(),
       confirmed: z.boolean().optional(),
       prepare: z.boolean().optional(),
-      allowSandbox: z.boolean().optional(),
-      idempotencyKey: z.string().max(100).optional(),
     })
     .strict()
     .parse(await jsonBody(req));
-
-  if (body.prepare) {
+  if (body.prepare)
     return respond(
       requestPublishConfirmation({
         caption: body.caption,
@@ -37,8 +31,6 @@ export const POST = route(async (req) => {
         target: body.target,
       }),
     );
-  }
-
-  const result = confirmPublish(body);
-  return respond({ ok: true, result });
+  confirmPublish(body);
+  return respond({ ok: false });
 });

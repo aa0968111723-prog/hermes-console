@@ -1,7 +1,7 @@
 export const SIMULATION = {
   simulation: true as const,
-  method: "ai_heuristic" as const,
-  disclaimer: "AI 模擬評估，不代表真實市場調查。",
+  method: "rule_heuristic" as const,
+  disclaimer: "規則式模擬評估，未呼叫 AI 模型，不代表真實市場調查。",
 };
 
 export const EVAL_METRICS = [
@@ -93,7 +93,7 @@ export interface GraphEdge {
 
 export interface EvaluationScores {
   simulation: true;
-  method: "ai_heuristic";
+  method: "rule_heuristic";
   disclaimer: string;
   scores: Record<EvalMetric, number>;
 }

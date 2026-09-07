@@ -24,6 +24,9 @@ export interface Usage {
   toolCost: number | null;
 }
 export interface TaskEvent {
+  toolCallId?: string | null;
+  errorCode?: string;
+  retryable?: boolean;
   id: string;
   taskId: string;
   toolName: string | null;
@@ -55,6 +58,8 @@ export interface Conversation {
   updatedAt: string;
   parentId?: string;
   legacyId?: string;
+  assistantMode?: "creative" | "research" | "admin";
+  researchBundle?: ResearchBundle;
 }
 export interface Task {
   id: string;
@@ -75,6 +80,32 @@ export interface Task {
   events: TaskEvent[];
   usage: Usage;
   stopSupported: boolean;
+  researchBundle?: ResearchBundle;
+}
+export interface ResearchSourceRecord {
+  id: string;
+  url: string;
+  provider: string;
+  title: string;
+  excerpt: string;
+  retrievedAt: string | null;
+  publishedAt: string | null;
+  official: boolean;
+  confidence: number | null;
+  usedFor: string;
+  verification: "not_fetched";
+}
+export interface ResearchBundle {
+  queries: string[];
+  executed: boolean;
+  message: string;
+  sources: unknown[];
+  claims: unknown[];
+  sourceDirectory: ResearchSourceRecord[];
+  fallback: null;
+  suggestedFallback: string;
+  tamkang?: unknown;
+  mapping?: unknown;
 }
 export interface Material {
   id: string;
@@ -101,6 +132,10 @@ export interface Health {
   models: string[];
   skills: DiscoveryItem[];
   toolsets: DiscoveryItem[];
+  configSource?: {
+    hermesUrl: "vault" | "env" | "none";
+    hermesKey: "vault" | "env" | "none";
+  };
 }
 export interface DiscoveryItem {
   name: string;

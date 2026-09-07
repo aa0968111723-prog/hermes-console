@@ -1,7 +1,13 @@
-import { ApiError, route, WORKSPACE_OWNER } from "@/lib/server/security";
+import {
+  ApiError,
+  route,
+  WORKSPACE_OWNER,
+  authenticate,
+} from "@/lib/server/security";
 import { completeCanvaAuth } from "@/lib/server/canva";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
+  authenticate(req);
   const url = new URL(req.url),
     state = url.searchParams.get("state"),
     code = url.searchParams.get("code");

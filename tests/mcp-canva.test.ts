@@ -12,6 +12,8 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-mcp-contract-"),
 );
 process.env.CONSOLE_ORIGIN = "https://console.example";
+// This isolated SDK suite tests tools without a running Hermes task; production defaults true.
+process.env.MCP_REQUIRE_TASK_CONTEXT = "false";
 process.env.MCP_BRIDGE_TOKEN = randomBytes(32).toString("hex");
 process.env.CONSOLE_VAULT_KEY = randomBytes(32).toString("hex");
 const routes = await import("../app/api/mcp/route");

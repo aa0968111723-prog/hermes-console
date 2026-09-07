@@ -16,7 +16,6 @@ export interface ProviderCapabilities {
   resolveUrl: boolean;
   globalSearch: boolean;
   analyze: boolean;
-  liveFetch: boolean;
 }
 
 export interface ProviderHealth {
@@ -37,8 +36,19 @@ export interface InspirationProvider {
   resolveUrl(url: string, projectId: string): InspirationItem | null;
 }
 
+function none(): ProviderCapabilities {
+  return {
+    search: false,
+    resolveUrl: false,
+    globalSearch: false,
+    analyze: false,
+  };
+}
+
 function storedMatch(platform: InspirationPlatform, projectId: string) {
-  return listInspiration(projectId).filter((item) => item.platform === platform);
+  return listInspiration(projectId).filter(
+    (item) => item.platform === platform,
+  );
 }
 
 export const webProvider: InspirationProvider = {
@@ -50,20 +60,20 @@ export const webProvider: InspirationProvider = {
     search: false,
     resolveUrl: true,
     globalSearch: false,
-    analyze: true,
-    liveFetch: false,
+    analyze: false,
   }),
   health: () => ({
     id: "web",
     state: "partial",
-    detail: "可解析使用者 HTTPS 連結；不執行任意全網爬蟲，也不假裝已抓取頁面。",
+    detail: "可解析使用者 HTTPS 連結；不執行任意全網爬蟲。",
     capabilities: webProvider.capabilities(),
   }),
   search: (query, projectId) => storedMatch("web", projectId),
   resolveUrl: (url, projectId) =>
     classifyInspirationUrl(url) === "web"
-      ? storedMatch("web", projectId).find((item) => canonicalUrl(item.sourceUrl) === canonicalUrl(url)) ||
-        null
+      ? storedMatch("web", projectId).find(
+          (item) => canonicalUrl(item.sourceUrl) === canonicalUrl(url),
+        ) || null
       : null,
 };
 
@@ -76,8 +86,7 @@ export const instagramProvider: InspirationProvider = {
     search: false,
     resolveUrl: true,
     globalSearch: false,
-    analyze: true,
-    liveFetch: false,
+    analyze: false,
   }),
   health: () => {
     const limits = instagramResearchLimits();
@@ -106,8 +115,7 @@ export const pinterestProvider: InspirationProvider = {
     search: false,
     resolveUrl: true,
     globalSearch: false,
-    analyze: true,
-    liveFetch: false,
+    analyze: false,
   }),
   health: () => ({
     id: "pinterest",
@@ -136,7 +144,6 @@ export const canvaProvider: InspirationProvider = {
     resolveUrl: true,
     globalSearch: false,
     analyze: false,
-    liveFetch: false,
   }),
   health: () => {
     const status = canvaStatus(WORKSPACE_OWNER);
@@ -172,7 +179,6 @@ export const projectHistoryProvider: InspirationProvider = {
     resolveUrl: false,
     globalSearch: false,
     analyze: false,
-    liveFetch: false,
   }),
   health: () => ({
     id: "project",
@@ -193,13 +199,13 @@ export const uploadProvider: InspirationProvider = {
     search: false,
     resolveUrl: false,
     globalSearch: false,
-    analyze: true,
-    liveFetch: false,
+    analyze: false,
   }),
   health: () => ({
     id: "upload",
-    state: "available",
-    detail: "分析使用者上傳的截圖／檔案；不是平台搜尋。",
+    state: "unconfigured",
+    detail:
+      "此 provider 尚未接入影像分析；請從對話送出實際附件給已配置的 Hermes。",
     capabilities: uploadProvider.capabilities(),
   }),
   search: () => [],

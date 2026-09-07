@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, readFile } from "node:fs/promises";
@@ -11,6 +12,7 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-contract-"),
 );
 process.env.CONSOLE_ORIGIN = "http://localhost:3210";
+process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_USERNAME = "fixture-owner";
 const password = randomBytes(24).toString("hex"),
   salt = randomBytes(16).toString("hex");
@@ -105,20 +107,16 @@ const address = server.address() as { port: number };
 process.env.HERMES_API_URL = "http://127.0.0.1:" + address.port;
 const security = await import("../lib/server/security");
 const { get, put, list } = await import("../lib/server/store");
-const { health, visibleText, streamPreview, usage } = await import(
-  "../lib/server/hermes"
-);
-const { submit, reconcile, stop, taskFor } = await import(
-  "../lib/server/tasks"
-);
+const { health, visibleText, streamPreview, usage } =
+  await import("../lib/server/hermes");
+const { submit, reconcile, stop, taskFor } =
+  await import("../lib/server/tasks");
 const authRoute = await import("../app/api/auth/route");
 const taskRoute = await import("../app/api/tasks/route");
 const healthRoute = await import("../app/api/health/route");
 const { saveUpload, attachmentParts } = await import("../lib/server/materials");
 const { integrations } = await import("../lib/server/integrations");
-const cookie = security.sessionCookie(
-  security.login("fixture-owner", password),
-);
+const cookie = seedSession().cookie;
 function request(
   path: string,
   method = "GET",
@@ -158,20 +156,18 @@ async function settle(id: string) {
   throw new Error("Fixture task did not settle");
 }
 test("security, honest health, durable tasks, uploads and ownership", async (t) => {
-  await t.test("workspace APIs do not require login cookies", async () => {
+  await t.test("workspace APIs are no-login single workspace", async () => {
     assert.equal(
       (await healthRoute.GET(request("health", "GET", undefined, false)))
         .status,
       200,
     );
     assert.equal(
-      (await authRoute.GET(request("auth", "GET", undefined, false))).status,
-      200,
+      security.authenticate(
+        new Request("http://localhost:3210/api/workspace"),
+      ),
+      "workspace",
     );
-    const body = await (
-      await authRoute.GET(request("auth", "GET", undefined, false))
-    ).json();
-    assert.ok(!/請先登入|login required/i.test(JSON.stringify(body)));
     assert.equal(
       (
         await taskRoute.POST(
@@ -185,7 +181,7 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       403,
     );
   });
-  await t.test("mutations stay origin-bound without a login gate", async () => {
+  await t.test("mutations stay origin-bound; legacy login is rejected", async () => {
     assert.equal(
       (
         await authRoute.POST(
@@ -195,7 +191,7 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
           }),
         )
       ).status,
-      410,
+      400,
     );
     assert.throws(
       () =>
@@ -258,6 +254,34 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       assert.equal(usage(undefined, undefined, null).providerCost, null);
     },
   );
+  await t.test("research mode task includes planned researchBundle", async () => {
+    mode = "chat";
+    await health("owner", true);
+    const task = await submit("owner", {
+      conversationId: conv(),
+      requestKey: randomUUID(),
+      input: "幫我整理學習動機與評量倫理的文獻架構",
+      attachments: [],
+      mode: "research",
+    });
+    assert.equal(task.researchBundle?.executed, false);
+    assert.ok((task.researchBundle?.queries.length || 0) > 0);
+    assert.deepEqual(task.researchBundle?.sources, []);
+    const done = await settle(task.id);
+    assert.equal(done.state, "completed");
+    assert.equal(done.researchBundle?.executed, false);
+    const sent = JSON.stringify(lastBody);
+    assert.match(sent, /尚未執行研究/);
+    assert.match(sent, /executed=false/);
+    assert.ok(!/已完成文獻檢索/.test(sent));
+    const conversation = get<{
+      assistantMode?: string;
+      researchBundle?: { executed: boolean; queries: string[] };
+    }>("conversation", "owner", task.conversationId);
+    assert.equal(conversation?.assistantMode, "research");
+    assert.equal(conversation?.researchBundle?.executed, false);
+    assert.ok((conversation?.researchBundle?.queries.length || 0) > 0);
+  });
   await t.test(
     "split stream succeeds; idempotency prevents duplicate execution",
     async () => {

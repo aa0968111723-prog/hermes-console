@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { ApiError, WORKSPACE_OWNER } from "./security";
-import { list, put } from "./store";
+import { ApiError, WORKSPACE_OWNER, hash, redact } from "./security";
+import { get, list, put } from "./store";
+import { canonicalUrl } from "./inspiration/dedupe";
 import { wrapUntrusted } from "./untrusted";
 
 export type InspirationPlatform =
@@ -44,22 +45,31 @@ const httpsUrl = z
     );
   }, "只接受不含帳密的公開 HTTPS 網址。");
 
-export function classifyInspirationUrl(raw: string): InspirationPlatform | null {
+export function classifyInspirationUrl(
+  raw: string,
+): InspirationPlatform | null {
   const parsed = httpsUrl.safeParse(raw);
   if (!parsed.success) return null;
   const host = new URL(parsed.data).hostname.replace(/^www\./, "");
   if (host === "instagram.com" || host.endsWith(".instagram.com"))
     return "instagram";
-  if (host === "pinterest.com" || host.endsWith(".pinterest.com") || host === "pin.it")
+  if (
+    host === "pinterest.com" ||
+    host.endsWith(".pinterest.com") ||
+    host === "pin.it"
+  )
     return "pinterest";
   if (host === "behance.net" || host.endsWith(".behance.net")) return "behance";
-  if (host === "dribbble.com" || host.endsWith(".dribbble.com")) return "dribbble";
+  if (host === "dribbble.com" || host.endsWith(".dribbble.com"))
+    return "dribbble";
   if (host === "canva.com" || host.endsWith(".canva.com")) return "canva";
   return "web";
 }
 
 export function parseHashtags(text: string) {
-  return [...text.matchAll(/#([\p{L}\p{N}_]+)/gu)].map((match) => match[1]).slice(0, 30);
+  return [...text.matchAll(/#([\p{L}\p{N}_]+)/gu)]
+    .map((match) => match[1])
+    .slice(0, 30);
 }
 
 export function ingestUrl(input: {
@@ -70,17 +80,29 @@ export function ingestUrl(input: {
   media?: string;
   sourceType?: InspirationItem["sourceType"];
 }): InspirationItem {
-  const url = httpsUrl.parse(input.url);
+  if (
+    input.projectId !== "personal" &&
+    !get("project", WORKSPACE_OWNER, input.projectId)
+  )
+    throw new ApiError(404, "project_not_found", "專案不存在。");
+  if (redact(JSON.stringify(input)) !== JSON.stringify(input))
+    throw new ApiError(400, "sensitive_content", "參考資訊不能包含憑證。");
+  const url = canonicalUrl(httpsUrl.parse(input.url));
+  const duplicate = listInspiration(input.projectId).find(
+    (item) => canonicalUrl(item.sourceUrl) === url,
+  );
+  if (duplicate) return duplicate;
   const platform = classifyInspirationUrl(url);
-  if (!platform)
-    throw new ApiError(400, "invalid_url", "無法辨識此靈感網址。");
+  if (!platform) throw new ApiError(400, "invalid_url", "無法辨識此靈感網址。");
   const item: InspirationItem = {
-    id: Buffer.from(url).toString("base64url").slice(0, 48),
+    id: hash(input.projectId + "\n" + url),
     image: input.media || null,
     platform,
     sourceUrl: url,
     account: input.account || null,
-    captionExcerpt: input.caption ? wrapUntrusted("caption", input.caption).slice(0, 500) : null,
+    captionExcerpt: input.caption
+      ? wrapUntrusted("caption", input.caption).slice(0, 500)
+      : null,
     media: input.media || null,
     hashtags: parseHashtags(input.caption || ""),
     analysis: "已收藏使用者提供的來源連結；尚未宣稱已搜尋該平台全站。",
@@ -89,7 +111,7 @@ export function ingestUrl(input: {
     risk: "參考素材不代表可用於正式發佈。",
     collectedAt: new Date().toISOString(),
     projectId: input.projectId,
-    sourceType: input.sourceType || "user_url",
+    sourceType: "user_url",
     saved: true,
   };
   return put("inspiration", WORKSPACE_OWNER, item);
@@ -97,7 +119,9 @@ export function ingestUrl(input: {
 
 export function listInspiration(projectId?: string) {
   const items = list<InspirationItem>("inspiration", WORKSPACE_OWNER);
-  return projectId ? items.filter((item) => item.projectId === projectId) : items;
+  return projectId
+    ? items.filter((item) => item.projectId === projectId)
+    : items;
 }
 
 export function instagramResearchLimits() {
@@ -106,11 +130,11 @@ export function instagramResearchLimits() {
   );
   return {
     fullSiteSearch: false,
-    authorizedApi: authorized,
-    modes: authorized
-      ? ["user_url", "web_search", "authorized_api"]
-      : ["user_url", "web_search", "public_index"],
-    notice: "不能搜尋完整 Instagram。未授權時只能收藏公開連結、網頁索引或使用者上傳。",
+    configured: authorized,
+    authorizedApi: false,
+    modes: ["user_url"],
+    notice:
+      "目前只保存使用者提供的連結與描述，沒有執行 Instagram 官方搜尋或抓取貼文。Client 設定不等於已取得使用者授權。",
   };
 }
 
@@ -120,8 +144,9 @@ export function pinterestResearchLimits() {
   );
   return {
     fullSiteSearch: false,
-    authorizedApi: authorized,
-    notice: "未授權時僅支援 Pin／看板 HTTPS 連結與網頁搜尋摘要，不是官方全站搜尋。",
+    configured: authorized,
+    authorizedApi: false,
+    notice: "目前只收藏 Pin／看板 HTTPS 連結，沒有讀取看板內容或執行官方搜尋。",
   };
 }
 

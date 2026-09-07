@@ -1,25 +1,19 @@
 # Hermes Creative Intelligence
 
-明亮、免登入的單一工作區。開啟網址即可與 Hermes 對話。Hermes 執行工具；Console 保存會話對應、任務與素材，不另建模板大腦。
+明亮的單一工作區。打開網站即可使用，不登入、不輸入電子信箱、不需要邀請連結。Hermes 執行工具；Console 保存會話、任務、活動、文案版本與學習請求，不另建模板大腦。
 
 ## 啟動
 
-需要 Node.js 22.13+，建議 Node.js 24 LTS。此版本支援零登入、任務持久化與 Hermes 雙引擎備援。
-
-1. **深度連接 Zeabur Hermes Agent**：支援 `/v1/chat/completions` SSE 即時串流與本地雙引擎備援。
-2. **全套生態系與 MCP 整合**：淡江大學校園生態 MCP、Canva 草稿藍圖、萬象靈感引擎與 Audience Twin 受眾雙生模擬。
-3. **零登入安全工作區 (No-Login Single Workspace)**：免登入開啟即用，具備嚴格的 CSRF、Same-Origin 與速率限制防護。
+需要 Node.js 22.13+，建議 Node.js 24 LTS。此版本需要持久化磁碟與單一長駐 Node 程序，不適用無狀態 serverless 環境。
 
 1. `npm ci`
-2. 複製 `.env.example` 到 `.env.local`，依註解設定。
-3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。
-4. `npm run dev`；正式環境使用 `npm run build` 與 `npm start`。
+2. 複製 `.env.example` 到 `.env.local`，依註解設定。本機可不設邀請／寄信變數。
+3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。未設定時 Console 仍應開啟，並顯示尚未連線。
+4. `npm run dev` 後開啟 http://localhost:3000，應直接進入工作區。正式環境使用 `npm run build` 與 `npm start`。
 
-# No Login
+## 免登入單一工作區
 
-開啟網站即可使用。不需要帳號、密碼、註冊或 session 登入閘。資料寫入固定後端 namespace `workspace`，不會在介面顯示。
-
-若把 Console 網域直接暴露在公開 Internet，任何知道網址的人都可能消耗 Hermes／MCP 資源。請使用可選的部署層保護（Zeabur private networking、reverse proxy、Cloudflare Access、VPN、IP allowlist），不要在 Console UI 恢復登入。
+這是產品不變量。首頁直接進入 Hermes Console。工作區 API 使用單一 `workspace` owner；寫入仍驗證 Origin、限流，秘密只留後端。可另外設定 `CONSOLE_GATEWAY_SECRET` 作為部署層閘道，它不是帳號登入。詳見 [部署說明](docs/DEPLOYMENT.md)。
 
 ## 重要安全操作
 
@@ -29,4 +23,12 @@
 
 ## 驗證與限制
 
-請參閱 `docs/DELIVERY.md`。契約測試使用明確隔離的測試伺服器，不是 Zeabur／Canva 實機整合驗證。
+最新接續見 [活動、學習地圖與邀請制](docs/LEARNING_INVITATIONS.md)。舊 PR #11／#14 文件僅為歷史紀錄，其免登入方案已由本輪要求取代。契約測試不是 Zeabur／Canva／電子郵件收件匣的實機驗證。
+
+## Lumen 創作台 MCP
+
+Hermes 可呼叫 Lumen 創作台。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `LUMEN_MCP_URL`（`https://…/api/mcp`）與至少 32 字元的 `LUMEN_MCP_TOKEN`，再按「測試 Lumen 連線」。探測成功後，海報／文宣／招新／茶會意圖會走工作區 `lumen_*`（Runtime `mcp.lumen.*`），口語用 `lumen_utter`。選定方向留給使用者，不要呼叫 choose。詳見 [Lumen MCP](docs/LUMEN.md)。
+
+## FrameLab 動畫 MCP
+
+Hermes 可呼叫 FrameLab 逐格動畫工作站。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `FRAMELAB_MCP_URL`（`https://…/api/mcp`）與從 FrameLab 首頁產生的 `FRAMELAB_MCP_TOKEN`，再按「測試 FrameLab 連線」。探測成功後 Hermes 可用 `mcp.framelab.*` 與工作區 `framelab_*` 工具。詳見 [FrameLab MCP](docs/FRAMELAB.md)。

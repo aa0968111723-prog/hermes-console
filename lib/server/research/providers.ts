@@ -1,20 +1,10 @@
+import type { ResearchBundle, ResearchSourceRecord } from "../../contracts";
 import { mapTamkangTools, tamkangStatus } from "../tamkang";
-import { classifyFact } from "../audience";
-import { resolveContextDomain, type AudienceDomain } from "../audience-twin/engine";
 
-export interface SourceRecord {
-  id: string;
-  url: string;
-  provider: string;
-  title: string;
-  excerpt: string;
-  retrievedAt: string;
-  publishedAt: string | null;
-  official: boolean;
-  confidence: number;
-  usedFor: string;
-}
-
+export type SourceRecord = ResearchSourceRecord;
+export const FRESHMAN_GATE = /淡江|新生|淡水/;
+export const EDU_PSYCH_GATE =
+  /教心所|教育心理|學習動機|IRB|諮商|文獻|評量倫理|去識別|人審|知情同意|研究倫理/;
 export const FRESHMAN_QUERIES = [
   "新生",
   "校園生活",
@@ -33,135 +23,124 @@ export const FRESHMAN_QUERIES = [
   "學習",
   "休閒",
 ];
-
-export const NTU_FRESHMAN_QUERIES = [
-  "新生",
-  "校園生活",
-  "椰林大道",
-  "醉月湖",
-  "公館",
-  "通識",
-  "社團",
-  "住宿",
-  "交通",
+export const EDU_PSYCH_QUERIES = [
+  "教育心理學",
+  "學習動機",
+  "認知發展",
+  "評量倫理",
+  "諮商倫理",
+  "研究倫理",
+  "IRB 人體研究審查",
+  "知情同意",
+  "去識別",
+  "文獻回顧",
+  "研究方法",
 ];
-
-export const GENERAL_FRESHMAN_QUERIES = [
-  "新生",
-  "校園生活",
-  "社團",
-  "選課",
-  "住宿",
-  "交通",
-];
-
-export function queriesForDomain(domain: AudienceDomain): string[] {
-  if (domain === "ntu") return NTU_FRESHMAN_QUERIES;
-  if (domain === "general") return GENERAL_FRESHMAN_QUERIES;
-  return FRESHMAN_QUERIES;
-}
-
 export function classifyResearchTools(
   tools: Array<{ name: string; description?: string }>,
 ) {
-  const mapped = mapTamkangTools(tools);
-  const byDescription: Record<string, string | null> = { ...mapped };
-  for (const tool of tools) {
-    const hay = tool.name + " " + (tool.description || "");
-    if (/club|society|社團/.test(hay) && !byDescription.tku_clubs)
-      byDescription.tku_clubs = tool.name;
-    if (/transport|mrt|捷運|交通/.test(hay) && !byDescription.tku_transport)
-      byDescription.tku_transport = tool.name;
-  }
-  return byDescription;
+  return mapTamkangTools(tools); // Name matches are hints, not verified execution capabilities.
 }
-
+function sourceStub(
+  id: string,
+  url: string,
+  title: string,
+  usedFor: string,
+): SourceRecord {
+  return {
+    id,
+    url,
+    provider: "source_directory",
+    title,
+    excerpt: "",
+    retrievedAt: null,
+    publishedAt: null,
+    official: true,
+    confidence: null,
+    usedFor,
+    verification: "not_fetched",
+  };
+}
 export function officialWebSources(): SourceRecord[] {
-  const now = new Date().toISOString();
   return [
-    {
-      id: "tku-official",
-      url: "https://www.tku.edu.tw/",
-      provider: "TamkangOfficialWebProvider",
-      title: "淡江大學",
-      excerpt: "淡江大學位於新北市淡水區。",
-      retrievedAt: now,
-      publishedAt: null,
-      official: true,
-      confidence: 0.8,
-      usedFor: "location",
-    },
-    {
-      id: "ntu-official",
-      url: "https://www.ntu.edu.tw/",
-      provider: "NtuOfficialWebProvider",
-      title: "國立臺灣大學",
-      excerpt: "國立臺灣大學位於臺北市，校總區含椰林大道等公開校園地標。",
-      retrievedAt: now,
-      publishedAt: null,
-      official: true,
-      confidence: 0.8,
-      usedFor: "location",
-    },
+    sourceStub(
+      "tku-official",
+      "https://www.tku.edu.tw/",
+      "淡江大學官方網站（待查詢入口）",
+      "research_entry",
+    ),
   ];
 }
-
+export function officialEduPsychSources(): SourceRecord[] {
+  return [
+    sourceStub(
+      "tku-edpsy",
+      "https://www.edpsy.tku.edu.tw/",
+      "淡江大學教育心理與諮商研究所（待查詢入口）",
+      "research_entry",
+    ),
+    sourceStub(
+      "tw-human-research-act",
+      "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0020176",
+      "人體研究法（全國法規資料庫，待查詢）",
+      "research_ethics_entry",
+    ),
+  ];
+}
+function uniqueSources(records: SourceRecord[]) {
+  const seen = new Set<string>();
+  return records.filter((record) => {
+    if (seen.has(record.id)) return false;
+    seen.add(record.id);
+    return true;
+  });
+}
 export function researchBundle(input: {
   prompt: string;
   mcpReachable?: boolean;
   tools?: Array<{ name: string; description?: string }>;
-}) {
-  const domain = resolveContextDomain(input.prompt);
-  const tku = tamkangStatus({
-    reachable: input.mcpReachable,
-    tools: input.tools,
-  });
-  const allSources = officialWebSources();
-  const sources =
-    domain === "ntu"
-      ? allSources.filter((item) => item.id === "ntu-official")
-      : domain === "general"
-        ? allSources
-        : allSources.filter((item) => item.id === "tku-official");
-  const claims =
-    domain === "ntu"
-      ? [
-          { claim: "國立臺灣大學位於臺北市。", sourceId: "https://www.ntu.edu.tw/", category: "location" },
-          { claim: "大一新生剛到公館會期待認識新朋友。", sourceId: null, category: "social" },
-          { claim: "All students love this event", sourceId: "https://seo.example/fake", category: "hype" },
-        ]
-      : domain === "general"
-        ? [
-            { claim: "大專迎新時程以各校教務行事曆為準。", sourceId: null, category: "calendar" },
-            { claim: "大一新生通常希望低門檻認識朋友。", sourceId: null, category: "social" },
-            { claim: "All students love this event", sourceId: "https://seo.example/fake", category: "hype" },
-          ]
-        : [
-            { claim: "淡江大學位於淡水。", sourceId: "https://www.tku.edu.tw/", category: "location" },
-            { claim: "大一新生剛到淡水會期待認識新朋友。", sourceId: null, category: "social" },
-            { claim: "All students love this event", sourceId: "https://seo.example/fake", category: "hype" },
-          ];
-  const labeled = claims.map((item) => ({
-    ...item,
-    kind:
-      item.category === "hype"
-        ? "hypothesis" as const
-        : classifyFact(item.claim, item.sourceId),
-  }));
+}): ResearchBundle {
+  // This function constructs a plan only. Caller booleans must never attest a live service.
+  const freshman = FRESHMAN_GATE.test(input.prompt);
+  const eduPsych = EDU_PSYCH_GATE.test(input.prompt);
+  const queries = [
+    ...(freshman ? FRESHMAN_QUERIES : []),
+    ...(eduPsych ? EDU_PSYCH_QUERIES : []),
+  ];
+  const sourceDirectory = uniqueSources([
+    ...(freshman || eduPsych ? officialWebSources() : []),
+    ...(eduPsych ? officialEduPsychSources() : []),
+  ]);
   return {
-    domain,
-    queries: queriesForDomain(domain),
-    tamkang: tku,
-    fallback:
-      tku.state === "failed" || tku.state === "unconfigured"
-        ? "web_research"
-        : null,
+    queries,
+    tamkang: tamkangStatus(),
+    fallback: null,
+    suggestedFallback: "ask_hermes_authorized_web_tool",
+    executed: false,
     message:
-      tku.state === "failed"
-        ? "Tamkang MCP unavailable，using web research。"
-        : tku.detail,
+      "尚未執行研究；需由 Hermes 呼叫已授權來源，再保存實際結果與查詢時間。",
     mapping: classifyResearchTools(input.tools || []),
-    sources,
-    claims: labeled,
+    sources: [],
+    claims: [],
+    sourceDirectory,
   };
+}
+export function formatResearchPlanForInstructions(bundle: ResearchBundle) {
+  const queries = bundle.queries.length
+    ? bundle.queries.join("、")
+    : "（目前沒有對應的建議查詢詞）";
+  const sources =
+    bundle.sourceDirectory
+      .map(
+        (item) => item.title + " " + item.url + "（" + item.verification + "）",
+      )
+      .join("；") || "（尚無待查官方入口）";
+  return [
+    "研究計畫（executed=" +
+      String(bundle.executed) +
+      "，不是已完成的文獻檢索）：",
+    "建議查詢詞：" + queries,
+    "待查來源目錄：" + sources,
+    bundle.message,
+  ].join("\n");
 }
