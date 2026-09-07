@@ -21,17 +21,21 @@ description: 透過 MCP 操作 FrameLab 逐格動畫工作站。用於修中間�
 - `generate_inbetweens` 寫的是候選，不是正式時間軸。接受前先讓使用者看。
 - `linear-blend` 是快速預覽，不是 AI 中間張。Wan 未載入時會回 `PROVIDER_NOT_AVAILABLE`，不要改口成已生成。
 - MCP 回 VisualAnnotation 與影格編號。不要下 CSS／DOM 指令。
-- 未設定 `FRAMELAB_MCP_URL`／`TOKEN` 時，請使用者到 FrameLab 首頁產生權杖，再貼到「設定 → 連線」。
+- 未設定 `FRAMELAB_MCP_URL`／`TOKEN` 時，請使用者到 FrameLab 工作室首頁產生權杖，再貼到「設定 → 連線」。
 
 ## 工具
 
 優先用工作區工具：
 
 - `framelab_list_projects`
+- `framelab_create_sample_project`
 - `framelab_get_timeline`
 - `framelab_get_frame_window`
+- `framelab_get_keyframes`
 - `framelab_analyze_consistency` → `framelab_get_job` → `framelab_get_problem_frames`
 - `framelab_suggest_repair`（只建議，不改像素）
-- `framelab_call`：其他 FrameLab 工具，例如 `{ "tool": "generate_inbetweens", "arguments": { "timelineId": "…", "confirmed": true } }`
+- `framelab_create_inbetween_plan` → `framelab_generate_inbetweens`（confirmed=true）→ `framelab_accept_generated_frames`
+- `framelab_undo`
+- `framelab_call`：其他 FrameLab 工具，例如 `{ "tool": "analyze_pose", "arguments": { "timelineId": "…" } }`
 
 探測成功後也可用 `mcp.framelab.<name>`。
