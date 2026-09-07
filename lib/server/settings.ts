@@ -10,10 +10,11 @@ import {
   type CredentialKey,
   type CredentialValues,
 } from "./credentials";
-import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
+import { getMcp, githubIsNotMcp, probeMcp, configuredMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
 import { framelabStatus } from "./framelab";
+import { consistencylabStatus } from "./consistencylab";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -45,6 +46,8 @@ export const credentialsInput = z
     ATLAS_MCP_TOKEN: z.string().max(2_000).optional(),
     FRAMELAB_MCP_URL: z.string().max(500).optional(),
     FRAMELAB_MCP_TOKEN: z.string().max(2_000).optional(),
+    CONSISTENCYLAB_MCP_URL: z.string().max(500).optional(),
+    CONSISTENCYLAB_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -112,6 +115,11 @@ function validatePatch(patch: CredentialValues) {
     patch.ATLAS_MCP_URL = validateHttpsServiceUrl(patch.ATLAS_MCP_URL, "mcp");
   if (patch.FRAMELAB_MCP_URL)
     patch.FRAMELAB_MCP_URL = validateHttpsServiceUrl(patch.FRAMELAB_MCP_URL, "mcp");
+  if (patch.CONSISTENCYLAB_MCP_URL)
+    patch.CONSISTENCYLAB_MCP_URL = validateHttpsServiceUrl(
+      patch.CONSISTENCYLAB_MCP_URL,
+      "mcp",
+    );
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
@@ -122,6 +130,8 @@ function validatePatch(patch: CredentialValues) {
     throw new ApiError(400, "invalid_secret", "場圖 MCP 權杖長度不足。");
   if (patch.FRAMELAB_MCP_TOKEN && patch.FRAMELAB_MCP_TOKEN.length < 16)
     throw new ApiError(400, "invalid_secret", "FrameLab MCP 權杖長度不足。");
+  if (patch.CONSISTENCYLAB_MCP_TOKEN && patch.CONSISTENCYLAB_MCP_TOKEN.length < 8)
+    throw new ApiError(400, "invalid_secret", "ConsistencyLab MCP 權杖長度不足。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -187,6 +197,7 @@ export function publicSettings() {
       urlSource: credentialPresence("FRAMELAB_MCP_URL").source,
       tokenSource: credentialPresence("FRAMELAB_MCP_TOKEN").source,
     },
+    consistencylab: liveConsistencylabStatus(),
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
       "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證與 Zeabur 部署。",
@@ -257,6 +268,68 @@ export async function testFramelabConnection() {
   const entry = getMcp("framelab");
   if (!entry)
     throw new ApiError(400, "framelab_unconfigured", "FrameLab MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
+function liveConsistencylabStatus() {
+  const staticStatus = consistencylabStatus();
+  const url = runtimeEnv("CONSISTENCYLAB_MCP_URL");
+  let listed = false;
+  try {
+    listed = configuredMcp().some((item) => item.id === "consistencylab");
+  } catch {
+    listed = false;
+  }
+  const entry =
+    staticStatus.state === "failed"
+      ? null
+      : (() => {
+          try {
+            return getMcp("consistencylab");
+          } catch {
+            return null;
+          }
+        })();
+  return {
+    configured: Boolean(url || listed) && staticStatus.state !== "failed",
+    urlSource: credentialPresence("CONSISTENCYLAB_MCP_URL").source,
+    tokenSource: credentialPresence("CONSISTENCYLAB_MCP_TOKEN").source,
+    status: staticStatus.state === "failed" ? "failed" : entry?.status || "unconfigured",
+    toolsCount: entry?.tools.length || 0,
+    lastError: staticStatus.state === "failed" ? staticStatus.detail : entry?.lastError || null,
+    detail:
+      staticStatus.state === "failed"
+        ? staticStatus.detail
+        : entry?.lastError
+          ? entry.lastError
+          : url || listed
+            ? "已設定 ConsistencyLab 端點，等待 tools/list 驗證。"
+            : "尚未在連線設定或後端環境變數提供 CONSISTENCYLAB_MCP_URL。",
+  };
+}
+
+export async function testConsistencylabConnection() {
+  if (!runtimeEnv("CONSISTENCYLAB_MCP_URL"))
+    throw new ApiError(
+      400,
+      "consistencylab_unconfigured",
+      "請先儲存 ConsistencyLab MCP 網址。",
+    );
+  const entry = getMcp("consistencylab");
+  if (!entry)
+    throw new ApiError(
+      400,
+      "consistencylab_unconfigured",
+      "ConsistencyLab MCP 尚未出現在核准清單。",
+    );
   const probed = await probeMcp(entry);
   return {
     ...publicSettings(),
