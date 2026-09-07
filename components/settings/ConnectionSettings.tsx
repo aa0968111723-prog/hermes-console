@@ -39,6 +39,15 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  consistencylab?: {
+    configured: boolean;
+    urlSource: string;
+    tokenSource: string;
+    status: string;
+    toolsCount: number;
+    lastError: string | null;
+    detail: string;
+  };
   zeabur?: {
     token: FieldStatus;
     projectId: string;
@@ -96,6 +105,8 @@ export default function ConnectionSettings({
   const [xunheToken, setXunheToken] = useState("");
   const [atlasUrl, setAtlasUrl] = useState("");
   const [atlasToken, setAtlasToken] = useState("");
+  const [clabUrl, setClabUrl] = useState("");
+  const [clabToken, setClabToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -114,6 +125,7 @@ export default function ConnectionSettings({
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
     setXunheUrl(next.fields.XUNHE_MCP_URL?.value || "");
     setAtlasUrl(next.fields.ATLAS_MCP_URL?.value || "");
+    setClabUrl(next.fields.CONSISTENCYLAB_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
     );
@@ -130,6 +142,7 @@ export default function ConnectionSettings({
     setTkuToken("");
     setXunheToken("");
     setAtlasToken("");
+    setClabToken("");
     setTkuPassword("");
     setZeaburToken("");
     setZeaburValue("");
@@ -229,6 +242,12 @@ export default function ConnectionSettings({
             ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
             : "尚未設定"}
         </dd>
+        <dt>ConsistencyLab</dt>
+        <dd>
+          {data?.consistencylab
+            ? `${data.consistencylab.configured ? "已設定" : "尚未設定"} · ${TAMKANG[data.consistencylab.status] || data.consistencylab.status} · 工具 ${data.consistencylab.toolsCount} 項`
+            : "讀取中"}
+        </dd>
       </dl>
 
       <form
@@ -245,6 +264,7 @@ export default function ConnectionSettings({
               TKU_MCP_URL: tkuUrl,
               XUNHE_MCP_URL: xunheUrl,
               ATLAS_MCP_URL: atlasUrl,
+              CONSISTENCYLAB_MCP_URL: clabUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
               ZEABUR_ENVIRONMENT_ID: zeaburEnv,
@@ -254,6 +274,7 @@ export default function ConnectionSettings({
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
             if (xunheToken) payload.XUNHE_MCP_TOKEN = xunheToken;
             if (atlasToken) payload.ATLAS_MCP_TOKEN = atlasToken;
+            if (clabToken) payload.CONSISTENCYLAB_MCP_TOKEN = clabToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
@@ -342,7 +363,7 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、淡江與訊核可用下方專用欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、淡江、訊核與 ConsistencyLab 可用下方專用欄位。
         </p>
 
         <h3>場圖 Atlas MCP</h3>
@@ -416,6 +437,45 @@ export default function ConnectionSettings({
             onChange={(e) => toggleClear("XUNHE_MCP_TOKEN", e.target.checked)}
           />
           清除已存訊核權杖
+        </label>
+
+        <h3>ConsistencyLab 連戲</h3>
+        <p className="muted">
+          {data?.consistencylab?.detail ||
+            "貼上 ConsistencyLab 的 Streamable HTTP 端點（路徑 /api/mcp）。公開示範通常不必填權杖。Hermes 實際呼叫的是工作區 clab_* 工具。"}
+        </p>
+        <label>
+          ConsistencyLab MCP 網址
+          <input
+            value={clabUrl}
+            onChange={(e) => setClabUrl(e.target.value)}
+            placeholder="https://your-consistencylab.example/api/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          ConsistencyLab MCP 權杖（選用）
+          <span className="secret-hint">
+            {secretHint(data?.fields.CONSISTENCYLAB_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={clabToken}
+            onChange={(e) => setClabToken(e.target.value)}
+            placeholder="公開示範可留空"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("CONSISTENCYLAB_MCP_TOKEN")}
+            onChange={(e) =>
+              toggleClear("CONSISTENCYLAB_MCP_TOKEN", e.target.checked)
+            }
+          />
+          清除已存 ConsistencyLab 權杖
         </label>
 
         <h3>淡江 MCP</h3>
@@ -734,6 +794,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試場圖連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/consistencylab", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `ConsistencyLab 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 ConsistencyLab 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 ConsistencyLab 連線
           </button>
           <button
             type="button"

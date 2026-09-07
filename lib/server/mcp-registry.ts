@@ -118,6 +118,19 @@ export function configuredMcp() {
       readonly: false,
     });
   if (
+    !configs.some((c) => c.id === "consistencylab") &&
+    runtimeEnv("CONSISTENCYLAB_MCP_URL")
+  )
+    configs.push({
+      id: "consistencylab",
+      name: "ConsistencyLab 連戲工作站",
+      endpoint: runtimeEnv("CONSISTENCYLAB_MCP_URL"),
+      credentialReference: runtimeEnv("CONSISTENCYLAB_MCP_TOKEN")
+        ? "CONSISTENCYLAB_MCP_TOKEN"
+        : null,
+      readonly: false,
+    });
+  if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length
   )
