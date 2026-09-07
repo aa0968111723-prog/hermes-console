@@ -131,6 +131,10 @@ export default function ConnectionSettings({
     setClearKeys([]);
     setNotice(message);
     await onChanged?.();
+    document.querySelector(".credential-warning")?.scrollIntoView({
+      block: "start",
+      behavior: "auto",
+    });
   }
 
   return (
@@ -196,7 +200,7 @@ export default function ConnectionSettings({
           }
         }}
       >
-        <h3>Hermes</h3>
+        <h3>Hermes 憑證</h3>
         <label>
           Hermes API 網址
           <input
