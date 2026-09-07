@@ -1201,6 +1201,58 @@ dialog::backdrop {
   gap: 10px;
   margin: 0;
 }
+.capability-cert {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0;
+}
+.capability-cert > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.capability-cert article {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+}
+.capability-cert h4 {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+.capability-cert ul {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 10px 0 0;
+}
+.capability-cert li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.capability-cert li p,
+.capability-cert li small {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.capability-cert [data-status] {
+  font-size: 12px;
+  color: var(--muted);
+}
+.capability-cert [data-status="verified"] { color: var(--green, #2f6b3a); }
+.capability-cert [data-status="failed"] { color: #b42318; }
+.capability-cert [data-status="partial"] { color: #9a6700; }
 .facts dt {
   color: var(--muted);
 }

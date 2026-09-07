@@ -37,6 +37,7 @@ import InspirationBoard from "./inspiration/InspirationBoard";
 import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
+import CapabilityCertification from "./settings/CapabilityCertification";
 import ConnectionSettings from "./settings/ConnectionSettings";
 import SharedMemory from "./settings/SharedMemory";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -1791,6 +1792,7 @@ export default function HermesConsole() {
                       }}
                     />
                     <IntegrationHealth items={integrations} />
+                    <CapabilityCertification />
                     <h3>Canva Connect 授權</h3>
                     <p>
                       {canvaConfigured
