@@ -34,6 +34,15 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  planform?: {
+    id?: string;
+    name?: string;
+    state: string;
+    detail: string;
+    configured?: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
   zeabur?: {
     token: FieldStatus;
     projectId: string;
@@ -89,6 +98,8 @@ export default function ConnectionSettings({
   const [tkuToken, setTkuToken] = useState("");
   const [xunheUrl, setXunheUrl] = useState("");
   const [xunheToken, setXunheToken] = useState("");
+  const [planformUrl, setPlanformUrl] = useState("");
+  const [planformToken, setPlanformToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -106,6 +117,7 @@ export default function ConnectionSettings({
     setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
     setXunheUrl(next.fields.XUNHE_MCP_URL?.value || "");
+    setPlanformUrl(next.fields.PLANFORM_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
     );
@@ -121,6 +133,7 @@ export default function ConnectionSettings({
     setMcpToken("");
     setTkuToken("");
     setXunheToken("");
+    setPlanformToken("");
     setTkuPassword("");
     setZeaburToken("");
     setZeaburValue("");
@@ -214,6 +227,12 @@ export default function ConnectionSettings({
             ? `${TAMKANG[data.xunhe.state] || data.xunhe.state} · ${data.xunhe.detail}`
             : "尚未設定"}
         </dd>
+        <dt>Planform MCP</dt>
+        <dd>
+          {data?.planform
+            ? `${TAMKANG[data.planform.state] || data.planform.state} · ${data.planform.detail}`
+            : "尚未設定"}
+        </dd>
       </dl>
 
       <form
@@ -229,6 +248,7 @@ export default function ConnectionSettings({
               CONSOLE_MCP_SERVERS_JSON: mcpJson,
               TKU_MCP_URL: tkuUrl,
               XUNHE_MCP_URL: xunheUrl,
+              PLANFORM_MCP_URL: planformUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
               ZEABUR_ENVIRONMENT_ID: zeaburEnv,
@@ -237,6 +257,7 @@ export default function ConnectionSettings({
             if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
             if (xunheToken) payload.XUNHE_MCP_TOKEN = xunheToken;
+            if (planformToken) payload.PLANFORM_MCP_TOKEN = planformToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
@@ -325,7 +346,7 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江與訊核可用下方專用欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江、訊核與 Planform 可用下方專用欄位。
         </p>
 
         <h3>訊核即時情報 MCP</h3>
@@ -362,6 +383,42 @@ export default function ConnectionSettings({
             onChange={(e) => toggleClear("XUNHE_MCP_TOKEN", e.target.checked)}
           />
           清除已存訊核權杖
+        </label>
+
+        <h3>Planform 場佈 MCP</h3>
+        <p className="muted">
+          填 Planform 的 Streamable HTTP 端點（路徑必須是 /mcp）。不能填 GitHub 倉庫網址。儲存後按「測試 Planform 連線」，成功後 Hermes 經工作區 MCP 呼叫 planform_run_agent。
+        </p>
+        <label>
+          Planform MCP 網址
+          <input
+            value={planformUrl}
+            onChange={(e) => setPlanformUrl(e.target.value)}
+            placeholder="https://your-planform.example/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          Planform MCP 權杖（選用）
+          <span className="secret-hint">
+            {secretHint(data?.fields.PLANFORM_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={planformToken}
+            onChange={(e) => setPlanformToken(e.target.value)}
+            placeholder="與 Planform 後端 PLANFORM_MCP_TOKEN 相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("PLANFORM_MCP_TOKEN")}
+            onChange={(e) => toggleClear("PLANFORM_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存 Planform 權杖
         </label>
 
         <h3>淡江 MCP</h3>
@@ -653,6 +710,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試訊核連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/planform", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `Planform 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 Planform 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 Planform 連線
           </button>
           <button
             type="button"

@@ -387,4 +387,5 @@ export const creativeInstructions = [
   "若已連接 Console workspace MCP，先用 workspace_project_context 找回活動、文案及成果；workspace_get_activity 只提供公開資訊，候選資料用 workspace_save_activity 保存並等待使用者核對。來源日期只是提供的紀錄，不等於你已查證。",
   "使用 workspace_list_references 取得專案素材，使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
   "Console MCP 呼叫必須帶目前 taskId，可附 toolCallId；工具上限或停止錯誤不可自行繞過。用 workspace_read_material 取得真實圖片或文字後才分析內容；只有來源網址不代表已讀圖。",
+  "場佈、教室、攤位、門口淨空、人數排座時，經 Workspace MCP 先呼叫 planform_describe 或 planform_get_venue，再用繁體中文 planform_run_agent。變更只在草稿；需使用者確認後才 planform_apply_layout（confirm true）與 planform_confirm_preview。找不到物件時回 unresolved，不可猜最近物件。GitHub 倉庫網址不是 MCP。尚未設定 PLANFORM_MCP_URL 時明確說未連接，不要假裝已排版。",
 ].join("\n");

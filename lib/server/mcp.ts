@@ -32,6 +32,14 @@ import {
   xunheSchemas,
   type XunheToolName,
 } from "./xunhe";
+import {
+  invokePlanform,
+  isPlanformTool,
+  planformConfigured,
+  planformDescriptions,
+  planformSchemas,
+  type PlanformToolName,
+} from "./planform";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -165,21 +173,46 @@ export function toolsList(owner: string) {
         openWorldHint: name.startsWith("canva_"),
       },
     }));
-  if (!xunheConfigured()) return local;
-  return [
-    ...local,
-    ...Object.entries(xunheSchemas).map(([name, schema]) => ({
-      name,
-      description: xunheDescriptions[name as XunheToolName],
-      inputSchema: z.toJSONSchema(schema),
-      annotations: {
-        readOnlyHint: name !== "xunhe_research",
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-    })),
-  ];
+  const extra: Array<{
+    name: string;
+    description: string;
+    inputSchema: unknown;
+    annotations: {
+      readOnlyHint: boolean;
+      destructiveHint: boolean;
+      idempotentHint: boolean;
+      openWorldHint: boolean;
+    };
+  }> = [];
+  if (xunheConfigured())
+    extra.push(
+      ...Object.entries(xunheSchemas).map(([name, schema]) => ({
+        name,
+        description: xunheDescriptions[name as XunheToolName],
+        inputSchema: z.toJSONSchema(schema),
+        annotations: {
+          readOnlyHint: name !== "xunhe_research",
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      })),
+    );
+  if (planformConfigured())
+    extra.push(
+      ...Object.entries(planformSchemas).map(([name, schema]) => ({
+        name,
+        description: planformDescriptions[name as PlanformToolName],
+        inputSchema: z.toJSONSchema(schema),
+        annotations: {
+          readOnlyHint: /describe|list|get_|generate_layout|export/.test(name),
+          destructiveHint: false,
+          idempotentHint: /describe|list|get_|open|cancel|export/.test(name),
+          openWorldHint: false,
+        },
+      })),
+    );
+  return extra.length ? [...local, ...extra] : local;
 }
 async function once(
   owner: string,
@@ -385,6 +418,14 @@ export async function callTool(
       throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");
     const args = xunheSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeXunhe(name, args));
+  }
+  if (isPlanformTool(name)) {
+    if (!planformConfigured())
+      throw new ApiError(503, "planform_unconfigured", "尚未設定 PLANFORM_MCP_URL。");
+    const args = planformSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () =>
+      invokePlanform(name, args),
+    );
   }
   if (!Object.prototype.hasOwnProperty.call(schemas, name))
     throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");

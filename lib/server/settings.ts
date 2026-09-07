@@ -13,6 +13,7 @@ import {
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
+import { planformStatus } from "./planform";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -40,6 +41,8 @@ export const credentialsInput = z
     TKU_MCP_TOKEN: z.string().max(2_000).optional(),
     XUNHE_MCP_URL: z.string().max(500).optional(),
     XUNHE_MCP_TOKEN: z.string().max(2_000).optional(),
+    PLANFORM_MCP_URL: z.string().max(500).optional(),
+    PLANFORM_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -103,12 +106,19 @@ function validatePatch(patch: CredentialValues) {
     patch.TKU_MCP_URL = validateHttpsServiceUrl(patch.TKU_MCP_URL, "mcp");
   if (patch.XUNHE_MCP_URL)
     patch.XUNHE_MCP_URL = validateHttpsServiceUrl(patch.XUNHE_MCP_URL, "mcp");
+  if (patch.PLANFORM_MCP_URL)
+    patch.PLANFORM_MCP_URL = validateHttpsServiceUrl(
+      patch.PLANFORM_MCP_URL,
+      "mcp",
+    );
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "淡江 MCP 權杖長度不足。");
   if (patch.XUNHE_MCP_TOKEN && patch.XUNHE_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "訊核 MCP 權杖長度不足。");
+  if (patch.PLANFORM_MCP_TOKEN && patch.PLANFORM_MCP_TOKEN.length < 16)
+    throw new ApiError(400, "invalid_secret", "Planform MCP 權杖至少需要 16 個字元。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -157,6 +167,12 @@ export function publicSettings() {
       configured: !!runtimeEnv("XUNHE_MCP_URL"),
       urlSource: credentialPresence("XUNHE_MCP_URL").source,
       tokenSource: credentialPresence("XUNHE_MCP_TOKEN").source,
+    },
+    planform: {
+      ...planformStatus(),
+      configured: !!runtimeEnv("PLANFORM_MCP_URL"),
+      urlSource: credentialPresence("PLANFORM_MCP_URL").source,
+      tokenSource: credentialPresence("PLANFORM_MCP_TOKEN").source,
     },
     tamkang: {
       ...tamkang,

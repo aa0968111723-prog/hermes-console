@@ -109,6 +109,16 @@ export function configuredMcp() {
       credentialReference: runtimeEnv("XUNHE_MCP_TOKEN") ? "XUNHE_MCP_TOKEN" : null,
       readonly: false,
     });
+  if (!configs.some((c) => c.id === "planform") && runtimeEnv("PLANFORM_MCP_URL"))
+    configs.push({
+      id: "planform",
+      name: "Planform 場佈",
+      endpoint: runtimeEnv("PLANFORM_MCP_URL"),
+      credentialReference: runtimeEnv("PLANFORM_MCP_TOKEN")
+        ? "PLANFORM_MCP_TOKEN"
+        : null,
+      readonly: false,
+    });
   if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length

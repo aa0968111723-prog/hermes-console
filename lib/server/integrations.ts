@@ -5,6 +5,7 @@ import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
+import { planformStatus } from "./planform";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -41,6 +42,13 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /xunhe|訊核|intel/i,
       detail: "Hermes 經 MCP 呼叫訊核研究、任務與報告工具。GitHub 倉庫網址不是 MCP。",
       requirements: ["XUNHE_MCP_URL（訊核 /mcp）", "可選 XUNHE_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "planform",
+      name: "Planform 場佈",
+      pattern: /planform|場佈|場地|教室排座|攤位/i,
+      detail: "Hermes 經 Workspace MCP 呼叫 planform_run_agent。GitHub 倉庫網址不是 MCP。",
+      requirements: ["PLANFORM_MCP_URL（Planform /mcp）", "可選 PLANFORM_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "canva",
@@ -156,6 +164,11 @@ export function integrations(owner: string, h: Health): Integration[] {
       const xunhe = xunheStatus();
       item.state = xunhe.state as IntegrationState;
       item.detail = xunhe.detail;
+    }
+    if (item.id === "planform") {
+      const planform = planformStatus();
+      item.state = planform.state as IntegrationState;
+      item.detail = planform.detail;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";
