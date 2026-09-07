@@ -37,6 +37,24 @@ import {
   consistencylabWorkspaceTools,
   invokeConsistencylab,
 } from "./consistencylab";
+import {
+  invokeLumen,
+  isLumenTool,
+  lumenConfigured,
+  lumenDescriptions,
+  lumenSchemas,
+  lumenWriteTool,
+  type LumenToolName,
+} from "./lumen";
+import {
+  invokeFramelab,
+  isFramelabTool,
+  framelabConfigured,
+  framelabDescriptions,
+  framelabSchemas,
+  framelabWriteTool,
+  type FramelabToolName,
+} from "./framelab";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -170,20 +188,48 @@ export function toolsList(owner: string) {
         openWorldHint: name.startsWith("canva_"),
       },
     }));
-  const xunhe = xunheConfigured()
-    ? Object.entries(xunheSchemas).map(([name, schema]) => ({
-        name,
-        description: xunheDescriptions[name as XunheToolName],
-        inputSchema: z.toJSONSchema(schema),
-        annotations: {
-          readOnlyHint: name !== "xunhe_research",
-          destructiveHint: false,
-          idempotentHint: true,
-          openWorldHint: true,
-        },
-      }))
-    : [];
-  return [...local, ...xunhe, ...consistencylabWorkspaceTools()];
+  const extra = [
+    ...(xunheConfigured()
+      ? Object.entries(xunheSchemas).map(([name, schema]) => ({
+          name,
+          description: xunheDescriptions[name as XunheToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: name !== "xunhe_research",
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true,
+          },
+        }))
+      : []),
+    ...(lumenConfigured()
+      ? Object.entries(lumenSchemas).map(([name, schema]) => ({
+          name,
+          description: lumenDescriptions[name as LumenToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: !lumenWriteTool(name),
+            destructiveHint: false,
+            idempotentHint: name !== "lumen_utter",
+            openWorldHint: false,
+          },
+        }))
+      : []),
+    ...(framelabConfigured()
+      ? Object.entries(framelabSchemas).map(([name, schema]) => ({
+          name,
+          description: framelabDescriptions[name as FramelabToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: !framelabWriteTool(name),
+            destructiveHint: /generate_inbetweens|accept_generated|undo$/.test(name),
+            idempotentHint: !framelabWriteTool(name),
+            openWorldHint: true,
+          },
+        }))
+      : []),
+  ];
+  return [...local, ...extra, ...consistencylabWorkspaceTools()];
 }
 async function once(
   owner: string,
@@ -411,6 +457,18 @@ export async function callTool(
       throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");
     const args = xunheSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeXunhe(name, args));
+  }
+  if (isLumenTool(name)) {
+    if (!lumenConfigured())
+      throw new ApiError(503, "lumen_unconfigured", "尚未設定 LUMEN_MCP_URL 與 LUMEN_MCP_TOKEN。");
+    const args = lumenSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeLumen(name, args));
+  }
+  if (isFramelabTool(name)) {
+    if (!framelabConfigured())
+      throw new ApiError(503, "framelab_unconfigured", "尚未設定 FRAMELAB_MCP_URL。");
+    const args = framelabSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeFramelab(name, args));
   }
   if (!Object.prototype.hasOwnProperty.call(schemas, name))
     throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");

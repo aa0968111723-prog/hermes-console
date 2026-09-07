@@ -13,6 +13,8 @@ import {
 import { getMcp, githubIsNotMcp, probeMcp, configuredMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
+import { lumenConfigured, lumenStatus } from "./lumen";
+import { framelabStatus } from "./framelab";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -44,6 +46,10 @@ export const credentialsInput = z
     ATLAS_MCP_TOKEN: z.string().max(2_000).optional(),
     CONSISTENCYLAB_MCP_URL: z.string().max(500).optional(),
     CONSISTENCYLAB_MCP_TOKEN: z.string().max(2_000).optional(),
+    LUMEN_MCP_URL: z.string().max(500).optional(),
+    LUMEN_MCP_TOKEN: z.string().max(2_000).optional(),
+    FRAMELAB_MCP_URL: z.string().max(500).optional(),
+    FRAMELAB_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -114,6 +120,10 @@ function validatePatch(patch: CredentialValues) {
       patch.CONSISTENCYLAB_MCP_URL,
       "mcp",
     );
+  if (patch.LUMEN_MCP_URL)
+    patch.LUMEN_MCP_URL = validateHttpsServiceUrl(patch.LUMEN_MCP_URL, "mcp");
+  if (patch.FRAMELAB_MCP_URL)
+    patch.FRAMELAB_MCP_URL = validateHttpsServiceUrl(patch.FRAMELAB_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
@@ -124,6 +134,10 @@ function validatePatch(patch: CredentialValues) {
     throw new ApiError(400, "invalid_secret", "場圖 MCP 權杖長度不足。");
   if (patch.CONSISTENCYLAB_MCP_TOKEN && patch.CONSISTENCYLAB_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "ConsistencyLab MCP 權杖長度不足。");
+  if (patch.LUMEN_MCP_TOKEN && patch.LUMEN_MCP_TOKEN.length < 32)
+    throw new ApiError(400, "invalid_secret", "Lumen MCP 權杖至少需要 32 個字元。");
+  if (patch.FRAMELAB_MCP_TOKEN && patch.FRAMELAB_MCP_TOKEN.length < 16)
+    throw new ApiError(400, "invalid_secret", "FrameLab MCP 權杖長度不足。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -173,6 +187,12 @@ export function publicSettings() {
       urlSource: credentialPresence("XUNHE_MCP_URL").source,
       tokenSource: credentialPresence("XUNHE_MCP_TOKEN").source,
     },
+    lumen: {
+      ...lumenStatus(),
+      configured: lumenConfigured(),
+      urlSource: credentialPresence("LUMEN_MCP_URL").source,
+      tokenSource: credentialPresence("LUMEN_MCP_TOKEN").source,
+    },
     tamkang: {
       ...tamkang,
       urlSource: credentialPresence("TKU_MCP_URL").source,
@@ -184,6 +204,12 @@ export function publicSettings() {
       tokenSource: credentialPresence("ATLAS_MCP_TOKEN").source,
     },
     consistencylab: liveConsistencylabStatus(),
+    framelab: {
+      ...framelabStatus(),
+      configured: !!(runtimeEnv("FRAMELAB_MCP_URL") && runtimeEnv("FRAMELAB_MCP_TOKEN")),
+      urlSource: credentialPresence("FRAMELAB_MCP_URL").source,
+      tokenSource: credentialPresence("FRAMELAB_MCP_TOKEN").source,
+    },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
       "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證與 Zeabur 部署。",
@@ -295,6 +321,25 @@ export async function testConsistencylabConnection() {
   };
 }
 
+export async function testFramelabConnection() {
+  if (!runtimeEnv("FRAMELAB_MCP_URL"))
+    throw new ApiError(400, "framelab_unconfigured", "請先儲存 FrameLab MCP 網址。");
+  if (!runtimeEnv("FRAMELAB_MCP_TOKEN"))
+    throw new ApiError(400, "framelab_token_missing", "請先貼上 FrameLab FRAMELAB_MCP_TOKEN。");
+  const entry = getMcp("framelab");
+  if (!entry)
+    throw new ApiError(400, "framelab_unconfigured", "FrameLab MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
 export async function testTamkangConnection() {
   if (!runtimeEnv("TKU_MCP_URL"))
     throw new ApiError(
@@ -311,6 +356,25 @@ export async function testTamkangConnection() {
   const entry = getMcp("tku");
   if (!entry)
     throw new ApiError(400, "tku_unconfigured", "淡江 MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
+export async function testLumenConnection() {
+  if (!runtimeEnv("LUMEN_MCP_URL"))
+    throw new ApiError(400, "lumen_unconfigured", "請先儲存 Lumen MCP 網址。");
+  if (!runtimeEnv("LUMEN_MCP_TOKEN") || runtimeEnv("LUMEN_MCP_TOKEN").length < 32)
+    throw new ApiError(400, "lumen_token_missing", "請先貼上至少 32 字元的 Lumen MCP 權杖。");
+  const entry = getMcp("lumen");
+  if (!entry)
+    throw new ApiError(400, "lumen_unconfigured", "Lumen MCP 尚未出現在核准清單。");
   const probed = await probeMcp(entry);
   return {
     ...publicSettings(),
