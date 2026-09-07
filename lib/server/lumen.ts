@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ApiError, redact } from "./security";
+import { ApiError, assertSafeServiceUrl, redact } from "./security";
 import { runtimeEnv } from "./credentials";
 import { githubIsNotMcp } from "./mcp-registry";
 
@@ -169,11 +169,12 @@ async function lumenRpc(
   sessionId?: string,
   timeoutMs = 15_000,
 ) {
-  const endpoint = runtimeEnv("LUMEN_MCP_URL");
-  if (!endpoint)
+  const configured = runtimeEnv("LUMEN_MCP_URL");
+  if (!configured)
     throw new ApiError(503, "lumen_unconfigured", "尚未設定 LUMEN_MCP_URL。");
-  if (githubIsNotMcp(endpoint))
+  if (githubIsNotMcp(configured))
     throw new ApiError(400, "github_is_not_mcp", "GitHub 網址不是 MCP 端點。");
+  const endpoint = assertSafeServiceUrl(configured, "mcp").toString();
   const token = runtimeEnv("LUMEN_MCP_TOKEN");
   if (!token || token.length < 32)
     throw new ApiError(503, "mcp_credential_missing", "此 MCP 缺少後端服務憑證。");

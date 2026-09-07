@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
-import { active, reconcile, stop, submit, taskInput } from "@/lib/server/tasks";
+import { needsReconcile, reconcile, stop, submit, taskInput } from "@/lib/server/tasks";
 import { list } from "@/lib/server/store";
 import type { Task } from "@/lib/contracts";
 export const runtime = "nodejs";
@@ -9,7 +9,7 @@ export const GET = route(async (req) => {
   const tasks = list<Task>("task", owner);
   return respond({
     tasks: await Promise.all(
-      tasks.map((t) => (active(t) ? reconcile(owner, t.id) : t)),
+      tasks.map((t) => (needsReconcile(t) ? reconcile(owner, t.id) : t)),
     ),
   });
 });

@@ -1,4 +1,4 @@
-import { ApiError, redact } from "./security";
+import { ApiError, assertSafeServiceUrl, redact } from "./security";
 import { credentialPresence, runtimeEnv } from "./credentials";
 
 const DEFAULT_API = "https://api.zeabur.com/graphql";
@@ -24,24 +24,12 @@ const PUSHABLE = [
 
 function endpoint() {
   const raw = runtimeEnv("ZEABUR_API_URL") || DEFAULT_API;
-  let url: URL;
   try {
-    url = new URL(raw);
-  } catch {
-    throw new ApiError(400, "invalid_url", "Zeabur API 網址格式不正確。");
-  }
-  const local =
-    process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
-    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (
-    (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash
-  )
+    return assertSafeServiceUrl(raw, "service").toString();
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "ssrf_rejected") throw error;
     throw new ApiError(400, "invalid_url", "Zeabur API 需為受控 HTTPS 端點。");
-  return url.toString();
+  }
 }
 
 function token() {
@@ -74,9 +62,10 @@ async function graphql<T>(
   variables?: Record<string, unknown>,
 ): Promise<T> {
   const secret = token();
+  const target = endpoint();
   let response: Response;
   try {
-    response = await fetch(endpoint(), {
+    response = await fetch(target, {
       method: "POST",
       redirect: "error",
       cache: "no-store",

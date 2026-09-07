@@ -80,11 +80,13 @@ export function isLumenIntent(intent: string) {
 export function routeToolsets(intent: string) {
   const selected: string[] = ["research"];
   if (/攤位|空間|3D|booth/i.test(intent)) selected.push("planform", "canva", "tamkang");
-  else if (isFramelabIntent(intent)) selected.push("framelab");
-  else if (/影片|剪輯|video/i.test(intent)) selected.push("cutos", "canva", "research");
-  else if (isLumenIntent(intent))
-    selected.push("lumen", "tamkang", "canva", "inspiration", "audience");
-  else selected.push("canva");
+  else {
+    if (isFramelabIntent(intent)) selected.push("framelab");
+    else if (/影片|剪輯|video/i.test(intent)) selected.push("cutos", "canva", "research");
+    if (isLumenIntent(intent))
+      selected.push("lumen", "tamkang", "canva", "inspiration", "audience");
+    if (selected.length === 1) selected.push("canva");
+  }
   const unique = [...new Set(selected)];
   return {
     intent,

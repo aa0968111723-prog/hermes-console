@@ -420,6 +420,48 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       assert.ok(!preview.includes("私密推理"));
     }
   });
+  await t.test(
+    "uncertain stop no longer permanently bricks the conversation",
+    async () => {
+      mode = "slow";
+      await health("owner", true);
+      const conversationId = conv();
+      const task = await submit("owner", {
+        conversationId,
+        requestKey: randomUUID(),
+        input: "死鎖契約測試",
+        attachments: [],
+      });
+      assert.equal((await stop("owner", task.id)).state, "uncertain");
+      await settle(task.id);
+      await assert.rejects(
+        () =>
+          submit("owner", {
+            conversationId,
+            requestKey: randomUUID(),
+            input: "應被鎖定",
+            attachments: [],
+          }),
+        (error: unknown) =>
+          error instanceof security.ApiError &&
+          error.code === "conversation_busy",
+      );
+      const recovered = await reconcile("owner", task.id);
+      assert.equal(recovered.state, "failed");
+      assert.match(recovered.error || "", /解除對話鎖定/);
+      assert.equal((await reconcile("owner", task.id)).state, "failed");
+      mode = "chat";
+      await health("owner", true);
+      const next = await submit("owner", {
+        conversationId,
+        requestKey: randomUUID(),
+        input: "解鎖後可再送",
+        attachments: [],
+      });
+      assert.notEqual(next.id, task.id);
+      assert.equal((await settle(next.id)).state, "completed");
+    },
+  );
   await t.test("unsafe legacy implementation removed", async () => {
     await assert.rejects(() => readFile("lib/local-brain.ts"));
     await assert.rejects(() => readFile("lib/hermes-config.ts"));

@@ -45,6 +45,8 @@ const workers = (runtimeTasks.hermesWorkers ??= new Map<
 const now = () => new Date().toISOString();
 export const active = (t: Task) =>
   ["queued", "running", "waiting_user", "stopping"].includes(t.state);
+export const needsReconcile = (t: Task) =>
+  active(t) || t.state === "uncertain";
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
 export const taskInput = z
   .object({
@@ -593,7 +595,20 @@ async function observe(owner: string, id: string) {
 }
 export async function reconcile(owner: string, id: string) {
   let task = taskFor(owner, id);
-  if (!active(task)) return task;
+  if (!needsReconcile(task)) return task;
+  const wasUncertain = task.state === "uncertain";
+  if (wasUncertain) {
+    if (!(task.transport === "runs" && task.remoteId)) {
+      if (!workers.has(id))
+        return finish(
+          owner,
+          task,
+          "failed",
+          "無法確認上游結果；工作程序已結束，已解除對話鎖定。可重新發送。",
+        );
+      return task;
+    }
+  }
   if (task.transport === "chat") {
     if (!workers.has(id))
       return finish(
@@ -672,6 +687,15 @@ export async function reconcile(owner: string, id: string) {
     }
     void observe(owner, id);
   } catch (error) {
+    if (wasUncertain && !workers.has(id))
+      return finish(
+        owner,
+        task,
+        "failed",
+        error instanceof ApiError
+          ? error.message
+          : "查回任務失敗，無法確認上游結果；已解除對話鎖定。",
+      );
     task.observationError =
       error instanceof ApiError
         ? error.message

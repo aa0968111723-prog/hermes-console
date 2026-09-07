@@ -217,6 +217,12 @@ test("文宣意圖路由到 lumen，動畫與剪輯不搶走", () => {
   const clip = routeToolsets("幫我做影片");
   assert.ok(clip.toolsets.includes("cutos"));
   assert.ok(!clip.toolsets.includes("lumen"));
+  const mixed = routeToolsets(
+    "幫我做新生茶會文宣海報，順便剪輯宣傳活動影片",
+  );
+  assert.ok(mixed.toolsets.includes("lumen"));
+  assert.ok(mixed.toolsets.includes("cutos"));
+  assert.ok(mixed.mappings.some((m) => m.mcpServerId === "lumen" && m.enabled));
   const animation = routeToolsets("幫我把這支影片做成動畫並修中間張");
   assert.ok(animation.toolsets.includes("framelab"));
   assert.ok(!animation.toolsets.includes("lumen"));
