@@ -130,16 +130,27 @@ export interface ResearchSourceRecord {
   official: boolean;
   confidence: number | null;
   usedFor: string;
-  verification: "not_fetched";
+  verification: "not_fetched" | "fetched" | "failed";
+  publisher?: string;
+  type?: string;
+  authority?: string;
+}
+export interface ResearchClaim {
+  id: string;
+  statement: string;
+  sourceIds: string[];
+  confidence: number | null;
+  verification: "unverified" | "source_verified";
+  truth: "SOURCE_VERIFIED" | "UNKNOWN";
 }
 export interface ResearchBundle {
   queries: string[];
   executed: boolean;
   message: string;
-  sources: unknown[];
-  claims: unknown[];
+  sources: ResearchSourceRecord[];
+  claims: ResearchClaim[];
   sourceDirectory: ResearchSourceRecord[];
-  fallback: null;
+  fallback: null | string;
   suggestedFallback: string;
   tamkang?: unknown;
   mapping?: unknown;

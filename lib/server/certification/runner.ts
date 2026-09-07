@@ -940,9 +940,9 @@ function certifyResearch(): IntegrationCertification {
     httpStatus: null,
     errorCode: null,
   });
-  mark(findCapability(report, "research.execute"), "unsupported", "尚未建立 Research Executor。", {
-    kind: "UNVERIFIED",
-    summary: "no executor",
+  mark(findCapability(report, "research.execute"), "partial", "可抓取允許清單內的官方頁面；不是完整文獻檢索。", {
+    kind: "LOCAL_UNIT",
+    summary: "allowlisted fetch executor",
     latencyMs: null,
     httpStatus: null,
     errorCode: null,

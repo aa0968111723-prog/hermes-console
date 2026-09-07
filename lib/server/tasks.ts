@@ -27,6 +27,7 @@ import {
   formatResearchPlanForInstructions,
   researchBundle,
 } from "./research/providers";
+import { executeResearchBundle } from "./research/executor";
 import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 
@@ -307,6 +308,18 @@ async function execute(
       event(task, "計畫：" + step.title, "queued");
     for (const fallback of orchestration.plan.fallbacks)
       event(task, fallback.userVisible, "fallback");
+    if (task.researchBundle) {
+      task.researchBundle = await executeResearchBundle(task.researchBundle);
+      event(
+        task,
+        task.researchBundle.executed
+          ? "研究來源已抓取外部頁面。"
+          : "研究仍未取得外部 evidence。",
+        task.researchBundle.executed ? "completed" : "queued",
+      );
+      conv.researchBundle = task.researchBundle;
+      put("conversation", owner, conv);
+    }
     save(owner, task);
     const instructions =
       (specialistInstructions(mode) || creativeInstructions) +

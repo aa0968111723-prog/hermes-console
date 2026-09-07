@@ -250,7 +250,7 @@ test("capability certification does not treat discovery as whole-Hermes verified
   await t.test("research executor stays unexecuted", async () => {
     const report = await runCertification("workspace", ["research", "memory"]);
     assert.equal(cap(report, "research", "research.plan").status, "verified");
-    assert.equal(cap(report, "research", "research.execute").status, "unsupported");
+    assert.equal(cap(report, "research", "research.execute").status, "partial");
     assert.equal(cap(report, "research", "research.sources").status, "unknown");
     assert.equal(cap(report, "memory", "memory.local").status, "verified");
     assert.equal(cap(report, "memory", "memory.remote").status, "unknown");
