@@ -59,6 +59,8 @@
 
 有一次同時執行多組瀏覽器測試時，verify-chat 的 15 秒串流完成等待逾時；原因尚未完全確定。其後**不變更程式、不延長逾時**，單獨重跑通過。CI 按序跑各瀏覽器套件；此紀錄不隱藏為「從未失敗」。
 
+首次新增的 Linux CI 在 430 → 390px 切換時觸發 dock／送出鍵邊界檢查失敗。補上 CSS `min(100dvh, --app-height)` 的可視高度限制、window resize fallback；測試先確認版面已反映新高度，再比較邊界，並在失敗時保留截圖。這項修正不放寬觸控或遮擋標準。
+
 ### 效能
 
 正確以 PerformanceObserver 取得數據，取代不支援的 getEntriesByType 量測。隨附本機未限速、暖載入報告：LCP **232 ms**，CLS 累計 **0.00008027**。CLS 是排除 recent input 的原始累計，不是正式 session-window field CLS。此結果不是行動網路、低階實機或 Zeabur 的 p75；不能據此保證實際 LCP <2.5 秒或 60fps。

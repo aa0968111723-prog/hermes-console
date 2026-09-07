@@ -377,7 +377,11 @@ export default function HermesConsole() {
       );
     update();
     viewport?.addEventListener("resize", update);
-    return () => viewport?.removeEventListener("resize", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
   useEffect(() => {
     if (panel) dialog.current?.showModal();

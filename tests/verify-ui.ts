@@ -176,6 +176,10 @@ try {
     [360, 800, "mobile-360"],
   ] as const) {
     await page.setViewportSize({ width, height });
+    // Resize events and visualViewport updates are asynchronous. Observe the
+    // actual layout instead of combining a stale send box with a new dock box.
+    await expect.poll(() => page.locator(".app-shell").evaluate(el =>
+      Math.round(el.getBoundingClientRect().height))).toBe(height);
     await expect(
       page.getByRole("heading", { name: "今天想做什麼？" }),
     ).toBeVisible();
@@ -210,7 +214,7 @@ try {
       const dock = await page.locator(".mobile-bottom-dock").boundingBox();
       assert.ok(
         dock && send && send.y + send.height <= dock.y,
-        "bottom dock overlaps send",
+        "bottom dock overlaps send at "+width+": "+JSON.stringify({send,dock}),
       );
     }
     const composer = await page.locator(".composer").boundingBox();
@@ -496,6 +500,10 @@ try {
     "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
+} catch (error) {
+  const failedPage = browser?.contexts()[0]?.pages()[0];
+  await failedPage?.screenshot({path:join(output,"ui-failure.png"),fullPage:true}).catch(()=>{});
+  throw error;
 } finally {
   await browser?.close();
   child.kill();

@@ -280,7 +280,7 @@ small {
   font-weight: 600;
 }
 .app-shell {
-  height: var(--app-height);
+  height: min(100dvh, var(--app-height));
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   overflow: hidden;
