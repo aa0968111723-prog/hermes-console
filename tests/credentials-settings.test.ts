@@ -23,6 +23,8 @@ delete process.env.TKU_MCP_URL;
 delete process.env.TKU_MCP_TOKEN;
 delete process.env.XUNHE_MCP_URL;
 delete process.env.XUNHE_MCP_TOKEN;
+delete process.env.ATLAS_MCP_URL;
+delete process.env.ATLAS_MCP_TOKEN;
 delete process.env.LUMEN_MCP_URL;
 delete process.env.LUMEN_MCP_TOKEN;
 delete process.env.CONSOLE_MCP_SERVERS_JSON;
@@ -366,6 +368,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     );
     assert.match(ui, /settings\/credentials/);
     assert.match(ui, /settings\/tamkang/);
+    assert.match(ui, /settings\/xunhe/);
+    assert.match(ui, /settings\/atlas/);
     assert.match(ui, /settings\/zeabur/);
     assert.doesNotMatch(ui, /HERMES_API_KEY\s*=\s*["'][^"']+["']/);
     assert.doesNotMatch(ui, /sk-[a-zA-Z0-9_-]{12,}/);
