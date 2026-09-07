@@ -134,7 +134,9 @@ try {
   await textarea.fill("");
   for (const [width, height, name] of [
     [1440, 1000, "desktop"],
+    [1024, 900, "desktop-1024"],
     [768, 1024, "tablet"],
+    [430, 900, "mobile-430"],
     [390, 844, "mobile-390"],
     [360, 800, "mobile-360"],
   ] as const) {
@@ -372,7 +374,7 @@ try {
   assert.deepEqual(errors, []);
   console.log("Initial browser metrics (local Chrome): " + JSON.stringify(initialMetrics));
   console.log(
-    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
+    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
 } finally {
