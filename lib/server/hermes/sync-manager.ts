@@ -19,6 +19,7 @@ import type {
 import { UnifiedToolRegistry } from "../tool-registry";
 export { listRuntimeBindings, saveRuntimeBinding } from "./tool-policy";
 import { filterBoundTools } from "./tool-policy";
+import { credentialPresence, runtimeEnv } from "../credentials";
 
 export const RUNTIME_INTERVAL_MS = 30_000;
 export const RUNTIME_STALE_MS = 180_000;
@@ -324,7 +325,7 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
         .filter((t) => t.source === "mcp")
         .map((t) => ({ ...t, status: "stale" as const })),
     );
-  const bridgeConfigured = !!process.env.MCP_BRIDGE_TOKEN;
+  const bridgeConfigured = !!runtimeEnv("MCP_BRIDGE_TOKEN");
   for (const tool of toolsList(owner))
     tools.push({
       ...descriptor(
@@ -458,6 +459,8 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
       skillCount: skills.length,
       toolsetCount: toolsets.length,
       mcpToolCount: entries.reduce((n, entry) => n + entry.tools.length, 0),
+      hermesUrlSource: credentialPresence("HERMES_API_URL").source,
+      hermesKeySource: credentialPresence("HERMES_API_KEY").source,
     },
   };
   // Only the small freshness record advances per probe. No unbounded diff history.
@@ -492,10 +495,10 @@ function configurationIdentity() {
     return hash(
       JSON.stringify([
         serviceIdentity(),
-        process.env.MCP_BRIDGE_TOKEN || "",
+        runtimeEnv("MCP_BRIDGE_TOKEN"),
         configuredMcp().map((c) => [
           c,
-          c.credentialReference && process.env[c.credentialReference],
+          c.credentialReference && runtimeEnv(c.credentialReference),
         ]),
       ]),
     );

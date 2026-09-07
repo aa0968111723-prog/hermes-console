@@ -20,6 +20,8 @@ const health = await import("../app/api/health/route");
 const runtime = await import("../app/api/runtime/route");
 const conversations = await import("../app/api/conversations/route");
 const confirm = await import("../app/api/confirm/route");
+const credentials = await import("../app/api/settings/credentials/route");
+const memory = await import("../app/api/memory/route");
 
 function request(
   path: string,
@@ -44,6 +46,22 @@ test("no-login entry contracts", async (t) => {
     assert.ok(page.includes("HermesConsole"));
   });
 
+  await t.test("FEATURE_AUDIT matches no-login workspace and stub research", async () => {
+    const audit = await readFile(
+      new URL("../docs/FEATURE_AUDIT_EDU.md", import.meta.url),
+      "utf8",
+    );
+    assert.match(audit, /免登入/);
+    assert.match(audit, /InvitationGate/);
+    assert.match(audit, /researchBundle/);
+    assert.match(audit, /executed: false/);
+    assert.match(audit, /API only/);
+    assert.match(audit, /dormant/);
+    assert.match(audit, /可選/);
+    assert.doesNotMatch(audit, /正式必填/);
+    assert.doesNotMatch(audit, /公開部署沒有閘道會 fail closed/);
+  });
+
   await t.test("authenticate is no-login single workspace", () => {
     assert.equal(
       security.authenticate(new Request("http://localhost:3212/api/workspace")),
@@ -63,6 +81,11 @@ test("no-login entry contracts", async (t) => {
     assert.equal((await workspace.GET(request("workspace"))).status, 200);
     assert.equal((await health.GET(request("health"))).status, 200);
     assert.equal((await tasks.GET(request("tasks"))).status, 200);
+    assert.equal(
+      (await credentials.GET(request("settings/credentials"))).status,
+      200,
+    );
+    assert.equal((await memory.GET(request("memory"))).status, 200);
     const runtimeResponse = await runtime.GET(request("runtime"));
     assert.notEqual(runtimeResponse.status, 401);
     assert.ok(runtimeResponse.status === 200 || runtimeResponse.status >= 500);

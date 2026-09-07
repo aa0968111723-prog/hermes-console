@@ -254,6 +254,34 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       assert.equal(usage(undefined, undefined, null).providerCost, null);
     },
   );
+  await t.test("research mode task includes planned researchBundle", async () => {
+    mode = "chat";
+    await health("owner", true);
+    const task = await submit("owner", {
+      conversationId: conv(),
+      requestKey: randomUUID(),
+      input: "幫我整理學習動機與評量倫理的文獻架構",
+      attachments: [],
+      mode: "research",
+    });
+    assert.equal(task.researchBundle?.executed, false);
+    assert.ok((task.researchBundle?.queries.length || 0) > 0);
+    assert.deepEqual(task.researchBundle?.sources, []);
+    const done = await settle(task.id);
+    assert.equal(done.state, "completed");
+    assert.equal(done.researchBundle?.executed, false);
+    const sent = JSON.stringify(lastBody);
+    assert.match(sent, /尚未執行研究/);
+    assert.match(sent, /executed=false/);
+    assert.ok(!/已完成文獻檢索/.test(sent));
+    const conversation = get<{
+      assistantMode?: string;
+      researchBundle?: { executed: boolean; queries: string[] };
+    }>("conversation", "owner", task.conversationId);
+    assert.equal(conversation?.assistantMode, "research");
+    assert.equal(conversation?.researchBundle?.executed, false);
+    assert.ok((conversation?.researchBundle?.queries.length || 0) > 0);
+  });
   await t.test(
     "split stream succeeds; idempotency prevents duplicate execution",
     async () => {

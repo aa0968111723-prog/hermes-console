@@ -1,6 +1,6 @@
 # Runtime 同步修復與能力盤點
 
-基準：PR #17 已合併；從 `21a590f`（免登入工作區）接續。保留現有 SQLite、記憶學習樹、素材與對話，不修改部署、不合併 PR、不輪替部署憑證。
+基準：從 `21a590f`（免登入工作區）接續，並整合最新 `7b55b41`（含共用記憶、加密設定、FrameLab、Lumen）。保留現有 SQLite、記憶學習樹、素材與對話，不修改部署、不合併 PR、不輪替部署憑證。
 
 ## 實際完成範圍
 
@@ -51,6 +51,15 @@ npm run test:workbench
 瀏覽器腳本在暫存資料夾啟動 production Console，需已安裝 Chrome。`test:runtime` 等待正常背景週期，驗證 300 工具搜尋、無手動刷新新增工具、offline／online 重連、360／390／768／1440px、選擇創作方向後 API 真的保存。截圖在忽略提交的 `output/playwright/`：`runtime-live-contract-*.png` 是明確隔離測試資料；`runtime-desktop.png`／`runtime-mobile-360.png` 是未設定外部服務的真實 UI。
 
 ## 正式驗證所缺
+
+## 本次驗證紀錄（2026-09-07）
+
+- 整合主分支 `7b55b41` 後：`npm test` 130 項通過，typecheck、production build 通過。
+- `check:secrets` 掃描 240 個來源／建置檔案通過；`npm audit --omit=dev` 0 項漏洞。這不是 Git 歷史或部署憑證撤銷證明。
+- 真實 Chrome：`test:runtime`、`test:ui`、`test:chat` 逐一執行通過；Hermes／MCP 使用隔離 HTTP fixtures，外部未驗證。
+- 早期多個瀏覽器腳本並行時，chat 曾因 15 秒等待工具紀錄逾時；單獨重跑及整合最新主分支後順序執行均通過。保留此測試穩定性限制，不寫成所有並行情境已驗證。
+
+## 正式驗證所缺項目
 
 1. 已輪替的新 Hermes key（僅後端設定）、已確認 API 網域、部署版本及可讀的 capabilities／toolsets／skills 回應；勿在聊天貼秘密。
 2. 已配置的外部 MCP HTTPS 端點、服務認證的環境變數參照及工具權限；GitHub repo 網址不是 MCP。

@@ -37,6 +37,8 @@ import InspirationBoard from "./inspiration/InspirationBoard";
 import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
+import ConnectionSettings from "./settings/ConnectionSettings";
+import SharedMemory from "./settings/SharedMemory";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -1813,9 +1815,19 @@ export default function HermesConsole() {
                       <RefreshCw size={16} />
                       {busy ? "驗證中…" : "重新驗證連線"}
                     </button>
-                    <p className="muted">
-                      網址、金鑰只在後端設定。此處不收集或顯示金鑰。
-                    </p>
+                    <ConnectionSettings
+                      onChanged={async () => {
+                        try {
+                          setHealth(await api<Health>("health", "POST", {}));
+                          const result = await api<{
+                            integrations: Integration[];
+                          }>("integrations");
+                          setIntegrations(result.integrations);
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    />
                     <IntegrationHealth items={integrations} />
                     <h3>Canva Connect 授權</h3>
                     <p>
@@ -1894,6 +1906,7 @@ export default function HermesConsole() {
                 ) : settingsTab === "記憶" ? (
                   <div className="settings-stack">
                     <h3>記憶與會話</h3>
+                    <SharedMemory projectId={project} />
                     <LearningMap
                       key={project}
                       projectId={project}
@@ -1906,9 +1919,8 @@ export default function HermesConsole() {
                     />
                     <p>{data.memory.scope}</p>
                     <p className="muted">
-                      上方節點是學習請求與執行紀錄，不是遠端記憶鏡像。Console
-                      對話歷史與 Hermes
-                      長期記憶是不同資料；遠端保存或刪除需另外查證。
+                      上方「共用記憶庫」是 Console SQLite，Hermes 可經 Workspace MCP 與任務指示讀寫同一批資料。
+                      學習地圖仍是「請 Hermes 學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
                     </p>
                     <button
                       disabled={!activeConv?.hermesSessionId}

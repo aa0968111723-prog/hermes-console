@@ -189,6 +189,25 @@ test("research fallback, ranking, canva spec, social, router, publish", async ()
   assert.deepEqual(research.claims, []);
   assert.deepEqual(research.sources, []);
   assert.equal(research.sourceDirectory[0].retrievedAt, null);
+  const eduPsych = researchBundle({
+    prompt: "學習動機、教育心理學、IRB、諮商、文獻、評量倫理、去識別",
+  });
+  assert.equal(eduPsych.executed, false);
+  assert.ok(eduPsych.queries.length > 0);
+  assert.ok(eduPsych.queries.includes("學習動機"));
+  assert.ok(eduPsych.queries.includes("評量倫理"));
+  assert.deepEqual(eduPsych.sources, []);
+  assert.deepEqual(eduPsych.claims, []);
+  assert.ok(eduPsych.sourceDirectory.length > 0);
+  assert.ok(
+    eduPsych.sourceDirectory.every(
+      (item) => item.retrievedAt === null && item.verification === "not_fetched",
+    ),
+  );
+  const unrelated = researchBundle({ prompt: "幫我寫一首詩" });
+  assert.equal(unrelated.executed, false);
+  assert.deepEqual(unrelated.queries, []);
+  assert.deepEqual(unrelated.sourceDirectory, []);
   const dirs = [
     {
       title: "A 生活",

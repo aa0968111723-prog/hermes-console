@@ -4,6 +4,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { ApiError, WORKSPACE_OWNER, redact } from "./security";
 import { get, list, put } from "./store";
 import { safeMcpFetch } from "./mcp-network";
+import { runtimeEnv } from "./credentials";
 
 export type McpStatus =
   | "unconfigured"
@@ -88,7 +89,7 @@ export function githubIsNotMcp(value: string) {
 export function configuredMcp() {
   let raw: unknown;
   try {
-    raw = JSON.parse(process.env.CONSOLE_MCP_SERVERS_JSON || "[]");
+    raw = JSON.parse(runtimeEnv("CONSOLE_MCP_SERVERS_JSON") || "[]");
   } catch {
     throw new ApiError(
       503,
@@ -104,13 +105,45 @@ export function configuredMcp() {
       "後端 MCP 核准清單格式錯誤。",
     );
   const configs = parsed.data;
-  if (!configs.some((c) => c.id === "tku") && process.env.TKU_MCP_URL)
+  if (!configs.some((c) => c.id === "tku") && runtimeEnv("TKU_MCP_URL"))
     configs.push({
       id: "tku",
       name: "Tamkang MCP",
-      endpoint: process.env.TKU_MCP_URL,
+      endpoint: runtimeEnv("TKU_MCP_URL"),
       credentialReference: "TKU_MCP_TOKEN",
       readonly: true,
+    });
+  if (!configs.some((c) => c.id === "xunhe") && runtimeEnv("XUNHE_MCP_URL"))
+    configs.push({
+      id: "xunhe",
+      name: "訊核即時情報",
+      endpoint: runtimeEnv("XUNHE_MCP_URL"),
+      credentialReference: runtimeEnv("XUNHE_MCP_TOKEN") ? "XUNHE_MCP_TOKEN" : null,
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "atlas") && runtimeEnv("ATLAS_MCP_URL"))
+    configs.push({
+      id: "atlas",
+      name: "場圖 Atlas",
+      endpoint: runtimeEnv("ATLAS_MCP_URL"),
+      credentialReference: "ATLAS_MCP_TOKEN",
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "lumen") && runtimeEnv("LUMEN_MCP_URL"))
+    configs.push({
+      id: "lumen",
+      name: "Lumen 創作台",
+      endpoint: runtimeEnv("LUMEN_MCP_URL"),
+      credentialReference: "LUMEN_MCP_TOKEN",
+      readonly: false,
+    });
+  if (!configs.some((c) => c.id === "framelab") && runtimeEnv("FRAMELAB_MCP_URL"))
+    configs.push({
+      id: "framelab",
+      name: "FrameLab",
+      endpoint: runtimeEnv("FRAMELAB_MCP_URL"),
+      credentialReference: "FRAMELAB_MCP_TOKEN",
+      readonly: false,
     });
   if (
     configs.some((c) => c.id === "workspace") ||
@@ -144,7 +177,7 @@ export function seedRegistry(): McpEntry[] {
     tools: [],
     status: "unconfigured",
     verifiedAt: null,
-    lastError: process.env.MCP_BRIDGE_TOKEN
+    lastError: runtimeEnv("MCP_BRIDGE_TOKEN")
       ? "已設定服務憑證，尚未由 Hermes 完成連線驗證。"
       : "尚未設定 MCP_BRIDGE_TOKEN。",
     readonly: false,
@@ -250,7 +283,7 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   let connected = false;
   const deadline = AbortSignal.timeout(20_000);
   const credential = config.credentialReference
-    ? process.env[config.credentialReference]
+    ? runtimeEnv(config.credentialReference)
     : undefined;
   const currentEntry = () => {
     const current = getMcp(entry.id);
@@ -270,7 +303,7 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     if (
       credential !==
       (config.credentialReference
-        ? process.env[config.credentialReference]
+        ? runtimeEnv(config.credentialReference)
         : undefined)
     )
       return {
@@ -285,7 +318,7 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   try {
     const headers: Record<string, string> = {};
     if (config.credentialReference) {
-      const token = process.env[config.credentialReference];
+      const token = runtimeEnv(config.credentialReference);
       if (!token)
         throw new ApiError(
           503,

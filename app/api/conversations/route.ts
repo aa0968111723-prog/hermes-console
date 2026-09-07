@@ -19,6 +19,7 @@ import {
 } from "@/lib/server/hermes";
 import type { Conversation, Message } from "@/lib/contracts";
 import { parseAssistantMode } from "@/lib/assistant-modes";
+import { researchBundle } from "@/lib/server/research/providers";
 export const runtime = "nodejs";
 const timestamp = () => new Date().toISOString();
 const projectId = z
@@ -113,6 +114,7 @@ export const POST = route(async (req) => {
       .slice(0, index)
       .map((m) => ({ ...m, id: randomUUID(), taskId: undefined }));
   }
+  const assistantMode = parseAssistantMode(body.assistantMode);
   const conv: Conversation = {
     id: randomUUID(),
     title: body.title || "新對話",
@@ -122,7 +124,10 @@ export const POST = route(async (req) => {
     createdAt: timestamp(),
     updatedAt: timestamp(),
     parentId: body.parentId,
-    assistantMode: parseAssistantMode(body.assistantMode),
+    assistantMode,
+    ...(assistantMode === "research"
+      ? { researchBundle: researchBundle({ prompt: body.title || "新對話" }) }
+      : {}),
   };
   return respond({ conversation: put("conversation", owner, conv) }, 201);
 });

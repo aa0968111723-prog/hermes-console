@@ -68,6 +68,12 @@ export function put<T extends { id: string }>(
     .run(kind, owner, value.id, JSON.stringify(value));
   return value;
 }
+export function remove(kind: string, owner: string, id: string) {
+  const result = db()
+    .prepare("DELETE FROM records WHERE kind=? AND owner=? AND id=?")
+    .run(kind, owner, id);
+  return Number(result.changes) > 0;
+}
 export function transaction<T>(fn: () => T): T {
   db().exec("BEGIN IMMEDIATE");
   try {

@@ -126,6 +126,8 @@ export interface HermesRuntimeSnapshot {
     skillCount: number;
     toolsetCount: number;
     mcpToolCount: number;
+    hermesUrlSource?: "vault" | "env" | "none";
+    hermesKeySource?: "vault" | "env" | "none";
   };
 }
 

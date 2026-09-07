@@ -12,6 +12,7 @@ import {
   type Fact,
 } from "../creative";
 import { get, list, put, transaction } from "./store";
+import { listMemories } from "./memory";
 import { ApiError, hash, redact } from "./security";
 import { material } from "./materials";
 import type { Material, Task } from "../contracts";
@@ -359,6 +360,14 @@ export function projectContext(owner: string, projectId: string) {
     projectId,
     queriedAt: new Date().toISOString(),
     memorySynced: false,
+    sharedMemories: listMemories(owner, projectId).slice(0, 20).map((item) => ({
+      id: item.id,
+      kind: item.kind,
+      title: item.title,
+      content: item.content,
+      scope: item.scope,
+      updatedAt: item.updatedAt,
+    })),
     activities: list<Activity>("activity", owner)
       .filter((a) => a.projectId === projectId)
       .slice(0, 50)
