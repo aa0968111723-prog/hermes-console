@@ -81,6 +81,43 @@ export interface Task {
   usage: Usage;
   stopSupported: boolean;
   researchBundle?: ResearchBundle;
+  goal?: StructuredGoal;
+  plan?: ExecutionPlan;
+  budgetMode?: BudgetMode;
+}
+export type BudgetMode = "fast" | "balanced" | "deep";
+export interface StructuredGoal {
+  goal: string;
+  audience: string | null;
+  output: string | null;
+  constraints: string[];
+  requiresResearch: boolean;
+  requiresDesign: boolean;
+  requiresAudienceEvaluation: boolean;
+  requiresTamkang: boolean;
+  requiresInspiration: boolean;
+}
+export interface PlanStep {
+  id: string;
+  title: string;
+  purpose: string;
+  dependencies: string[];
+  agent: string;
+  tool: string | null;
+  fallback: string | null;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+}
+export interface FallbackRecord {
+  from: string;
+  to: string;
+  reason: string;
+  userVisible: string;
+}
+export interface ExecutionPlan {
+  summary: string;
+  budgetMode: BudgetMode;
+  steps: PlanStep[];
+  fallbacks: FallbackRecord[];
 }
 export interface ResearchSourceRecord {
   id: string;
@@ -93,16 +130,27 @@ export interface ResearchSourceRecord {
   official: boolean;
   confidence: number | null;
   usedFor: string;
-  verification: "not_fetched";
+  verification: "not_fetched" | "fetched" | "failed";
+  publisher?: string;
+  type?: string;
+  authority?: string;
+}
+export interface ResearchClaim {
+  id: string;
+  statement: string;
+  sourceIds: string[];
+  confidence: number | null;
+  verification: "unverified" | "source_verified";
+  truth: "SOURCE_VERIFIED" | "UNKNOWN";
 }
 export interface ResearchBundle {
   queries: string[];
   executed: boolean;
   message: string;
-  sources: unknown[];
-  claims: unknown[];
+  sources: ResearchSourceRecord[];
+  claims: ResearchClaim[];
   sourceDirectory: ResearchSourceRecord[];
-  fallback: null;
+  fallback: null | string;
   suggestedFallback: string;
   tamkang?: unknown;
   mapping?: unknown;
