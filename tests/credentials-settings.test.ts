@@ -64,8 +64,14 @@ const tku = createServer((req, res) => {
   req.on("end", () => {
     const raw = Buffer.concat(chunks).toString("utf8");
     res.setHeader("Content-Type", "application/json");
+    let parsed: Record<string, unknown> = {};
+    try {
+      parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    } catch {
+      parsed = {};
+    }
     if (req.url === "/auth/login") {
-      const body = JSON.parse(raw || "{}") as {
+      const body = parsed as {
         username?: string;
         password?: string;
       };
@@ -76,7 +82,7 @@ const tku = createServer((req, res) => {
       res.writeHead(401).end(JSON.stringify({ error: "denied" }));
       return;
     }
-    const message = JSON.parse(raw || "{}") as {
+    const message = parsed as {
       id?: unknown;
       method?: string;
     };

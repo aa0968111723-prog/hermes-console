@@ -257,6 +257,7 @@ export async function exchangeTamkangLogin(
   ];
   for (const url of candidates) {
     if (url.origin !== target.origin) continue;
+    let reached = false;
     for (const payload of bodies) {
       try {
         const response = await fetch(url, {
@@ -265,8 +266,9 @@ export async function exchangeTamkangLogin(
           cache: "no-store",
           headers: { "Content-Type": payload.type },
           body: payload.body,
-          signal: AbortSignal.timeout(10_000),
+          signal: AbortSignal.timeout(4_000),
         });
+        reached = true;
         const data = await readJsonLimited(response);
         const token = extractToken(data);
         if (response.ok && token) {
@@ -276,10 +278,12 @@ export async function exchangeTamkangLogin(
             ...(await testTamkangConnection()),
           };
         }
+        if (response.status === 401 || response.status === 403) break;
       } catch {
         /* try next candidate; never echo upstream bodies */
       }
     }
+    if (reached) continue;
   }
   try {
     const response = await fetch(target, {
@@ -293,7 +297,7 @@ export async function exchangeTamkangLogin(
         method: "auth/login",
         params: { username, password },
       }),
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(4_000),
     });
     const data = await readJsonLimited(response);
     const token = extractToken(data) || extractToken(
