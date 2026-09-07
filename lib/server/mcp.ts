@@ -32,6 +32,11 @@ import {
   xunheSchemas,
   type XunheToolName,
 } from "./xunhe";
+import {
+  consistencylabConfigured,
+  consistencylabWorkspaceTools,
+  invokeConsistencylab,
+} from "./consistencylab";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -165,21 +170,20 @@ export function toolsList(owner: string) {
         openWorldHint: name.startsWith("canva_"),
       },
     }));
-  if (!xunheConfigured()) return local;
-  return [
-    ...local,
-    ...Object.entries(xunheSchemas).map(([name, schema]) => ({
-      name,
-      description: xunheDescriptions[name as XunheToolName],
-      inputSchema: z.toJSONSchema(schema),
-      annotations: {
-        readOnlyHint: name !== "xunhe_research",
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-    })),
-  ];
+  const xunhe = xunheConfigured()
+    ? Object.entries(xunheSchemas).map(([name, schema]) => ({
+        name,
+        description: xunheDescriptions[name as XunheToolName],
+        inputSchema: z.toJSONSchema(schema),
+        annotations: {
+          readOnlyHint: name !== "xunhe_research",
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      }))
+    : [];
+  return [...local, ...xunhe, ...consistencylabWorkspaceTools()];
 }
 async function once(
   owner: string,
@@ -380,6 +384,28 @@ export async function callTool(
   input: unknown,
   rpcId?: string | number,
 ) {
+  if (name.startsWith("clab_")) {
+    if (!consistencylabConfigured())
+      throw new ApiError(
+        503,
+        "consistencylab_unconfigured",
+        "尚未設定 ConsistencyLab MCP 網址。",
+      );
+    const incoming =
+      input && typeof input === "object" && !Array.isArray(input)
+        ? ({ ...(input as Record<string, unknown>) } as Record<string, unknown>)
+        : {};
+    const forwarded = { ...incoming };
+    delete forwarded.taskId;
+    delete forwarded.toolCallId;
+    return finishToolCall(
+      owner,
+      name,
+      { taskId: incoming.taskId, toolCallId: incoming.toolCallId },
+      rpcId,
+      () => invokeConsistencylab(name.slice("clab_".length), forwarded),
+    );
+  }
   if (isXunheTool(name)) {
     if (!xunheConfigured())
       throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");

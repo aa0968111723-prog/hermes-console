@@ -5,6 +5,7 @@ import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
+import { consistencylabConfigured } from "./consistencylab";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -41,6 +42,18 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /xunhe|訊核|intel/i,
       detail: "Hermes 經 MCP 呼叫訊核研究、任務與報告工具。GitHub 倉庫網址不是 MCP。",
       requirements: ["XUNHE_MCP_URL（訊核 /mcp）", "可選 XUNHE_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "consistencylab",
+      name: "ConsistencyLab 連戲",
+      pattern: /consistencylab|clab_|連戲|golden|character bible/i,
+      detail: consistencylabConfigured()
+        ? "已設定 ConsistencyLab 端點；Hermes 透過 clab_* 工作區工具呼叫。"
+        : "尚未設定 CONSISTENCYLAB_MCP_URL。",
+      requirements: [
+        "連線設定或 CONSISTENCYLAB_MCP_URL",
+        "Streamable HTTP initialize／tools/list 驗證",
+      ],
     },
     {
       id: "canva",
