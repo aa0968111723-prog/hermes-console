@@ -5,6 +5,7 @@ import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
+import { framelabStatus } from "./framelab";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -41,6 +42,13 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /xunhe|訊核|intel/i,
       detail: "Hermes 經 MCP 呼叫訊核研究、任務與報告工具。GitHub 倉庫網址不是 MCP。",
       requirements: ["XUNHE_MCP_URL（訊核 /mcp）", "可選 XUNHE_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "framelab",
+      name: "FrameLab",
+      pattern: /framelab|frame.?lab|animation|timeline|inbetween/i,
+      detail: "Hermes 經 MCP 呼叫 FrameLab 動畫工具。GitHub 倉庫網址不是 MCP。",
+      requirements: ["FRAMELAB_MCP_URL（FrameLab /api/mcp）", "FRAMELAB_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "canva",
@@ -156,6 +164,11 @@ export function integrations(owner: string, h: Health): Integration[] {
       const xunhe = xunheStatus();
       item.state = xunhe.state as IntegrationState;
       item.detail = xunhe.detail;
+    }
+    if (item.id === "framelab") {
+      const framelab = framelabStatus();
+      item.state = framelab.state as IntegrationState;
+      item.detail = framelab.detail;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";

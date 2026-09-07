@@ -58,7 +58,7 @@ Runtime 能力以 `/api/runtime` snapshot 為準，包含 Hermes models／capabi
 [{"id":"project-design","name":"專案製作","endpoint":"https://YOUR_VERIFIED_HOST/mcp","credentialReference":"PROJECT_DESIGN_MCP_TOKEN","readonly":true}]
 ```
 
-僅放環境變數名稱，不放 token 值；可在受控秘密儲存或「設定 → 連線」另外設定該變數。清單 JSON 本身仍不應內嵌 token。此例是未啟用的設定範本，不是真實服務。TKU_MCP_URL／TOKEN（環境或 UI）可建立 tku 定義。XUNHE_MCP_URL／TOKEN 可建立訊核即時情報定義。ATLAS_MCP_URL／TOKEN 可建立場圖 Atlas 定義（端點必須是 `https://公開網域/api/mcp`）；Hermes 會以 `mcp.atlas.*` 呼叫公開導覽、機構規則、專案流程與任務建議，且 Atlas 拒絕把專案標為已交付。GitHub 倉庫網址不是 MCP。驗證只 initialize／tools-list，不自动挑選名稱看似讀取的工具執行；部分可用代表有真實工具清單，不代表安全／寫入授權。
+僅放環境變數名稱，不放 token 值；可在受控秘密儲存或「設定 → 連線」另外設定該變數。清單 JSON 本身仍不應內嵌 token。此例是未啟用的設定範本，不是真實服務。TKU_MCP_URL／TOKEN（環境或 UI）可建立 tku 定義。XUNHE_MCP_URL／TOKEN 可建立訊核即時情報定義。ATLAS_MCP_URL／TOKEN 可建立場圖 Atlas 定義（端點必須是 `https://公開網域/api/mcp`）；Hermes 會以 `mcp.atlas.*` 呼叫公開導覽、機構規則、專案流程與任務建議，且 Atlas 拒絕把專案標為已交付。FRAMELAB_MCP_URL／TOKEN 可建立 FrameLab 動畫定義（端點必須是 `https://公開網域/api/mcp`）；Hermes 會以 `mcp.framelab.*` 與工作區 `framelab_*` 呼叫時間軸、一致性分析、修復建議與中間張工具。GitHub 倉庫網址不是 MCP。驗證只 initialize／tools-list，不自动挑選名稱看似讀取的工具執行；部分可用代表有真實工具清單，不代表安全／寫入授權。
 
 淡江 MCP 在本倉庫是 Bearer 權杖連線。設定頁可貼權杖並「測試連線」。若已存網址的同一來源提供 `/auth/login`、`/api/auth/login`、`/login` 或 JSON-RPC `auth/login`，後端可代為用校園使用者名稱／密碼交換權杖；沒有這些端點時不會假裝成學校 SSO，請改貼權杖。
 

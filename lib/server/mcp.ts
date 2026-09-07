@@ -32,6 +32,14 @@ import {
   xunheSchemas,
   type XunheToolName,
 } from "./xunhe";
+import {
+  invokeFramelab,
+  isFramelabTool,
+  framelabConfigured,
+  framelabDescriptions,
+  framelabSchemas,
+  type FramelabToolName,
+} from "./framelab";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -165,20 +173,35 @@ export function toolsList(owner: string) {
         openWorldHint: name.startsWith("canva_"),
       },
     }));
-  if (!xunheConfigured()) return local;
+  if (!xunheConfigured() && !framelabConfigured()) return local;
   return [
     ...local,
-    ...Object.entries(xunheSchemas).map(([name, schema]) => ({
-      name,
-      description: xunheDescriptions[name as XunheToolName],
-      inputSchema: z.toJSONSchema(schema),
-      annotations: {
-        readOnlyHint: name !== "xunhe_research",
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-    })),
+    ...(xunheConfigured()
+      ? Object.entries(xunheSchemas).map(([name, schema]) => ({
+          name,
+          description: xunheDescriptions[name as XunheToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: name !== "xunhe_research",
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true,
+          },
+        }))
+      : []),
+    ...(framelabConfigured()
+      ? Object.entries(framelabSchemas).map(([name, schema]) => ({
+          name,
+          description: framelabDescriptions[name as FramelabToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: !/create_project|suggest_repair|_call$/.test(name),
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true,
+          },
+        }))
+      : []),
   ];
 }
 async function once(
@@ -385,6 +408,12 @@ export async function callTool(
       throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");
     const args = xunheSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeXunhe(name, args));
+  }
+  if (isFramelabTool(name)) {
+    if (!framelabConfigured())
+      throw new ApiError(503, "framelab_unconfigured", "尚未設定 FRAMELAB_MCP_URL。");
+    const args = framelabSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeFramelab(name, args));
   }
   if (!Object.prototype.hasOwnProperty.call(schemas, name))
     throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");
