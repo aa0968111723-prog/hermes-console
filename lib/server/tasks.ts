@@ -30,6 +30,9 @@ import {
 import { executeResearchBundle } from "./research/executor";
 import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
+import { memoryDigest } from "./memory";
+import { framelabTaskInstructions } from "./framelab";
+import { lumenTaskInstructions } from "./lumen";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -332,7 +335,8 @@ async function execute(
       "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
       "\n" +
       orchestration.instructions +
-      (researchPlan ? "\n" + formatResearchPlanForInstructions(researchPlan) : "");
+      (researchPlan ? "\n" + formatResearchPlanForInstructions(researchPlan) : "") +
+      framelabTaskInstructions() + lumenTaskInstructions() + memoryDigest(owner, conv.projectId);
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);

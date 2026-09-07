@@ -25,6 +25,38 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  xunhe?: {
+    id?: string;
+    name?: string;
+    state: string;
+    detail: string;
+    configured?: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
+  atlas?: {
+    configured: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
+  lumen?: {
+    id?: string;
+    name?: string;
+    state: string;
+    detail: string;
+    configured?: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
+  framelab?: {
+    id?: string;
+    name?: string;
+    state: string;
+    detail: string;
+    configured?: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
   zeabur?: {
     token: FieldStatus;
     projectId: string;
@@ -78,6 +110,14 @@ export default function ConnectionSettings({
   const [mcpJson, setMcpJson] = useState("");
   const [tkuUrl, setTkuUrl] = useState("");
   const [tkuToken, setTkuToken] = useState("");
+  const [xunheUrl, setXunheUrl] = useState("");
+  const [xunheToken, setXunheToken] = useState("");
+  const [atlasUrl, setAtlasUrl] = useState("");
+  const [atlasToken, setAtlasToken] = useState("");
+  const [lumenUrl, setLumenUrl] = useState("");
+  const [lumenToken, setLumenToken] = useState("");
+  const [framelabUrl, setFramelabUrl] = useState("");
+  const [framelabToken, setFramelabToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -99,6 +139,10 @@ export default function ConnectionSettings({
     setHermesModel(next.fields.HERMES_MODEL?.value || "");
     setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
+    setXunheUrl(next.fields.XUNHE_MCP_URL?.value || "");
+    setAtlasUrl(next.fields.ATLAS_MCP_URL?.value || "");
+    setLumenUrl(next.fields.LUMEN_MCP_URL?.value || "");
+    setFramelabUrl(next.fields.FRAMELAB_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
     );
@@ -113,6 +157,10 @@ export default function ConnectionSettings({
     setHermesKey("");
     setMcpToken("");
     setTkuToken("");
+    setXunheToken("");
+    setAtlasToken("");
+    setLumenToken("");
+    setFramelabToken("");
     setTkuPassword("");
     setZeaburToken("");
     setZeaburValue("");
@@ -232,6 +280,30 @@ export default function ConnectionSettings({
             ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
             : "讀取中"}
         </dd>
+        <dt>訊核 MCP</dt>
+        <dd>
+          {data?.xunhe
+            ? `${TAMKANG[data.xunhe.state] || data.xunhe.state} · ${data.xunhe.detail}`
+            : "尚未設定"}
+        </dd>
+        <dt>場圖 Atlas</dt>
+        <dd>
+          {data?.atlas?.configured
+            ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
+            : "尚未設定"}
+        </dd>
+        <dt>Lumen 創作台</dt>
+        <dd>
+          {data?.lumen
+            ? `${TAMKANG[data.lumen.state] || data.lumen.state} · ${data.lumen.detail}`
+            : "尚未設定"}
+        </dd>
+        <dt>FrameLab MCP</dt>
+        <dd>
+          {data?.framelab
+            ? `${TAMKANG[data.framelab.state] || data.framelab.state} · ${data.framelab.detail}`
+            : "尚未設定"}
+        </dd>
       </dl>
 
       <form
@@ -246,6 +318,10 @@ export default function ConnectionSettings({
               HERMES_MODEL: hermesModel,
               CONSOLE_MCP_SERVERS_JSON: mcpJson,
               TKU_MCP_URL: tkuUrl,
+              XUNHE_MCP_URL: xunheUrl,
+              ATLAS_MCP_URL: atlasUrl,
+              LUMEN_MCP_URL: lumenUrl,
+              FRAMELAB_MCP_URL: framelabUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
               ZEABUR_ENVIRONMENT_ID: zeaburEnv,
@@ -253,6 +329,10 @@ export default function ConnectionSettings({
             if (hermesKey) payload.HERMES_API_KEY = hermesKey;
             if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
+            if (xunheToken) payload.XUNHE_MCP_TOKEN = xunheToken;
+            if (atlasToken) payload.ATLAS_MCP_TOKEN = atlasToken;
+            if (lumenToken) payload.LUMEN_MCP_TOKEN = lumenToken;
+            if (framelabToken) payload.FRAMELAB_MCP_TOKEN = framelabToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
@@ -341,8 +421,154 @@ export default function ConnectionSettings({
           />
         </label>
         <p className="muted">
-          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。淡江可另外用下方欄位。
+          JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江與訊核可用下方專用欄位。
         </p>
+
+        <h3>場圖 Atlas MCP</h3>
+        <p className="muted">
+          端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 localhost 或 GitHub 網址。
+          權杖與場圖後端 ATLAS_MCP_TOKEN 相同。儲存後按「測試場圖連線」，Hermes 即可呼叫 mcp.atlas.*。
+        </p>
+        <label>
+          場圖 MCP 網址
+          <input
+            value={atlasUrl}
+            onChange={(e) => setAtlasUrl(e.target.value)}
+            placeholder="https://your-atlas.example/api/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          場圖 MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.ATLAS_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={atlasToken}
+            onChange={(e) => setAtlasToken(e.target.value)}
+            placeholder="與場圖後端 ATLAS_MCP_TOKEN 相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("ATLAS_MCP_TOKEN")}
+            onChange={(e) => toggleClear("ATLAS_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存場圖權杖
+        </label>
+
+        <h3>FrameLab 動畫 MCP</h3>
+        <p className="muted">
+          端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
+          權杖從 FrameLab 首頁「產生連線權杖」複製，開頭為 fl_。儲存後按「測試 FrameLab 連線」，Hermes 即可呼叫 mcp.framelab.* 與 framelab_*。
+        </p>
+        <label>
+          FrameLab MCP 網址
+          <input
+            value={framelabUrl}
+            onChange={(e) => setFramelabUrl(e.target.value)}
+            placeholder="https://your-framelab.example/api/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          FrameLab MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.FRAMELAB_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={framelabToken}
+            onChange={(e) => setFramelabToken(e.target.value)}
+            placeholder="從 FrameLab 首頁複製 fl_ 權杖"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("FRAMELAB_MCP_TOKEN")}
+            onChange={(e) => toggleClear("FRAMELAB_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存 FrameLab 權杖
+        </label>
+
+        <h3>Lumen 創作台</h3>
+        <p className="muted">
+          填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub 倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN 相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫 lumen_utter；按「測試 Lumen 連線」確認 initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
+        </p>
+        <label>
+          Lumen MCP 網址
+          <input
+            value={lumenUrl}
+            onChange={(e) => setLumenUrl(e.target.value)}
+            placeholder="https://your-lumen.example/api/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          Lumen MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.LUMEN_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={lumenToken}
+            onChange={(e) => setLumenToken(e.target.value)}
+            placeholder="與 Lumen 後端 LUMEN_MCP_TOKEN 相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("LUMEN_MCP_TOKEN")}
+            onChange={(e) => toggleClear("LUMEN_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存 Lumen 權杖
+        </label>
+
+        <h3>訊核即時情報 MCP</h3>
+        <p className="muted">
+          填訊核的 Streamable HTTP 端點（路徑 /mcp 或 /api/mcp）。不能填 GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表 Hermes 能呼叫 xunhe_research。
+        </p>
+        <label>
+          訊核 MCP 網址
+          <input
+            value={xunheUrl}
+            onChange={(e) => setXunheUrl(e.target.value)}
+            placeholder="https://your-xunhe.example/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          訊核 MCP 權杖（選用）
+          <span className="secret-hint">
+            {secretHint(data?.fields.XUNHE_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={xunheToken}
+            onChange={(e) => setXunheToken(e.target.value)}
+            placeholder="與訊核後端 XUNHE_MCP_TOKEN 相同"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("XUNHE_MCP_TOKEN")}
+            onChange={(e) => toggleClear("XUNHE_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存訊核權杖
+        </label>
 
         <h3>淡江 MCP</h3>
         <label>
@@ -589,6 +815,114 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試淡江連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/xunhe", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `訊核探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成訊核連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試訊核連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/atlas", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `場圖探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成場圖連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試場圖連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/lumen", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `Lumen 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 Lumen 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 Lumen 連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/framelab", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `FrameLab 探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成 FrameLab 連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試 FrameLab 連線
           </button>
           <button
             type="button"
