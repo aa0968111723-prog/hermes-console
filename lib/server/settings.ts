@@ -13,6 +13,7 @@ import {
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
+import { framelabStatus } from "./framelab";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -42,6 +43,8 @@ export const credentialsInput = z
     XUNHE_MCP_TOKEN: z.string().max(2_000).optional(),
     ATLAS_MCP_URL: z.string().max(500).optional(),
     ATLAS_MCP_TOKEN: z.string().max(2_000).optional(),
+    FRAMELAB_MCP_URL: z.string().max(500).optional(),
+    FRAMELAB_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -107,6 +110,8 @@ function validatePatch(patch: CredentialValues) {
     patch.XUNHE_MCP_URL = validateHttpsServiceUrl(patch.XUNHE_MCP_URL, "mcp");
   if (patch.ATLAS_MCP_URL)
     patch.ATLAS_MCP_URL = validateHttpsServiceUrl(patch.ATLAS_MCP_URL, "mcp");
+  if (patch.FRAMELAB_MCP_URL)
+    patch.FRAMELAB_MCP_URL = validateHttpsServiceUrl(patch.FRAMELAB_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
@@ -115,6 +120,8 @@ function validatePatch(patch: CredentialValues) {
     throw new ApiError(400, "invalid_secret", "訊核 MCP 權杖長度不足。");
   if (patch.ATLAS_MCP_TOKEN && patch.ATLAS_MCP_TOKEN.length < 16)
     throw new ApiError(400, "invalid_secret", "場圖 MCP 權杖長度不足。");
+  if (patch.FRAMELAB_MCP_TOKEN && patch.FRAMELAB_MCP_TOKEN.length < 16)
+    throw new ApiError(400, "invalid_secret", "FrameLab MCP 權杖長度不足。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -174,6 +181,12 @@ export function publicSettings() {
       urlSource: credentialPresence("ATLAS_MCP_URL").source,
       tokenSource: credentialPresence("ATLAS_MCP_TOKEN").source,
     },
+    framelab: {
+      ...framelabStatus(),
+      configured: !!(runtimeEnv("FRAMELAB_MCP_URL") && runtimeEnv("FRAMELAB_MCP_TOKEN")),
+      urlSource: credentialPresence("FRAMELAB_MCP_URL").source,
+      tokenSource: credentialPresence("FRAMELAB_MCP_TOKEN").source,
+    },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
       "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證與 Zeabur 部署。",
@@ -225,6 +238,25 @@ export async function testAtlasConnection() {
   const entry = getMcp("atlas");
   if (!entry)
     throw new ApiError(400, "atlas_unconfigured", "場圖 MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
+export async function testFramelabConnection() {
+  if (!runtimeEnv("FRAMELAB_MCP_URL"))
+    throw new ApiError(400, "framelab_unconfigured", "請先儲存 FrameLab MCP 網址。");
+  if (!runtimeEnv("FRAMELAB_MCP_TOKEN"))
+    throw new ApiError(400, "framelab_token_missing", "請先貼上 FrameLab FRAMELAB_MCP_TOKEN。");
+  const entry = getMcp("framelab");
+  if (!entry)
+    throw new ApiError(400, "framelab_unconfigured", "FrameLab MCP 尚未出現在核准清單。");
   const probed = await probeMcp(entry);
   return {
     ...publicSettings(),

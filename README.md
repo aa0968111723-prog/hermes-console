@@ -24,3 +24,7 @@
 ## 驗證與限制
 
 最新接續見 [活動、學習地圖與邀請制](docs/LEARNING_INVITATIONS.md)。舊 PR #11／#14 文件僅為歷史紀錄，其免登入方案已由本輪要求取代。契約測試不是 Zeabur／Canva／電子郵件收件匣的實機驗證。
+
+## FrameLab 動畫 MCP
+
+Hermes 可呼叫 FrameLab 逐格動畫工作站。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `FRAMELAB_MCP_URL`（`https://…/api/mcp`）與從 FrameLab 首頁產生的 `FRAMELAB_MCP_TOKEN`，再按「測試 FrameLab 連線」。探測成功後 Hermes 可用 `mcp.framelab.*` 與工作區 `framelab_*` 工具。詳見 [FrameLab MCP](docs/FRAMELAB.md)。
