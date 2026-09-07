@@ -28,3 +28,7 @@
 ## FrameLab 動畫 MCP
 
 Hermes 可呼叫 FrameLab 逐格動畫工作站。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `FRAMELAB_MCP_URL`（`https://…/api/mcp`）與從 FrameLab 首頁產生的 `FRAMELAB_MCP_TOKEN`，再按「測試 FrameLab 連線」。探測成功後 Hermes 可用 `mcp.framelab.*` 與工作區 `framelab_*` 工具。詳見 [FrameLab MCP](docs/FRAMELAB.md)。
+
+## ConsistencyLab 連戲 MCP
+
+Hermes 可呼叫 ConsistencyLab 連戲工作站。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `CONSISTENCYLAB_MCP_URL`（`https://…/api/mcp`）與從 ConsistencyLab 產生的 `CONSISTENCYLAB_MCP_TOKEN`（公開示範可省略），再按「測試 ConsistencyLab 連線」。探測成功後 Hermes 可用 `mcp.consistencylab.*` 與工作區 `clab_*` 工具讀寫角色聖經、Golden、服裝／燈光／道具連續。詳見 [ConsistencyLab MCP](docs/CONSISTENCYLAB.md)。
