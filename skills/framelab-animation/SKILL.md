@@ -9,7 +9,7 @@ description: 透過 MCP 操作 FrameLab 逐格動畫工作站。用於修中間�
 
 ## 使用時機
 
-- 使用者提到 FrameLab、動畫、時間軸、中間張、RIFE、修壞格、馬桶超人等專案
+- 使用者提到 FrameLab、動畫、時間軸、中間張、RIFE、修壞格、馬桶超人、補張、停格等專案
 - Runtime 已出現 `mcp.framelab.*` 或工作區已有 `framelab_*`
 
 ## 絕對規則
