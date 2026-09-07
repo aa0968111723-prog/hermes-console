@@ -176,6 +176,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
     assert.match(body.openSettingsWarning, /沒有邀請登入或閘道保護/);
+    assert.equal(body.zeabur.token.configured, false);
+    assert.match(body.zeabur.notice, /覆寫權杖/);
   });
 
   await t.test("POST still checks Origin", async () => {
@@ -360,6 +362,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     );
     assert.match(ui, /settings\/credentials/);
     assert.match(ui, /settings\/tamkang/);
+    assert.match(ui, /settings\/zeabur/);
     assert.doesNotMatch(ui, /HERMES_API_KEY\s*=\s*["'][^"']+["']/);
     assert.doesNotMatch(ui, /sk-[a-zA-Z0-9_-]{12,}/);
     assert.doesNotMatch(ui, /tku-exchanged-token/);

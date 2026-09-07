@@ -25,6 +25,13 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  zeabur?: {
+    token: FieldStatus;
+    projectId: string;
+    serviceId: string;
+    environmentId: string;
+    notice: string;
+  };
   openSettingsWarning: string;
   probe?: { status: string; toolsCount: number; lastError: string | null };
 };
@@ -73,6 +80,12 @@ export default function ConnectionSettings({
   const [tkuToken, setTkuToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
+  const [zeaburToken, setZeaburToken] = useState("");
+  const [zeaburProject, setZeaburProject] = useState("");
+  const [zeaburService, setZeaburService] = useState("");
+  const [zeaburEnv, setZeaburEnv] = useState("");
+  const [zeaburKey, setZeaburKey] = useState("");
+  const [zeaburValue, setZeaburValue] = useState("");
   const [clearKeys, setClearKeys] = useState<string[]>([]);
 
   const apply = useCallback((next: SettingsPayload) => {
@@ -81,10 +94,23 @@ export default function ConnectionSettings({
     setHermesModel(next.fields.HERMES_MODEL?.value || "");
     setMcpJson(next.fields.CONSOLE_MCP_SERVERS_JSON?.value || "");
     setTkuUrl(next.fields.TKU_MCP_URL?.value || "");
+    setZeaburProject(
+      next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
+    );
+    setZeaburService(
+      next.fields.ZEABUR_SERVICE_ID?.value || next.zeabur?.serviceId || "",
+    );
+    setZeaburEnv(
+      next.fields.ZEABUR_ENVIRONMENT_ID?.value ||
+        next.zeabur?.environmentId ||
+        "",
+    );
     setHermesKey("");
     setMcpToken("");
     setTkuToken("");
     setTkuPassword("");
+    setZeaburToken("");
+    setZeaburValue("");
   }, []);
 
   const load = useCallback(async () => {
@@ -183,10 +209,14 @@ export default function ConnectionSettings({
               HERMES_MODEL: hermesModel,
               CONSOLE_MCP_SERVERS_JSON: mcpJson,
               TKU_MCP_URL: tkuUrl,
+              ZEABUR_PROJECT_ID: zeaburProject,
+              ZEABUR_SERVICE_ID: zeaburService,
+              ZEABUR_ENVIRONMENT_ID: zeaburEnv,
             };
             if (hermesKey) payload.HERMES_API_KEY = hermesKey;
             if (mcpToken) payload.MCP_BRIDGE_TOKEN = mcpToken;
             if (tkuToken) payload.TKU_MCP_TOKEN = tkuToken;
+            if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
               "settings/credentials",
@@ -330,6 +360,185 @@ export default function ConnectionSettings({
           既有實作以網址加 Bearer 權杖為準。若伺服器在同一來源提供
           /auth/login、/api/auth/login、/login 或 JSON-RPC auth/login，後端會代為交換權杖；沒有這些端點時請直接貼權杖。
         </p>
+
+        <h3>Zeabur 部署</h3>
+        <p className="muted">
+          {data?.zeabur?.notice ||
+            "在 Zeabur 控制台 Settings → API Keys 建立權杖。公開站任何人都可以覆寫並變更後端環境變數。"}
+        </p>
+        <label>
+          Zeabur API 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.ZEABUR_API_TOKEN || data?.zeabur?.token)}
+          </span>
+          <input
+            type="password"
+            value={zeaburToken}
+            onChange={(e) => setZeaburToken(e.target.value)}
+            placeholder="貼上後儲存"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("ZEABUR_API_TOKEN")}
+            onChange={(e) => toggleClear("ZEABUR_API_TOKEN", e.target.checked)}
+          />
+          清除已存 Zeabur 權杖
+        </label>
+        <label>
+          專案識別
+          <input
+            value={zeaburProject}
+            onChange={(e) => setZeaburProject(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <label>
+          服務識別
+          <input
+            value={zeaburService}
+            onChange={(e) => setZeaburService(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <label>
+          環境識別
+          <input
+            value={zeaburEnv}
+            onChange={(e) => setZeaburEnv(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <label>
+          寫入單一環境變數（選用）
+          <input
+            value={zeaburKey}
+            onChange={(e) => setZeaburKey(e.target.value)}
+            placeholder="HERMES_API_KEY"
+            autoComplete="off"
+          />
+        </label>
+        <label>
+          變數值
+          <input
+            type="password"
+            value={zeaburValue}
+            onChange={(e) => setZeaburValue(e.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <div className="credential-actions">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/zeabur", {
+                  action: "test",
+                })) as { identity?: string };
+                setNotice("Zeabur：" + (result.identity || "已連線"));
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            測試 Zeabur
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/zeabur", {
+                  action: "push_console_keys",
+                })) as { updated?: string[] };
+                setNotice(
+                  "已推送到 Zeabur：" + (result.updated || []).join("、"),
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            推送 Console 金鑰
+          </button>
+          <button
+            type="button"
+            disabled={busy || !zeaburKey || !zeaburValue}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                await postJson("settings/zeabur", {
+                  action: "update_env",
+                  variables: [{ key: zeaburKey, value: zeaburValue }],
+                });
+                setZeaburValue("");
+                setNotice("已更新 Zeabur 環境變數 " + zeaburKey);
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            寫入變數
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/zeabur", {
+                  action: "redeploy",
+                })) as { status?: string };
+                setNotice("已要求重新部署：" + (result.status || "已送出"));
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            重新部署
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                await postJson("settings/zeabur", { action: "restart" });
+                setNotice("已要求重啟服務。");
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            重啟服務
+          </button>
+        </div>
+
         <div className="credential-actions">
           <button type="submit" disabled={busy}>
             {busy ? "處理中…" : "儲存連線設定"}
