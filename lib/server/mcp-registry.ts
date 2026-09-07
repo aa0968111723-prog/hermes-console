@@ -109,6 +109,14 @@ export function configuredMcp() {
       credentialReference: runtimeEnv("XUNHE_MCP_TOKEN") ? "XUNHE_MCP_TOKEN" : null,
       readonly: false,
     });
+  if (!configs.some((c) => c.id === "atlas") && runtimeEnv("ATLAS_MCP_URL"))
+    configs.push({
+      id: "atlas",
+      name: "場圖 Atlas",
+      endpoint: runtimeEnv("ATLAS_MCP_URL"),
+      credentialReference: "ATLAS_MCP_TOKEN",
+      readonly: false,
+    });
   if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length
