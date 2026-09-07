@@ -169,6 +169,22 @@ test("capability certification does not treat discovery as whole-Hermes verified
 
   await t.test("loopback URLs are LOCAL_CONTRACT not LIVE_EXTERNAL", () => {
     assert.equal(evidenceKindForUrl("http://127.0.0.1:9"), "LOCAL_CONTRACT");
+    assert.equal(evidenceKindForUrl("https://127.0.0.2:8443"), "LOCAL_CONTRACT");
+    assert.equal(
+      evidenceKindForUrl("https://[::ffff:127.0.0.1]:8443"),
+      "LOCAL_CONTRACT",
+    );
+    assert.equal(evidenceKindForUrl("https://10.0.0.5:8443"), "UNVERIFIED");
+    assert.equal(evidenceKindForUrl("https://192.168.1.1:8443"), "UNVERIFIED");
+    assert.equal(evidenceKindForUrl("https://169.254.169.254:8443"), "UNVERIFIED");
+    assert.equal(
+      evidenceKindForUrl("https://[::ffff:169.254.169.254]/"),
+      "UNVERIFIED",
+    );
+    assert.equal(
+      evidenceKindForUrl("https://metadata.google.internal/"),
+      "UNVERIFIED",
+    );
     assert.equal(evidenceKindForUrl("https://api.zeabur.com/graphql"), "LIVE_EXTERNAL");
     assert.equal(
       overallFromCapabilities(

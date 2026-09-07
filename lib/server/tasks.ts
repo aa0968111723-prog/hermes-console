@@ -297,7 +297,6 @@ async function execute(
       })),
     );
     const mode = parseAssistantMode(conv.assistantMode);
-    const researchPlan = task.researchBundle;
     const orchestration = prepareOrchestration(
       owner,
       task,
@@ -335,7 +334,9 @@ async function execute(
       "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
       "\n" +
       orchestration.instructions +
-      (researchPlan ? "\n" + formatResearchPlanForInstructions(researchPlan) : "") +
+      (task.researchBundle
+        ? "\n" + formatResearchPlanForInstructions(task.researchBundle)
+        : "") +
       framelabTaskInstructions() + lumenTaskInstructions() + memoryDigest(owner, conv.projectId);
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");

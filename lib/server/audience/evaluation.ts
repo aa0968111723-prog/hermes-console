@@ -1,4 +1,4 @@
-import { heuristicScores } from "./scoring";
+import { hasLocalCue, heuristicScores } from "./scoring";
 import {
   AUDIENCE_ROLES,
   SIMULATION,
@@ -18,7 +18,10 @@ export function evaluateArtifact(input: {
     audienceInstitution: input.profile.institution,
   });
   const jargon = /靜定|禪修/.test(input.copy + input.title);
-  const local = new RegExp(input.profile.location).test(input.copy + (input.title || ""));
+  const local = hasLocalCue(
+    input.copy + (input.title || ""),
+    input.profile.location,
+  );
   return AUDIENCE_ROLES.map((role: AudienceRole) => {
     const freshmanConfused = role === "Target" && jargon;
     const skepticReligion = role === "Skeptic" && jargon;

@@ -59,6 +59,28 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(fallbacksFromRoutes(routes).length, 0);
   });
 
+  await t.test("generic freshman wording does not bind Tamkang", () => {
+    for (const prompt of [
+      "國立臺灣大學新生茶會文宣海報",
+      "成功大學大一新生迎新茶會",
+      "清華大學大一新生招新",
+    ]) {
+      const goal = interpretGoal(prompt);
+      assert.equal(goal.requiresTamkang, false, prompt);
+      assert.notEqual(goal.audience, "淡江大一新生（模擬，不是民調）");
+      const tamkang = emptyIntegration("tamkang");
+      tamkang.capabilities.find((item) => item.id === "tamkang.reachable")!.status =
+        "reachable";
+      const campus = routeTools(goal, [tamkang]).find((item) => item.id === "campus");
+      assert.equal(campus, undefined, prompt);
+    }
+    for (const prompt of ["淡江新生茶會", "淡江大一新生", "教心所研究倫理"]) {
+      const goal = interpretGoal(prompt);
+      assert.equal(goal.requiresTamkang, true, prompt);
+      assert.equal(goal.audience, "淡江大一新生（模擬，不是民調）");
+    }
+  });
+
   await t.test("context budget does not dump the whole memory store", () => {
     for (let i = 0; i < 12; i++) {
       saveMemory("workspace", {
