@@ -26,6 +26,8 @@ No backend endpoint or integration contract was changed in this UI pass. A missi
 - `npm run typecheck` — pass.
 - `npm run build` — production build pass. Next reports the existing Windows worktree symlink tracing warning only.
 - `npm run test:ui` — real Chrome production preview pass at 1440, 768, 390 and 360px, including IME composition, Shift+Enter, reduced motion, no-login entry, uploads, scoped drafts, runtime, inspiration, settings and focus return. Screens are written to `output/playwright`.
+- The same run recorded CLS `0` in local Chrome. LCP was unavailable (`null`) in the headless observer, so no LCP claim is made; measure it again on the deployed origin with field tooling.
+- Captured views include `home-desktop.png`, `home-mobile.png`, `chat.png`, `projects.png`, `runtime-desktop.png`, `runtime-advanced.png`, `settings-desktop.png` and `settings-mobile-390.png`.
 
 The browser run is a local isolated Console with external Hermes/Canva credentials intentionally unset. It verifies real Console handlers and honest unconfigured/offline states; it is not a claim that external services are live.
 
