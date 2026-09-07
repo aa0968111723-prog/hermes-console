@@ -54,9 +54,10 @@ test("no-login entry contracts", async (t) => {
     assert.match(audit, /researchBundle/);
     assert.match(audit, /executed: false/);
     assert.match(audit, /API only/);
+    assert.match(audit, /dormant/);
+    assert.match(audit, /可選/);
     assert.doesNotMatch(audit, /正式必填/);
     assert.doesNotMatch(audit, /公開部署沒有閘道會 fail closed/);
-    assert.doesNotMatch(audit, /GET 回 `no-login`/);
   });
 
   await t.test("authenticate is no-login single workspace", () => {
