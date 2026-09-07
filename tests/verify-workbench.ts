@@ -33,6 +33,7 @@ try {
     assert.ok(!body.includes(word), "invitation UI visible: "+word);
   await page.getByRole("button",{name:"開啟導覽"}).click();
   await page.getByRole("dialog").filter({ has: page.getByRole("navigation") }).getByRole("button",{name:"專案",exact:true}).click();
+  await page.locator(".workbench-disclosure > summary").click();
   await page.getByRole("button",{name:"建立活動資料",exact:true}).click();
   await page.getByLabel("活動資料標題",{exact:true}).fill("驗證活動");
   for (const [label,value] of [["活動名稱","春日創作展"],["日期","2026-10-01"],["地點","活動展示廳"]])

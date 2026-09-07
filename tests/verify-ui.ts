@@ -1,7 +1,9 @@
 import { chromium, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { verifyVisualStates } from "./visual-states";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -60,7 +62,30 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
+  await context.addInitScript({
+    content: `
+    window.__metrics = { lcp: null, cls: 0, supported: PerformanceObserver.supportedEntryTypes };
+    if (PerformanceObserver.supportedEntryTypes.includes("largest-contentful-paint"))
+      new PerformanceObserver(list => { for (const e of list.getEntries()) window.__metrics.lcp = e.startTime; }).observe({type:"largest-contentful-paint",buffered:true});
+    if (PerformanceObserver.supportedEntryTypes.includes("layout-shift"))
+      new PerformanceObserver(list => { for (const e of list.getEntries()) if (!e.hadRecentInput) window.__metrics.cls += e.value; }).observe({type:"layout-shift",buffered:true});
+  `,
+  });
   const page = await context.newPage();
+  const accessibility: { page: string; violations: unknown[] }[] = [];
+  async function audit(name: string) {
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    accessibility.push({
+      page: name,
+      violations: result.violations.map((v) => ({
+        id: v.id,
+        impact: v.impact,
+        nodes: v.nodes.map((n) => n.target),
+      })),
+    });
+  }
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   async function assertNoLogin(target = page) {
@@ -96,13 +121,23 @@ try {
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toBeVisible();
-  await page.screenshot({ path: join(output, "chat.png"), fullPage: true });
-  const initialMetrics = await page.evaluate(() => ({
-    lcp: (performance.getEntriesByType("largest-contentful-paint").at(-1) as PerformanceEntry | undefined)?.startTime ?? null,
-    cls: performance.getEntriesByType("layout-shift").reduce((sum, entry) => sum + Number((entry as PerformanceEntry & { value?: number }).value || 0), 0),
-  }));
+  await page
+    .locator(".turtle img")
+    .evaluate((image: HTMLImageElement) => image.decode());
+  await audit("home-desktop");
+  const initialMetrics = await page.evaluate("window.__metrics");
   await assertNoLogin();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await expect(page.locator(".quick-action-label")).toHaveCount(6);
+  for (const label of await page
+    .locator(".quick-action-label")
+    .allTextContents())
+    assert.ok(label.length <= 4, "quick actions should remain concise");
+  await page.locator(".quick-action").first().click();
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toHaveValue("幫我找網宣靈感。");
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   assert.equal(
     await page
@@ -161,6 +196,23 @@ try {
       "send button occluded at " + width,
     );
     const mascot = await page.locator(".turtle").boundingBox();
+    const columns = await page
+      .locator(".quick-actions")
+      .evaluate(
+        (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
+      );
+    assert.equal(
+      columns,
+      width <= 760 ? 2 : width <= 1100 ? 3 : 6,
+      "quick action layout at " + width,
+    );
+    if (width <= 760) {
+      const dock = await page.locator(".mobile-bottom-dock").boundingBox();
+      assert.ok(
+        dock && send && send.y + send.height <= dock.y,
+        "bottom dock overlaps send",
+      );
+    }
     const composer = await page.locator(".composer").boundingBox();
     assert.ok(
       mascot && composer && mascot.y + mascot.height <= composer.y,
@@ -170,44 +222,84 @@ try {
       path: join(output, name + ".png"),
       fullPage: true,
     });
-    if (name === "desktop") await page.screenshot({ path: join(output, "home-desktop.png"), fullPage: true });
-    if (name === "mobile-390") await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
+    if (name === "desktop")
+      await page.screenshot({
+        path: join(output, "home-desktop.png"),
+        fullPage: true,
+      });
+    if (name === "mobile-390")
+      await page.screenshot({
+        path: join(output, "home-mobile.png"),
+        fullPage: true,
+      });
   }
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  const mobileNavigation = page.getByRole("dialog").filter({ has: page.getByRole("navigation") });
-  await mobileNavigation.getByRole("button", { name: "Agent", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Agent Runtime", exact: true })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Hermes Runtime 狀態" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "重新同步", exact: true })).toBeEnabled();
-  await page.screenshot({ path: join(output, "runtime-desktop.png"), fullPage: true });
+  const mobileNavigation = page
+    .getByRole("dialog")
+    .filter({ has: page.getByRole("navigation") });
+  await mobileNavigation
+    .getByRole("button", { name: "Agent", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Agent Runtime", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Hermes Runtime 狀態" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "重新同步", exact: true }),
+  ).toBeEnabled();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await audit("agents");
+  await page.screenshot({ path: join(output, "agents.png"), fullPage: true });
   const advancedRuntime = page.locator(".runtime-advanced > summary");
   await advancedRuntime.click();
-  await page.screenshot({ path: join(output, "runtime-advanced.png"), fullPage: true });
+  await page.screenshot({
+    path: join(output, "runtime-advanced.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 360, height: 800 });
   await page.getByRole("button", { name: "開啟導覽" }).click();
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();
-  await mobileNavigation.getByRole("button", { name: "靈感", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "靈感", exact: true })).toBeVisible();
+  await mobileNavigation
+    .getByRole("button", { name: "靈感", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "靈感", exact: true }),
+  ).toBeVisible();
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
-  assert.equal((await (await context.request.get(base + "/api/inspiration")).json()).sheetsSync, null);
+  assert.equal(
+    (await (await context.request.get(base + "/api/inspiration")).json())
+      .sheetsSync,
+    null,
+  );
   const syncBox = await syncButton.boundingBox();
   assert.ok(syncBox && syncBox.height >= 44);
   // UI error fixture only; the real import handler is independently covered in sheets-sync.test.ts.
-  await page.route("**/api/inspiration", async route => {
+  await page.route("**/api/inspiration", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
     assert.equal(route.request().postDataJSON().action, "sync_sheets");
-    await route.fulfill({ status: 503, json: { error: { message: "測試來源暫時不可用，請重試。" } } });
+    await route.fulfill({
+      status: 503,
+      json: { error: { message: "測試來源暫時不可用，請重試。" } },
+    });
   });
   await syncButton.click();
-  await expect(page.locator(".inspiration-board").getByRole("alert")).toContainText("測試來源暫時不可用");
+  await expect(
+    page.locator(".inspiration-board").getByRole("alert"),
+  ).toContainText("測試來源暫時不可用");
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation.getByRole("button", { name: "專案", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "專案", exact: true })
+    .click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
+  await page.locator(".reference-disclosure > summary").click();
   await page
     .getByRole("textbox", { name: "參考標題" })
     .fill("官方 Hermes 文件");
@@ -220,7 +312,9 @@ try {
   ).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation.getByRole("button", { name: "專案", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "專案", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
@@ -228,7 +322,9 @@ try {
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation.getByRole("button", { name: "對話", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "對話", exact: true })
+    .click();
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);
@@ -249,6 +345,7 @@ try {
   await expect(
     page.getByRole("tab", { name: "外觀", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  await audit("settings-appearance");
   await page.screenshot({
     path: join(output, "settings-desktop.png"),
     fullPage: true,
@@ -263,6 +360,7 @@ try {
   await expect(settings).not.toBeVisible();
   await expect(settingsButton).toBeFocused();
 
+  await page.getByRole("button", { name: "展開側欄", exact: true }).click();
   // Real backend conversations; unsent drafts are private, tab-memory only.
   for (const title of ["草稿分流 A", "草稿分流 B"]) {
     const result = await context.request.post(base + "/api/conversations", {
@@ -271,7 +369,7 @@ try {
     });
     assert.equal(result.status(), 201);
   }
-  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click({ force: true });
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
   await textarea.fill("A 尚未送出的內容");
   let releaseUpload!: () => void;
   const uploadGate = new Promise<void>((resolve) => {
@@ -287,17 +385,17 @@ try {
     mimeType: "text/plain",
     buffer: Buffer.from("真實上傳的測試附件"),
   });
-  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click({ force: true });
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
   releaseUpload();
   await expect(textarea).toHaveValue("");
   await expect(page.locator(".upload-chip")).toHaveCount(0);
   await textarea.fill("B 獨立草稿");
-  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click({ force: true });
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
   await expect(textarea).toHaveValue("A 尚未送出的內容");
   await expect(page.locator(".upload-chip")).toContainText("draft-a.txt");
   await expect(page.locator(".upload-chip")).toContainText("已保存");
   await page.unroute("**/api/materials?projectId=personal");
-  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click({ force: true });
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
   await expect(textarea).toHaveValue("B 獨立草稿");
 
   await context.request.post(base + "/api/workspace", {
@@ -312,7 +410,7 @@ try {
   await page.getByRole("button", { name: "獨立專案草稿", exact: true }).click();
   await expect(textarea).toHaveValue("只屬於這個專案的新對話草稿");
   await page.getByRole("button", { name: "個人工作區", exact: true }).click();
-  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click({ force: true });
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
   await expect(textarea).toHaveValue("B 獨立草稿");
 
   // Textarea grows, stays bounded when the visible viewport shrinks, and shrinks again.
@@ -339,7 +437,7 @@ try {
   assert.ok((await textarea.boundingBox())!.height < 100);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(textarea).toHaveValue("重新整理前仍保留的草稿");
-  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click({ force: true });
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
   await expect(textarea).toHaveValue("A 尚未送出的內容");
 
   // Storage may be denied by browser policy; it must not crash the workspace.
@@ -371,8 +469,29 @@ try {
     restrictedPage.getByRole("combobox", { name: /文字大小/ }),
   ).toHaveValue("20");
   await restricted.close();
+  await verifyVisualStates(page, base, output, audit);
   assert.deepEqual(errors, []);
-  console.log("Initial browser metrics (local Chrome): " + JSON.stringify(initialMetrics));
+  await writeFile(
+    join(output, "browser-report.json"),
+    JSON.stringify(
+      {
+        metrics: initialMetrics,
+        accessibility,
+        externalServices: "NOT verified",
+      },
+      null,
+      2,
+    ),
+  );
+  console.log(
+    "Initial browser metrics (local Chrome): " + JSON.stringify(initialMetrics),
+  );
+  console.log("Accessibility: " + JSON.stringify(accessibility));
+  assert.equal(
+    accessibility.reduce((sum, item) => sum + item.violations.length, 0),
+    0,
+    "axe violations; inspect browser-report.json",
+  );
   console.log(
     "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );

@@ -1,0 +1,66 @@
+{
+  "metrics": {
+    "lcp": 232,
+    "cls": 0.00008027199074074074,
+    "supported": [
+      "element",
+      "event",
+      "first-input",
+      "interaction-contentful-paint",
+      "largest-contentful-paint",
+      "layout-shift",
+      "long-animation-frame",
+      "longtask",
+      "mark",
+      "measure",
+      "navigation",
+      "paint",
+      "resource",
+      "soft-navigation",
+      "visibility-state"
+    ]
+  },
+  "accessibility": [
+    {
+      "page": "home-desktop",
+      "violations": []
+    },
+    {
+      "page": "agents",
+      "violations": []
+    },
+    {
+      "page": "settings-appearance",
+      "violations": []
+    },
+    {
+      "page": "image-context-mobile",
+      "violations": []
+    },
+    {
+      "page": "connections-mobile",
+      "violations": []
+    },
+    {
+      "page": "connection-editor",
+      "violations": []
+    },
+    {
+      "page": "projects-mobile",
+      "violations": []
+    },
+    {
+      "page": "tool-running-fixture",
+      "violations": []
+    },
+    {
+      "page": "chat-fixture",
+      "violations": []
+    },
+    {
+      "page": "artifact-fixture",
+      "violations": []
+    }
+  ],
+  "externalServices": "NOT verified"
+}

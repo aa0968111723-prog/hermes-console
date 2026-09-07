@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Bot, Check, CircleAlert, CircleDot } from "lucide-react";
+import { Bot, CircleAlert, CircleDot } from "lucide-react";
 import type { AgentProfile } from "@/lib/server/agents";
 
 export default function AgentPanel({
@@ -24,7 +24,7 @@ export default function AgentPanel({
           >
             <span className="agent-node-icon" aria-hidden="true"><Bot size={19} /></span>
             <strong>{agent.displayName}</strong>
-            <span className="agent-node-status" title={agent.status}>{["configured", "reachable"].includes(agent.status) ? <Check size={12} /> : agent.status === "failed" ? <CircleAlert size={12} /> : <CircleDot size={12} />}</span>
+            <span className="agent-node-status" title={agent.status}>{agent.status === "failed" ? <CircleAlert size={12} /> : <CircleDot size={12} />}</span>
             <span className="sr-only">{agent.status === "unconfigured" ? "未設定" : agent.status} · {agent.model || "模型未宣告"} · {agent.usage.totalTokens === null ? "使用量未知" : agent.usage.totalTokens + " tokens"}</span>
           </button>
         ))}
@@ -36,6 +36,8 @@ export default function AgentPanel({
             <div key={agent.id} className="agent-detail">
               <h2>{agent.displayName}</h2>
               <p>{agent.description}</p>
+              <p>狀態：{agent.status}（設定存在或服務可達不等於 Agent 已可執行）</p>
+              <p>模型：{agent.model || "未知"} · 使用量：{agent.usage.totalTokens === null ? "未知" : agent.usage.totalTokens + " tokens"}</p>
               <p>Skills：{agent.skills.map((s) => s.name).join("、") || "尚未探索"}</p>
               <p>Tools：{agent.tools.join("、") || "尚未探索"}</p>
               <p>Sessions：{agent.sessionSupport}</p>
