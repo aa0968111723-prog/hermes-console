@@ -431,7 +431,7 @@ export async function callTool(
   }
   if (isLumenTool(name)) {
     if (!lumenConfigured())
-      throw new ApiError(503, "lumen_unconfigured", "尚未設定 LUMEN_MCP_URL。");
+      throw new ApiError(503, "lumen_unconfigured", "尚未設定 LUMEN_MCP_URL 與 LUMEN_MCP_TOKEN。");
     const args = lumenSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeLumen(name, args));
   }

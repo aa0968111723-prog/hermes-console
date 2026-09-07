@@ -8,7 +8,7 @@ Hermes Console 把 Lumen 當成外部 MCP 工具來源，接線方式與訊核�
 2. 在 Console 後端或「設定 → 連線」填：
    - `LUMEN_MCP_URL`：上述 HTTPS 端點，不含帳密與查詢參數
    - `LUMEN_MCP_TOKEN`：至少 32 字元，與 Lumen 後端同一組服務憑證
-3. 儲存後 Workspace MCP 會立刻列出 `lumen_*`。再按「測試 Lumen 連線」。成功條件是 initialize 與 tools/list，不是假裝已開畫板。
+3. 網址與至少 32 字元權杖都存好後，Workspace MCP 會列出 `lumen_*`。再按「測試 Lumen 連線」。成功條件是 initialize 與 tools/list，不是假裝已開畫板。
 
 也可寫進 `CONSOLE_MCP_SERVERS_JSON`：
 

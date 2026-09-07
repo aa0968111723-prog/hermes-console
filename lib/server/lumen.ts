@@ -59,7 +59,8 @@ export const lumenDescriptions: Record<LumenToolName, string> = {
 };
 
 export function lumenConfigured() {
-  return !!runtimeEnv("LUMEN_MCP_URL");
+  const token = runtimeEnv("LUMEN_MCP_TOKEN");
+  return !!(runtimeEnv("LUMEN_MCP_URL") && token && token.length >= 32);
 }
 
 export function isLumenTool(name: string): name is LumenToolName {
@@ -94,7 +95,7 @@ export function lumenStatus() {
     id: "lumen",
     name: "Lumen 創作台",
     state: "partial" as const,
-    detail: "已設定端點與服務憑證。設定後 Hermes 可經 Workspace MCP 呼叫 lumen_utter；探測通過代表有真實工具清單。",
+    detail: "已設定端點與服務憑證。Hermes 可經 Workspace MCP 呼叫 lumen_utter；探測通過代表有真實工具清單。",
   };
 }
 
@@ -127,6 +128,11 @@ function remoteArgs(name: LumenToolName, args: Record<string, unknown>) {
 }
 
 let rpcSeq = 0;
+let cachedSession: string | undefined;
+
+export function resetLumenClient() {
+  cachedSession = undefined;
+}
 
 async function lumenRpc(
   method: string,
@@ -186,10 +192,7 @@ async function lumenRpc(
   return { result: json.result, sessionId: nextSession };
 }
 
-export async function invokeLumen(
-  name: LumenToolName,
-  args: Record<string, unknown>,
-): Promise<Record<string, unknown>> {
+async function handshake() {
   const init = await lumenRpc(
     "initialize",
     {
@@ -203,20 +206,10 @@ export async function invokeLumen(
   await lumenRpc("notifications/initialized", {}, init.sessionId, 5_000).catch(
     () => {},
   );
-  const called = await lumenRpc(
-    "tools/call",
-    {
-      name,
-      arguments: {
-        ...remoteArgs(name, args),
-        ...(typeof args.taskId === "string" ? { taskId: args.taskId } : {}),
-        ...(typeof args.toolCallId === "string" ? { toolCallId: args.toolCallId } : {}),
-      },
-    },
-    init.sessionId,
-    60_000,
-  );
-  const result = called.result;
+  return init.sessionId;
+}
+
+function unwrapToolResult(result: unknown): Record<string, unknown> {
   if (result && typeof result === "object") {
     const rec = result as {
       structuredContent?: Record<string, unknown>;
@@ -245,4 +238,29 @@ export async function invokeLumen(
     }
   }
   throw new ApiError(502, "lumen_empty", "Lumen 沒有回傳可用結果。");
+}
+
+export async function invokeLumen(
+  name: LumenToolName,
+  args: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const forwarded = {
+    ...remoteArgs(name, args),
+    ...(typeof args.taskId === "string" ? { taskId: args.taskId } : {}),
+    ...(typeof args.toolCallId === "string" ? { toolCallId: args.toolCallId } : {}),
+  };
+  const call = (sessionId?: string) =>
+    lumenRpc("tools/call", { name, arguments: forwarded }, sessionId, 60_000);
+  try {
+    cachedSession ??= await handshake();
+    return unwrapToolResult((await call(cachedSession)).result);
+  } catch (error) {
+    cachedSession = undefined;
+    cachedSession = await handshake();
+    try {
+      return unwrapToolResult((await call(cachedSession)).result);
+    } catch {
+      throw error;
+    }
+  }
 }

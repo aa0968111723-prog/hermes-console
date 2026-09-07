@@ -463,7 +463,7 @@ export default function ConnectionSettings({
 
         <h3>Lumen 創作台</h3>
         <p className="muted">
-          填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub 倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN 相同。儲存後 Hermes 即可經 Workspace MCP 呼叫 lumen_utter；按「測試 Lumen 連線」確認 initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
+          填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub 倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN 相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫 lumen_utter；按「測試 Lumen 連線」確認 initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
         </p>
         <label>
           Lumen MCP 網址
@@ -531,42 +531,6 @@ export default function ConnectionSettings({
             onChange={(e) => toggleClear("XUNHE_MCP_TOKEN", e.target.checked)}
           />
           清除已存訊核權杖
-        </label>
-
-        <h3>Lumen 創作台</h3>
-        <p className="muted">
-          填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub 倉庫網址。權杖至少 32 字元。儲存後 Hermes 即可經 Workspace MCP 呼叫 lumen_utter；按「測試 Lumen 連線」確認 initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
-        </p>
-        <label>
-          Lumen MCP 網址
-          <input
-            value={lumenUrl}
-            onChange={(e) => setLumenUrl(e.target.value)}
-            placeholder="https://your-lumen.example/api/mcp"
-            autoComplete="off"
-            inputMode="url"
-          />
-        </label>
-        <label>
-          Lumen MCP 權杖
-          <span className="secret-hint">
-            {secretHint(data?.fields.LUMEN_MCP_TOKEN)}
-          </span>
-          <input
-            type="password"
-            value={lumenToken}
-            onChange={(e) => setLumenToken(e.target.value)}
-            placeholder="至少 32 個字元"
-            autoComplete="off"
-          />
-        </label>
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={clearKeys.includes("LUMEN_MCP_TOKEN")}
-            onChange={(e) => toggleClear("LUMEN_MCP_TOKEN", e.target.checked)}
-          />
-          清除已存 Lumen 權杖
         </label>
 
         <h3>淡江 MCP</h3>

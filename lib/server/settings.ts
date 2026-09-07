@@ -13,7 +13,7 @@ import {
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
-import { lumenStatus } from "./lumen";
+import { lumenConfigured, lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
 import { zeaburPublicStatus } from "./zeabur";
 
@@ -180,7 +180,7 @@ export function publicSettings() {
     },
     lumen: {
       ...lumenStatus(),
-      configured: !!runtimeEnv("LUMEN_MCP_URL"),
+      configured: lumenConfigured(),
       urlSource: credentialPresence("LUMEN_MCP_URL").source,
       tokenSource: credentialPresence("LUMEN_MCP_TOKEN").source,
     },

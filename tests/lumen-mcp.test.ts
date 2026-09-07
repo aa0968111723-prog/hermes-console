@@ -107,6 +107,7 @@ process.env.LUMEN_MCP_URL =
 
 const { seedRegistry, probeMcp, getMcp } = await import("../lib/server/mcp-registry");
 const { toolsList, callTool } = await import("../lib/server/mcp");
+const { resetLumenClient } = await import("../lib/server/lumen");
 
 test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP", async (t) => {
   await t.test("auto-seed from LUMEN_MCP_URL like 訊核", () => {
@@ -118,7 +119,11 @@ test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP"
     assert.equal(lumenEntry?.credentialReference, "LUMEN_MCP_TOKEN");
   });
 
-  await t.test("workspace MCP advertises lumen_utter as soon as URL is set", () => {
+  await t.test("workspace MCP advertises lumen_utter only when URL and token are set", () => {
+    const previous = process.env.LUMEN_MCP_TOKEN;
+    delete process.env.LUMEN_MCP_TOKEN;
+    assert.ok(!toolsList("workspace").some((tool) => tool.name === "lumen_utter"));
+    process.env.LUMEN_MCP_TOKEN = previous;
     const names = toolsList("workspace").map((tool) => tool.name);
     assert.ok(names.includes("lumen_utter"));
     assert.ok(names.includes("lumen_save_directions"));
@@ -136,6 +141,7 @@ test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP"
   });
 
   await t.test("tools/call initializes as hermes-console then returns structured content", async () => {
+    resetLumenClient();
     const result = (await callTool("workspace", "lumen_utter", {
       text: "幫我做新生茶會海報",
     })) as { structuredContent?: { result?: { speech?: string } }; content?: Array<{ text: string }> };
@@ -143,6 +149,15 @@ test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP"
     assert.equal(result.structuredContent?.result?.speech, "我整理了三個方向。");
     assert.ok(calls.includes("tools/call"));
     assert.ok(clients.includes("hermes-console"));
+  });
+
+  await t.test("reuses MCP session across calls like FrameLab", async () => {
+    resetLumenClient();
+    const before = calls.filter((method) => method === "initialize").length;
+    await callTool("workspace", "lumen_health", {});
+    await callTool("workspace", "lumen_list_board", {});
+    const after = calls.filter((method) => method === "initialize").length;
+    assert.equal(after, before + 1);
   });
 });
 

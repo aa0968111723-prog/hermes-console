@@ -5,7 +5,7 @@ description: 經 Hermes Console 的 Workspace MCP 呼叫 Lumen 創作台。用�
 
 # Lumen 創作台
 
-Lumen 是獨立的 Streamable HTTP MCP。接線方式與訊核相同：設定 `LUMEN_MCP_URL` 後，Workspace MCP 立刻出現 `lumen_*`，Hermes 不必另開第二條 MCP 連線。
+Lumen 是獨立的 Streamable HTTP MCP。接線方式與 FrameLab 相同：設定 `LUMEN_MCP_URL` 與至少 32 字元的 `LUMEN_MCP_TOKEN` 後，Workspace MCP 出現 `lumen_*`，Hermes 不必另開第二條 MCP 連線。
 
 ## 何時使用
 
