@@ -323,6 +323,8 @@ export default function ConnectionSettings({
         </dd>
       </dl>
 
+      <details className="connection-editor">
+        <summary>編輯連線設定</summary>
       <form
         onSubmit={async (event) => {
           event.preventDefault();
@@ -1033,6 +1035,7 @@ export default function ConnectionSettings({
           </button>
         </div>
       </form>
+      </details>
     </div>
   );
 }

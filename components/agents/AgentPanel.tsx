@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Bot, Check, CircleAlert, CircleDot } from "lucide-react";
 import type { AgentProfile } from "@/lib/server/agents";
 
 export default function AgentPanel({
@@ -12,24 +13,19 @@ export default function AgentPanel({
   const [open, setOpen] = useState<string | null>(null);
   return (
     <section className="agent-panel">
-      <h1>Agent</h1>
-      <p className="muted">狀態來自實際 Hermes 探索，未設定不會顯示已連線。</p>
+      <h2 className="sr-only">Agent 節點</h2>
       <div className="agent-grid">
         {agents.map((agent) => (
           <button
             key={agent.id}
-            className="agent-card"
+            className={`agent-card agent-card-${agent.status}`}
             onClick={() => setOpen(open === agent.id ? null : agent.id)}
             aria-expanded={open === agent.id}
           >
+            <span className="agent-node-icon" aria-hidden="true"><Bot size={19} /></span>
             <strong>{agent.displayName}</strong>
-            <span>{agent.status === "unconfigured" ? "Unconfigured" : agent.status}</span>
-            <span>{agent.model || "模型未宣告"}</span>
-            <span>
-              {agent.usage.totalTokens === null
-                ? "使用量未知"
-                : agent.usage.totalTokens + " tokens"}
-            </span>
+            <span className="agent-node-status" title={agent.status}>{["configured", "reachable"].includes(agent.status) ? <Check size={12} /> : agent.status === "failed" ? <CircleAlert size={12} /> : <CircleDot size={12} />}</span>
+            <span className="sr-only">{agent.status === "unconfigured" ? "未設定" : agent.status} · {agent.model || "模型未宣告"} · {agent.usage.totalTokens === null ? "使用量未知" : agent.usage.totalTokens + " tokens"}</span>
           </button>
         ))}
       </div>

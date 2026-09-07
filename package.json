@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "lint": "npm run typecheck && npm run check:secrets",
     "start": "next start",
     "test": "tsx --test tests/*.test.ts",
     "test:ui": "tsx tests/verify-ui.ts",

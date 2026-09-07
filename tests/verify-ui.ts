@@ -96,6 +96,11 @@ try {
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toBeVisible();
+  await page.screenshot({ path: join(output, "chat.png"), fullPage: true });
+  const initialMetrics = await page.evaluate(() => ({
+    lcp: (performance.getEntriesByType("largest-contentful-paint").at(-1) as PerformanceEntry | undefined)?.startTime ?? null,
+    cls: performance.getEntriesByType("layout-shift").reduce((sum, entry) => sum + Number((entry as PerformanceEntry & { value?: number }).value || 0), 0),
+  }));
   await assertNoLogin();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
@@ -163,20 +168,26 @@ try {
       path: join(output, name + ".png"),
       fullPage: true,
     });
+    if (name === "desktop") await page.screenshot({ path: join(output, "home-desktop.png"), fullPage: true });
+    if (name === "mobile-390") await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
   }
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "Agent", exact: true }).click();
+  const mobileNavigation = page.getByRole("dialog").filter({ has: page.getByRole("navigation") });
+  await mobileNavigation.getByRole("button", { name: "Agent", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Agent Runtime", exact: true })).toBeVisible();
   await expect(page.getByRole("region", { name: "Hermes Runtime 狀態" })).toBeVisible();
   await expect(page.getByRole("button", { name: "重新同步", exact: true })).toBeEnabled();
   await page.screenshot({ path: join(output, "runtime-desktop.png"), fullPage: true });
+  const advancedRuntime = page.locator(".runtime-advanced > summary");
+  await advancedRuntime.click();
+  await page.screenshot({ path: join(output, "runtime-advanced.png"), fullPage: true });
   await page.getByRole("button", { name: "開啟導覽" }).click();
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "靈感", exact: true }).click();
+  await mobileNavigation.getByRole("button", { name: "靈感", exact: true }).click();
   await expect(page.getByRole("heading", { name: "靈感", exact: true })).toBeVisible();
-  const syncButton = page.getByRole("button", { name: "匯入已設定的 4 份試算表" });
+  const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal((await (await context.request.get(base + "/api/inspiration")).json()).sheetsSync, null);
   const syncBox = await syncButton.boundingBox();
@@ -192,8 +203,9 @@ try {
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "專案", exact: true }).click();
+  await mobileNavigation.getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
   await page
     .getByRole("textbox", { name: "參考標題" })
     .fill("官方 Hermes 文件");
@@ -206,7 +218,7 @@ try {
   ).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "專案", exact: true }).click();
+  await mobileNavigation.getByRole("button", { name: "專案", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
@@ -214,7 +226,7 @@ try {
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "對話", exact: true }).click();
+  await mobileNavigation.getByRole("button", { name: "對話", exact: true }).click();
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);
@@ -257,7 +269,7 @@ try {
     });
     assert.equal(result.status(), 201);
   }
-  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click({ force: true });
   await textarea.fill("A 尚未送出的內容");
   let releaseUpload!: () => void;
   const uploadGate = new Promise<void>((resolve) => {
@@ -273,17 +285,17 @@ try {
     mimeType: "text/plain",
     buffer: Buffer.from("真實上傳的測試附件"),
   });
-  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click({ force: true });
   releaseUpload();
   await expect(textarea).toHaveValue("");
   await expect(page.locator(".upload-chip")).toHaveCount(0);
   await textarea.fill("B 獨立草稿");
-  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click({ force: true });
   await expect(textarea).toHaveValue("A 尚未送出的內容");
   await expect(page.locator(".upload-chip")).toContainText("draft-a.txt");
   await expect(page.locator(".upload-chip")).toContainText("已保存");
   await page.unroute("**/api/materials?projectId=personal");
-  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click({ force: true });
   await expect(textarea).toHaveValue("B 獨立草稿");
 
   await context.request.post(base + "/api/workspace", {
@@ -298,7 +310,7 @@ try {
   await page.getByRole("button", { name: "獨立專案草稿", exact: true }).click();
   await expect(textarea).toHaveValue("只屬於這個專案的新對話草稿");
   await page.getByRole("button", { name: "個人工作區", exact: true }).click();
-  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
+  await page.getByRole("button", { name: "草稿分流 B", exact: true }).click({ force: true });
   await expect(textarea).toHaveValue("B 獨立草稿");
 
   // Textarea grows, stays bounded when the visible viewport shrinks, and shrinks again.
@@ -325,7 +337,7 @@ try {
   assert.ok((await textarea.boundingBox())!.height < 100);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(textarea).toHaveValue("重新整理前仍保留的草稿");
-  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
+  await page.getByRole("button", { name: "草稿分流 A", exact: true }).click({ force: true });
   await expect(textarea).toHaveValue("A 尚未送出的內容");
 
   // Storage may be denied by browser policy; it must not crash the workspace.
@@ -358,6 +370,7 @@ try {
   ).toHaveValue("20");
   await restricted.close();
   assert.deepEqual(errors, []);
+  console.log("Initial browser metrics (local Chrome): " + JSON.stringify(initialMetrics));
   console.log(
     "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );

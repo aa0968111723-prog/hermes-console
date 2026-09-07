@@ -29,7 +29,6 @@ import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
-import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
 import RuntimeInspector from "./RuntimeInspector";
@@ -40,6 +39,13 @@ import IntegrationHealth from "./settings/IntegrationHealth";
 import CapabilityCertification from "./settings/CapabilityCertification";
 import ConnectionSettings from "./settings/ConnectionSettings";
 import SharedMemory from "./settings/SharedMemory";
+import HermesCore from "./visual/HermesCore";
+import QuickActions from "./visual/QuickActions";
+import AgentOrbit from "./visual/AgentOrbit";
+import AgentActivity from "./visual/AgentActivity";
+import VisualStatus from "./visual/VisualStatus";
+import AppDock from "./visual/AppDock";
+import ArtifactStage from "./visual/ArtifactStage";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -621,50 +627,50 @@ export default function HermesConsole() {
   };
   const navigation = (
     <>
-      <div className="brand">
+      <div className="brand" aria-label="Hermes 龜龜創作助手">
         <span className="brand-mark">
           <Leaf size={20} />
         </span>
-        <span>
+        <span className="brand-copy">
           Hermes<small>龜龜創作助手</small>
         </span>
       </div>
-      <button className="new-chat" onClick={fresh} disabled={busy}>
+      <button className="new-chat" aria-label="開啟新對話" onClick={fresh} disabled={busy}>
         <Plus size={19} />
-        開啟新對話
+        <span>開啟新對話</span>
         <Pencil size={16} />
       </button>
-      <nav aria-label="主要導覽">
+      <nav className="visual-dock-nav" aria-label="主要導覽">
         <button
           aria-current={nav === "chat" ? "page" : undefined}
           onClick={() => navigate("chat")}
         >
           <MessageSquare size={19} />
-          對話
+          <span>對話</span>
         </button>
         <button
           aria-current={nav === "projects" ? "page" : undefined}
           onClick={() => navigate("projects")}
         >
           <Images size={19} />
-          專案
+          <span>專案</span>
         </button>
         <button
           aria-current={nav === "inspiration" ? "page" : undefined}
           onClick={() => navigate("inspiration")}
         >
           <Sparkles size={19} />
-          靈感
+          <span>靈感</span>
         </button>
         <button
           aria-current={nav === "agents" ? "page" : undefined}
           onClick={() => navigate("agents")}
         >
           <Bot size={19} />
-          Agent
+          <span>Agent</span>
         </button>
       </nav>
-      <div className="side-section">
+      <div className="side-section dock-section-label">
         <span>專案</span>
         <button
           aria-label="新增專案"
@@ -702,7 +708,7 @@ export default function HermesConsole() {
           <span>{p.name}</span>
         </button>
       ))}
-      <div className="side-section">
+      <div className="side-section dock-section-label">
         <span>最近對話</span>
       </div>
       <div className="history">
@@ -732,7 +738,7 @@ export default function HermesConsole() {
         }}
       >
         <Settings size={19} />
-        設定與連線
+        <span>設定與連線</span>
         <span
           className={
             "status-dot " + (health?.credential === "valid" ? "good" : "")
@@ -819,7 +825,7 @@ export default function HermesConsole() {
                 "status-dot " + (health?.credential === "valid" ? "good" : "")
               }
             />
-            <span>
+            <span className="connection-label">
               {offline
                 ? "離線"
                 : health
@@ -877,58 +883,13 @@ export default function HermesConsole() {
             >
               <div className="conversation">
                 {!activeConv?.messages.length ? (
-                  <section className="welcome">
-                    {prefs.turtle && (
-                      <Turtle
-                        offline={offline}
-                        animation={prefs.animation}
-                        size={prefs.turtleSize}
-                        onClick={() => openTask()}
-                      />
-                    )}
-                    <p className="eyebrow">歡迎使用 Hermes Creative Intelligence</p>
-                    <h1>今天想做什麼？</h1>
-                    <p>
-                      直接告訴龜龜你想做什麼。
-                      <br className="mobile-break" />
-                      不必自己挑選工具。
-                    </p>
-                    <button
-                      className="primary"
-                      onClick={() => input.current?.focus()}
-                    >
-                      開始使用
-                    </button>
-                    <div className="starters">
-                      {[
-                        ["幫我找網宣靈感", "幫我找網宣靈感。"],
-                        [
-                          "幫我做淡江新生海報",
-                          "幫我做一張給淡江大一新生看的社團茶會海報。",
-                        ],
-                        ["分析這張文宣", "請分析這張文宣。"],
-                        [
-                          "站在目標客群角度看看",
-                          "站在目標客群角度看看，路人會不會滑掉。",
-                        ],
-                        [
-                          "找 IG / Pinterest 參考",
-                          "幫我找 IG 與 Pinterest 參考，不要假裝已搜尋完整平台。",
-                        ],
-                        ["做 Canva 草稿", "幫我做 Canva 草稿。"],
-                      ].map(([label, prompt]) => (
-                        <button
-                          key={label}
-                          onClick={() => {
-                            setText(prompt);
-                            input.current?.focus();
-                          }}
-                        >
-                          <span>{label}</span>
-                          <Plus size={16} />
-                        </button>
-                      ))}
+                  <section className="welcome" aria-labelledby="welcome-title">
+                    <div className="welcome-stage">
+                      {prefs.turtle && <HermesCore task={currentTask} offline={offline} animation={prefs.animation} size={Math.min(Math.max(prefs.turtleSize, 180), 260)} onClick={() => openTask(currentTask)} />}
+                      {prefs.turtle && <AgentOrbit task={currentTask} tools={integrations.filter((item) => item.state === "available").map((item) => item.name)} />}
                     </div>
+                    <h1 id="welcome-title">今天想做什麼？</h1>
+                    <QuickActions onSelect={(prompt) => { setText(prompt); input.current?.focus(); }} />
                     {legacy && (
                       <button className="text-button" onClick={importLegacy}>
                         匯入這個瀏覽器中的舊對話（不覆蓋原資料）
@@ -942,6 +903,7 @@ export default function HermesConsole() {
                         此為獨立分支，原對話仍保留。
                       </p>
                     )}
+                    {currentTask && isActive(currentTask) && <AgentActivity task={currentTask} />}
                     {activeConv.messages.map((message) => (
                       <article
                         key={message.id}
@@ -1423,9 +1385,12 @@ export default function HermesConsole() {
           />
         ) : nav === "agents" ? (
           <section className="secondary-page">
-            <p className="eyebrow">即時能力與工具</p>
-            <h1>Agent Runtime</h1>
-            <p className="muted">Agent、Tools、Skills、Toolsets 與 MCP 以 Hermes Runtime 探索結果為準。</p>
+            <div className="page-heading-row">
+              <div><p className="eyebrow">能力</p><h1>Agent Runtime</h1></div>
+              <VisualStatus health={health} offline={offline} />
+            </div>
+            <AgentOrbit task={currentTask} tools={integrations.filter((item) => item.state === "available").map((item) => item.name)} />
+            <AgentActivity task={currentTask} />
             <AgentPanel agents={agents} brain={[]} />
             <RuntimeInspector />
           </section>
@@ -1527,7 +1492,7 @@ export default function HermesConsole() {
                       查回 Canva 製作結果
                     </button>
                   )}
-                  {w.design && <CanvaResult design={w.design} />}
+                  {w.design && <ArtifactStage design={w.design} />}
                 </section>
               ))}
             {!tasks.length && !workflows.length && (
@@ -1555,6 +1520,7 @@ export default function HermesConsole() {
           </section>
         )}
       </main>
+      <AppDock nav={nav} onNavigate={navigate} />
       <dialog
         ref={dialog}
         className="detail-dialog"
