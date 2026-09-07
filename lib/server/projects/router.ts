@@ -65,8 +65,13 @@ export function isFramelabIntent(intent: string) {
   );
 }
 
-/** Poster / Lumen studio intent. Checked after booth and FrameLab. */
+/** Poster / Lumen studio intent. Checked after booth and FrameLab. 連戲分鏡留給 ConsistencyLab。 */
 export function isLumenIntent(intent: string) {
+  if (
+    /連戲|角色聖經|Golden|outfit lock|character bible|continuity/i.test(intent) &&
+    !/海報|文宣|茶會|招新|創作台|Lumen/i.test(intent)
+  )
+    return false;
   return /Lumen|lumen|創作台|畫板|Style\s*DNA|風格鎖定|三個方向|招新|茶會|夜市|成果展|市集|分鏡|研究卡|海報|文宣|社團/.test(
     intent,
   );

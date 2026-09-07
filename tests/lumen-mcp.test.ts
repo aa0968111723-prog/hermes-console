@@ -220,6 +220,8 @@ test("文宣意圖路由到 lumen，動畫與剪輯不搶走", () => {
   const animation = routeToolsets("幫我把這支影片做成動畫並修中間張");
   assert.ok(animation.toolsets.includes("framelab"));
   assert.ok(!animation.toolsets.includes("lumen"));
+  assert.equal(isLumenIntent("連戲角色聖經 Golden 分鏡"), false);
+  assert.equal(isLumenIntent("夜市誌短影片分鏡"), true);
 });
 
 test("任務指示要求 Hermes 真的呼叫 lumen_*", () => {
@@ -242,6 +244,12 @@ test("工作區 callTool 會轉發到 Lumen tools/call", async () => {
   const payload = uttered.structuredContent as { result?: { speech?: string; name?: string } };
   assert.equal(payload.result?.speech, "我整理了三個方向。");
   assert.equal(payload.result?.name, "新生茶會");
+  assert.ok(remoteNames.includes("lumen_utter"));
+  const called = await callTool("workspace", "lumen_call", {
+    tool: "lumen_utter",
+    arguments: { text: "成果展識別" },
+  });
+  assert.equal(called.isError, false);
   assert.ok(remoteNames.includes("lumen_utter"));
 });
 
