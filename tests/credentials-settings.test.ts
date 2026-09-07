@@ -21,6 +21,8 @@ delete process.env.HERMES_MODEL;
 delete process.env.MCP_BRIDGE_TOKEN;
 delete process.env.TKU_MCP_URL;
 delete process.env.TKU_MCP_TOKEN;
+delete process.env.XUNHE_MCP_URL;
+delete process.env.XUNHE_MCP_TOKEN;
 delete process.env.LUMEN_MCP_URL;
 delete process.env.LUMEN_MCP_TOKEN;
 delete process.env.CONSOLE_MCP_SERVERS_JSON;

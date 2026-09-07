@@ -12,6 +12,8 @@ import {
 } from "./credentials";
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
+import { xunheStatus } from "./xunhe";
+import { lumenStatus } from "./lumen";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -37,6 +39,8 @@ export const credentialsInput = z
     CONSOLE_MCP_SERVERS_JSON: z.string().max(20_000).optional(),
     TKU_MCP_URL: z.string().max(500).optional(),
     TKU_MCP_TOKEN: z.string().max(2_000).optional(),
+    XUNHE_MCP_URL: z.string().max(500).optional(),
+    XUNHE_MCP_TOKEN: z.string().max(2_000).optional(),
     LUMEN_MCP_URL: z.string().max(500).optional(),
     LUMEN_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
@@ -100,12 +104,16 @@ function validatePatch(patch: CredentialValues) {
     );
   if (patch.TKU_MCP_URL)
     patch.TKU_MCP_URL = validateHttpsServiceUrl(patch.TKU_MCP_URL, "mcp");
+  if (patch.XUNHE_MCP_URL)
+    patch.XUNHE_MCP_URL = validateHttpsServiceUrl(patch.XUNHE_MCP_URL, "mcp");
   if (patch.LUMEN_MCP_URL)
     patch.LUMEN_MCP_URL = validateHttpsServiceUrl(patch.LUMEN_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "淡江 MCP 權杖長度不足。");
+  if (patch.XUNHE_MCP_TOKEN && patch.XUNHE_MCP_TOKEN.length < 8)
+    throw new ApiError(400, "invalid_secret", "訊核 MCP 權杖長度不足。");
   if (patch.LUMEN_MCP_TOKEN && patch.LUMEN_MCP_TOKEN.length < 32)
     throw new ApiError(400, "invalid_secret", "Lumen MCP 權杖至少需要 32 個字元。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
@@ -151,15 +159,22 @@ export function publicSettings() {
       keySource: credentialPresence("HERMES_API_KEY").source,
     },
     mcpBridge: credentialPresence("MCP_BRIDGE_TOKEN"),
+    xunhe: {
+      ...xunheStatus(),
+      configured: !!runtimeEnv("XUNHE_MCP_URL"),
+      urlSource: credentialPresence("XUNHE_MCP_URL").source,
+      tokenSource: credentialPresence("XUNHE_MCP_TOKEN").source,
+    },
+    lumen: {
+      ...lumenStatus(),
+      configured: !!runtimeEnv("LUMEN_MCP_URL"),
+      urlSource: credentialPresence("LUMEN_MCP_URL").source,
+      tokenSource: credentialPresence("LUMEN_MCP_TOKEN").source,
+    },
     tamkang: {
       ...tamkang,
       urlSource: credentialPresence("TKU_MCP_URL").source,
       tokenSource: credentialPresence("TKU_MCP_TOKEN").source,
-    },
-    lumen: {
-      ...liveLumenStatus(),
-      urlSource: credentialPresence("LUMEN_MCP_URL").source,
-      tokenSource: credentialPresence("LUMEN_MCP_TOKEN").source,
     },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
@@ -187,6 +202,23 @@ function liveTamkangStatus() {
   });
 }
 
+export async function testXunheConnection() {
+  if (!runtimeEnv("XUNHE_MCP_URL"))
+    throw new ApiError(400, "xunhe_unconfigured", "請先儲存訊核 MCP 網址。");
+  const entry = getMcp("xunhe");
+  if (!entry)
+    throw new ApiError(400, "xunhe_unconfigured", "訊核 MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
 export async function testTamkangConnection() {
   if (!runtimeEnv("TKU_MCP_URL"))
     throw new ApiError(
@@ -211,31 +243,6 @@ export async function testTamkangConnection() {
       toolsCount: probed.tools.length,
       lastError: probed.lastError,
     },
-  };
-}
-
-function liveLumenStatus() {
-  const entry = getMcp("lumen");
-  if (!runtimeEnv("LUMEN_MCP_URL"))
-    return {
-      state: "unconfigured" as const,
-      detail: "尚未在連線設定或後端環境變數提供 LUMEN_MCP_URL 與 LUMEN_MCP_TOKEN。",
-      tools: [] as string[],
-    };
-  if (!entry)
-    return {
-      state: "unconfigured" as const,
-      detail: "Lumen MCP 尚未出現在核准清單。",
-      tools: [] as string[],
-    };
-  return {
-    state: entry.status,
-    detail:
-      entry.lastError ||
-      (entry.tools.length
-        ? `已列出 ${entry.tools.length} 項 Lumen 工具。Hermes 可經 Workspace MCP 呼叫 lumen_utter。`
-        : "已設定端點，尚未完成 initialize／tools/list。"),
-    tools: entry.tools.map((tool) => tool.name),
   };
 }
 

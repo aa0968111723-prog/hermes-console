@@ -14,6 +14,7 @@ process.env.CONSOLE_MCP_SERVERS_JSON = "[]";
 process.env.LUMEN_MCP_TOKEN = randomBytes(24).toString("hex");
 
 const calls: string[] = [];
+const clients: string[] = [];
 const lumen = createServer(async (req, res) => {
   if (req.method !== "POST") {
     res.writeHead(405, { Allow: "POST" }).end();
@@ -24,13 +25,18 @@ const lumen = createServer(async (req, res) => {
   const message = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}") as {
     id?: number;
     method?: string;
-    params?: { name?: string; arguments?: { text?: string } };
+    params?: {
+      name?: string;
+      arguments?: { text?: string };
+      clientInfo?: { name?: string };
+    };
   };
   if (message.method === "notifications/initialized") {
     res.writeHead(202).end();
     return;
   }
   calls.push(message.method || "");
+  if (message.params?.clientInfo?.name) clients.push(message.params.clientInfo.name);
   res.setHeader("Content-Type", "application/json");
   res.setHeader("mcp-session-id", "lumen-contract-session");
   if (message.method === "initialize") {
@@ -103,7 +109,7 @@ const { seedRegistry, probeMcp, getMcp } = await import("../lib/server/mcp-regis
 const { toolsList, callTool } = await import("../lib/server/mcp");
 
 test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP", async (t) => {
-  await t.test("auto-seed from LUMEN_MCP_URL like Tamkang", () => {
+  await t.test("auto-seed from LUMEN_MCP_URL like 訊核", () => {
     const servers = seedRegistry();
     const lumenEntry = servers.find((item) => item.id === "lumen");
     assert.ok(lumenEntry);
@@ -112,7 +118,14 @@ test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP"
     assert.equal(lumenEntry?.credentialReference, "LUMEN_MCP_TOKEN");
   });
 
-  await t.test("probe lists lumen tools as mcp.lumen.* sources", async () => {
+  await t.test("workspace MCP advertises lumen_utter as soon as URL is set", () => {
+    const names = toolsList("workspace").map((tool) => tool.name);
+    assert.ok(names.includes("lumen_utter"));
+    assert.ok(names.includes("lumen_save_directions"));
+    assert.ok(names.includes("workspace_save_directions"));
+  });
+
+  await t.test("probe lists lumen tools with official Streamable HTTP", async () => {
     const entry = getMcp("lumen");
     assert.ok(entry);
     const probed = await probeMcp(entry!);
@@ -122,18 +135,14 @@ test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP"
     assert.ok(calls.includes("tools/list"));
   });
 
-  await t.test("workspace MCP advertises lumen_utter after probe", () => {
-    const names = toolsList("workspace").map((tool) => tool.name);
-    assert.ok(names.includes("lumen_utter"));
-    assert.ok(names.includes("workspace_save_directions"));
-  });
-
-  await t.test("tools/call proxies to Lumen and returns structured content", async () => {
+  await t.test("tools/call initializes as hermes-console then returns structured content", async () => {
     const result = (await callTool("workspace", "lumen_utter", {
       text: "幫我做新生茶會海報",
-    })) as { structuredContent?: { speech?: string }; content?: Array<{ text: string }> };
+    })) as { structuredContent?: { result?: { speech?: string } }; content?: Array<{ text: string }> };
     assert.match(JSON.stringify(result), /三個方向/);
+    assert.equal(result.structuredContent?.result?.speech, "我整理了三個方向。");
     assert.ok(calls.includes("tools/call"));
+    assert.ok(clients.includes("hermes-console"));
   });
 });
 

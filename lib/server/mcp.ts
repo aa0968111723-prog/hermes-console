@@ -24,7 +24,22 @@ import {
   saveMemory,
 } from "./memory";
 import type { Material, Task, TaskEvent } from "../contracts";
-import { callLumenThroughWorkspace, isLumenTool, lumenWorkspaceTools } from "./lumen-bridge";
+import {
+  invokeXunhe,
+  isXunheTool,
+  xunheConfigured,
+  xunheDescriptions,
+  xunheSchemas,
+  type XunheToolName,
+} from "./xunhe";
+import {
+  invokeLumen,
+  isLumenTool,
+  lumenConfigured,
+  lumenDescriptions,
+  lumenSchemas,
+  type LumenToolName,
+} from "./lumen";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -145,7 +160,7 @@ const descriptions: Record<ToolName, string> = {
 };
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
-  return Object.entries(schemas)
+  const local = Object.entries(schemas)
     .filter(([name]) => !name.startsWith("canva_") || available)
     .map(([name, schema]) => ({
       name,
@@ -157,8 +172,36 @@ export function toolsList(owner: string) {
         idempotentHint: true,
         openWorldHint: name.startsWith("canva_"),
       },
-    }))
-    .concat(lumenWorkspaceTools());
+    }));
+  const extra = [
+    ...(xunheConfigured()
+      ? Object.entries(xunheSchemas).map(([name, schema]) => ({
+          name,
+          description: xunheDescriptions[name as XunheToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: name !== "xunhe_research",
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true,
+          },
+        }))
+      : []),
+    ...(lumenConfigured()
+      ? Object.entries(lumenSchemas).map(([name, schema]) => ({
+          name,
+          description: lumenDescriptions[name as LumenToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: /health|get|list/.test(name),
+            destructiveHint: false,
+            idempotentHint: name !== "lumen_utter",
+            openWorldHint: false,
+          },
+        }))
+      : []),
+  ];
+  return extra.length ? local.concat(extra) : local;
 }
 async function once(
   owner: string,
@@ -359,15 +402,35 @@ export async function callTool(
   input: unknown,
   rpcId?: string | number,
 ) {
-  if (!Object.prototype.hasOwnProperty.call(schemas, name)) {
-    if (isLumenTool(name))
-      return callLumenThroughWorkspace(owner, name, input, rpcId);
-    throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");
+  if (isXunheTool(name)) {
+    if (!xunheConfigured())
+      throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");
+    const args = xunheSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeXunhe(name, args));
   }
+  if (isLumenTool(name)) {
+    if (!lumenConfigured())
+      throw new ApiError(503, "lumen_unconfigured", "尚未設定 LUMEN_MCP_URL。");
+    const args = lumenSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeLumen(name, args));
+  }
+  if (!Object.prototype.hasOwnProperty.call(schemas, name))
+    throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");
   const args = schemas[name as ToolName].parse(input) as Record<
     string,
     unknown
   >;
+  return finishToolCall(owner, name, args, rpcId, () =>
+    execute(owner, name as ToolName, args),
+  );
+}
+async function finishToolCall(
+  owner: string,
+  name: string,
+  args: Record<string, unknown>,
+  rpcId: string | number | undefined,
+  run: () => Promise<unknown>,
+) {
   if (args.taskId && !get("task", owner, String(args.taskId)))
     throw new ApiError(404, "task_not_found", "工具對應任務不存在。");
   const receipt: TaskEvent = {
@@ -473,7 +536,7 @@ export async function callTool(
         "canva_authorization_required",
         "Canva 尚未通過授權驗證。請先保存進度並等待使用者授權；沒有執行設計操作。",
       );
-    const result = await execute(owner, name as ToolName, args);
+    const result = await run();
     const object = z.record(z.string(), z.unknown()).parse(result);
     const imageData =
       name === "workspace_read_material" && typeof object.imageData === "string"

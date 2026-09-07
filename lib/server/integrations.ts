@@ -4,6 +4,8 @@ import { canvaStatus } from "./canva";
 import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
 import { tamkangStatus } from "./tamkang";
+import { xunheStatus } from "./xunhe";
+import { lumenStatus } from "./lumen";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -35,11 +37,18 @@ export function integrations(owner: string, h: Health): Integration[] {
       requirements: ["連線設定或 TKU_MCP_URL／TKU_MCP_TOKEN", "實際 tools/list 驗證"],
     },
     {
+      id: "xunhe",
+      name: "訊核即時情報",
+      pattern: /xunhe|訊核|intel/i,
+      detail: "Hermes 經 MCP 呼叫訊核研究、任務與報告工具。GitHub 倉庫網址不是 MCP。",
+      requirements: ["XUNHE_MCP_URL（訊核 /mcp）", "可選 XUNHE_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
       id: "lumen",
       name: "Lumen 創作台",
       pattern: /lumen|創作台/,
-      detail: "經 Workspace MCP 呼叫 lumen_utter；選定方向留給使用者。",
-      requirements: ["連線設定或 LUMEN_MCP_URL／LUMEN_MCP_TOKEN", "實際 tools/list 驗證"],
+      detail: "Hermes 經 Workspace MCP 呼叫 lumen_utter；選定方向留給使用者。",
+      requirements: ["連線設定或 LUMEN_MCP_URL／LUMEN_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "canva",
@@ -151,20 +160,15 @@ export function integrations(owner: string, h: Health): Integration[] {
       item.state = tku.state as IntegrationState;
       item.detail = tku.detail;
     }
+    if (item.id === "xunhe") {
+      const xunhe = xunheStatus();
+      item.state = xunhe.state as IntegrationState;
+      item.detail = xunhe.detail;
+    }
     if (item.id === "lumen") {
-      const lumen = registry.find((row) => row.id === "lumen");
-      item.state = (lumen
-        ? lumen.status === "partial" || lumen.status === "connected" || lumen.status === "verified"
-          ? "partial"
-          : lumen.status === "failed"
-            ? "failed"
-            : "unconfigured"
-        : "unconfigured") as IntegrationState;
-      item.detail = lumen?.lastError || (lumen?.tools.length
-        ? "已列出 Lumen 工具；成功連線不代表每個工具都已遠端執行。"
-        : "尚未驗證 Lumen MCP。");
-      item.tools = lumen?.tools.map((tool) => tool.name) || [];
-      item.verifiedAt = lumen?.verifiedAt || null;
+      const lumen = lumenStatus();
+      item.state = lumen.state as IntegrationState;
+      item.detail = lumen.detail;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";
