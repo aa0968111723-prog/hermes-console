@@ -9,6 +9,8 @@ const PUSHABLE = [
   "MCP_BRIDGE_TOKEN",
   "TKU_MCP_URL",
   "TKU_MCP_TOKEN",
+  "GALLEY_MCP_URL",
+  "GALLEY_MCP_TOKEN",
   "CONSOLE_MCP_SERVERS_JSON",
 ] as const;
 

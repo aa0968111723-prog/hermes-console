@@ -21,6 +21,8 @@ delete process.env.HERMES_MODEL;
 delete process.env.MCP_BRIDGE_TOKEN;
 delete process.env.TKU_MCP_URL;
 delete process.env.TKU_MCP_TOKEN;
+delete process.env.GALLEY_MCP_URL;
+delete process.env.GALLEY_MCP_TOKEN;
 delete process.env.CONSOLE_MCP_SERVERS_JSON;
 
 const captured: { path: string; auth?: string }[] = [];
@@ -175,6 +177,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(body.hermes.configured, false);
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
+    assert.equal(body.galley.state, "unconfigured");
     assert.match(body.openSettingsWarning, /沒有邀請登入或閘道保護/);
     assert.equal(body.zeabur.token.configured, false);
     assert.match(body.zeabur.notice, /覆寫權杖/);
@@ -362,6 +365,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     );
     assert.match(ui, /settings\/credentials/);
     assert.match(ui, /settings\/tamkang/);
+    assert.match(ui, /settings\/galley/);
     assert.match(ui, /settings\/zeabur/);
     assert.doesNotMatch(ui, /HERMES_API_KEY\s*=\s*["'][^"']+["']/);
     assert.doesNotMatch(ui, /sk-[a-zA-Z0-9_-]{12,}/);

@@ -25,6 +25,8 @@ export function turtleState(task: Task | undefined, offline: boolean) {
     const name = tool.toolName || "";
     if (/tku|tamkang|tamsui/i.test(name))
       return { id: "researching", label: "正在查詢已授權資料" };
+    if (/galley/i.test(name))
+      return { id: "researching", label: "正在請 GALLEY 核對來源" };
     if (
       /pinterest|instagram|inspiration|search|browse|fetch|extract/i.test(name)
     )
