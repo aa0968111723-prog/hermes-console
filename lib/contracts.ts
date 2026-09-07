@@ -59,6 +59,7 @@ export interface Conversation {
   parentId?: string;
   legacyId?: string;
   assistantMode?: "creative" | "research" | "admin";
+  researchBundle?: ResearchBundle;
 }
 export interface Task {
   id: string;
@@ -79,6 +80,32 @@ export interface Task {
   events: TaskEvent[];
   usage: Usage;
   stopSupported: boolean;
+  researchBundle?: ResearchBundle;
+}
+export interface ResearchSourceRecord {
+  id: string;
+  url: string;
+  provider: string;
+  title: string;
+  excerpt: string;
+  retrievedAt: string | null;
+  publishedAt: string | null;
+  official: boolean;
+  confidence: number | null;
+  usedFor: string;
+  verification: "not_fetched";
+}
+export interface ResearchBundle {
+  queries: string[];
+  executed: boolean;
+  message: string;
+  sources: unknown[];
+  claims: unknown[];
+  sourceDirectory: ResearchSourceRecord[];
+  fallback: null;
+  suggestedFallback: string;
+  tamkang?: unknown;
+  mapping?: unknown;
 }
 export interface Material {
   id: string;
