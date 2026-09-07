@@ -5,6 +5,7 @@ import { list, put } from "@/lib/server/store";
 import type { Conversation, Material } from "@/lib/contracts";
 import { health } from "@/lib/server/hermes";
 import { capabilityFromHealth } from "@/lib/server/agents";
+import { memoryShareStatus } from "@/lib/server/memory";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   const owner = authenticate(req);
@@ -18,7 +19,7 @@ export const GET = route(async (req) => {
     memory: {
       status: capabilities.memory,
       scope: "單一工作區 namespace；不是多人租戶。",
-      synced: capabilities.memory === "available",
+      ...memoryShareStatus(owner, connection),
     },
   });
 });

@@ -12,6 +12,7 @@ import {
 } from "./credentials";
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
+import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
   .object({
@@ -36,6 +37,10 @@ export const credentialsInput = z
     CONSOLE_MCP_SERVERS_JSON: z.string().max(20_000).optional(),
     TKU_MCP_URL: z.string().max(500).optional(),
     TKU_MCP_TOKEN: z.string().max(2_000).optional(),
+    ZEABUR_API_TOKEN: z.string().max(500).optional(),
+    ZEABUR_PROJECT_ID: z.string().max(80).optional(),
+    ZEABUR_SERVICE_ID: z.string().max(80).optional(),
+    ZEABUR_ENVIRONMENT_ID: z.string().max(80).optional(),
     clear: z.array(z.enum(CREDENTIAL_KEYS)).optional(),
   })
   .strict();
@@ -103,6 +108,17 @@ function validatePatch(patch: CredentialValues) {
       "invalid_secret",
       "MCP 橋接權杖至少需要 32 個字元。",
     );
+  if (patch.ZEABUR_API_TOKEN && patch.ZEABUR_API_TOKEN.length < 16)
+    throw new ApiError(400, "invalid_secret", "Zeabur API 權杖長度不足。");
+  for (const key of [
+    "ZEABUR_PROJECT_ID",
+    "ZEABUR_SERVICE_ID",
+    "ZEABUR_ENVIRONMENT_ID",
+  ] as const) {
+    const value = patch[key];
+    if (value && !/^[a-zA-Z0-9]{8,40}$/.test(value))
+      throw new ApiError(400, "invalid_id", "Zeabur 識別格式不正確。");
+  }
   if (patch.CONSOLE_MCP_SERVERS_JSON) {
     let parsed: unknown;
     try {
@@ -134,8 +150,9 @@ export function publicSettings() {
       urlSource: credentialPresence("TKU_MCP_URL").source,
       tokenSource: credentialPresence("TKU_MCP_TOKEN").source,
     },
+    zeabur: zeaburPublicStatus(),
     openSettingsWarning:
-      "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證。",
+      "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證與 Zeabur 部署。",
   };
 }
 

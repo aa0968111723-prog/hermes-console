@@ -21,6 +21,7 @@ const runtime = await import("../app/api/runtime/route");
 const conversations = await import("../app/api/conversations/route");
 const confirm = await import("../app/api/confirm/route");
 const credentials = await import("../app/api/settings/credentials/route");
+const memory = await import("../app/api/memory/route");
 
 function request(
   path: string,
@@ -84,6 +85,7 @@ test("no-login entry contracts", async (t) => {
       (await credentials.GET(request("settings/credentials"))).status,
       200,
     );
+    assert.equal((await memory.GET(request("memory"))).status, 200);
     const runtimeResponse = await runtime.GET(request("runtime"));
     assert.notEqual(runtimeResponse.status, 401);
     assert.ok(runtimeResponse.status === 200 || runtimeResponse.status >= 500);

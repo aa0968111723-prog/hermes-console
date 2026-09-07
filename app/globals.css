@@ -1159,6 +1159,24 @@ dialog::backdrop {
   font-size: 12px;
   font-weight: 400;
 }
+.memory-list {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+.memory-list li {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+.memory-list .muted {
+  font-size: 12px;
+}
 .settings-stack label {
   font-size: 13px;
 }
