@@ -5,7 +5,7 @@ const labels: Record<string, string> = {
   unconfigured: "Unconfigured",
   awaiting_authorization: "Needs Authorization",
   verifying: "Verifying",
-  available: "Connected",
+  available: "已連線（未逐項驗證）",
   partial: "Partial",
   failed: "Failed",
 };
