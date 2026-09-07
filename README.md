@@ -28,3 +28,7 @@
 ## FrameLab 動畫 MCP
 
 Hermes 可呼叫 FrameLab 逐格動畫工作站。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `FRAMELAB_MCP_URL`（`https://…/api/mcp`）與從 FrameLab 首頁產生的 `FRAMELAB_MCP_TOKEN`，再按「測試 FrameLab 連線」。探測成功後 Hermes 可用 `mcp.framelab.*` 與工作區 `framelab_*` 工具。詳見 [FrameLab MCP](docs/FRAMELAB.md)。
+
+## 對稿工作室 MCP
+
+Hermes 可呼叫對稿海報工作室。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `DUIGAO_MCP_URL`（`https://…/api/mcp`）與從對稿 MCP 頁複製的 `DUIGAO_MCP_TOKEN`，再按「測試對稿連線」。探測成功後 Hermes 可用 `mcp.duigao.*` 與工作區 `duigao_*` 工具。詳見 [對稿 MCP](docs/DUIGAO.md)。

@@ -41,6 +41,15 @@ import {
   framelabWriteTool,
   type FramelabToolName,
 } from "./framelab";
+import {
+  invokeDuigao,
+  isDuigaoTool,
+  duigaoConfigured,
+  duigaoDescriptions,
+  duigaoSchemas,
+  duigaoWriteTool,
+  type DuigaoToolName,
+} from "./duigao";
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -174,7 +183,7 @@ export function toolsList(owner: string) {
         openWorldHint: name.startsWith("canva_"),
       },
     }));
-  if (!xunheConfigured() && !framelabConfigured()) return local;
+  if (!xunheConfigured() && !framelabConfigured() && !duigaoConfigured()) return local;
   return [
     ...local,
     ...(xunheConfigured()
@@ -199,6 +208,19 @@ export function toolsList(owner: string) {
             readOnlyHint: !framelabWriteTool(name),
             destructiveHint: /generate_inbetweens|accept_generated|undo$/.test(name),
             idempotentHint: !framelabWriteTool(name),
+            openWorldHint: true,
+          },
+        }))
+      : []),
+    ...(duigaoConfigured()
+      ? Object.entries(duigaoSchemas).map(([name, schema]) => ({
+          name,
+          description: duigaoDescriptions[name as DuigaoToolName],
+          inputSchema: z.toJSONSchema(schema),
+          annotations: {
+            readOnlyHint: !duigaoWriteTool(name),
+            destructiveHint: false,
+            idempotentHint: !duigaoWriteTool(name),
             openWorldHint: true,
           },
         }))
@@ -415,6 +437,12 @@ export async function callTool(
       throw new ApiError(503, "framelab_unconfigured", "尚未設定 FRAMELAB_MCP_URL。");
     const args = framelabSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeFramelab(name, args));
+  }
+  if (isDuigaoTool(name)) {
+    if (!duigaoConfigured())
+      throw new ApiError(503, "duigao_unconfigured", "尚未設定 DUIGAO_MCP_URL。");
+    const args = duigaoSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () => invokeDuigao(name, args));
   }
   if (!Object.prototype.hasOwnProperty.call(schemas, name))
     throw new ApiError(404, "unknown_tool", "不支援的 MCP 工具。");

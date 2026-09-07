@@ -125,6 +125,14 @@ export function configuredMcp() {
       credentialReference: "FRAMELAB_MCP_TOKEN",
       readonly: false,
     });
+  if (!configs.some((c) => c.id === "duigao") && runtimeEnv("DUIGAO_MCP_URL"))
+    configs.push({
+      id: "duigao",
+      name: "對稿工作室",
+      endpoint: runtimeEnv("DUIGAO_MCP_URL"),
+      credentialReference: "DUIGAO_MCP_TOKEN",
+      readonly: false,
+    });
   if (
     configs.some((c) => c.id === "workspace") ||
     new Set(configs.map((c) => c.id)).size !== configs.length

@@ -6,6 +6,7 @@ import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration"
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
 import { framelabStatus } from "./framelab";
+import { duigaoStatus } from "./duigao";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -49,6 +50,13 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /framelab|frame.?lab|animation|timeline|inbetween/i,
       detail: "Hermes 經 MCP 呼叫 FrameLab 動畫工具。GitHub 倉庫網址不是 MCP。",
       requirements: ["FRAMELAB_MCP_URL（FrameLab /api/mcp）", "FRAMELAB_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "duigao",
+      name: "對稿",
+      pattern: /duigao|對稿|poster|海報|studio/i,
+      detail: "Hermes 經 MCP 呼叫對稿海報工作室。GitHub 倉庫網址不是 MCP。",
+      requirements: ["DUIGAO_MCP_URL（對稿 /api/mcp）", "DUIGAO_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "canva",
@@ -169,6 +177,11 @@ export function integrations(owner: string, h: Health): Integration[] {
       const framelab = framelabStatus();
       item.state = framelab.state as IntegrationState;
       item.detail = framelab.detail;
+    }
+    if (item.id === "duigao") {
+      const duigao = duigaoStatus();
+      item.state = duigao.state as IntegrationState;
+      item.detail = duigao.detail;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";

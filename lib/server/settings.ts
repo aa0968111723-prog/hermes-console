@@ -14,6 +14,7 @@ import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
 import { xunheStatus } from "./xunhe";
 import { framelabStatus } from "./framelab";
+import { duigaoStatus } from "./duigao";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -45,6 +46,8 @@ export const credentialsInput = z
     ATLAS_MCP_TOKEN: z.string().max(2_000).optional(),
     FRAMELAB_MCP_URL: z.string().max(500).optional(),
     FRAMELAB_MCP_TOKEN: z.string().max(2_000).optional(),
+    DUIGAO_MCP_URL: z.string().max(500).optional(),
+    DUIGAO_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -112,6 +115,8 @@ function validatePatch(patch: CredentialValues) {
     patch.ATLAS_MCP_URL = validateHttpsServiceUrl(patch.ATLAS_MCP_URL, "mcp");
   if (patch.FRAMELAB_MCP_URL)
     patch.FRAMELAB_MCP_URL = validateHttpsServiceUrl(patch.FRAMELAB_MCP_URL, "mcp");
+  if (patch.DUIGAO_MCP_URL)
+    patch.DUIGAO_MCP_URL = validateHttpsServiceUrl(patch.DUIGAO_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
@@ -122,6 +127,8 @@ function validatePatch(patch: CredentialValues) {
     throw new ApiError(400, "invalid_secret", "場圖 MCP 權杖長度不足。");
   if (patch.FRAMELAB_MCP_TOKEN && patch.FRAMELAB_MCP_TOKEN.length < 16)
     throw new ApiError(400, "invalid_secret", "FrameLab MCP 權杖長度不足。");
+  if (patch.DUIGAO_MCP_TOKEN && patch.DUIGAO_MCP_TOKEN.length < 16)
+    throw new ApiError(400, "invalid_secret", "對稿 MCP 權杖長度不足。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -186,6 +193,12 @@ export function publicSettings() {
       configured: !!(runtimeEnv("FRAMELAB_MCP_URL") && runtimeEnv("FRAMELAB_MCP_TOKEN")),
       urlSource: credentialPresence("FRAMELAB_MCP_URL").source,
       tokenSource: credentialPresence("FRAMELAB_MCP_TOKEN").source,
+    },
+    duigao: {
+      ...duigaoStatus(),
+      configured: !!(runtimeEnv("DUIGAO_MCP_URL") && runtimeEnv("DUIGAO_MCP_TOKEN")),
+      urlSource: credentialPresence("DUIGAO_MCP_URL").source,
+      tokenSource: credentialPresence("DUIGAO_MCP_TOKEN").source,
     },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
@@ -257,6 +270,25 @@ export async function testFramelabConnection() {
   const entry = getMcp("framelab");
   if (!entry)
     throw new ApiError(400, "framelab_unconfigured", "FrameLab MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
+export async function testDuigaoConnection() {
+  if (!runtimeEnv("DUIGAO_MCP_URL"))
+    throw new ApiError(400, "duigao_unconfigured", "請先儲存對稿 MCP 網址。");
+  if (!runtimeEnv("DUIGAO_MCP_TOKEN"))
+    throw new ApiError(400, "duigao_token_missing", "請先貼上對稿 DUIGAO_MCP_TOKEN。");
+  const entry = getMcp("duigao");
+  if (!entry)
+    throw new ApiError(400, "duigao_unconfigured", "對稿 MCP 尚未出現在核准清單。");
   const probed = await probeMcp(entry);
   return {
     ...publicSettings(),
