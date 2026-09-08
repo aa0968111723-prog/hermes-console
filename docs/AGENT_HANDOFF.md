@@ -2,6 +2,49 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-08 18:06 TST）Grok 團隊第二輪
+
+- 基準 SHA：`1be96eb45be62f039ccce40d60ef1602028c1f3c`
+- 分支：`grok/stream-incomplete-uncertain-2026-09-08`
+- 目標：補 mid-stream 斷線與 idle timeout 契約測試，確認 `tasks.ts` 將 `stream_incomplete` / `idle_timeout` 結為 `uncertain`（非 definite failed）。
+- 使用者影響：串流中途斷線或閒置時，UI 可誠實顯示「待確認／可查回重試」，不會誤標為確定失敗。
+- 本輪不碰：`memory.ts`、PR #10 / #30 / #42、`data/tamkang/`、正式部署、不覆蓋 `feat/consistencylab*`。
+
+### 讀到的現況
+
+- main 已含 `tests/runs-chat-fallback.test.ts`、`tests/stream-definite-failed.test.ts`（frame_too_large / invalid_json → failed）。
+- 近期合併：#51 definite stream errors、#50 手機 composer 任務狀態、#49 ready backend。
+- 開放 PR：#42 記憶 provenance（grok，需相對 Postgres 遷移 rebase）、#30 ConsistencyLab、#21 長任務藍圖、#10（禁止合併）。
+- 無活躍 `codex/*` 開發分支；`codex/chat-sse-boundaries` 仍在。
+
+### 本輪變更
+
+- 新增 `tests/stream-incomplete-uncertain.test.ts`（LOCAL_CONTRACT）
+  - 案例 A：SSE 半段後 abrupt close、無 `[DONE]` → `state=uncertain`，error 含「串流中斷」
+  - 案例 B：一幀後靜默至 `HERMES_IDLE_TIMEOUT_MS` → `state=uncertain`，error 含「閒置逾時」
+  - 案例 C：happy path 仍 `completed`
+- 對齊 `lib/server/tasks.ts` definite 正則：`stream_incomplete` / `idle_timeout` 不在其中 → submitted 後為 uncertain。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`。本環境曾嘗試完整 clone 跑 `tsx --test`，clone 逾時阻塞；**未在本機宣告通過**。依賴 GitHub Actions `npm test`。
+- 非 `LIVE_EXTERNAL`。Mock ≠ 實機 Hermes。
+
+### 下一輪建議
+
+- 將 PR #42（memory provenance）rebase 到含 Postgres store 的 main，補 shared_memory 欄位相容。
+- 聊天中止後「建立重試分支」與 uncertain 任務的 UI 契約（verify-ui / verify-chat 延伸）。
+- 考慮 `test:entry` 是否納入 CI（先觀察穩定度）。
+- 不要合併 #10，不要覆蓋 `feat/consistencylab-clab-framelab`。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰／網域 → 不得宣稱 LIVE 整合通過
+- 無 Canva OAuth、淡江 MCP 實機、Zeabur 授權
+- 本 sandbox git clone 緩慢／逾時 → 契約測試以 Actions 為準
+
+---
+
 ## 進行中（2026-09-08 13:30 TST）Grok 團隊第一輪
 
 - 基準 SHA：`043b533f989573dfb375834b2b5fec223c86c08f`
