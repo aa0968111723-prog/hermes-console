@@ -761,6 +761,31 @@ nav button[aria-current="page"] {
   display: flex;
   gap: 12px;
 }
+.composer-task-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: var(--reading-width, 780px);
+  min-height: 44px;
+  margin: 0 auto 4px;
+  padding: 8px 12px;
+  border: 1px solid #dce5d3;
+  border-radius: 14px;
+  color: #356b45;
+  background: #f1f7ec;
+  box-shadow: inset 0 1px 0 #ffffff, 0 2px 5px #34452c08;
+  text-align: left;
+  font-size: 12px;
+}
+.composer-task-status > svg { flex-shrink: 0; }
+.composer-task-label { flex-shrink: 0; font-weight: 600; }
+.composer-task-tool { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #52634c; }
+.composer-task-chevron { margin-left: auto; }
+.composer-task-status[data-tone="warning"],
+.composer-task-status[data-tone="waiting"] { color: #79521b; background: #fff7e8; border-color: #eadcc3; }
+.composer-task-status[data-tone="error"] { color: #9a392e; background: #fff1ee; border-color: #ecd5cf; }
+.composer-task-status:focus-visible { outline: 3px solid #356b45; outline-offset: 2px; }
 .composer {
   display: block;
   flex: 1;
