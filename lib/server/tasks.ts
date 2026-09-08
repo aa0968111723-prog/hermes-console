@@ -504,10 +504,10 @@ async function execute(
     const message =
       error instanceof ApiError
         ? error.message
-        : "Hermes 回應格式異常，請查回任務後再決定是否重试。";
+        : "Hermes 回應格式異常，請查回任務後再決定是否重試。";
     const definite =
       error instanceof ApiError &&
-      /^(upstream_|session_invalid|client_tools_unsupported|agent_error|empty_output)/.test(
+      /^(upstream_|session_invalid|client_tools_unsupported|agent_error|empty_output|empty_stream|invalid_stream|frame_too_large|output_limit)$/.test(
         error.code,
       );
     finish(
