@@ -6,4 +6,4 @@ Single-file dual-layer knowledge base for Tamkang University clubs ecosystem.
 - Rules: L1+L2 required; no PII; no Zen Drive roster as L2
 - Import: `node scripts/import-tamkang-kb.mjs`
 - Cycle: continuous, never from zero
-- Updated: 2026-09-08T22:15:00+08:00
+- Updated: 2026-09-08T23:11:00+08:00

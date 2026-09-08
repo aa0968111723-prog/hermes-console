@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-08T22:15:00+08:00",
-  "cycle": "hourly-2026-09-08-2215",
+  "updated_at": "2026-09-08T23:11:00+08:00",
+  "cycle": "hourly-2026-09-08-2311",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -46,9 +46,9 @@
       "115-1 roster still unpublished (search null)",
       "fair date re-verified via CNA 2026-09-07; booth map missing",
       "173 source confirmed on official site",
-      "zen naming dual-track verified (領袖禪學社) L1 sites.google + L2 Wiki",
+      "zen naming dual-track verified (領袖禪學社) L1 sites.google + L2 Wiki/FB",
       "hot-music four-club entry dual-sourced",
-      "commute headway quantified via Dcard+official",
+      "commute headway quantified via Dcard+official+JinShaow",
       "Dcard/IG recruit weak signals (questions > ads)"
     ]
   }
