@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-08T14:22:00+08:00",
-  "cycle": "hourly-2026-09-08-1422",
+  "updated_at": "2026-09-08T15:01:00+08:00",
+  "cycle": "hourly-2026-09-08-1501",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -20,25 +20,25 @@
   },
   "counts": {
     "records": 19,
-    "tku_club": 5,
+    "tku_club": 7,
     "tku_source": 4,
-    "tku_fair": 1,
+    "tku_fair": 2,
     "tku_unverified": 2,
-    "tku_signal": 2,
-    "l2_note": "existence based on 114-1 official roster; 184 active / 115-1 roster / booth map still pending"
+    "tku_signal": 4,
+    "l2_note": "existence based on 114-1 official roster + CNA; 184 active / 115-1 roster / booth map still pending"
   },
   "conflict": {
     "173": "official site about 173 clubs https://www.tku.edu.tw/tku/?p=13284",
     "178": "114-1 roster total",
-    "184": "dean active clubs",
+    "184": "dean active clubs CNA 2026-09-07",
     "l2": "pending adjudication"
   },
   "priority": {
-    "roster_1151": "unpublished",
+    "roster_1151": "unpublished as of 2026-09-08",
     "fair_115": "starts 2026-09-10 one week; booth map pending",
-    "zen": "official name Chanxue; aka Leader Zen",
+    "zen": "official name 領袖禪學社; aka Leader Zen; SG109",
     "hot_music": "no official hot-music club; four entry clubs",
-    "commute": "R27 peak 5-8min; R28 peak ~20min"
+    "commute": "R27 peak 4-8min; R28 peak ~6-20min"
   },
   "this_cycle": {
     "confirmed_seed_array": true,
@@ -46,10 +46,10 @@
       "115-1 roster still unpublished",
       "fair date verified via CNA; booth map missing",
       "173 source located on official site",
-      "zen naming dual-track verified",
+      "zen naming dual-track verified (領袖禪學社)",
       "hot-music four-club entry",
       "commute headway quantified",
-      "Dcard recruit weak signals"
+      "Dcard/IG recruit weak signals"
     ]
   }
 }
