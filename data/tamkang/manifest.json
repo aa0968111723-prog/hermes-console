@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-08T17:08:00+08:00",
-  "cycle": "hourly-2026-09-08-1708",
+  "updated_at": "2026-09-08T18:00:00+08:00",
+  "cycle": "hourly-2026-09-08-1800",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -36,7 +36,7 @@
   "priority": {
     "roster_1151": "unpublished as of 2026-09-08",
     "fair_115": "starts 2026-09-10 one week; booth map pending",
-    "zen": "official name 領袖禪學社; aka Leader Zen; SG109",
+    "zen": "official name 領袖禪學社; aka Leader Zen; SG109; formerly 禪學社/領袖社",
     "hot_music": "no official hot-music club; four entry clubs",
     "commute": "R27 peak 4-8min; R28 peak ~6-20min"
   },
