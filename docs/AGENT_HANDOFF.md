@@ -2,6 +2,48 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-08 21:25 TST）Grok 團隊第四輪
+
+- 基準 SHA：`f13b1ed87c33e919b08d80df1262b5b26ecb0cd6`
+- 分支：`grok/memory-provenance-current-main-2026-09-08`
+- 目標：在 **current main** 上落地共用記憶 provenance（取代落後的 #55／#42）。
+- 使用者影響：記憶列可標記來源／信心／重要度；digest 寫入 `lastUsedAt`；`synced` 仍為 false，不宣稱 Hermes 遠端鏡像。
+- 本輪不碰：PR #10 / #30 / #4、`data/tamkang/`、正式部署、不覆蓋 `feat/consistencylab*`。
+
+### 讀到的現況
+
+- main 最新：`f13b1ed`（淡江 hourly + research commits）。已含 `stream-incomplete-uncertain.test.ts`、`runs-chat-fallback.test.ts`。
+- PR #55（`grok/memory-provenance-on-main-2026-09-08`）基準停在 `4d9501bf`，落後 current main；#42 更舊。本輪以 current main 重開分支，建議關閉 #55／#42。
+- 開放 PR：#55（draft）、#42、#30 ConsistencyLab、#21 長任務藍圖、#10（禁止合併）、#4 atelier。
+- 無活躍 `codex/*` 開發；`codex/chat-sse-boundaries`、多個 `cursor/*`、`cubelv-*` 仍在。
+- `lib/server/memory.ts` 在 main 仍無 provenance 欄位；`memoryStoreId`／`storeBackend` 已存在。
+
+### 本輪變更
+
+- `lib/server/memory.ts`：`memorySources`、provenance 欄位、`normalizeMemory`、`touchMemories`；保留 `memoryStoreId`／`memoryStoreLabel`。
+- `tests/shared-memory.test.ts`：預設 provenance、更新 confidence/importance/source、digest→lastUsedAt、舊列相容、`share.provenanceFields`。
+- 同一 store 列，不另開表、不改 MCP 工具名稱。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`。本 sandbox **未執行** `tsx --test`（環境無完整 clone／Node 專案樹）。依賴 GitHub Actions `npm test`。
+- 非 `LIVE_EXTERNAL`。Mock ≠ 實機 Hermes／Postgres。
+
+### 下一輪建議
+
+- 合併本 PR 後關閉 #55／#42。
+- 聊天中止後「建立重試分支」與 uncertain 任務的 UI 契約（verify-ui / verify-chat 延伸）。
+- 考慮 `test:entry` 是否納入 CI。
+- 不要合併 #10，不要覆蓋 `feat/consistencylab-clab-framelab`。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰／網域 → 不得宣稱 LIVE 整合通過
+- 無 Canva OAuth、淡江 MCP 實機、Zeabur 授權
+- sandbox 無法穩定跑完整 test suite → 以 Actions 為準
+
+---
+
 ## 進行中（2026-09-08 18:06 TST）Grok 團隊第二輪
 
 - 基準 SHA：`1be96eb45be62f039ccce40d60ef1602028c1f3c`
