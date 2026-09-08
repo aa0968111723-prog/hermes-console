@@ -13,6 +13,7 @@ export async function* frames(
   let buffer = "";
   let event = "message";
   let data: string[] = [];
+  let dataLength = 0;
   try {
     for (;;) {
       let timer: ReturnType<typeof setTimeout> | undefined;
@@ -44,9 +45,17 @@ export async function* frames(
           if (data.length) yield { event, data: data.join("\n") };
           event = "message";
           data = [];
+          dataLength = 0;
         } else if (line.startsWith("event:")) event = line.slice(6).trim();
-        else if (line.startsWith("data:"))
-          data.push(line.slice(5).replace(/^ /, ""));
+        else if (line.startsWith("data:")) {
+          const value = line.slice(5).replace(/^ /, "");
+          // Parsed lines leave buffer but remain retained until dispatch. Bound
+          // their joined payload too, regardless of network chunk boundaries.
+          dataLength += value.length + (data.length ? 1 : 0);
+          if (dataLength > 2_000_000)
+            throw new ApiError(502, "frame_too_large", "工具事件超過大小限制。");
+          data.push(value);
+        }
       }
       if (chunk.done) {
         if (data.length) yield { event, data: data.join("\n") };
