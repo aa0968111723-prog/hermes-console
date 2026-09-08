@@ -71,19 +71,23 @@ export function buildProfile(input: {
   location: string;
   name: string;
   evidence?: AudienceEvidence[];
+  ageRange?: string;
+  lifeStage?: string;
 }): AudienceProfile {
   const now = new Date().toISOString();
   const tku = /淡江/.test(input.institution);
   const ntu = /台大|臺灣大學|台灣大學/.test(input.institution);
+  const ageRange = input.ageRange?.trim() || "18–19";
+  const lifeStage = input.lifeStage?.trim() || "university-entry";
   return {
     id: randomUUID(),
     projectId: input.projectId,
     name: input.name,
-    description: `${input.institution} 大一生活轉換期模擬，不是調查樣本。`,
+    description: `${input.institution} ${input.name}模擬，不是調查樣本。`,
     location: input.location,
     institution: input.institution,
-    ageRange: "18–19",
-    lifeStage: "university-entry",
+    ageRange,
+    lifeStage,
     goals: tku
       ? ["在淡水找到生活節奏", "認識社團朋友", "搞懂校園動線"]
       : ntu
