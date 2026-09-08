@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ResearchSourceRecord } from "../lib/contracts";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-research-"));
 process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
@@ -118,4 +119,77 @@ test("research executor only marks executed when a page is actually retrieved", 
       assert.notEqual(instructions, snapshot);
     },
   );
+});
+
+test("Tamkang Miraheze wiki is an official research source", async (t) => {
+  const previous = process.env.HERMES_ALLOW_LOOPBACK_HTTP;
+  t.after(() => {
+    process.env.HERMES_ALLOW_LOOPBACK_HTTP = previous;
+  });
+  process.env.HERMES_ALLOW_LOOPBACK_HTTP = "false";
+
+  const wikiUrl = "https://tku.miraheze.org/wiki/zh-Hant/%E9%A6%96%E9%A0%81";
+
+  function directoryStub(id: string, url: string): ResearchSourceRecord {
+    return {
+      id,
+      url,
+      provider: "source_directory",
+      title: "待查",
+      excerpt: "",
+      retrievedAt: null,
+      publishedAt: null,
+      official: true,
+      confidence: null,
+      usedFor: "research_entry",
+      verification: "not_fetched",
+    };
+  }
+
+  await t.test("freshman and eduPsych directories include tku-miraheze", () => {
+    const freshman = researchBundle({ prompt: "淡江新生" });
+    const wiki = freshman.sourceDirectory.find((item) => item.id === "tku-miraheze");
+    assert.ok(wiki);
+    assert.equal(wiki.url, wikiUrl);
+    assert.equal(wiki.title, "淡江 wiki（Miraheze）");
+    assert.equal(wiki.usedFor, "research_entry");
+    assert.equal(wiki.verification, "not_fetched");
+
+    const eduPsych = researchBundle({
+      prompt: "教心所研究倫理與學習動機文獻",
+    });
+    assert.ok(
+      eduPsych.sourceDirectory.some((item) => item.id === "tku-miraheze"),
+    );
+  });
+
+  await t.test("allowed Miraheze host can fetch via mock", async () => {
+    const plan = researchBundle({ prompt: "淡江新生" });
+    plan.sourceDirectory = [directoryStub("tku-miraheze", wikiUrl)];
+    let fetchedUrl = "";
+    const executed = await executeResearchBundle(plan, async (url) => {
+      fetchedUrl = String(url);
+      return new Response(
+        "<html><title>淡江 wiki（Miraheze）</title><body>淡江 wiki 首頁內容供測試抓取。</body></html>",
+        { status: 200, headers: { "Content-Type": "text/html" } },
+      );
+    });
+    assert.equal(new URL(fetchedUrl).hostname, "tku.miraheze.org");
+    assert.equal(executed.executed, true);
+    assert.equal(executed.sources[0].verification, "fetched");
+    assert.match(executed.sources[0].excerpt, /淡江 wiki/);
+  });
+
+  await t.test("disallowed host stays not_fetched", async () => {
+    const plan = researchBundle({ prompt: "淡江新生" });
+    plan.sourceDirectory = [
+      directoryStub("blocked", "https://evil.example.com/wiki"),
+    ];
+    const executed = await executeResearchBundle(plan, async () => {
+      throw new Error("disallowed host must not be fetched");
+    });
+    assert.equal(executed.executed, false);
+    assert.equal(executed.sources[0].verification, "not_fetched");
+    assert.equal(executed.claims.length, 0);
+  });
 });
