@@ -51,6 +51,7 @@ import ComposerTaskStatus from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
+import TaskEventSummary from "./visual/TaskEventSummary";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -2189,13 +2190,10 @@ export default function HermesConsole() {
               <h3>真實事件紀錄</h3>
               {chosenTask.events.map((e) => (
                 <details className="event" key={e.id}>
-                  <summary>
-                    <span>
-                      {e.toolName || "任務"} · {e.summary}
-                    </span>
-                  </summary>
-                  <small>
-                    {time(e.startedAt)} · {e.status}
+                  <TaskEventSummary event={e} />
+                  <small className="event-meta">
+                    {time(e.startedAt)}
+                    {e.toolName && <code>{e.toolName}</code>}
                   </small>
                   {e.result !== null && (
                     <MessageBody

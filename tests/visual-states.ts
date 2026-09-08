@@ -250,11 +250,17 @@ export async function verifyVisualStates(
     await expect(detail).toBeVisible();
     await expect(detail).toContainText("ui-fixture-task");
     const eventSummary = detail.locator(".event summary").first();
-    await expect(eventSummary).toContainText("galley_research");
+    await expect(eventSummary).toContainText("研究 · GALLEY");
+    await expect(eventSummary).toContainText("執行中");
+    await expect(eventSummary).toContainText("[介面測試事件] 研究來源");
+    await expect(eventSummary).not.toContainText("galley_research");
     if ((width === 390 && height === 420) || width === 1440) {
       await eventSummary.scrollIntoViewIfNeeded();
       await page.screenshot({ path: join(output, `task-events-${width}x${height}.png`) });
     }
+    await eventSummary.click();
+    await expect(detail.locator(".event-meta code").first()).toBeVisible();
+    await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
     await page.keyboard.press("Escape");
     await expect(status).toBeFocused();
     await expect(composer).toHaveValue(draft);
