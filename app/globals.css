@@ -1475,8 +1475,12 @@ dialog::backdrop {
   gap: 2px;
 }
 .task-request-preview {
+  display: -webkit-box;
   margin: 0;
   overflow-wrap: anywhere;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
   line-height: 1.55;
 }
 .task-request-full {

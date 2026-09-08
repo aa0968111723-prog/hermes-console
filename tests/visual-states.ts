@@ -315,6 +315,17 @@ export async function verifyVisualStates(
   const requestPreview = longTaskDetail.locator(".task-request-preview");
   await expect(requestPreview).toBeVisible();
   assert.ok((await requestPreview.innerText()).length <= 141);
+  const previewLayout = await requestPreview.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      height: element.getBoundingClientRect().height,
+      lineHeight: Number.parseFloat(style.lineHeight),
+    };
+  });
+  assert.ok(
+    previewLayout.height <= previewLayout.lineHeight * 4 + 1,
+    "long request preview must stay within four visible lines",
+  );
   const fullRequest = longTaskDetail.locator(".task-request-full");
   const fullRequestSummary = fullRequest.locator("summary");
   await expect(fullRequestSummary).toContainText("查看完整需求");
