@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
-import { active, reconcile, stop, submit, taskInput } from "@/lib/server/tasks";
+import { active, dismiss, reconcile, stop, submit, taskInput } from "@/lib/server/tasks";
 import { list } from "@/lib/server/store";
 import type { Task } from "@/lib/contracts";
 export const runtime = "nodejs";
@@ -23,8 +23,10 @@ export const POST = route(async (req) => {
 export const PATCH = route(async (req) => {
   const owner = authenticate(req, true);
   const body = z
-    .object({ id: z.string().uuid(), action: z.literal("stop") })
+    .object({ id: z.string().uuid(), action: z.enum(["stop", "dismiss"]) })
     .strict()
     .parse(await jsonBody(req));
-  return respond({ task: await stop(owner, body.id) });
+  return respond({
+    task: body.action === "dismiss" ? await dismiss(owner, body.id) : await stop(owner, body.id),
+  });
 });

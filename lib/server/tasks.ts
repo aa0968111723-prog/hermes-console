@@ -727,3 +727,38 @@ export async function stop(owner: string, id: string) {
     "已中斷後端連線，但此 Hermes 版本無可驗證的停止介面；工具可能仍在執行。",
   );
 }
+export async function dismiss(owner: string, id: string) {
+  const task = taskFor(owner, id);
+  if (task.state !== "uncertain")
+    throw new ApiError(
+      409,
+      "task_not_uncertain",
+      "只有「結果待確認」的任務可以解除鎖定。",
+    );
+  // Uncertain tasks block their conversation (conversation_busy). The remote
+  // side is unobservable by design, so dismissal is an explicit human decision:
+  // allow a new submission only after the owner accepts that a still-running
+  // remote run will not write back into this conversation.
+  if (task.transport === "runs" && task.remoteId && task.stopSupported) {
+    try {
+      await readJSON(
+        await upstream("/v1/runs/" + task.remoteId + "/stop", {
+          method: "POST",
+          body: "{}",
+        }),
+      );
+    } catch {
+      // Best effort only; the terminal marker below is what unblocks the
+      // conversation. A late remote result must never fabricate completion:
+      // reconcile() and observe() both return early for non-active tasks.
+    }
+  }
+  task.state = "cancelled";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(
+    task,
+    "已由使用者解除鎖定並結束；對話可繼續傳送。若遠端工具仍在執行，其結果不會回寫此對話。",
+  );
+  return save(owner, task);
+}

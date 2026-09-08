@@ -505,6 +505,30 @@ export default function HermesConsole() {
       setError((e as Error).message);
     }
   }
+  // Uncertain tasks block their conversation (conversation_busy). Only an
+  // explicit two-step human confirm may dismiss: pressing the button once only
+  // arms it, pressing again within 30s sends the dismiss.
+  const [dismissArmed, setDismissArmed] = useState<string | null>(null);
+  async function dismissUncertain(task: Task) {
+    if (dismissArmed !== task.id) {
+      setDismissArmed(task.id);
+      window.setTimeout(() => {
+        setDismissArmed((armed) => (armed === task.id ? null : armed));
+      }, 30_000);
+      return;
+    }
+    setDismissArmed(null);
+    try {
+      const result = await api<{ task: Task }>("tasks", "PATCH", {
+        id: task.id,
+        action: "dismiss",
+      });
+      setTasks((old) => old.map((t) => (t.id === task.id ? result.task : t)));
+      setNotice("已解除鎖定，此對話可繼續傳送。原始執行紀錄完整保留。");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
   async function branch(messageId: string, content: string) {
     if (!activeConv) return;
     setBusy(true);
@@ -1125,6 +1149,21 @@ export default function HermesConsole() {
                             >
                               建立重試分支（保留原紀錄）
                             </button>
+                          )}
+                          {currentTask.state === "uncertain" && (
+                            <>
+                              <p className="branch-note">
+                                此任務結果無法確認（送出中斷或串流遺失），對話暫時鎖定。確認解除後可繼續在此對話傳送；若遠端工具仍在執行，其結果不會回寫。
+                              </p>
+                              <button
+                                className="text-button"
+                                onClick={() => void dismissUncertain(currentTask)}
+                              >
+                                {dismissArmed === currentTask.id
+                                  ? "再次按下確認解除鎖定"
+                                  : "確認解除鎖定（保留原紀錄）"}
+                              </button>
+                            </>
                           )}
                         </article>
                       )}
