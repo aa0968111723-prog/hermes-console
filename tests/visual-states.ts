@@ -249,6 +249,12 @@ export async function verifyVisualStates(
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
     await expect(detail).toContainText("ui-fixture-task");
+    const eventSummary = detail.locator(".event summary").first();
+    await expect(eventSummary).toContainText("galley_research");
+    if ((width === 390 && height === 420) || width === 1440) {
+      await eventSummary.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `task-events-${width}x${height}.png`) });
+    }
     await page.keyboard.press("Escape");
     await expect(status).toBeFocused();
     await expect(composer).toHaveValue(draft);
