@@ -97,8 +97,19 @@ export function bridgeAuth(request: Request) {
       "MCP 需要獨立的後端服務憑證。",
     );
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(process.env.CONSOLE_ORIGIN!).origin)
-    throw new ApiError(403, "origin_rejected", "不允許此 MCP Origin。");
+  if (origin) {
+    const configuredOrigin = process.env.CONSOLE_ORIGIN?.trim();
+    let expected = "";
+    try {
+      expected = configuredOrigin ? new URL(configuredOrigin).origin : "";
+    } catch {
+      expected = "";
+    }
+    if (expected === "")
+      throw new ApiError(503, "setup_required", "後端尚未設定 CONSOLE_ORIGIN。");
+    if (origin !== expected)
+      throw new ApiError(403, "origin_rejected", "不允許此 MCP Origin。");
+  }
   limited("mcp:" + WORKSPACE_OWNER, 120, 60_000);
   return WORKSPACE_OWNER;
 }
@@ -577,8 +588,11 @@ async function finishToolCall(
   rpcId: string | number | undefined,
   run: () => Promise<unknown>,
 ) {
-  if (args.taskId && !get("task", owner, String(args.taskId)))
-    throw new ApiError(404, "task_not_found", "工具對應任務不存在。");
+  if (args.taskId) {
+    const existing = get("task", owner, String(args.taskId));
+    if (existing == null)
+      throw new ApiError(404, "task_not_found", "工具對應任務不存在。");
+  }
   const receipt: TaskEvent = {
     id: randomUUID(),
     taskId: String(args.taskId || ""),
@@ -625,7 +639,9 @@ async function finishToolCall(
           "工具呼叫必須附 Console 的真實 taskId，以套用專案與執行預算。",
         );
       if (args.taskId) {
-        const task = get<Task>("task", owner, String(args.taskId))!;
+        const task = get<Task>("task", owner, String(args.taskId));
+        if (task == null)
+          throw new ApiError(404, "task_not_found", "工具對應任務不存在。");
         if (!["queued", "running", "waiting_user"].includes(task.state))
           throw new ApiError(
             409,

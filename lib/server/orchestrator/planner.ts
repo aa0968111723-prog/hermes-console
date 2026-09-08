@@ -62,7 +62,14 @@ export function buildPlan(
   }
   if (goal.requiresAudienceEvaluation) {
     steps.push(
-      step("受眾模擬", "以淡江新生假設做 SIMULATION，不是真實轉換率。", "audience_simulation", null),
+      step(
+        "受眾模擬",
+        goal.requiresTamkang
+          ? "以淡江新生假設做 SIMULATION，不是真實轉換率。"
+          : `以${goal.audience || "目標受眾"}假設做 SIMULATION，不是真實轉換率。`,
+        "audience_simulation",
+        null,
+      ),
     );
   }
   if (goal.requiresDesign || goal.output) {

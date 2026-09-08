@@ -18,11 +18,16 @@ const rules: Array<{ class: ToolPermissionClass; pattern: RegExp }> = [
     pattern:
       /save_(direction|copy|activity|reference|inspiration)|workspace_save|draft/i,
   },
+  {
+    class: "read",
+    pattern:
+      /(^|_)(get|list|read|search|query|probe|context|check|inspect|capability|dataset)(_|$)/i,
+  },
 ];
 
 export function permissionClass(toolName: string): ToolPermissionClass {
   for (const rule of rules) if (rule.pattern.test(toolName)) return rule.class;
-  return "read";
+  return "write";
 }
 
 export function autoAllowed(toolName: string) {
