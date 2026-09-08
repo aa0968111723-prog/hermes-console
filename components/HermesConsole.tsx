@@ -344,7 +344,9 @@ export default function HermesConsole() {
         66,
         Math.min(
           190,
-          (window.visualViewport?.height || window.innerHeight) * 0.28,
+          Math.floor(
+            (window.visualViewport?.height || window.innerHeight) * 0.28,
+          ),
         ),
       );
       textarea.style.height = Math.min(textarea.scrollHeight, limit) + "px";
@@ -363,9 +365,11 @@ export default function HermesConsole() {
     // Observe the parent width, not the textarea whose height we update.
     if (textarea.parentElement) observer.observe(textarea.parentElement);
     window.visualViewport?.addEventListener("resize", resize);
+    window.addEventListener("resize", resize);
     return () => {
       observer.disconnect();
       window.visualViewport?.removeEventListener("resize", resize);
+      window.removeEventListener("resize", resize);
     };
   }, [text, auth, nav]);
   useEffect(() => {
