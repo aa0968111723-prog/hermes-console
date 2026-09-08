@@ -1,5 +1,18 @@
 # Codex 工程接續紀錄
 
+## 2026-09-08 — 任務列改用可讀的工具名稱（UIUX 分工）
+
+- 基準 main：`1e9768a99ff7a62347d90c0464a25d0f0ce9f06b`；分支 `codex/friendly-tool-status`。PR #50 已由其他操作者合併，本輪自最新 main 開新分支。main CI `34215358758` 全通過。
+- 已核對 AGENTS、README、package/lock、CI、現有前端、未結 PR 與本紀錄。#42 仍處理 memory provenance，#30 為 ConsistencyLab，#21 為長任務文件，#10 為舊大型功能分支；本輪不重複後端、研究或記憶工作。
+- 由最新 main artifact `10051615962` 下載並親自檢視手機 390×420 與桌面 1440×1000 基準畫面：固定任務列可用，但把 `galley_research` 技術識別字直接顯示給使用者。
+- 新增集中式工具顯示名稱：GALLEY、訊核、淡江、Instagram、Pinterest、Canva、Planform、FrameLab、Lumen、Atlas、對稿、目標客群、記憶、工作區及網路搜尋採短標籤。標籤只根據收到的 `toolName` 分類，不生成進度；未知名稱顯示「工具」，不把不可信或超長識別字放進可見介面，原始名稱保留在提示與任務詳情。
+- 任務列的工具名稱改為有邊界、內光影的視覺膠囊，維持淺色 2.5D 層次；不是 WebGL 或真正 3D。無新依賴、動畫、輪詢、API 或後端變更。
+- 單元驗收涵蓋 10 種已知/未知名稱、真實事件狀態與過時事件隱藏。瀏覽器驗收沿用五種尺寸，確認友善名稱；另用超長未知名稱確認可見文字只顯示「工具」、技術名稱留在 title、無水平溢出。
+- 本地 `npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過。`node --import tsx --test --test-concurrency=1 tests/*.test.ts`：224 項中 222 通過、2 項因未提供 Postgres 測試條件而跳過；零失敗。`npm test` 在此環境因 tsx Unix IPC `EPERM` 無法啟動，CI 仍會執行原腳本。
+- 修改後瀏覽器畫面、Axe、chat/workbench/gateway 及最終 SHA 待草稿 PR CI；fixture 不代表正式 Hermes/MCP 外部整合。未做 iOS/Android 實體裝置驗證。
+- Grok 可互補處理 #42 memory provenance 或正式工具事件契約；前端顯示名稱若新增 provider，只需把真實 `toolName` 樣本交給此映射，不需更改 API。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-08 — 手機輸入區的持續任務入口（UIUX 分工）
 
 - 基準 main：`5a3c4d3b650255171a42ac40f605679acd90ca09`；分支 `codex/mobile-task-status`，草稿 PR #50。前端實作產出 SHA：`3a2a264a043973ce8e73f8dd1961d697de5be200`；後續提交只補長對話驗收與本紀錄，PR head 為完整產出。

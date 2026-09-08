@@ -1,7 +1,12 @@
 "use client";
 import { Activity, Check, ChevronRight, CircleHelp, Clock, TriangleAlert } from "lucide-react";
 import type { Task } from "@/lib/contracts";
-import { taskStateLabel, workingEvent } from "@/lib/client/activity";
+import {
+  activityKind,
+  taskStateLabel,
+  toolDisplayLabel,
+  workingEvent,
+} from "@/lib/client/activity";
 
 export function composerTaskStatus(task: Task, offline: boolean) {
   if (offline) return { label: "離線 · 狀態待確認", tone: "warning", tool: null };
@@ -12,10 +17,13 @@ export function composerTaskStatus(task: Task, offline: boolean) {
     : task.state === "completed" ? "success"
     : ["queued", "waiting_user", "stopping"].includes(task.state) ? "waiting"
     : "neutral";
+  const current = workingEvent(task);
   return {
     label: taskStateLabel[task.state] || "狀態未知",
     tone,
-    tool: workingEvent(task)?.toolName || null,
+    tool: toolDisplayLabel(current?.toolName || null),
+    toolName: current?.toolName || null,
+    toolKind: current ? activityKind(current.toolName) : null,
   };
 }
 
@@ -36,7 +44,15 @@ export default function ComposerTaskStatus({ task, offline, onClick }: {
       aria-label={`查看目前任務：${status.label}${status.tool ? "，" + status.tool : ""}`}>
       <Icon size={17} aria-hidden="true" />
       <span className="composer-task-label">{status.label}</span>
-      {status.tool && <span className="composer-task-tool" title={status.tool}>{status.tool}</span>}
+      {status.tool && (
+        <span
+          className="composer-task-tool"
+          data-activity={status.toolKind}
+          title={status.toolName ? `技術名稱：${status.toolName}` : undefined}
+        >
+          {status.tool}
+        </span>
+      )}
       <ChevronRight className="composer-task-chevron" size={17} aria-hidden="true" />
     </button>
   );

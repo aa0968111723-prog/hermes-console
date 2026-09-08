@@ -237,7 +237,7 @@ export async function verifyVisualStates(
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
     const draft = "[介面測試草稿] 等候工具結果";
     await composer.fill(draft);
-    const status = page.getByRole("button", { name: "查看目前任務：執行中，galley_research", exact: true });
+    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究 · GALLEY", exact: true });
     await expect(status).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const box = await status.boundingBox();
@@ -258,11 +258,13 @@ export async function verifyVisualStates(
   // Long conversations and unbroken tool names must not displace the shortcut.
   const originalInput = task.input;
   task.input = Array.from({ length: 24 }, (_, i) => `[介面測試段落 ${i + 1}] 保留長對話，查看目前任務`).join("\n\n");
-  task.events[0].toolName = "galley_" + "long_tool_name_".repeat(12);
+  task.events[0].toolName = "unknown_" + "long_tool_name_".repeat(12);
   await page.setViewportSize({ width: 360, height: 420 });
   await page.reload();
   await expect(page.locator(".conversation")).toContainText("[介面測試段落 24]");
-  await expect(page.locator(".composer-task-tool")).toHaveText(task.events[0].toolName);
+  await expect(page.locator(".composer-task-tool")).toHaveText("工具");
+  await expect(page.locator(".composer-task-status")).not.toContainText(task.events[0].toolName);
+  await expect(page.locator(".composer-task-tool")).toHaveAttribute("title", `技術名稱：${task.events[0].toolName}`);
   const conversationScroll = page.locator(".conversation-scroll");
   assert.ok(await conversationScroll.evaluate(el => el.scrollHeight > el.clientHeight));
   await conversationScroll.evaluate(el => el.scrollTo(0, el.scrollHeight));
