@@ -347,6 +347,7 @@ export async function verifyVisualStates(
     .getByRole("region", { name: "任務用量" });
   await expect(taskUsage).toContainText("未回傳用量資料");
   await expect(taskUsage).not.toContainText("未知");
+  await taskUsage.scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(output, "task-usage-missing-390x420.png") });
   await page.keyboard.press("Escape");
 
@@ -372,6 +373,7 @@ export async function verifyVisualStates(
   await usageDetails.click();
   await expect(taskUsage).toContainText("輸入 tokens");
   await expect(taskUsage).toContainText("外部工具費用");
+  await taskUsage.scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(output, "task-usage-partial-390x420.png") });
   await page.keyboard.press("Escape");
   Object.assign(task.usage, {
