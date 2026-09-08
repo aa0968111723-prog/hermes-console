@@ -398,6 +398,15 @@ export default function HermesConsole() {
     else dialog.current?.close();
   }, [panel]);
   useEffect(() => {
+    if (panel !== "task") return;
+    const frame = requestAnimationFrame(() => {
+      dialog.current
+        ?.querySelector<HTMLElement>(".panel-content")
+        ?.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [panel, selectedTask]);
+  useEffect(() => {
     if (drawer) mobileNav.current?.showModal();
     else mobileNav.current?.close();
   }, [drawer]);

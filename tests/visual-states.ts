@@ -312,6 +312,14 @@ export async function verifyVisualStates(
   await page.screenshot({ path: join(output, "task-access-long-conversation.png") });
   await page.locator(".composer-task-status").click();
   const longTaskDetail = page.getByRole("dialog", { name: "任務詳情" });
+  await expect
+    .poll(() =>
+      longTaskDetail
+        .locator(".panel-content")
+        .evaluate((element) => element.scrollTop),
+    )
+    .toBe(0);
+  await expect(longTaskDetail.locator(".panel-header")).toBeInViewport();
   const requestPreview = longTaskDetail.locator(".task-request-preview");
   await expect(requestPreview).toBeVisible();
   assert.ok((await requestPreview.innerText()).length <= 141);
