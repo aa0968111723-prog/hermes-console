@@ -1,5 +1,19 @@
 # Codex 工程接續紀錄
 
+## 2026-09-09 — 手機任務用量精簡呈現（UIUX 分工）
+
+- 基準 main：`8471ddaf55c98da04805aff03291bec4477df862`；分支 `codex/compact-task-usage`，草稿 PR #69。PR #59 已由其他操作者合併，本輪自最新 main 開新分支；基準 CI `34273027451` 全通過。
+- 已核對 AGENTS、README、package/lock、CI、現有前端、未結 PR 與本紀錄。Grok #68/#65 在處理 uncertain 任務重試，#62/#60/#56/#55/#42 是 memory provenance；本輪不修改重試、記憶、API、儲存、parser 或研究資料。
+- 已下載基準 artifact `10074667900` 並親自檢視 390×420／1440×1000：沒有 usage 的執行中任務仍列出模型、tokens、耗時與費用等多個「未知」，把真實事件紀錄推到手機折線以下。
+- 新增共用任務用量摘要：執行中無資料只顯示「等待 Hermes 回傳」，已結束無資料顯示「未回傳用量資料」；部分資料只呈現實際 `task.usage` 欄位，未知不替換成 0，實際回傳的 0 仍保留。模型、總 tokens、耗時優先，輸入／輸出與費用收進 44px 明細 disclosure。
+- Gauge 圖示、淺色漸層、內光影與資料小卡是 CSS 2.5D，不是 WebGL／真正 3D。沒有新依賴、常駐動畫、額外輪詢、API 或後端改動；資料狀態只來自 `task.state` 與 `task.usage`。
+- 新增 4 項 presentation 回歸測試，涵蓋執行中缺資料、完成後缺資料、部分資料、實際 0 與缺少 total 時的 input/output。Chrome 旅程驗證五種任務入口尺寸、390×420 缺資料／部分資料畫面、明細觸控高度、既有 reduced-motion、錯誤、離線、對話、工作台與 Gateway 流程。
+- 本地 `node --import tsx --test --test-concurrency=1 tests/*.test.ts`：256 項中 254 通過、2 項因未提供 Postgres 測試條件而跳過，零失敗。`npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過；第一次 build 在移除 `.next/export/_next` 暫存目錄時遇 `ENOTEMPTY`，刪除純建置產物後重跑成功。
+- 實作 SHA：`4bcc966864392c16cc8df33c4661849c0d98f7a2`；畫面 framing 測試 SHA：`4370388f584dc10ef0645b2f30ab50e77c138253`。最終功能 CI `34276354010` 全通過，包含原 `npm test`、build、secrets、audit、test:ui、test:chat、test:workbench、test:gateway。
+- 已下載 artifact `10075945903` 並親自對照 390×420：無資料卡由七列縮為單一誠實狀態，事件紀錄同屏可見；部分資料只顯示測試 fixture 真正提供的模型、總 tokens、耗時、輸入 tokens 與工具費用。11 個 Axe 受測畫面零 violations；fixture LCP 136ms、CLS 0.0000803 為單次 CI 結果，不作真機效能承諾。
+- screenshots 是明確標示的 UI fixture，不是正式 Hermes／MCP 外部整合證據；沒有 iOS／Android 實體裝置。下一輪優先改善手機任務詳情頂部過長的技術 ID，或補實體鍵盤／安全區驗證；Grok 可續修 uncertain retry 與 memory provenance，不需修改本摘要元件。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-08 — 任務詳情事件視覺層級（UIUX 分工）
 
 - 基準 main：`330b1e8dddf9a6df479f83ee0d171ddf7c28c8f8`；分支 `codex/readable-task-events`，草稿 PR #59。PR #54 已由其他操作者合併，本輪自最新 main 開新分支。基準 main CI `34237305437` 全通過。
