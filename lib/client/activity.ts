@@ -25,6 +25,25 @@ export function activityKind(name: string | null): ActivityKind {
   if (/workspace|project|material/i.test(name)) return "workspace";
   return "tool";
 }
+export function toolDisplayLabel(name: string | null): string | null {
+  if (!name) return null;
+  if (/galley/i.test(name)) return "研究 · GALLEY";
+  if (/xunhe|訊核/i.test(name)) return "研究 · 訊核";
+  if (/tku|tamkang|tamsui/i.test(name)) return "查詢 · 淡江";
+  if (/instagram/i.test(name)) return "參考 · Instagram";
+  if (/pinterest/i.test(name)) return "參考 · Pinterest";
+  if (/canva/i.test(name)) return "創作 · Canva";
+  if (/planform/i.test(name)) return "場佈 · Planform";
+  if (/framelab/i.test(name)) return "影像 · FrameLab";
+  if (/lumen/i.test(name)) return "創作 · Lumen";
+  if (/atlas/i.test(name)) return "場景 · Atlas";
+  if (/duigao/i.test(name)) return "協作 · 對稿";
+  if (/audience|persona|twin/i.test(name)) return "模擬 · 目標客群";
+  if (/memory|learning|skill/i.test(name)) return "讀取 · 記憶";
+  if (/workspace|project|material/i.test(name)) return "整理 · 工作區";
+  if (/search|browse|fetch|extract|web/i.test(name)) return "搜尋 · 網路";
+  return activityLabels[activityKind(name)];
+}
 export function eventState(event: TaskEvent): string {
   return event.status.replace(/^tool\./, "");
 }
