@@ -81,25 +81,25 @@
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r27",
-    "value": "R27尖峰4-8分 離峰8-15分 TDX+Dcard"
+    "value": "R27尖峰約4-10分 離峰8-15分 TDX+Dcard+lib"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r28",
-    "value": "R28尖峰約6-20分 正線/直達"
+    "value": "R28尖峰約6-20分 正線/直達 Dcard+official"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_dcard_recruit",
-    "value": "Dcard招生弱訊號 多為詢問"
+    "value": "Dcard招生弱訊號 多為詢問/揪伴"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_ig_recruit",
-    "value": "IG以學系博覽為主 社團自營"
+    "value": "IG以學系博覽與社團自營為主"
   },
   {
     "kind": "tku_fair",

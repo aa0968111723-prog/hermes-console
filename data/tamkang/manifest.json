@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-08T20:00:00+08:00",
-  "cycle": "hourly-2026-09-08-2000",
+  "updated_at": "2026-09-08T21:19:00+08:00",
+  "cycle": "hourly-2026-09-08-2119",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -37,19 +37,19 @@
     "roster_1151": "unpublished as of 2026-09-08",
     "fair_115": "starts 2026-09-10 one week; booth map pending",
     "zen": "official name 領袖禪學社; aka Leader Zen; SG109; formerly 禪學社/領袖社",
-    "hot_music": "no official hot-music club; four entry clubs",
-    "commute": "R27 peak 4-8min; R28 peak ~6-20min"
+    "hot_music": "no official hot-music club; four entry clubs: 詞曲創作社/電子音樂研究社/地板音樂社/嘻哈研究社",
+    "commute": "R27 peak ~4-10min; R28 peak ~6-20min (direct faster)"
   },
   "this_cycle": {
     "confirmed_seed_array": true,
     "findings": [
-      "115-1 roster still unpublished",
-      "fair date verified via CNA; booth map missing",
-      "173 source located on official site",
-      "zen naming dual-track verified (領袖禪學社)",
-      "hot-music four-club entry",
-      "commute headway quantified",
-      "Dcard/IG recruit weak signals"
+      "115-1 roster still unpublished (search null)",
+      "fair date re-verified via CNA 2026-09-07; booth map missing",
+      "173 source confirmed on official site",
+      "zen naming dual-track verified (領袖禪學社) L1 sites.google + L2 Wiki",
+      "hot-music four-club entry dual-sourced",
+      "commute headway quantified via Dcard+official",
+      "Dcard/IG recruit weak signals (questions > ads)"
     ]
   }
 }
