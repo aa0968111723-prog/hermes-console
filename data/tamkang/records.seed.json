@@ -1,0 +1,14 @@
+[
+  {"kind": "tku_kb_meta", "owner": "workspace", "id": "kb", "value": {"name": "淡江大學社團全生態知識庫", "updated_at": "2026-09-08T11:25:00+08:00", "import": "node scripts/import-tamkang-kb.mjs", "automation_task_id": "9937e72c-f973-4d72-955f-672c2d1c741f", "cadence": "HOURLY_24H"}},
+  {"kind": "tku_question", "owner": "workspace", "id": "club-count-conflict", "value": {"title": "173/178/184 矛盾待裁", "l2": "矛盾待裁", "178": "114-1一覽表178", "184": "學務長184活躍", "173": "官網約173"}},
+  {"kind": "tku_fair", "owner": "workspace", "id": "115-club-fair", "value": {"start": "2026-09-10", "duration": "一週", "l2_date": "官方已核", "l2_location": "單源待核"}},
+  {"kind": "tku_club", "owner": "workspace", "id": "1051", "value": {"name": "禅學社", "aka": ["領袖禅學社"], "exists_l2": "官方已核"}},
+  {"kind": "tku_club", "owner": "workspace", "id": "8023", "value": {"name": "電子音樂研究社", "ig": "@new_tkudj", "exists_l2": "官方已核"}},
+  {"kind": "tku_club", "owner": "workspace", "id": "8010", "value": {"name": "地板音樂社", "exists_l2": "官方已核"}},
+  {"kind": "tku_club", "owner": "workspace", "id": "8016", "value": {"name": "詞曲創作社", "exists_l2": "官方已核"}},
+  {"kind": "tku_club", "owner": "workspace", "id": "8019", "value": {"name": "嚏哈研究社", "exists_l2": "官方已核"}},
+  {"kind": "tku_relation", "owner": "workspace", "id": "hotmusic-entry", "value": {"fact": "無熱音社正式名；入口為地音/詞創/嚏哈/電音", "l2": "獨立二源已核"}},
+  {"kind": "tku_signal", "owner": "workspace", "id": "commute-peak-class", "value": {"l2": "待驗證", "paths": ["紅27", "紅28", "克難坡"]}},
+  {"kind": "tku_source", "owner": "workspace", "id": "roster-114-1", "value": {"url": "https://www.csie.tku.edu.tw/csie/wp-content/uploads/2025/08/1141學期社團一覽表.pdf", "total": 178, "l2": "官方已核"}},
+  {"kind": "tku_log", "owner": "workspace", "id": "2026-09-08-hourly", "value": {"user_request": "全自動匯入每小時一次", "automation": "9937e72c-f973-4d72-955f-672c2d1c741f"}}
+]
