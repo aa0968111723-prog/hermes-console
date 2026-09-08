@@ -238,6 +238,12 @@ test("research fallback, ranking, canva spec, social, router, publish", async ()
   assert.notEqual(zen.zen, photo.photo && photo.zen);
   assert.equal(zen.zen, true);
   assert.equal(photo.photo, true);
+  const club = creativeFingerprint("熱音社", "週五社團迎新，來認識社員");
+  assert.equal(club.zen, false);
+  assert.equal(club.photo, false);
+  assert.equal(club.generic, false);
+  const generic = creativeFingerprint("熱音社", "限時優惠立即購買");
+  assert.equal(generic.generic, true);
   const spec = directionToSpec(dirs[2], "notes");
   const missing = validateSpecForTemplate(spec, { OTHER: { type: "text" } });
   assert.equal(missing.ok, false);

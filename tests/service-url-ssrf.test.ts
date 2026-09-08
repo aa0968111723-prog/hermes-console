@@ -13,6 +13,7 @@ delete process.env.GALLEY_MCP_URL;
 const { ApiError, assertSafeServiceUrl, isPrivateOrReservedHost } =
   await import("../lib/server/security");
 const { configuredMcp } = await import("../lib/server/mcp-registry");
+const { target } = await import("../lib/server/hermes");
 
 test("private IP and cloud metadata hosts are reserved", () => {
   for (const host of [
@@ -80,4 +81,30 @@ test("GALLEY env bootstrap rejects private and metadata hosts", () => {
     if (previous === undefined) delete process.env.GALLEY_MCP_URL;
     else process.env.GALLEY_MCP_URL = previous;
   }
+});
+
+test("Hermes target() rejects private and metadata HTTPS before fetch", () => {
+  const key = "hermes-test-key-not-used-for-fetch";
+  for (const url of [
+    "https://169.254.169.254/",
+    "https://10.0.0.5:8080",
+    "https://192.168.1.1:8443",
+    "https://[::ffff:169.254.169.254]/",
+    "https://metadata.google.internal/",
+  ]) {
+    assert.throws(
+      () => target(url, key),
+      (error: unknown) =>
+        error instanceof ApiError && error.code === "ssrf_rejected",
+      url,
+    );
+  }
+  assert.equal(
+    target("https://hermes.example.invalid", key),
+    "https://hermes.example.invalid",
+  );
+  assert.equal(
+    target("http://127.0.0.1:9", key),
+    "http://127.0.0.1:9",
+  );
 });
