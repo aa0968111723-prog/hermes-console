@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-08T15:01:00+08:00",
-  "cycle": "hourly-2026-09-08-1501",
+  "updated_at": "2026-09-08T16:12:00+08:00",
+  "cycle": "hourly-2026-09-08-1612",
   "rules": {
     "single_file": true,
     "dual_layer": true,
