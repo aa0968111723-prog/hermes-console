@@ -249,6 +249,10 @@ export async function verifyVisualStates(
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
     await expect(detail).toContainText("ui-fixture-task");
+    const taskUsage = detail.getByRole("region", { name: "任務用量" });
+    await expect(taskUsage).toContainText("等待 Hermes 回傳");
+    await expect(taskUsage).not.toContainText("未知");
+    await expect(taskUsage.locator(".usage-metric")).toHaveCount(0);
     const eventDetails = detail.locator(".event").first();
     const eventSummary = eventDetails.locator("summary");
     if ((await eventDetails.getAttribute("open")) !== null)
@@ -337,6 +341,49 @@ export async function verifyVisualStates(
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("完成");
   await expect(page.locator(".visual-message")).toContainText("1 / 1");
+  await page.setViewportSize({ width: 390, height: 420 });
+  await page.locator(".composer-task-status").click();
+  let taskUsage = page.getByRole("dialog", { name: "任務詳情" })
+    .getByRole("region", { name: "任務用量" });
+  await expect(taskUsage).toContainText("未回傳用量資料");
+  await expect(taskUsage).not.toContainText("未知");
+  await page.screenshot({ path: join(output, "task-usage-missing-390x420.png") });
+  await page.keyboard.press("Escape");
+
+  Object.assign(task.usage, {
+    model: "[介面測試模型]",
+    inputTokens: 1000,
+    outputTokens: null,
+    totalTokens: 1234,
+    durationMs: 1650,
+    providerCost: null,
+    toolCost: 0,
+  });
+  await page.reload();
+  await page.locator(".composer-task-status").click();
+  taskUsage = page.getByRole("dialog", { name: "任務詳情" })
+    .getByRole("region", { name: "任務用量" });
+  await expect(taskUsage).toContainText("已回傳 5 項");
+  await expect(taskUsage.locator(".usage-highlights")).toContainText("1,234");
+  await expect(taskUsage).not.toContainText("輸出 tokens");
+  const usageDetails = taskUsage.getByText("查看明細", { exact: true });
+  const usageDetailsBox = await usageDetails.boundingBox();
+  assert.ok(usageDetailsBox && usageDetailsBox.height >= 44);
+  await usageDetails.click();
+  await expect(taskUsage).toContainText("輸入 tokens");
+  await expect(taskUsage).toContainText("外部工具費用");
+  await page.screenshot({ path: join(output, "task-usage-partial-390x420.png") });
+  await page.keyboard.press("Escape");
+  Object.assign(task.usage, {
+    model: null,
+    inputTokens: null,
+    outputTokens: null,
+    totalTokens: null,
+    durationMs: null,
+    providerCost: null,
+    toolCost: null,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator(".source-cards > summary").click();
   await expect(page.locator(".source-card")).toHaveAttribute(
     "href",

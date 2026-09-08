@@ -1329,6 +1329,108 @@ dialog::backdrop {
   text-align: right;
   overflow-wrap: anywhere;
 }
+.task-usage {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 10px;
+  overflow: hidden;
+  padding: 12px;
+  border: 1px solid #dce7d6;
+  border-radius: 15px;
+  background: linear-gradient(145deg, #ffffff 0%, #f7faf4 100%);
+  box-shadow: inset 0 1px 0 #fff, 0 5px 14px #34452c0a;
+}
+.task-usage::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -36px;
+  right: -28px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #dcefd366 0%, #dcefd300 70%);
+}
+.task-usage[data-state="missing"] {
+  background: linear-gradient(145deg, #ffffff 0%, #f8f8f6 100%);
+}
+.task-usage-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.task-usage-icon {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #cfe2c7;
+  border-radius: 11px;
+  color: #356b45;
+  background: linear-gradient(145deg, #f7fff2, #e8f3e2);
+  box-shadow: inset 0 1px 0 #fff, 0 3px 8px #34452c12;
+}
+.task-usage-title {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.task-usage-title strong {
+  font-size: 13px;
+}
+.task-usage-title small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.usage-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 7px;
+  margin: 0;
+}
+.usage-metric {
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid #e2eadf;
+  border-radius: 11px;
+  background: #ffffffb8;
+  box-shadow: inset 0 1px 0 #fff;
+}
+.usage-metric dt,
+.usage-details dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.usage-metric dd,
+.usage-details dd {
+  margin: 2px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.usage-details {
+  padding: 0;
+  border: 0;
+}
+.usage-details summary {
+  width: max-content;
+  padding: 7px 0 0;
+  color: #356b45;
+}
+.usage-details dl {
+  display: grid;
+  gap: 7px;
+  margin: 4px 0 0;
+}
+.usage-details dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
 details {
   border-bottom: 1px solid var(--line);
   padding-bottom: 12px;
