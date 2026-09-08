@@ -60,6 +60,25 @@ test("SSE accepts the exact payload limit and resets it for the next event", asy
   ]);
 });
 
+test("SSE accepts many bounded events delivered in one large network chunk", async () => {
+  const count = 2_000;
+  const networkChunk = ("data: " + "x".repeat(1_000) + "\n\n").repeat(count);
+  assert.ok(networkChunk.length > 2_000_000);
+  let seen = 0;
+  for await (const frame of frames(fixture([networkChunk]), 1000)) {
+    assert.equal(frame.data.length, 1_000);
+    seen++;
+  }
+  assert.equal(seen, count);
+});
+
+test("SSE still rejects an oversized non-data line", async () => {
+  await assert.rejects(
+    collect(fixture(["event: " + "x".repeat(2_000_001) + "\n\n"])),
+    { status: 502, code: "frame_too_large" },
+  );
+});
+
 test("SSE preserves UTF-8 across byte chunks, comments and multiline EOF data", async () => {
   const bytes = encoder.encode(": heartbeat\r\nevent: delta\r\ndata: 你好🐢\r\ndata: 第二行");
   let index = 0;

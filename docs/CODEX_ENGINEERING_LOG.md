@@ -1,5 +1,22 @@
 # Codex 工程接續紀錄
 
+## 2026-09-08 — 大型網路 chunk 內的多事件相容性
+
+- 延續 PR #43（`codex/chat-sse-boundaries`），遠端基準：`9eb8688ad765107fb45c2e18bd52f9e029f9cb15`；本輪開始時 main：`16767ab3f984358fd2453ce50aeb2bc61771656c`。
+- 已確認 PR #43 首次 CI 全通過且無人工 review；main 新增的是淡江資料、研究與 composer 高度修復，PR 仍 clean。PR #45 已按上輪交接補 tasks 的 definite failure / retry，不修改 parser，本輪不重複該工作。
+- 問題：原 raw buffer 檢查在剖析前執行；若 proxy 將許多各自合法的小 SSE frame 合併為單一超過 2,000,000 字元的網路 chunk，Console 會誤報 `frame_too_large`。
+- 修復：逐行剖析並限制單行與同一事件累積資料；處理完所有完整行後，僅限制尚未終止的尾端。網路 chunk 邊界不再影響合法性，超大單行與超大多行事件仍拒絕。
+- 新增回歸：單一大 chunk 內 2,000 個合法事件可完整讀取；超大非 data 行仍拒絕。原 4 項 SSE 邊界測試保留。
+- 下一輪先看本次 CI；若 #45 合併，將 main 合併後相容性留給 CI 驗證。Grok 可繼續 tasks/UI 重試旅程，不需修改 `lib/server/sse.ts`。
+
+### 本輪驗證
+
+- `node --import tsx --test tests/sse.test.ts`：6/6 通過。
+- `node --import tsx --test --test-concurrency=1 tests/*.test.ts`：189/189 通過。
+- `npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`：通過。
+- `npm audit --omit=dev`：0 vulnerabilities。
+- GitHub Actions browser gates 待本次遠端 commit；仍是 LOCAL_CONTRACT / browser fixture，不是 LIVE_EXTERNAL。
+
 ## 2026-09-08 — SSE 累積事件大小限制
 
 - 基準：`0c2d7a7f782d3a47ba3f299c4c902b0e628d3767`（main）。

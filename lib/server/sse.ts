@@ -3,6 +3,7 @@ export interface SSEFrame {
   event: string;
   data: string;
 }
+const MAX_FRAME_CHARS = 2_000_000;
 // UTF-8, CRLF, split lines, comments, multiline data and a final unterminated frame.
 export async function* frames(
   stream: ReadableStream<Uint8Array>,
@@ -34,11 +35,11 @@ export async function* frames(
         }),
       ]).finally(() => clearTimeout(timer));
       buffer += decoder.decode(chunk.value, { stream: !chunk.done });
-      if (buffer.length > 2_000_000)
-        throw new ApiError(502, "frame_too_large", "工具事件超過大小限制。");
       if (chunk.done && buffer && !buffer.endsWith("\n")) buffer += "\n";
       let end: number;
       while ((end = buffer.indexOf("\n")) >= 0) {
+        if (end > MAX_FRAME_CHARS)
+          throw new ApiError(502, "frame_too_large", "工具事件超過大小限制。");
         const line = buffer.slice(0, end).replace(/\r$/, "");
         buffer = buffer.slice(end + 1);
         if (line === "") {
@@ -52,11 +53,15 @@ export async function* frames(
           // Parsed lines leave buffer but remain retained until dispatch. Bound
           // their joined payload too, regardless of network chunk boundaries.
           dataLength += value.length + (data.length ? 1 : 0);
-          if (dataLength > 2_000_000)
+          if (dataLength > MAX_FRAME_CHARS)
             throw new ApiError(502, "frame_too_large", "工具事件超過大小限制。");
           data.push(value);
         }
       }
+      // Complete frames may legitimately arrive together in one large network
+      // chunk. Only the unterminated tail belongs to the next frame/line.
+      if (buffer.length > MAX_FRAME_CHARS)
+        throw new ApiError(502, "frame_too_large", "工具事件超過大小限制。");
       if (chunk.done) {
         if (data.length) yield { event, data: data.join("\n") };
         break;
