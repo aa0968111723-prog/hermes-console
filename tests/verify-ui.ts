@@ -253,9 +253,17 @@ try {
   await expect(
     page.getByRole("button", { name: "重新同步", exact: true }),
   ).toBeEnabled();
+  await page.screenshot({
+    path: join(output, "runtime-mobile-360.png"),
+    fullPage: true,
+  });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await audit("agents");
   await page.screenshot({ path: join(output, "agents.png"), fullPage: true });
+  await page.screenshot({
+    path: join(output, "runtime-desktop.png"),
+    fullPage: true,
+  });
   const advancedRuntime = page.locator(".runtime-advanced > summary");
   await advancedRuntime.click();
   await page.screenshot({
@@ -263,6 +271,13 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 360, height: 800 });
+  await page.getByRole("button", { name: "開啟導覽" }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "任務", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "任務", exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "開啟導覽" }).click();
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),

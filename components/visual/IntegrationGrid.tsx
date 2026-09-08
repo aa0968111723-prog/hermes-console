@@ -9,6 +9,8 @@ import {
   School,
   Cloud,
   Network,
+  Map,
+  PenLine,
 } from "lucide-react";
 const icons: Record<string, typeof Bot> = {
   hermes: Bot,
@@ -18,6 +20,8 @@ const icons: Record<string, typeof Bot> = {
   framelab: Film,
   lumen: Palette,
   xunhe: Network,
+  planform: Map,
+  duigao: PenLine,
   tamkang: School,
   zeabur: Cloud,
   canva: Palette,

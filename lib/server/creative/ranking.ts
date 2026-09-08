@@ -68,8 +68,11 @@ export function rankDirections(input: {
   };
 }
 
+const CLUB_CUES = /社團|迎新|博覽|招新|社課|社員|校園|克難坡|淡水/;
+
 export function creativeFingerprint(club: string, copy: string) {
   const zen = /禪|靜定|茶會/.test(copy);
   const photo = /攝影|鏡頭|快門/.test(copy);
-  return { club, zen, photo, generic: zen === photo };
+  const hasClubCues = CLUB_CUES.test(copy);
+  return { club, zen, photo, generic: !zen && !photo && !hasClubCues };
 }

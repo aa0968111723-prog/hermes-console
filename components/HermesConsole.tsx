@@ -696,6 +696,13 @@ export default function HermesConsole() {
           <Bot size={19} />
           <span>Agent</span>
         </button>
+        <button
+          aria-current={nav === "tasks" ? "page" : undefined}
+          onClick={() => navigate("tasks")}
+        >
+          <ListTodo size={19} />
+          任務
+        </button>
       </nav>
       <div className="side-section dock-section-label">
         <span>專案</span>
@@ -838,9 +845,9 @@ export default function HermesConsole() {
                 ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
-                  : nav === "agents"
-                    ? "Agent"
-                    : "任務"}
+                  : nav === "tasks"
+                    ? "任務"
+                    : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
@@ -1473,7 +1480,13 @@ export default function HermesConsole() {
             />
             <details className="agent-profiles">
               <summary>Agent OS · 設定檔</summary>
-              <AgentPanel agents={agents} brain={[]} />
+              <AgentPanel
+                agents={agents.filter(
+                  (agent) =>
+                    agent.role === "general" || agent.status !== "unconfigured",
+                )}
+                brain={[]}
+              />
             </details>
           </section>
         ) : (

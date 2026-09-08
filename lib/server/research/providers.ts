@@ -129,18 +129,55 @@ export function formatResearchPlanForInstructions(bundle: ResearchBundle) {
   const queries = bundle.queries.length
     ? bundle.queries.join("、")
     : "（目前沒有對應的建議查詢詞）";
-  const sources =
+  const directory =
     bundle.sourceDirectory
       .map(
         (item) => item.title + " " + item.url + "（" + item.verification + "）",
       )
       .join("；") || "（尚無待查官方入口）";
-  return [
+  const lines = [
     "研究計畫（executed=" +
       String(bundle.executed) +
       "，不是已完成的文獻檢索）：",
     "建議查詢詞：" + queries,
-    "待查來源目錄：" + sources,
-    bundle.message,
-  ].join("\n");
+    "待查來源目錄：" + directory,
+  ];
+  if (bundle.executed) {
+    const fetched =
+      bundle.sources
+        .filter((item) => item.verification === "fetched" && item.retrievedAt)
+        .map((item) => {
+          const excerpt = item.excerpt.trim()
+            ? "摘錄：" + item.excerpt.slice(0, 280)
+            : "（頁面可讀但沒有可用摘錄）";
+          return (
+            item.title +
+            " " +
+            item.url +
+            "（fetched，" +
+            excerpt +
+            "）"
+          );
+        })
+        .join("；") || "（executed=true 但沒有 fetched 來源；不得補寫文獻）";
+    const claims =
+      bundle.claims
+        .map(
+          (item) =>
+            item.statement +
+            "（" +
+            item.truth +
+            "，verification=" +
+            item.verification +
+            "）",
+        )
+        .join("；") || "（沒有已核對主張）";
+    lines.push("已抓取來源：" + fetched);
+    lines.push("已核對主張：" + claims);
+  } else {
+    lines.push("已抓取來源：（尚未取得外部 evidence，不得把計畫當成文獻）");
+    lines.push("已核對主張：（無）");
+  }
+  lines.push(bundle.message);
+  return lines.join("\n");
 }

@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { ApiError, limited } from "./security";
+import {
+  ApiError,
+  assertSafeServiceUrl,
+  isLoopbackHost,
+  limited,
+} from "./security";
 import {
   CREDENTIAL_KEYS,
   credentialPresence,
@@ -14,8 +19,10 @@ import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
 import { tamkangStatus } from "./tamkang";
 import { liveGalleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
+import { planformStatus } from "./planform";
 import { lumenConfigured, lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
+import { duigaoStatus } from "./duigao";
 import { zeaburPublicStatus } from "./zeabur";
 
 const mcpDefinition = z
@@ -45,12 +52,16 @@ export const credentialsInput = z
     GALLEY_MCP_TOKEN: z.string().max(2_000).optional(),
     XUNHE_MCP_URL: z.string().max(500).optional(),
     XUNHE_MCP_TOKEN: z.string().max(2_000).optional(),
+    PLANFORM_MCP_URL: z.string().max(500).optional(),
+    PLANFORM_MCP_TOKEN: z.string().max(2_000).optional(),
     ATLAS_MCP_URL: z.string().max(500).optional(),
     ATLAS_MCP_TOKEN: z.string().max(2_000).optional(),
     LUMEN_MCP_URL: z.string().max(500).optional(),
     LUMEN_MCP_TOKEN: z.string().max(2_000).optional(),
     FRAMELAB_MCP_URL: z.string().max(500).optional(),
     FRAMELAB_MCP_TOKEN: z.string().max(2_000).optional(),
+    DUIGAO_MCP_URL: z.string().max(500).optional(),
+    DUIGAO_MCP_TOKEN: z.string().max(2_000).optional(),
     ZEABUR_API_TOKEN: z.string().max(500).optional(),
     ZEABUR_PROJECT_ID: z.string().max(80).optional(),
     ZEABUR_SERVICE_ID: z.string().max(80).optional(),
@@ -71,7 +82,8 @@ export function validateHttpsServiceUrl(
   }
   const local =
     process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
-    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    isLoopbackHost(url.hostname);
+  assertSafeServiceUrl(value, kind === "hermes" ? "hermes" : "mcp");
   if (
     (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
     url.username ||
@@ -116,12 +128,19 @@ function validatePatch(patch: CredentialValues) {
     patch.GALLEY_MCP_URL = validateHttpsServiceUrl(patch.GALLEY_MCP_URL, "mcp");
   if (patch.XUNHE_MCP_URL)
     patch.XUNHE_MCP_URL = validateHttpsServiceUrl(patch.XUNHE_MCP_URL, "mcp");
+  if (patch.PLANFORM_MCP_URL)
+    patch.PLANFORM_MCP_URL = validateHttpsServiceUrl(
+      patch.PLANFORM_MCP_URL,
+      "mcp",
+    );
   if (patch.ATLAS_MCP_URL)
     patch.ATLAS_MCP_URL = validateHttpsServiceUrl(patch.ATLAS_MCP_URL, "mcp");
   if (patch.LUMEN_MCP_URL)
     patch.LUMEN_MCP_URL = validateHttpsServiceUrl(patch.LUMEN_MCP_URL, "mcp");
   if (patch.FRAMELAB_MCP_URL)
     patch.FRAMELAB_MCP_URL = validateHttpsServiceUrl(patch.FRAMELAB_MCP_URL, "mcp");
+  if (patch.DUIGAO_MCP_URL)
+    patch.DUIGAO_MCP_URL = validateHttpsServiceUrl(patch.DUIGAO_MCP_URL, "mcp");
   if (patch.HERMES_API_KEY && patch.HERMES_API_KEY.length < 8)
     throw new ApiError(400, "invalid_secret", "Hermes 金鑰長度不足。");
   if (patch.TKU_MCP_TOKEN && patch.TKU_MCP_TOKEN.length < 8)
@@ -134,12 +153,16 @@ function validatePatch(patch: CredentialValues) {
     );
   if (patch.XUNHE_MCP_TOKEN && patch.XUNHE_MCP_TOKEN.length < 8)
     throw new ApiError(400, "invalid_secret", "訊核 MCP 權杖長度不足。");
+  if (patch.PLANFORM_MCP_TOKEN && patch.PLANFORM_MCP_TOKEN.length < 16)
+    throw new ApiError(400, "invalid_secret", "Planform MCP 權杖至少需要 16 個字元。");
   if (patch.ATLAS_MCP_TOKEN && patch.ATLAS_MCP_TOKEN.length < 16)
     throw new ApiError(400, "invalid_secret", "場圖 MCP 權杖長度不足。");
   if (patch.LUMEN_MCP_TOKEN && patch.LUMEN_MCP_TOKEN.length < 32)
     throw new ApiError(400, "invalid_secret", "Lumen MCP 權杖至少需要 32 個字元。");
   if (patch.FRAMELAB_MCP_TOKEN && patch.FRAMELAB_MCP_TOKEN.length < 16)
     throw new ApiError(400, "invalid_secret", "FrameLab MCP 權杖長度不足。");
+  if (patch.DUIGAO_MCP_TOKEN && patch.DUIGAO_MCP_TOKEN.length < 16)
+    throw new ApiError(400, "invalid_secret", "對稿 MCP 權杖長度不足。");
   if (patch.MCP_BRIDGE_TOKEN && patch.MCP_BRIDGE_TOKEN.length < 32)
     throw new ApiError(
       400,
@@ -189,6 +212,12 @@ export function publicSettings() {
       urlSource: credentialPresence("XUNHE_MCP_URL").source,
       tokenSource: credentialPresence("XUNHE_MCP_TOKEN").source,
     },
+    planform: {
+      ...planformStatus(),
+      configured: !!runtimeEnv("PLANFORM_MCP_URL"),
+      urlSource: credentialPresence("PLANFORM_MCP_URL").source,
+      tokenSource: credentialPresence("PLANFORM_MCP_TOKEN").source,
+    },
     lumen: {
       ...lumenStatus(),
       configured: lumenConfigured(),
@@ -215,6 +244,12 @@ export function publicSettings() {
       configured: !!(runtimeEnv("FRAMELAB_MCP_URL") && runtimeEnv("FRAMELAB_MCP_TOKEN")),
       urlSource: credentialPresence("FRAMELAB_MCP_URL").source,
       tokenSource: credentialPresence("FRAMELAB_MCP_TOKEN").source,
+    },
+    duigao: {
+      ...duigaoStatus(),
+      configured: !!(runtimeEnv("DUIGAO_MCP_URL") && runtimeEnv("DUIGAO_MCP_TOKEN")),
+      urlSource: credentialPresence("DUIGAO_MCP_URL").source,
+      tokenSource: credentialPresence("DUIGAO_MCP_TOKEN").source,
     },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
@@ -286,6 +321,25 @@ export async function testFramelabConnection() {
   const entry = getMcp("framelab");
   if (!entry)
     throw new ApiError(400, "framelab_unconfigured", "FrameLab MCP 尚未出現在核准清單。");
+  const probed = await probeMcp(entry);
+  return {
+    ...publicSettings(),
+    probe: {
+      status: probed.status,
+      toolsCount: probed.tools.length,
+      lastError: probed.lastError,
+    },
+  };
+}
+
+export async function testDuigaoConnection() {
+  if (!runtimeEnv("DUIGAO_MCP_URL"))
+    throw new ApiError(400, "duigao_unconfigured", "請先儲存對稿 MCP 網址。");
+  if (!runtimeEnv("DUIGAO_MCP_TOKEN"))
+    throw new ApiError(400, "duigao_token_missing", "請先貼上對稿 DUIGAO_MCP_TOKEN。");
+  const entry = getMcp("duigao");
+  if (!entry)
+    throw new ApiError(400, "duigao_unconfigured", "對稿 MCP 尚未出現在核准清單。");
   const probed = await probeMcp(entry);
   return {
     ...publicSettings(),

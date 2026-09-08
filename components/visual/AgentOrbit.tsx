@@ -31,6 +31,8 @@ const statusNames: Record<string, string> = {
 function iconFor(name: string) {
   if (/galley|xunhe|search/i.test(name)) return Search;
   if (/tamkang|tku/i.test(name)) return School;
+  if (/planform/i.test(name)) return Layers;
+  if (/duigao|對稿/i.test(name)) return Palette;
   if (/lumen|canva/i.test(name)) return Palette;
   if (/framelab/i.test(name)) return Film;
   if (/atlas/i.test(name)) return Layers;

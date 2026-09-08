@@ -11,6 +11,8 @@ process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_REQUIRE_GATEWAY = "false";
 process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
 delete process.env.CONSOLE_VAULT_KEY;
+delete process.env.DUIGAO_MCP_URL;
+delete process.env.DUIGAO_MCP_TOKEN;
 
 const received: Array<{ method?: string; id?: unknown; name?: string; auth?: string }> = [];
 const stub = createServer((req, res) => {

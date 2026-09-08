@@ -9,7 +9,10 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-research-"))
 process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
 
 const { executeResearchBundle } = await import("../lib/server/research/executor");
-const { researchBundle } = await import("../lib/server/research/providers");
+const {
+  formatResearchPlanForInstructions,
+  researchBundle,
+} = await import("../lib/server/research/providers");
 
 test("research executor only marks executed when a page is actually retrieved", async (t) => {
   const server = createServer((_req, res) => {
@@ -77,4 +80,42 @@ test("research executor only marks executed when a page is actually retrieved", 
     assert.equal(executed.claims.length, 0);
     assert.equal(executed.sources[0].verification, "failed");
   });
+
+  await t.test(
+    "instructions use post-execute bundle sources and claims, not the plan snapshot",
+    async () => {
+      const plan = researchBundle({ prompt: "教心所研究倫理與學習動機文獻" });
+      plan.sourceDirectory = [
+        {
+          id: "local-edpsy",
+          url,
+          provider: "source_directory",
+          title: "待查教心所入口",
+          excerpt: "",
+          retrievedAt: null,
+          publishedAt: null,
+          official: true,
+          confidence: null,
+          usedFor: "research_entry",
+          verification: "not_fetched",
+        },
+      ];
+      const snapshot = formatResearchPlanForInstructions(plan);
+      assert.match(snapshot, /executed=false/);
+      assert.match(snapshot, /尚未取得外部 evidence/);
+      assert.equal(snapshot.includes("官方首頁"), false);
+      assert.equal(snapshot.includes("SOURCE_VERIFIED"), false);
+
+      const executed = await executeResearchBundle(plan);
+      const instructions = formatResearchPlanForInstructions(executed);
+      assert.equal(executed.executed, true);
+      assert.match(instructions, /executed=true/);
+      assert.match(instructions, /已抓取來源/);
+      assert.match(instructions, /官方首頁/);
+      assert.match(instructions, /SOURCE_VERIFIED/);
+      assert.match(instructions, /不是民調或完整文獻檢索|不是已完成的文獻檢索/);
+      assert.equal(/自行撰寫|補齊文獻|虛構論文/.test(instructions), false);
+      assert.notEqual(instructions, snapshot);
+    },
+  );
 });

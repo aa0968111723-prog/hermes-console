@@ -43,7 +43,7 @@ Verification evidence（P0-D，之後所有驗證只能用這些）：
 | LIVE_EXTERNAL | 真實外部 HTTPS 服務 |
 | UNVERIFIED | 尚未檢查 |
 
-Mock Hermes = `LOCAL_CONTRACT`，不得寫 Hermes Verified。  
+Mock Hermes = `LOCAL_CONTRACT`，不得寫 Hermes Verified。
 Playwright = `LOCAL_BROWSER`，不得寫 Zeabur Live Verified。
 
 ## Honesty gaps that matter

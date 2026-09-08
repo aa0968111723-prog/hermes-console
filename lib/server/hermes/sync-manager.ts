@@ -1,197 +1,552 @@
-import { hash, ApiError } from "../security";
-import { health } from "../hermes";
-import { listAgents, capabilityFromHealth, publicProfile } from "../agents";
-import { seedRegistry, probeMcp, type McpEntry } from "../mcp-registry";
+import { hash } from "../security";
+import { health, serviceIdentity } from "../hermes";
+import { listAgents, capabilityFromHealth } from "../agents";
+import {
+  configuredMcp,
+  seedRegistry,
+  probeMcp,
+  type McpEntry,
+} from "../mcp-registry";
 import { toolsList } from "../mcp";
-import { get, list, put } from "../store";
+import { get, put, transaction } from "../store";
 import type { Health } from "../../contracts";
-import type { HermesRuntimeSnapshot, RuntimeDiff, RuntimeMcpServer, RuntimeStatus, ToolDescriptor, ToolPermission } from "../../runtime";
+import type {
+  HermesRuntimeSnapshot,
+  RuntimeDiff,
+  RuntimeStatus,
+  ToolDescriptor,
+} from "../../runtime";
 import { UnifiedToolRegistry } from "../tool-registry";
-import { credentialPresence } from "../credentials";
+export { listRuntimeBindings, saveRuntimeBinding } from "./tool-policy";
+import { filterBoundTools } from "./tool-policy";
+import { credentialPresence, runtimeEnv } from "../credentials";
 
-const globalState = globalThis as typeof globalThis & {
-  hermesRuntimeSync?: Map<string, Promise<HermesRuntimeSnapshot>>;
+export const RUNTIME_INTERVAL_MS = 30_000;
+export const RUNTIME_STALE_MS = 180_000;
+type SyncMeta = {
+  id: "current";
+  fetchedAt: string;
+  lastSyncedAt: string;
+  diagnostics: HermesRuntimeSnapshot["diagnostics"];
 };
-const inflight = (globalState.hermesRuntimeSync ??= new Map());
+type Listener = (snapshot: HermesRuntimeSnapshot, diff: RuntimeDiff) => void;
+type State = {
+  inflight?: Promise<HermesRuntimeSnapshot>;
+  identity?: string;
+  nextAttemptAt: number;
+  failures: number;
+  listeners: Set<Listener>;
+};
+const globalState = globalThis as typeof globalThis & {
+  hermesRuntimeStatesV2?: Map<string, State>;
+};
+const states = (globalState.hermesRuntimeStatesV2 ??= new Map<string, State>());
+function stateFor(owner: string) {
+  let state = states.get(owner);
+  if (!state) {
+    state = { nextAttemptAt: 0, failures: 0, listeners: new Set() };
+    states.set(owner, state);
+  }
+  return state;
+}
+export function subscribeRuntime(owner: string, listener: Listener) {
+  const listeners = stateFor(owner).listeners;
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+function previous(owner: string) {
+  const snapshot = get<HermesRuntimeSnapshot>(
+    "runtime_snapshot",
+    owner,
+    "current",
+  );
+  const meta = get<SyncMeta>("runtime_sync", owner, "current");
+  return snapshot && meta ? { ...snapshot, ...meta } : snapshot;
+}
+export function runtimeSnapshot(owner: string): HermesRuntimeSnapshot | null {
+  const snapshot = previous(owner);
+  if (!snapshot) return null;
+  const age = Date.now() - Date.parse(snapshot.fetchedAt);
+  const expired = !Number.isFinite(age) || age > RUNTIME_STALE_MS;
+  return {
+    ...snapshot,
+    ...(expired
+      ? {
+          status: "stale" as const,
+          tools: snapshot.tools.map((tool) => ({
+            ...tool,
+            status: "stale" as const,
+          })),
+        }
+      : {}),
+    diagnostics: { ...snapshot.diagnostics, snapshotAgeMs: Math.max(0, age) },
+  };
+}
 
-function statusFromHealth(value: Health): RuntimeStatus {
-  if (value.status === "unconfigured") return "unknown";
-  if (value.status === "failed") return "failed";
-  if (value.status === "available") return "available";
-  return value.credential === "valid" ? "partial" : "unknown";
+// Sort object keys, not schema arrays. Observation times are removed explicitly,
+// so schema properties named 'lastVerifiedAt' still participate in the hash.
+function canonical(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => [k, canonical(v)]),
+    );
+  return value;
 }
-function permissionFor(name: string, description: string, schema: Record<string, unknown>, annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean }): ToolPermission[] {
-  if (annotations?.destructiveHint) return ["destructive", "confirm"];
-  if (annotations?.readOnlyHint) return ["read"];
-  const text = (name + " " + description + " " + JSON.stringify(schema)).toLowerCase();
-  if (/delete|remove|revoke|destroy|drop|overwrite|reset/.test(text)) return ["destructive", "confirm"];
-  if (/publish|post|send|schedule|export/.test(text)) return ["publish", "confirm"];
-  if (/create|update|edit|write|upload|save|modify/.test(text)) return ["write", "confirm"];
-  if (/draft|generate|compose|design/.test(text)) return ["draft"];
-  return ["read"];
+const stableTool = (tool: ToolDescriptor) => ({
+  ...tool,
+  lastSeenAt: "",
+  lastVerifiedAt: null,
+  metadata: { ...tool.metadata, discoveredAt: undefined },
+});
+export function runtimeContentHash(
+  snapshot: Omit<HermesRuntimeSnapshot, "hash" | "diagnostics">,
+) {
+  return hash(
+    JSON.stringify(
+      canonical({
+        ...snapshot,
+        fetchedAt: "",
+        lastSyncedAt: "",
+        lastVerifiedAt: null,
+        models: [...snapshot.models].sort(),
+        skills: [...snapshot.skills].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        ),
+        toolsets: snapshot.toolsets
+          .map((set) => ({ ...set, tools: set.tools && [...set.tools].sort() }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+        tools: snapshot.tools
+          .map(stableTool)
+          .sort((a, b) => a.canonicalName.localeCompare(b.canonicalName)),
+        agents: snapshot.agents
+          .map((agent) => ({ ...agent, lastVerifiedAt: null }))
+          .sort((a, b) => a.id.localeCompare(b.id)),
+        mcpServers: snapshot.mcpServers
+          .map((server) => ({
+            ...server,
+            lastSyncedAt: null,
+            lastConnectedAt: null,
+          }))
+          .sort((a, b) => a.id.localeCompare(b.id)),
+      }),
+    ),
+  );
 }
-function statusForMcp(status: McpEntry["status"]): RuntimeStatus {
-  if (status === "verified") return "available";
-  if (status === "partial" || status === "connected") return "partial";
-  if (status === "failed") return "failed";
-  return "unknown";
-}
-function sanitizeMcp(entry: McpEntry): RuntimeMcpServer {
-  const last = entry.verifiedAt;
+const usable = (tool?: ToolDescriptor) =>
+  !!tool?.enabled && ["available", "partial"].includes(tool.status);
+export function runtimeDiff(
+  before: HermesRuntimeSnapshot | null,
+  after: HermesRuntimeSnapshot,
+): RuntimeDiff {
+  const old = new Map((before?.tools || []).map((t) => [t.canonicalName, t]));
+  const next = new Map(after.tools.map((t) => [t.canonicalName, t]));
   return {
-    id: entry.id, name: entry.name, transport: entry.transport, authMode: entry.authMode,
-    projectScope: "all", enabled: entry.status !== "unconfigured" || entry.id === "workspace",
-    status: statusForMcp(entry.status), serverInfo: null, protocolVersion: null,
-    capabilities: {}, toolsCount: entry.tools.length, lastConnectedAt: last,
-    lastSyncedAt: last, lastError: entry.lastError, metadata: { trustedLevel: entry.trustedLevel, readonly: entry.readonly },
+    from: before?.hash || null,
+    to: after.hash,
+    added: [...next.keys()].filter((k) => !old.has(k)),
+    removed: [...old.keys()].filter((k) => !next.has(k)),
+    changed: [...next.keys()].filter(
+      (k) =>
+        old.has(k) &&
+        JSON.stringify(canonical(stableTool(old.get(k)!))) !==
+          JSON.stringify(canonical(stableTool(next.get(k)!))),
+    ),
+    becameUnavailable: [...old.keys()].filter(
+      (k) => usable(old.get(k)) && !usable(next.get(k)),
+    ),
+    recovered: [...next.keys()].filter(
+      (k) => old.has(k) && !usable(old.get(k)) && usable(next.get(k)),
+    ),
+    at: new Date().toISOString(),
   };
 }
-function descriptorFromHermes(toolset: { name: string; description: string; enabled?: boolean; tools?: string[] }, name: string, at: string, status: RuntimeStatus): ToolDescriptor {
-  const canonicalName = "hermes." + toolset.name + "." + name;
+function mcpStatus(entry: McpEntry): RuntimeStatus {
+  if (!entry.enabled) return "unknown";
+  return entry.status === "failed"
+    ? "failed"
+    : ["partial", "verified"].includes(entry.status)
+      ? "partial"
+      : "unknown";
+}
+function descriptor(
+  name: string,
+  at: string,
+  source: ToolDescriptor["source"],
+  server: string,
+  canonicalName: string,
+): ToolDescriptor {
   return {
-    id: hash("hermes-native|" + canonicalName), canonicalName, displayName: name,
-    description: toolset.description || "Hermes 原生工具", source: "hermes-native", sourceServer: "hermes",
-    toolset: toolset.name, inputSchema: {}, permissions: permissionFor(name, toolset.description, {}),
-    readOnlyHint: permissionFor(name, toolset.description, {})[0] === "read", supportsParallel: true,
-    enabled: toolset.enabled !== false, status, lastSeenAt: at, lastVerifiedAt: at,
-    projectScope: "all", agentScope: "all", metadata: { runtimeName: name },
+    id: hash(canonicalName),
+    canonicalName,
+    displayName: name,
+    description: "",
+    source,
+    sourceServer: server,
+    toolset: null,
+    inputSchema: {},
+    permissions: ["confirm"],
+    readOnlyHint: false,
+    supportsParallel: false,
+    enabled: true,
+    status: "partial",
+    lastSeenAt: at,
+    lastVerifiedAt: null,
+    projectScope: "all",
+    agentScope: "all",
+    metadata: { executionVerified: false },
   };
 }
-function descriptorFromMcp(server: McpEntry, tool: McpEntry["tools"][number], at: string): ToolDescriptor {
-  const canonicalName = "mcp." + server.id + "." + tool.name;
-  const permissions = permissionFor(tool.name, tool.description, tool.inputSchema || {}, tool.annotations);
-  return {
-    id: hash("mcp|" + server.id + "|" + tool.name), canonicalName, displayName: tool.name,
-    description: tool.description, source: "mcp", sourceServer: server.id, toolset: null,
-    inputSchema: tool.inputSchema || {}, permissions, readOnlyHint: permissions[0] === "read", supportsParallel: permissions[0] === "read",
-    enabled: server.status === "verified" || server.status === "partial", status: statusForMcp(server.status),
-    lastSeenAt: at, lastVerifiedAt: server.verifiedAt, projectScope: "all", agentScope: "all",
-    metadata: { serverName: server.name, transport: server.transport },
-  };
-}
-function descriptorFromConsole(name: string, description: string, schema: Record<string, unknown>, at: string): ToolDescriptor {
-  const permissions = permissionFor(name, description, schema);
-  return {
-    id: hash("console-workspace|" + name), canonicalName: "console-workspace." + name, displayName: name,
-    description, source: "console-workspace", sourceServer: "workspace", toolset: "workspace",
-    inputSchema: schema, permissions, readOnlyHint: permissions[0] === "read", supportsParallel: permissions[0] === "read",
-    enabled: true, status: "available", lastSeenAt: at, lastVerifiedAt: at, projectScope: "all", agentScope: "all", metadata: {},
-  };
-}
-function previous(owner: string) { return get<HermesRuntimeSnapshot>("runtime_snapshot", owner, "current"); }
-export function runtimeSnapshot(owner: string) { return previous(owner); }
-export function runtimeDiff(before: HermesRuntimeSnapshot | null, after: HermesRuntimeSnapshot): RuntimeDiff {
-  const old = new Map((before?.tools || []).map(t => [t.canonicalName, t]));
-  const next = new Map(after.tools.map(t => [t.canonicalName, t]));
-  const added = [...next.keys()].filter(k => !old.has(k));
-  const removed = [...old.keys()].filter(k => !next.has(k));
-  const stable = (tool: ToolDescriptor | undefined) => tool && hash(JSON.stringify({ ...tool, lastSeenAt: "", lastVerifiedAt: null }));
-  const changed = [...next.keys()].filter(k => old.has(k) && stable(old.get(k)) !== stable(next.get(k)));
-  const becameUnavailable = [...next.keys()].filter(k => old.get(k)?.status === "available" && next.get(k)?.status !== "available");
-  const recovered = [...next.keys()].filter(k => old.get(k) && old.get(k)!.status !== "available" && next.get(k)?.status === "available");
-  return { from: before?.hash || null, to: after.hash, added, removed, changed, becameUnavailable, recovered, at: new Date().toISOString() };
-}
-async function discover(owner: string, force: boolean): Promise<HermesRuntimeSnapshot> {
-  const started = Date.now();
-  const before = previous(owner);
-  let connection: Health;
-  const errors: string[] = [];
-  try { connection = await health(owner, force); }
-  catch (error) {
-    if (before) {
-      const stale = { ...before, status: "stale" as const, fetchedAt: new Date().toISOString(), diagnostics: { ...before.diagnostics, snapshotAgeMs: Date.now() - Date.parse(before.lastSyncedAt), durationMs: Date.now() - started }, errors: ["Hermes discovery 失敗，沿用最後快照。"] };
-      put("runtime_snapshot", owner, stale);
-      return stale;
-    }
-    throw error;
-  }
-  if (before && connection.status === "failed") {
-    const stale = {
-      ...before,
-      status: "stale" as const,
-      fetchedAt: new Date().toISOString(),
-      diagnostics: { ...before.diagnostics, snapshotAgeMs: Date.now() - Date.parse(before.lastSyncedAt), durationMs: Date.now() - started },
-      errors: ["Hermes discovery 失敗，沿用最後快照；目前工具狀態不是最新。"],
-    };
-    put("runtime_snapshot", owner, stale);
-    return stale;
-  }
-  const at = new Date().toISOString();
-  const hermesStatus = statusFromHealth(connection);
+async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
+  const started = Date.now(),
+    before = previous(owner);
+  // MCP remains independent when Hermes is offline. Bound simultaneous MCP probes.
+  const mcpPromise = (async () => {
+    const entries = seedRegistry(),
+      results: McpEntry[] = [];
+    const budget = AbortSignal.timeout(25_000);
+    for (let i = 0; i < entries.length; i += 4)
+      results.push(
+        ...(await Promise.all(
+          entries.slice(i, i + 4).map(async (entry) => {
+            if (entry.id === "workspace" || !entry.endpoint || !entry.enabled)
+              return entry;
+            try {
+              budget.throwIfAborted();
+              return await probeMcp(entry, budget);
+            } catch {
+              return {
+                ...entry,
+                tools: [],
+                status: "failed" as const,
+                verifiedAt: null,
+                lastError: "本輪探索未完成；稍後重試。",
+              };
+            }
+          }),
+        )),
+      );
+    return results;
+  })();
+  const [hermesResult, mcpResult] = await Promise.allSettled([
+    health(owner, true),
+    mcpPromise,
+  ]);
+  const connection: Health | null =
+    hermesResult.status === "fulfilled" ? hermesResult.value : null;
+  const at = new Date().toISOString(),
+    errors: string[] = [];
+  const online =
+    !!connection &&
+    connection.credential === "valid" &&
+    connection.status !== "failed";
+  const nativeFailed = !online || connection?.discovery?.toolsets === "failed";
+  if (!online)
+    errors.push(
+      connection?.message || "Hermes discovery 失敗，請檢查部署與憑證。",
+    );
+  for (const [kind, status] of Object.entries(connection?.discovery || {}))
+    if (status === "failed")
+      errors.push(`Hermes ${kind} 探索失敗；舊資料僅供參考。`);
   const tools: ToolDescriptor[] = [];
-  for (const set of connection.toolsets) for (const name of set.tools || []) tools.push(descriptorFromHermes(set, name, at, hermesStatus));
-  let mcpEntries: McpEntry[] = [];
-  try {
-    mcpEntries = seedRegistry();
-    if (force) {
-      const probes = await Promise.all(mcpEntries.filter(e => e.id !== "workspace" && e.endpoint).map(async entry => probeMcp(entry)));
-      const byId = new Map(probes.map(e => [e.id, e]));
-      mcpEntries = mcpEntries.map(e => byId.get(e.id) || e);
-    }
-  } catch (error) { errors.push(error instanceof ApiError ? error.message : "MCP registry 讀取失敗。"); }
-  for (const entry of mcpEntries) for (const tool of entry.tools) tools.push(descriptorFromMcp(entry, tool, at));
-  try {
-    for (const tool of toolsList(owner)) tools.push(descriptorFromConsole(tool.name, tool.description, tool.inputSchema as Record<string, unknown>, at));
-  } catch { errors.push("Workspace MCP 工具清單無法讀取。"); }
-  const capabilities = connection.features || {};
-  const capability = (key: string, fallback: RuntimeStatus = "unsupported"): RuntimeStatus => capabilities[key] === true ? "available" : capabilities[key] === false ? "unsupported" : fallback;
-  const profiles = listAgents().filter(p => p.role === "general" || p.status !== "unconfigured").map(p => {
-    if (p.role !== "general") return { id:p.id,name:p.name,displayName:p.displayName,description:p.description,status:p.status,role:p.role,enabled:p.enabled,lastVerifiedAt:p.lastVerifiedAt,lastError:p.lastError,capabilities:p.capabilities,model:p.model };
-    const states = capabilityFromHealth(connection);
-    return { id:p.id,name:p.name,displayName:p.displayName,description:p.description,status:connection.status === "failed" ? "failed" : connection.credential === "valid" ? "reachable" : p.status,role:p.role,enabled:p.enabled,lastVerifiedAt:connection.checkedAt,lastError:connection.status === "failed" ? connection.message : null,capabilities:states,model:connection.models[0] || p.model };
-  });
-  const snapshotBase = {
-    id:"current" as const, agentId:"hermes", profileId:"general", models:connection.models, capabilities, skills:connection.skills, toolsets:connection.toolsets, tools,
-    mcpServers:mcpEntries.map(sanitizeMcp), agents:profiles, sessionsSupport: capability("session_resources", "unsupported"), runsSupport: capability("run_submission", "unsupported"), memorySupport: capability("memory", "unsupported"), responsesSupport: capability("responses", "unsupported"), imageInputSupport: process.env.HERMES_IMAGE_INPUT === "true" ? "available" as const : "unsupported" as const,
-    source:"hermes-runtime" as const, status: errors.length ? "partial" as const : hermesStatus, fetchedAt:at, lastSyncedAt:at, lastVerifiedAt:connection.credential === "valid" ? at : null, errors,
+  if (nativeFailed) {
+    tools.push(
+      ...(before?.tools || [])
+        .filter((t) => t.source === "hermes-native")
+        .map((t) => ({ ...t, status: "stale" as const })),
+    );
+  } else {
+    for (const set of connection!.toolsets)
+      for (const name of set.tools || [])
+        tools.push({
+          ...descriptor(
+            name,
+            at,
+            "hermes-native",
+            "hermes",
+            `hermes.${set.name}.${name}`,
+          ),
+          description: set.description,
+          toolset: set.name,
+          enabled: set.enabled !== false && set.configured !== false,
+          metadata: {
+            executionVerified: false,
+            schemaAvailable: false,
+            runtimeName: name,
+            bindingSupported: false,
+          },
+        });
+  }
+  const entries = mcpResult.status === "fulfilled" ? mcpResult.value : [];
+  if (mcpResult.status === "rejected")
+    errors.push("MCP 核准清單或探索失敗，請檢查後端設定。");
+  for (const entry of entries) {
+    if (entry.enabled && ["failed", "connected"].includes(entry.status))
+      errors.push(`MCP ${entry.id} 探索失敗；請檢查授權或服務。`);
+    for (const tool of entry.tools)
+      tools.push({
+        ...descriptor(
+          tool.name,
+          at,
+          "mcp",
+          entry.id,
+          `mcp.${entry.id}.${tool.name}`,
+        ),
+        description: tool.description,
+        inputSchema: tool.inputSchema || {},
+        outputSchema: tool.outputSchema,
+        // Remote annotations are hints, never permission grants.
+        permissions: tool.annotations?.destructiveHint
+          ? ["destructive", "confirm"]
+          : ["confirm"],
+        readOnlyHint: tool.annotations?.readOnlyHint === true,
+        enabled: entry.enabled,
+        status: mcpStatus(entry),
+        metadata: {
+          executionVerified: false,
+          discoveredAt: entry.verifiedAt,
+          bindingSupported: false,
+        },
+      });
+    if (entry.enabled && ["failed", "connected"].includes(entry.status))
+      tools.push(
+        ...(before?.tools || [])
+          .filter((t) => t.source === "mcp" && t.sourceServer === entry.id)
+          .map((t) => ({ ...t, status: "stale" as const })),
+      );
+  }
+  if (mcpResult.status === "rejected")
+    tools.push(
+      ...(before?.tools || [])
+        .filter((t) => t.source === "mcp")
+        .map((t) => ({ ...t, status: "stale" as const })),
+    );
+  const bridgeConfigured = !!runtimeEnv("MCP_BRIDGE_TOKEN");
+  for (const tool of toolsList(owner))
+    tools.push({
+      ...descriptor(
+        tool.name,
+        at,
+        "console-workspace",
+        "workspace",
+        `console-workspace.${tool.name}`,
+      ),
+      description: tool.description,
+      toolset: "workspace",
+      inputSchema: tool.inputSchema as Record<string, unknown>,
+      permissions: tool.annotations.readOnlyHint ? ["read"] : ["draft"],
+      readOnlyHint: tool.annotations.readOnlyHint,
+      supportsParallel: tool.annotations.readOnlyHint,
+      enabled: bridgeConfigured,
+      status: bridgeConfigured ? "partial" : "unknown",
+      metadata: {
+        executionVerified: false,
+        bindingSupported: true,
+        reason: "工具實作存在；Hermes 橋接與執行仍須實際任務驗證。",
+      },
+    });
+  const capabilities = online
+    ? connection!.features
+    : before?.capabilities || {};
+  const capability = (key: string): RuntimeStatus =>
+    !online
+      ? "stale"
+      : capabilities[key] === true
+        ? "available"
+        : capabilities[key] === false
+          ? "unsupported"
+          : "unknown";
+  const skills =
+    !online || connection?.discovery?.skills === "failed"
+      ? before?.skills || []
+      : connection!.skills;
+  const toolsets = nativeFailed ? before?.toolsets || [] : connection!.toolsets;
+  const profiles = listAgents()
+    .filter((p) => p.role === "general" || p.status !== "unconfigured")
+    .map(
+      (p) =>
+        ({
+          id: p.id,
+          name: p.name,
+          displayName: p.displayName,
+          description: p.description,
+          role: p.role,
+          enabled: p.enabled,
+          status:
+            p.role === "general" ? (online ? "reachable" : "failed") : p.status,
+          lastVerifiedAt: p.role === "general" ? null : p.lastVerifiedAt,
+          lastError:
+            p.role === "general" && !online
+              ? connection?.message || "探索失敗"
+              : p.lastError,
+          capabilities:
+            p.role === "general" && connection
+              ? capabilityFromHealth(connection)
+              : p.capabilities,
+          model:
+            p.role === "general" && online
+              ? connection!.models[0] || null
+              : p.model,
+        }) satisfies HermesRuntimeSnapshot["agents"][number],
+    );
+  const normalizedTools = new UnifiedToolRegistry().registerMany(tools).all();
+  const snapshotBase: Omit<HermesRuntimeSnapshot, "hash" | "diagnostics"> = {
+    id: "current",
+    agentId: "hermes",
+    profileId: "general",
+    source: "hermes-runtime",
+    models: online ? connection!.models : before?.models || [],
+    capabilities,
+    skills,
+    toolsets,
+    tools: normalizedTools,
+    agents: profiles,
+    discovery: connection?.discovery || {},
+    mcpServers: entries.map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      transport: entry.transport,
+      authMode: entry.authMode,
+      projectScope: "all",
+      enabled: entry.enabled,
+      status: mcpStatus(entry),
+      serverInfo: entry.serverInfo || null,
+      protocolVersion: null,
+      capabilities: entry.capabilities || {},
+      toolsCount: entry.tools.length,
+      lastConnectedAt: entry.verifiedAt,
+      lastSyncedAt: entry.verifiedAt,
+      lastError: entry.lastError,
+      metadata: { readonly: entry.readonly },
+    })),
+    sessionsSupport: capability("session_resources"),
+    runsSupport: capability("run_submission"),
+    memorySupport: capability("memory"),
+    responsesSupport: capability("responses_api"),
+    imageInputSupport: "unknown",
+    status:
+      !online && before
+        ? "stale"
+        : !online
+          ? "unknown"
+          : errors.length
+            ? "partial"
+            : connection!.status === "available"
+              ? "available"
+              : "partial",
+    fetchedAt: at,
+    lastSyncedAt: errors.length ? before?.lastSyncedAt || at : at,
+    lastVerifiedAt: online ? at : before?.lastVerifiedAt || null,
+    errors,
   };
-  const registry = new UnifiedToolRegistry().registerMany(tools);
-  const normalizedTools = registry.all();
-  const snapshotWithTools = { ...snapshotBase, tools: normalizedTools };
-  const stableNormalized = { ...snapshotWithTools, fetchedAt: "", lastSyncedAt: "", tools: normalizedTools.map(tool => ({ ...tool, lastSeenAt: "", lastVerifiedAt: null })) };
-  const snapshot = { ...snapshotWithTools, hash: hash(JSON.stringify(stableNormalized)), diagnostics: { snapshotAgeMs:0, lastSuccessAt:at, lastFailureAt:errors.length ? at : before?.diagnostics.lastFailureAt || null, durationMs:Date.now()-started, toolCount:normalizedTools.length, skillCount:connection.skills.length, toolsetCount:connection.toolsets.length, mcpToolCount:mcpEntries.reduce((n,e)=>n+e.tools.length,0), hermesUrlSource: credentialPresence("HERMES_API_URL").source, hermesKeySource: credentialPresence("HERMES_API_KEY").source } } satisfies HermesRuntimeSnapshot;
-  if (!before || before.hash !== snapshot.hash) put("runtime_snapshot", owner, snapshot);
-  put("runtime_diff", owner, { id: snapshot.hash, ...runtimeDiff(before, snapshot) });
+  const snapshot: HermesRuntimeSnapshot = {
+    ...snapshotBase,
+    hash: runtimeContentHash(snapshotBase),
+    diagnostics: {
+      snapshotAgeMs: 0,
+      lastSuccessAt: errors.length
+        ? before?.diagnostics.lastSuccessAt || null
+        : at,
+      lastFailureAt: errors.length
+        ? at
+        : before?.diagnostics.lastFailureAt || null,
+      durationMs: Date.now() - started,
+      toolCount: normalizedTools.length,
+      skillCount: skills.length,
+      toolsetCount: toolsets.length,
+      mcpToolCount: entries.reduce((n, entry) => n + entry.tools.length, 0),
+      hermesUrlSource: credentialPresence("HERMES_API_URL").source,
+      hermesKeySource: credentialPresence("HERMES_API_KEY").source,
+    },
+  };
+  // Only the small freshness record advances per probe. No unbounded diff history.
+  const changed = !before || before.hash !== snapshot.hash;
+  const diff = changed ? runtimeDiff(before, snapshot) : null;
+  transaction(() => {
+    put("runtime_sync", owner, {
+      id: "current",
+      fetchedAt: at,
+      lastSyncedAt: snapshot.lastSyncedAt,
+      diagnostics: snapshot.diagnostics,
+    });
+    if (diff) {
+      put("runtime_snapshot", owner, snapshot);
+      put("runtime_diff", owner, { id: "current", ...diff });
+    }
+  });
+  if (diff) {
+    for (const listener of stateFor(owner).listeners) {
+      try {
+        listener(snapshot, diff);
+      } catch {
+        /* Isolate closed consumers. */
+      }
+    }
+  }
   return snapshot;
 }
-export async function syncRuntime(owner: string, options: { force?: boolean } = {}) {
-  const current = previous(owner);
-  const age = current ? Date.now() - Date.parse(current.lastSyncedAt) : Infinity;
-  if (!options.force && current && age < 30_000) return current;
-  const existing = inflight.get(owner);
-  if (existing) return existing;
-  const promise = discover(owner, !!options.force).finally(() => inflight.delete(owner));
-  inflight.set(owner, promise);
-  return promise;
+function configurationIdentity() {
+  // Only an in-memory hash. Never publish configuration or credential values.
+  try {
+    return hash(
+      JSON.stringify([
+        serviceIdentity(),
+        runtimeEnv("MCP_BRIDGE_TOKEN"),
+        configuredMcp().map((c) => [
+          c,
+          c.credentialReference && runtimeEnv(c.credentialReference),
+        ]),
+      ]),
+    );
+  } catch {
+    return hash(serviceIdentity() + "|invalid-mcp-config");
+  }
 }
-export function runtimeTools(owner: string, projectId?: string, agentId?: string) {
-  const snapshot = previous(owner);
-  if (!snapshot) return [];
-  const bindings = projectId ? list<ToolBinding>("runtime_binding", owner).filter(binding => binding.projectId === projectId && (!binding.agentId || !agentId || binding.agentId === agentId)) : [];
-  return snapshot.tools.filter(tool =>
-    tool.enabled && (tool.projectScope === "all" || !!projectId && tool.projectScope.includes(projectId)) && (tool.agentScope === "all" || !!agentId && tool.agentScope.includes(agentId)),
-  ).filter(tool => {
-    const binding = bindings.find(item => item.toolName === tool.canonicalName);
-    if (!binding) return true;
-    if (!binding.enabled || binding.blockedTools.includes(tool.canonicalName)) return false;
-    return !binding.allowedTools.length || binding.allowedTools.includes(tool.canonicalName);
-  }).sort((a, b) => {
-    const pa = bindings.find(item => item.toolName === a.canonicalName)?.priority || 0;
-    const pb = bindings.find(item => item.toolName === b.canonicalName)?.priority || 0;
-    return pb - pa;
-  });
+export async function syncRuntime(
+  owner: string,
+  options: { force?: boolean } = {},
+): Promise<HermesRuntimeSnapshot> {
+  const state = stateFor(owner),
+    identity = configurationIdentity();
+  if (state.inflight) return state.inflight;
+  const current = runtimeSnapshot(owner);
+  if (
+    !options.force &&
+    current &&
+    state.identity === identity &&
+    Date.now() < state.nextAttemptAt
+  )
+    return current;
+  state.identity = identity;
+  state.inflight = discover(owner)
+    .then((snapshot) => {
+      state.failures = snapshot.errors.length ? state.failures + 1 : 0;
+      const delay = Math.min(
+        120_000,
+        RUNTIME_INTERVAL_MS * 2 ** Math.min(state.failures, 2),
+      );
+      state.nextAttemptAt =
+        Date.now() + Math.round(delay * (0.9 + Math.random() * 0.2));
+      return snapshot;
+    })
+    .finally(() => {
+      state.inflight = undefined;
+    });
+  return state.inflight;
 }
-
-export type ToolBinding = { id: string; projectId: string; agentId?: string; toolName: string; enabled: boolean; priority: number; allowedTools: string[]; blockedTools: string[]; permissionOverrides: Record<string, string> };
-export function listRuntimeBindings(owner: string, projectId?: string) {
-  return list<ToolBinding>("runtime_binding", owner).filter(binding => !projectId || binding.projectId === projectId);
-}
-export function saveRuntimeBinding(owner: string, input: Omit<ToolBinding, "id">) {
-  const snapshot = previous(owner);
-  if (!snapshot) throw new ApiError(409, "runtime_not_synced", "請先同步 Hermes Runtime，再設定工具綁定。");
-  if (input.projectId !== "personal" && !get("project", owner, input.projectId)) throw new ApiError(404, "project_not_found", "專案不存在。");
-  if (!snapshot.tools.some(tool => tool.canonicalName === input.toolName)) throw new ApiError(404, "runtime_tool_not_found", "此工具不在目前 Runtime 清單，不能綁定。");
-  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(input.projectId) || (input.agentId && !/^[a-zA-Z0-9_-]{1,100}$/.test(input.agentId))) throw new ApiError(400, "binding_scope_invalid", "專案或 Agent 識別格式錯誤。");
-  const id = hash([input.projectId, input.agentId || "", input.toolName].join("|"));
-  return put("runtime_binding", owner, { ...input, id });
+export function runtimeTools(
+  owner: string,
+  projectId?: string,
+  agentId?: string,
+) {
+  return filterBoundTools(
+    owner,
+    (runtimeSnapshot(owner)?.tools || []).filter(usable),
+    projectId,
+    agentId,
+  );
 }

@@ -31,6 +31,8 @@ delete process.env.LUMEN_MCP_URL;
 delete process.env.LUMEN_MCP_TOKEN;
 delete process.env.FRAMELAB_MCP_URL;
 delete process.env.FRAMELAB_MCP_TOKEN;
+delete process.env.DUIGAO_MCP_URL;
+delete process.env.DUIGAO_MCP_TOKEN;
 delete process.env.CONSOLE_MCP_SERVERS_JSON;
 
 const captured: { path: string; auth?: string }[] = [];

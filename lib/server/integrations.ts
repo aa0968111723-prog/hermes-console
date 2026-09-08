@@ -6,8 +6,10 @@ import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration"
 import { tamkangStatus } from "./tamkang";
 import { galleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
+import { planformStatus } from "./planform";
 import { lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
+import { duigaoStatus } from "./duigao";
 import { seedRegistry } from "./mcp-registry";
 export interface Integration {
   id: string;
@@ -57,6 +59,13 @@ export function integrations(owner: string, h: Health): Integration[] {
       requirements: ["XUNHE_MCP_URL（訊核 /mcp）", "可選 XUNHE_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
+      id: "planform",
+      name: "Planform 場佈",
+      pattern: /planform|場佈|場地|教室排座|攤位/i,
+      detail: "Hermes 經 Workspace MCP 呼叫 planform_run_agent。GitHub 倉庫網址不是 MCP。",
+      requirements: ["PLANFORM_MCP_URL（Planform /mcp）", "可選 PLANFORM_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
       id: "lumen",
       name: "Lumen 創作台",
       pattern: /lumen|創作台|海報|文宣|招新|茶會/,
@@ -69,6 +78,13 @@ export function integrations(owner: string, h: Health): Integration[] {
       pattern: /framelab|frame.?lab|animation|timeline|inbetween/i,
       detail: "Hermes 經 MCP 呼叫 FrameLab 動畫工具。GitHub 倉庫網址不是 MCP。",
       requirements: ["FRAMELAB_MCP_URL（FrameLab /api/mcp）", "FRAMELAB_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "duigao",
+      name: "對稿",
+      pattern: /duigao|對稿|poster|海報|studio/i,
+      detail: "Hermes 經 MCP 呼叫對稿海報工作室。GitHub 倉庫網址不是 MCP。",
+      requirements: ["DUIGAO_MCP_URL（對稿 /api/mcp）", "DUIGAO_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "canva",
@@ -190,6 +206,11 @@ export function integrations(owner: string, h: Health): Integration[] {
       item.state = xunhe.state as IntegrationState;
       item.detail = xunhe.detail;
     }
+    if (item.id === "planform") {
+      const planform = planformStatus();
+      item.state = planform.state as IntegrationState;
+      item.detail = planform.detail;
+    }
     if (item.id === "lumen") {
       const lumen = lumenStatus();
       item.state = lumen.state as IntegrationState;
@@ -199,6 +220,11 @@ export function integrations(owner: string, h: Health): Integration[] {
       const framelab = framelabStatus();
       item.state = framelab.state as IntegrationState;
       item.detail = framelab.detail;
+    }
+    if (item.id === "duigao") {
+      const duigao = duigaoStatus();
+      item.state = duigao.state as IntegrationState;
+      item.detail = duigao.detail;
     }
     if (item.id === "instagram") {
       item.state = ig.configured ? "awaiting_authorization" : "unconfigured";
