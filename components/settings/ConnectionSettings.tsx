@@ -74,6 +74,15 @@ type SettingsPayload = {
     urlSource: string;
     tokenSource: string;
   };
+  duigao?: {
+    id?: string;
+    name?: string;
+    state: string;
+    detail: string;
+    configured?: boolean;
+    urlSource: string;
+    tokenSource: string;
+  };
   zeabur?: {
     token: FieldStatus;
     projectId: string;
@@ -137,6 +146,8 @@ export default function ConnectionSettings({
   const [lumenToken, setLumenToken] = useState("");
   const [framelabUrl, setFramelabUrl] = useState("");
   const [framelabToken, setFramelabToken] = useState("");
+  const [duigaoUrl, setDuigaoUrl] = useState("");
+  const [duigaoToken, setDuigaoToken] = useState("");
   const [tkuUser, setTkuUser] = useState("");
   const [tkuPassword, setTkuPassword] = useState("");
   const [galleyUrl, setGalleyUrl] = useState("");
@@ -166,6 +177,7 @@ export default function ConnectionSettings({
     setAtlasUrl(next.fields.ATLAS_MCP_URL?.value || "");
     setLumenUrl(next.fields.LUMEN_MCP_URL?.value || "");
     setFramelabUrl(next.fields.FRAMELAB_MCP_URL?.value || "");
+    setDuigaoUrl(next.fields.DUIGAO_MCP_URL?.value || "");
     setZeaburProject(
       next.fields.ZEABUR_PROJECT_ID?.value || next.zeabur?.projectId || "",
     );
@@ -185,6 +197,7 @@ export default function ConnectionSettings({
     setAtlasToken("");
     setLumenToken("");
     setFramelabToken("");
+    setDuigaoToken("");
     setTkuPassword("");
     setGalleyToken("");
     setZeaburToken("");
@@ -341,6 +354,12 @@ export default function ConnectionSettings({
             ? `${TAMKANG[data.framelab.state] || data.framelab.state} · ${data.framelab.detail}`
             : "尚未設定"}
         </dd>
+        <dt>對稿 MCP</dt>
+        <dd>
+          {data?.duigao
+            ? `${TAMKANG[data.duigao.state] || data.duigao.state} · ${data.duigao.detail}`
+            : "尚未設定"}
+        </dd>
       </dl>
 
       <form
@@ -361,6 +380,7 @@ export default function ConnectionSettings({
               ATLAS_MCP_URL: atlasUrl,
               LUMEN_MCP_URL: lumenUrl,
               FRAMELAB_MCP_URL: framelabUrl,
+              DUIGAO_MCP_URL: duigaoUrl,
               ZEABUR_PROJECT_ID: zeaburProject,
               ZEABUR_SERVICE_ID: zeaburService,
               ZEABUR_ENVIRONMENT_ID: zeaburEnv,
@@ -374,6 +394,7 @@ export default function ConnectionSettings({
             if (atlasToken) payload.ATLAS_MCP_TOKEN = atlasToken;
             if (lumenToken) payload.LUMEN_MCP_TOKEN = lumenToken;
             if (framelabToken) payload.FRAMELAB_MCP_TOKEN = framelabToken;
+            if (duigaoToken) payload.DUIGAO_MCP_TOKEN = duigaoToken;
             if (zeaburToken) payload.ZEABUR_API_TOKEN = zeaburToken;
             if (clearKeys.length) payload.clear = clearKeys;
             const saved = (await postJson(
@@ -610,6 +631,42 @@ export default function ConnectionSettings({
             onChange={(e) => toggleClear("LUMEN_MCP_TOKEN", e.target.checked)}
           />
           清除已存 Lumen 權杖
+        </label>
+        <h3>對稿工作室 MCP</h3>
+        <p className="muted">
+          端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
+          權杖從對稿「MCP」頁複製，開頭為 dg_。儲存後按「測試對稿連線」，Hermes 即可呼叫 mcp.duigao.* 與 duigao_*。
+        </p>
+        <label>
+          對稿 MCP 網址
+          <input
+            value={duigaoUrl}
+            onChange={(e) => setDuigaoUrl(e.target.value)}
+            placeholder="https://your-duigao.example/api/mcp"
+            autoComplete="off"
+            inputMode="url"
+          />
+        </label>
+        <label>
+          對稿 MCP 權杖
+          <span className="secret-hint">
+            {secretHint(data?.fields.DUIGAO_MCP_TOKEN)}
+          </span>
+          <input
+            type="password"
+            value={duigaoToken}
+            onChange={(e) => setDuigaoToken(e.target.value)}
+            placeholder="從對稿 MCP 頁複製 dg_ 權杖"
+            autoComplete="off"
+          />
+        </label>
+        <label className="check-row">
+          <input
+            type="checkbox"
+            checked={clearKeys.includes("DUIGAO_MCP_TOKEN")}
+            onChange={(e) => toggleClear("DUIGAO_MCP_TOKEN", e.target.checked)}
+          />
+          清除已存對稿權杖
         </label>
 
         <h3>訊核即時情報 MCP</h3>
@@ -1091,6 +1148,33 @@ export default function ConnectionSettings({
           >
             <RefreshCw size={16} />
             測試 FrameLab 連線
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              setNotice("");
+              try {
+                const result = (await postJson("settings/duigao", {
+                  action: "test",
+                })) as SettingsPayload;
+                await afterSave(
+                  result,
+                  result.probe
+                    ? `對稿探測：${TAMKANG[result.probe.status] || result.probe.status}，工具 ${result.probe.toolsCount} 項。`
+                    : "已完成對稿連線測試。",
+                );
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <RefreshCw size={16} />
+            測試對稿連線
           </button>
           <button
             type="button"

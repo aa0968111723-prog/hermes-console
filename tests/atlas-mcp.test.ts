@@ -11,6 +11,7 @@ process.env.ATLAS_MCP_TOKEN = "atlas-console-token-32chars!!";
 delete process.env.TKU_MCP_URL;
 delete process.env.XUNHE_MCP_URL;
 delete process.env.FRAMELAB_MCP_URL;
+delete process.env.DUIGAO_MCP_URL;
 
 const { configuredMcp, githubIsNotMcp } = await import("../lib/server/mcp-registry.ts");
 
