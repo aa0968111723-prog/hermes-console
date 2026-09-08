@@ -261,6 +261,8 @@ export async function verifyVisualStates(
   task.events[0].toolName = "galley_" + "long_tool_name_".repeat(12);
   await page.setViewportSize({ width: 360, height: 420 });
   await page.reload();
+  await expect(page.locator(".conversation")).toContainText("[介面測試段落 24]");
+  await expect(page.locator(".composer-task-tool")).toHaveText(task.events[0].toolName);
   const conversationScroll = page.locator(".conversation-scroll");
   assert.ok(await conversationScroll.evaluate(el => el.scrollHeight > el.clientHeight));
   await conversationScroll.evaluate(el => el.scrollTo(0, el.scrollHeight));
