@@ -60,6 +60,7 @@ export interface Conversation {
   legacyId?: string;
   assistantMode?: "creative" | "research" | "admin";
   researchBundle?: ResearchBundle;
+  historySummary?: string | null;
 }
 export interface Task {
   id: string;
@@ -86,6 +87,7 @@ export interface Task {
   budgetMode?: BudgetMode;
 }
 export type BudgetMode = "fast" | "balanced" | "deep";
+export type IntentTier = "chitchat" | "continue" | "lookup" | "create";
 export interface StructuredGoal {
   goal: string;
   audience: string | null;
@@ -96,6 +98,7 @@ export interface StructuredGoal {
   requiresAudienceEvaluation: boolean;
   requiresTamkang: boolean;
   requiresInspiration: boolean;
+  intentTier: IntentTier;
 }
 export interface PlanStep {
   id: string;

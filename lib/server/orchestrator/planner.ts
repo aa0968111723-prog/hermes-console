@@ -7,6 +7,7 @@ import type {
 } from "../../contracts";
 import type { RoutedTool } from "./tool-router";
 import { fallbacksFromRoutes } from "./fallback";
+import { isFastTier } from "./intent";
 
 function step(
   title: string,
@@ -32,6 +33,21 @@ export function buildPlan(
   routes: RoutedTool[],
   budgetMode: BudgetMode = "balanced",
 ): ExecutionPlan {
+  if (isFastTier(goal.intentTier)) {
+    return {
+      summary: goal.goal.slice(0, 180),
+      budgetMode: "fast",
+      steps: [
+        step(
+          "直接回覆",
+          "依最近對話直接回答，不展開研究、靈感或 Canva 流程。",
+          null,
+          null,
+        ),
+      ],
+      fallbacks: [],
+    };
+  }
   const campus = routes.find((item) => item.id === "campus");
   const research = routes.find((item) => item.id === "research");
   const sourceRoute = campus || research;
