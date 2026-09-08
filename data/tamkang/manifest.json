@@ -1,1 +1,55 @@
-PLACEHOLDER
+{
+  "name": "淡江大學社團全生態知識庫",
+  "path": "data/tamkang",
+  "updated_at": "2026-09-08T14:22:00+08:00",
+  "cycle": "hourly-2026-09-08-1422",
+  "rules": {
+    "single_file": true,
+    "dual_layer": true,
+    "owner": "workspace",
+    "pii": "none"
+  },
+  "sqlite": {
+    "table": "records",
+    "import": "node scripts/import-tamkang-kb.mjs",
+    "note": "run on Console host only; sqlite is gitignored"
+  },
+  "automation": {
+    "task_id": "9937e72c-f973-4d72-955f-672c2d1c741f",
+    "cadence": "HOURLY Asia/Taipei"
+  },
+  "counts": {
+    "records": 19,
+    "tku_club": 5,
+    "tku_source": 4,
+    "tku_fair": 1,
+    "tku_unverified": 2,
+    "tku_signal": 2,
+    "l2_note": "existence based on 114-1 official roster; 184 active / 115-1 roster / booth map still pending"
+  },
+  "conflict": {
+    "173": "official site about 173 clubs https://www.tku.edu.tw/tku/?p=13284",
+    "178": "114-1 roster total",
+    "184": "dean active clubs",
+    "l2": "pending adjudication"
+  },
+  "priority": {
+    "roster_1151": "unpublished",
+    "fair_115": "starts 2026-09-10 one week; booth map pending",
+    "zen": "official name Chanxue; aka Leader Zen",
+    "hot_music": "no official hot-music club; four entry clubs",
+    "commute": "R27 peak 5-8min; R28 peak ~20min"
+  },
+  "this_cycle": {
+    "confirmed_seed_array": true,
+    "findings": [
+      "115-1 roster still unpublished",
+      "fair date verified via CNA; booth map missing",
+      "173 source located on official site",
+      "zen naming dual-track verified",
+      "hot-music four-club entry",
+      "commute headway quantified",
+      "Dcard recruit weak signals"
+    ]
+  }
+}
