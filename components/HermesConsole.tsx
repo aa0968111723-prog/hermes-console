@@ -54,6 +54,7 @@ import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
 import TaskEventSummary from "./visual/TaskEventSummary";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
+import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -2167,7 +2168,7 @@ export default function HermesConsole() {
               <span className={"badge " + chosenTask.state}>
                 {taskLabels[chosenTask.state]}
               </span>
-              <h3>{chosenTask.input}</h3>
+              <TaskRequestSummary input={chosenTask.input} />
               <details className="task-technical">
                 <summary>
                   <Code2 size={15} aria-hidden="true" />
