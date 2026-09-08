@@ -222,6 +222,17 @@ test("文宣意圖路由到 lumen，動畫與剪輯不搶走", () => {
   assert.ok(!animation.toolsets.includes("lumen"));
   assert.equal(isLumenIntent("連戲角色聖經 Golden 分鏡"), false);
   assert.equal(isLumenIntent("夜市誌短影片分鏡"), true);
+  assert.equal(isLumenIntent("動畫社團原畫修壞格補張"), false);
+  assert.equal(isLumenIntent("吉他社團活動紀錄影片剪輯"), false);
+  const animationClub = routeToolsets("動畫社團原畫修壞格補張");
+  assert.ok(animationClub.toolsets.includes("framelab"));
+  assert.ok(!animationClub.toolsets.includes("lumen"));
+  assert.ok(!animationClub.toolsets.includes("tamkang"));
+  assert.match(animationClub.note, /FrameLab/);
+  assert.equal(/Lumen/.test(animationClub.note), false);
+  const videoClub = routeToolsets("吉他社團活動紀錄影片剪輯");
+  assert.ok(videoClub.toolsets.includes("cutos"));
+  assert.ok(!videoClub.toolsets.includes("lumen"));
 });
 
 test("任務指示要求 Hermes 真的呼叫 lumen_*", () => {

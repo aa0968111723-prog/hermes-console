@@ -72,7 +72,7 @@ export function isLumenIntent(intent: string) {
     !/海報|文宣|茶會|招新|創作台|Lumen/i.test(intent)
   )
     return false;
-  return /Lumen|lumen|創作台|畫板|Style\s*DNA|風格鎖定|三個方向|招新|茶會|夜市|成果展|市集|分鏡|研究卡|海報|文宣|社團/.test(
+  return /Lumen|lumen|創作台|畫板|Style\s*DNA|風格鎖定|三個方向|招新|茶會|夜市|成果展|市集|分鏡|研究卡|海報|文宣/.test(
     intent,
   );
 }
@@ -90,10 +90,10 @@ export function routeToolsets(intent: string) {
     intent,
     toolsets: unique,
     mappings: PROJECT_CATALOG.filter((item) => unique.includes(item.mcpServerId)),
-    note: unique.includes("lumen")
-      ? "文宣意圖走 Lumen MCP（lumen_* / mcp.lumen.*）。GitHub 倉庫網址不是 MCP。"
-      : unique.includes("framelab")
-        ? "動畫意圖走 FrameLab MCP（framelab_* / mcp.framelab.*）。GitHub 倉庫網址不是 MCP。"
+    note: unique.includes("framelab")
+      ? "動畫意圖走 FrameLab MCP（framelab_* / mcp.framelab.*）。GitHub 倉庫網址不是 MCP。"
+      : unique.includes("lumen")
+        ? "文宣意圖走 Lumen MCP（lumen_* / mcp.lumen.*）。GitHub 倉庫網址不是 MCP。"
         : unique.includes("planform")
           ? "planform-iso 未設定 endpoint 時保持 disabled。"
           : "只依任務意圖挑選工具集，不灌入全部 MCP tools。",
