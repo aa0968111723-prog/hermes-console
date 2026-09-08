@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityKind, safeSource, workingEvent } from "../lib/client/activity";
+import { activityKind, eventStateLabel, safeSource, workingEvent } from "../lib/client/activity";
 import type { Task, TaskEvent } from "../lib/contracts";
 const event = (
   id: string,
@@ -29,6 +29,19 @@ test("visual progress requires actual active tool evidence", () => {
       workingEvent(task("running", [start, event("end", state)])),
       undefined,
     );
+});
+test("event states use concise user-facing labels", () => {
+  for (const [status, label] of Object.entries({
+    "tool.running": "執行中",
+    queued: "排隊",
+    waiting_authorization: "等待授權",
+    waiting_user: "等待確認",
+    completed: "完成",
+    failed: "失敗",
+    uncertain: "結果待確認",
+    cancelled: "已取消",
+    unexpected: "狀態未知",
+  })) assert.equal(eventStateLabel(event("state", status)), label);
 });
 test("sequential and concurrent calls track IDs, not just tool names", () => {
   const first = event("1", "running"),
