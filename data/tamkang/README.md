@@ -53,4 +53,4 @@ node scripts/import-tamkang-kb.mjs
 | tku_log | 17_每小時研究紀錄 |
 | tku_kb_meta | 主檔中繼資料 |
 
-更新時間：2026-09-08 11:20 CST
+更新時間：2026-09-08 12:00 CST
