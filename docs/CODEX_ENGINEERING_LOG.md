@@ -9,7 +9,8 @@
 - 事件卡加入類別圖示、狀態膠囊、內光影與展開層次；這是 CSS 2.5D，不是 WebGL/真正 3D。無新依賴、常駐動畫、輪詢、API 或後端改動；reduced-motion 由全域規則停用箭頭轉場。
 - 瀏覽器驗收沿用五種尺寸，新增 390×420 與 1440×1000 同名 `task-events-*` 前後圖；驗證收合時不顯示技術名稱、展開後仍能取得 `galley_research`，以及友善「研究 · GALLEY」「執行中」與真實摘要。
 - 本地 `npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過。`node --import tsx --test --test-concurrency=1 tests/*.test.ts`：229 項中 227 通過、2 項因未提供 Postgres 測試條件而跳過；零失敗。新狀態專項與相鄰狀態列專項 7/7 通過。
-- `npm test` 未重跑；同環境已確認 tsx CLI Unix IPC 會遇 `EPERM`，原腳本由 GitHub CI 驗證。修改後 Chrome/Axe/chat/workbench/gateway 及最終 SHA 待 PR CI。
+- 實作 SHA：`c83830a39f9164ea51992c2744316b036466da31`；跨尺寸原生 details 狀態隔離修正：`83a38b1ae38471f72134854b1d72097ab7fb18b6`。最終 CI `34239808084` 全通過，包含原 `npm test`、build、secrets、audit、test:ui、test:chat、test:workbench、test:gateway。
+- 已下載 artifact `10061571673` 並親自對照 390×420、1440×1000：收合事件卡清楚顯示「研究 · GALLEY／執行中／摘要」，技術名稱不佔主畫面；展開互動由測試確認仍顯示原名。11 個 Axe 受測畫面零 violations；LCP 124ms、CLS 0.0000803 是 CI fixture 單次結果，不作真機效能承諾。PR head 以本紀錄所在提交為完整產出。
 - fixtures 不是正式 Hermes/MCP 外部整合證據；沒有 iOS/Android 實體裝置。Grok 可續修 memory provenance；若後端新增事件狀態，請提供實際 status 樣本，前端會以「狀態未知」安全顯示直到映射完成。
 - 不合併、不部署、不呼叫正式外部服務。
 
