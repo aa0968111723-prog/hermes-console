@@ -404,8 +404,90 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       );
     },
   );
+  await t.test("short continue windows history and skips Lumen manuals", async () => {
+    mode = "chat";
+    await health("owner", true);
+    const conversationId = conv();
+    const seeded = get<{
+      id: string;
+      title: string;
+      projectId: string;
+      messages: Array<{
+        id: string;
+        role: "user" | "assistant";
+        content: string;
+        createdAt: string;
+      }>;
+      hermesSessionId: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>("conversation", "owner", conversationId)!;
+    for (let i = 0; i < 22; i++) {
+      seeded.messages.push({
+        id: randomUUID(),
+        role: i % 2 === 0 ? "user" : "assistant",
+        content: "歷史句 " + i + " " + "內容。".repeat(8),
+        createdAt: new Date().toISOString(),
+      });
+    }
+    put("conversation", "owner", seeded);
+    const task = await submit("owner", {
+      conversationId,
+      requestKey: randomUUID(),
+      input: "把語氣改軟一點",
+      attachments: [],
+    });
+    const done = await settle(task.id);
+    assert.equal(done.state, "completed");
+    const sent = lastBody as {
+      messages?: Array<{ role: string; content: unknown }>;
+      conversation_history?: unknown[];
+    };
+    const history = sent.messages?.filter((item) => item.role !== "system") || [];
+    // system + windowed history + current user; window is at most 12 prior turns
+    assert.ok(history.length <= 14, String(history.length));
+    const system = sent.messages?.find((item) => item.role === "system");
+    const systemText = String(system?.content || "");
+    assert.equal(/lumen_utter|framelab_list_projects/.test(systemText), false);
+    assert.match(systemText, /直接回覆|短回覆|接續修改/);
+    assert.ok(
+      done.events.some((event) => /意圖 continue/.test(event.summary)),
+    );
+    assert.ok(
+      done.events.some((event) => /tokens/.test(event.summary)),
+    );
+  });
+  await t.test("over-budget task fails visibly after trim", async () => {
+    const previous = process.env.CONSOLE_TASK_TOKEN_BUDGET;
+    process.env.CONSOLE_TASK_TOKEN_BUDGET = "30";
+    try {
+      mode = "chat";
+      await health("owner", true);
+      const task = await submit("owner", {
+        conversationId: conv(),
+        requestKey: randomUUID(),
+        input: "把語氣改軟一點",
+        attachments: [],
+      });
+      const done = await settle(task.id);
+      assert.equal(done.state, "failed");
+      assert.match(done.error || "", /超過上限/);
+      assert.match(done.error || "", /30/);
+    } finally {
+      if (previous === undefined)
+        delete process.env.CONSOLE_TASK_TOKEN_BUDGET;
+      else process.env.CONSOLE_TASK_TOKEN_BUDGET = previous;
+    }
+  });
   await t.test("no internal thoughts or configured secrets returned", () => {
     assert.equal(visibleText("<thought>private</thought>公開"), "公開");
+    assert.equal(visibleText("<think>private</think>公開"), "公開");
+    assert.equal(visibleText("<thinking>private</thinking>公開"), "公開");
+    assert.equal(visibleText("<analysis>private</analysis>公開"), "公開");
+    assert.equal(visibleText("<reflection>private</reflection>公開"), "公開");
+    assert.equal(visibleText("<scratchpad>private</scratchpad>公開"), "公開");
+    assert.equal(visibleText("<tool_call>secret</tool_call>公開"), "公開");
+    assert.equal(visibleText("<tool_calls>secret</tool_calls>公開"), "公開");
     assert.equal(security.redact(process.env.HERMES_API_KEY!), "[redacted]");
     assert.ok(
       !JSON.stringify(list("task", "owner")).includes(

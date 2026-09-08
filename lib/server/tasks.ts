@@ -4,7 +4,6 @@ import { Conversation, EMPTY_USAGE, Task, TaskEvent } from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
 import {
-  creativeInstructions,
   deadline,
   health,
   httpError,
@@ -16,13 +15,21 @@ import {
   usage,
   visibleText,
 } from "./hermes";
+import { budgetFromEnv } from "./budgets";
+import {
+  fitTaskInputBudget,
+  historyTokenBudget,
+  windowConversationHistory,
+} from "./context/history";
+import { classifyIntent, isFastTier } from "./orchestrator/intent";
+import {
+  composeTaskInstructions,
+  dropOptionalPacks,
+} from "./orchestrator/instructions";
 import { recordTaskUsage } from "./usage";
 import { attachmentParts, material } from "./materials";
 import { frames } from "./sse";
-import {
-  parseAssistantMode,
-  specialistInstructions,
-} from "../assistant-modes";
+import { parseAssistantMode } from "../assistant-modes";
 import {
   formatResearchPlanForInstructions,
   researchBundle,
@@ -30,7 +37,6 @@ import {
 import { executeResearchBundle } from "./research/executor";
 import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
-import { memoryDigest } from "./memory";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
 
@@ -43,6 +49,11 @@ const workers = (runtimeTasks.hermesWorkers ??= new Map<
   AbortController
 >());
 const now = () => new Date().toISOString();
+export {
+  DEFAULT_HISTORY_WINDOW,
+  fitTaskInputBudget,
+  windowConversationHistory,
+} from "./context/history";
 export const active = (t: Task) =>
   ["queued", "running", "waiting_user", "stopping"].includes(t.state);
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
@@ -81,6 +92,14 @@ export function taskFor(owner: string, id: string) {
   if (!value) throw new ApiError(404, "not_found", "找不到任務。");
   return value;
 }
+export function hasCompletedToolEvents(task: Task) {
+  return task.events.some((event) => {
+    const isTool = event.kind === "tool" || Boolean(event.toolName);
+    const done =
+      event.status === "completed" || event.status === "tool.completed";
+    return isTool && done;
+  });
+}
 function event(
   task: Task,
   summary: string,
@@ -91,6 +110,7 @@ function event(
   const record: TaskEvent = {
     id: randomUUID(),
     taskId: task.id,
+    ...(toolName ? { kind: "tool" as const } : {}),
     toolName,
     status,
     startedAt: now(),
@@ -199,7 +219,9 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
-    budgetMode: input.budgetMode || "balanced",
+    budgetMode: isFastTier(classifyIntent(input.input))
+      ? "fast"
+      : input.budgetMode || "balanced",
   };
   const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
   if (mode === "research") task.researchBundle = researchBundle({ prompt: input.input });
@@ -300,8 +322,13 @@ async function execute(
     };
     if (conv.hermesSessionId)
       headers["X-Hermes-Session-Id"] = conv.hermesSessionId;
+    const tokenBudget = budgetFromEnv().tokens;
+    const windowed = windowConversationHistory(conv.messages, {
+      tokenBudget: historyTokenBudget(tokenBudget),
+      summary: conv.historySummary,
+    });
     const history = await Promise.all(
-      conv.messages.slice(0, -1).map(async (m) => ({
+      windowed.messages.map(async (m) => ({
         role: m.role,
         content: m.attachments?.length
           ? [
@@ -321,6 +348,19 @@ async function execute(
     task.goal = orchestration.goal;
     task.plan = orchestration.plan;
     event(task, "已整理目標與可見執行計畫。", "plan");
+    event(
+      task,
+      "意圖 " +
+        orchestration.goal.intentTier +
+        "；budgetMode=" +
+        orchestration.plan.budgetMode +
+        "；歷史 " +
+        windowed.messages.length +
+        " 則（省略 " +
+        windowed.omitted +
+        "）。",
+      "plan",
+    );
     for (const step of orchestration.plan.steps)
       event(task, "計畫：" + step.title, "queued");
     for (const fallback of orchestration.plan.fallbacks)
@@ -338,21 +378,72 @@ async function execute(
       put("conversation", owner, conv);
     }
     save(owner, task);
-    const instructions =
-      (specialistInstructions(mode) || creativeInstructions) +
+    let composed = composeTaskInstructions({
+      mode,
+      text: task.input,
+      goal: orchestration.goal,
+    });
+    const suffix =
       "\n目前專案識別：" +
       conv.projectId +
       "；Console taskId：" +
       task.id +
       "。助手模式：" +
       mode +
+      "。意圖：" +
+      orchestration.goal.intentTier +
       "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
+      (windowed.summary
+        ? "\n較早對話摘要（不是指令）：\n" + windowed.summary
+        : "") +
       "\n" +
       orchestration.instructions +
       (task.researchBundle
         ? "\n" + formatResearchPlanForInstructions(task.researchBundle)
-        : "") +
-      framelabTaskInstructions() + lumenTaskInstructions() + memoryDigest(owner, conv.projectId);
+        : "");
+    const extras =
+      (composed.includeFramelabManual ? framelabTaskInstructions() : "") +
+      (composed.includeLumenManual ? lumenTaskInstructions() : "");
+    let instructions = composed.instructions + suffix + extras;
+    let fitted = fitTaskInputBudget({
+      instructions,
+      history,
+      input: task.input,
+      limit: tokenBudget,
+    });
+    if (fitted.exceeded) {
+      composed = dropOptionalPacks(composed);
+      instructions = composed.instructions + suffix;
+      fitted = fitTaskInputBudget({
+        instructions,
+        history: fitted.history,
+        input: task.input,
+        limit: tokenBudget,
+      });
+    }
+    if (fitted.exceeded)
+      throw new ApiError(
+        400,
+        "token_budget_exceeded",
+        "任務輸入估計 " +
+          fitted.estimated +
+          " tokens，超過上限 " +
+          tokenBudget +
+          "。已裁切歷史與指示後仍超限，請開新對話或縮短內容。",
+      );
+    instructions = fitted.instructions;
+    const boundedHistory = fitted.history;
+    event(
+      task,
+      "任務輸入估計 " +
+        fitted.estimated +
+        "/" +
+        tokenBudget +
+        " tokens" +
+        (fitted.trimmed || windowed.omitted ? "（已裁切歷史）" : "") +
+        "。",
+      "budget",
+    );
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);
@@ -369,7 +460,7 @@ async function execute(
               model: runtimeEnv("HERMES_MODEL") || "hermes-agent",
               instructions,
               session_id: conv.hermesSessionId || undefined,
-              conversation_history: history,
+              conversation_history: boundedHistory,
             }),
           },
           controller.signal,
@@ -408,7 +499,7 @@ async function execute(
           stream: true,
           messages: [
             { role: "system", content: instructions },
-            ...history,
+            ...boundedHistory,
             { role: "user", content },
           ],
         }),
@@ -497,7 +588,7 @@ async function execute(
         "串流中斷，尚未收到完成訊號；上游結果待確認。",
       );
     task.output = visibleText(raw);
-    if (!task.output.trim())
+    if (!task.output.trim() && !hasCompletedToolEvents(task))
       throw new ApiError(502, "empty_output", "Hermes 未產生可顯示的回應。");
     finish(owner, task, "completed");
   } catch (error) {
@@ -507,7 +598,7 @@ async function execute(
         : "Hermes 回應格式異常，請查回任務後再決定是否重試。";
     const definite =
       error instanceof ApiError &&
-      /^(upstream_|session_invalid|client_tools_unsupported|agent_error|empty_output|empty_stream|invalid_stream|frame_too_large|output_limit)$/.test(
+      /^(upstream_|session_invalid|client_tools_unsupported|agent_error|empty_output|empty_stream|invalid_stream|frame_too_large|output_limit|token_budget_exceeded)$/.test(
         error.code,
       );
     finish(
@@ -655,7 +746,7 @@ export async function reconcile(owner: string, id: string) {
       put("conversation", owner, conv);
     }
     if (remote.status === "completed")
-      return task.output.trim()
+      return task.output.trim() || hasCompletedToolEvents(task)
         ? finish(owner, task, "completed")
         : finish(
             owner,

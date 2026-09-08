@@ -1,4 +1,5 @@
 import type { StructuredGoal } from "../../contracts";
+import { classifyIntent } from "./intent";
 
 const TAMKANG = /淡江|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
@@ -9,6 +10,7 @@ const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文/;
 
 export function interpretGoal(input: string): StructuredGoal {
   const text = input.trim();
+  const intentTier = classifyIntent(text);
   const requiresTamkang = TAMKANG.test(text);
   const requiresResearch = RESEARCH.test(text) || requiresTamkang;
   const requiresDesign = DESIGN.test(text);
@@ -38,5 +40,6 @@ export function interpretGoal(input: string): StructuredGoal {
     requiresAudienceEvaluation,
     requiresTamkang,
     requiresInspiration,
+    intentTier,
   };
 }

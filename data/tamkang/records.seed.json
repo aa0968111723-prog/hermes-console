@@ -33,13 +33,13 @@
     "kind": "tku_unverified",
     "owner": "workspace",
     "id": "tku_roster_1151",
-    "value": "115-1名冊尚未公開 as of 2026-09-08"
+    "value": "115-1名冊尚未公開 as of 2026-09-09 06:15"
   },
   {
     "kind": "tku_club",
     "owner": "workspace",
     "id": "tku_zen_official",
-    "value": "正式名稱領袖禪學社 SG109 sites.google + Wiki + FB"
+    "value": "正式名稱領袖禪學社 SG109 sites.google + Wiki + FB/IG"
   },
   {
     "kind": "tku_club",
@@ -57,13 +57,13 @@
     "kind": "tku_club",
     "owner": "workspace",
     "id": "tku_hotmusic_entry1",
-    "value": "詞曲創作社 Indie Hot Music"
+    "value": "詞曲創作社 Indie Hot Music SG134"
   },
   {
     "kind": "tku_club",
     "owner": "workspace",
     "id": "tku_hotmusic_entry2",
-    "value": "電子音樂研究社 @new_tkudj"
+    "value": "電子音樂研究社 @new_tkudj 114-1招生中+社博擺攤"
   },
   {
     "kind": "tku_club",
@@ -81,36 +81,60 @@
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r27",
-    "value": "R27尖峰約4-10分 離峰8-15分 TDX+Dcard+lib"
+    "value": "R27尖峰約4-6分 離峰8-12分(近期亦見20-30) 維基學院+鐵道社FB"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r28",
-    "value": "R28尖峰約6-20分 正線/直達 Dcard+official"
+    "value": "R28正線尖峰6-10分 離峰15-20分 直達更快進校 維基學院+鐵道社FB"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_dcard_recruit",
-    "value": "Dcard招生弱訊號 多為詢問/揪伴"
+    "value": "Dcard招生：心理研究社正式招新、動漫社、新創社WE WANT YOU、體適能有氧社、咖啡社等 2026-09"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_ig_recruit",
-    "value": "IG以學系博覽與社團自營為主"
+    "value": "IG以電子音樂研究社@new_tkudj等自營招生帖為主"
   },
   {
     "kind": "tku_fair",
     "owner": "workspace",
     "id": "tku_fair_booth_pending",
-    "value": "115攤位圖尚未公開"
+    "value": "115攤位圖尚未公開 as of 2026-09-09 06:15"
   },
   {
     "kind": "tku_source",
     "owner": "workspace",
     "id": "tku_source_cna_20260907",
-    "value": "CNA新生座談 184社+社博日期"
+    "value": "CNA新生座談 184社+社博日期 https://www.cna.com.tw/postwrite/chi/443516"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0300",
+    "value": "cycle hourly-2026-09-09-0300: roster仍未公開; fair確認; zen/hotmusic/commute/Dcard更新; xlsx重建"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0400",
+    "value": "cycle hourly-2026-09-09-0400: 再驗證CNA184+社博9/10; 115-1仍null; R27/R28班距細化; Dcard多帖; zen/hotmusic L1+L2維持; xlsx完整重建並upsert"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0500",
+    "value": "cycle hourly-2026-09-09-0500: 再確認115-1名冊仍未公開；社博9/10起連續一週再驗證；zen正式名領袖禪學社L1+L2；熱音四大入口維持；Dcard心理研究社/動漫/新創/有氧等招生；通勤R27/R28維持；xlsx重建+seed upsert"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0600",
+    "value": "cycle hourly-2026-09-09-0600: records.seed.json確認陣列；115-1仍unpublished；社博9/10 CNA再確認；Dcard招生持續；zen/hotmusic/commute L1+L2維持；xlsx重建+seed upsert to GitHub"
   }
 ]

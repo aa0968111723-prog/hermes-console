@@ -105,14 +105,22 @@ export const POST = route(async (req) => {
     const parent = conversation(owner, body.parentId);
     if (parent.projectId !== body.projectId)
       throw new ApiError(403, "scope_mismatch", "分支必須保留專案範圍。");
-    const index = parent.messages.findIndex(
-      (m) => m.id === body.beforeMessageId,
-    );
-    if (index < 0)
-      throw new ApiError(400, "message_not_found", "分支起點不存在。");
-    messages = parent.messages
-      .slice(0, index)
-      .map((m) => ({ ...m, id: randomUUID(), taskId: undefined }));
+    if (body.beforeMessageId) {
+      const index = parent.messages.findIndex(
+        (m) => m.id === body.beforeMessageId,
+      );
+      if (index < 0)
+        throw new ApiError(400, "message_not_found", "分支起點不存在。");
+      messages = parent.messages
+        .slice(0, index)
+        .map((m) => ({ ...m, id: randomUUID(), taskId: undefined }));
+    } else {
+      messages = parent.messages.map((m) => ({
+        ...m,
+        id: randomUUID(),
+        taskId: undefined,
+      }));
+    }
   }
   const assistantMode = parseAssistantMode(body.assistantMode);
   const conv: Conversation = {

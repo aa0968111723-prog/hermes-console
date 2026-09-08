@@ -47,6 +47,19 @@ export function toolDisplayLabel(name: string | null): string | null {
 export function eventState(event: TaskEvent): string {
   return event.status.replace(/^tool\./, "");
 }
+export const eventStateLabels: Record<string, string> = {
+  queued: "排隊",
+  running: "執行中",
+  waiting_authorization: "等待授權",
+  waiting_user: "等待確認",
+  completed: "完成",
+  failed: "失敗",
+  uncertain: "結果待確認",
+  cancelled: "已取消",
+};
+export function eventStateLabel(event: TaskEvent): string {
+  return eventStateLabels[eventState(event)] || "狀態未知";
+}
 export function workingEvent(task?: Task | null): TaskEvent | undefined {
   if (!task || !["running", "queued"].includes(task.state)) return;
   const calls = new Map<string, TaskEvent>();

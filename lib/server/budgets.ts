@@ -1,5 +1,5 @@
 export interface TaskBudget {
-  tokens: number | null;
+  tokens: number;
   toolCalls: number;
   sources: number;
   durationMs: number;
@@ -11,7 +11,7 @@ export interface TaskBudget {
 }
 
 export const DEFAULT_BUDGET: TaskBudget = {
-  tokens: null,
+  tokens: 12_000,
   toolCalls: 40,
   sources: 30,
   durationMs: 900_000,
@@ -28,7 +28,7 @@ export function budgetFromEnv(): TaskBudget {
     return Number.isFinite(value) && value > 0 ? value : fallback;
   };
   return {
-    tokens: number("CONSOLE_TASK_TOKEN_BUDGET", 0) || null,
+    tokens: number("CONSOLE_TASK_TOKEN_BUDGET", DEFAULT_BUDGET.tokens),
     toolCalls: number("CONSOLE_MAX_TOOL_CALLS", DEFAULT_BUDGET.toolCalls),
     sources: number("CONSOLE_MAX_SOURCES", DEFAULT_BUDGET.sources),
     durationMs: number("HERMES_TASK_TIMEOUT_MS", DEFAULT_BUDGET.durationMs),
@@ -56,6 +56,6 @@ export function withinBudget(
   if ((used.revisionRounds || 0) > budget.revisionRounds)
     return "revisionRounds";
   if ((used.toolCalls || 0) > budget.toolCalls) return "toolCalls";
-  if (budget.tokens && (used.tokens || 0) > budget.tokens) return "tokens";
+  if ((used.tokens || 0) > budget.tokens) return "tokens";
   return null;
 }

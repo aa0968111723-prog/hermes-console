@@ -249,6 +249,23 @@ export async function verifyVisualStates(
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
     await expect(detail).toContainText("ui-fixture-task");
+    const eventDetails = detail.locator(".event").first();
+    const eventSummary = eventDetails.locator("summary");
+    if ((await eventDetails.getAttribute("open")) !== null)
+      await eventSummary.click();
+    await expect(eventDetails).not.toHaveAttribute("open", "");
+    await expect(eventSummary).toContainText("研究 · GALLEY");
+    await expect(eventSummary).toContainText("執行中");
+    await expect(eventSummary).toContainText("[介面測試事件] 研究來源");
+    await expect(eventSummary).not.toContainText("galley_research");
+    if ((width === 390 && height === 420) || width === 1440) {
+      await eventSummary.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, `task-events-${width}x${height}.png`) });
+    }
+    await eventSummary.click();
+    await expect(eventDetails).toHaveAttribute("open", "");
+    await expect(detail.locator(".event-meta code").first()).toBeVisible();
+    await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
     await page.keyboard.press("Escape");
     await expect(status).toBeFocused();
     await expect(composer).toHaveValue(draft);

@@ -797,6 +797,28 @@ nav button[aria-current="page"] {
 .composer-task-status[data-tone="waiting"] { color: #79521b; background: #fff7e8; border-color: #eadcc3; }
 .composer-task-status[data-tone="error"] { color: #9a392e; background: #fff1ee; border-color: #ecd5cf; }
 .composer-task-status:focus-visible { outline: 3px solid #356b45; outline-offset: 2px; }
+.composer-uncertain-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+  max-width: var(--reading-width, 780px);
+  margin: 0 auto 8px;
+  padding: 8px 12px;
+  border: 1px solid #eadcc3;
+  border-radius: 14px;
+  background: #fff7e8;
+  color: #79521b;
+  font-size: 13px;
+}
+.composer-uncertain-hint p {
+  margin: 0;
+  flex: 1 1 12rem;
+}
+.composer-uncertain-hint button {
+  flex: 0 0 auto;
+}
 .composer {
   display: block;
   flex: 1;
@@ -1328,8 +1350,66 @@ summary .badge {
   font-size: 12px;
   padding-left: 20px;
 }
+.event {
+  padding: 0 12px 12px;
+  border: 1px solid #dce7d6;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 #fff, 0 3px 10px #34452c08;
+}
+.event[open] {
+  border-color: #c9dcc1;
+  box-shadow: inset 0 1px 0 #fff, 0 6px 16px #34452c0d;
+}
+.event-summary {
+  display: grid;
+  gap: 5px;
+  list-style: none;
+}
+.event-summary::-webkit-details-marker { display: none; }
+.event-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.event-tool-label,
+.event-state-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+.event-tool-label {
+  overflow: hidden;
+  color: #356b45;
+  background: #eef6e9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event-state-label { color: #52634c; background: #f1f3ef; }
+.event-state-label[data-state="failed"] { color: #9a392e; background: #fff1ee; }
+.event-state-label[data-state="uncertain"],
+.event-state-label[data-state="waiting_authorization"],
+.event-state-label[data-state="waiting_user"] { color: #79521b; background: #fff7e8; }
+.event-state-label[data-state="completed"] { color: #356b45; background: #eaf4e4; }
+.event-chevron { flex-shrink: 0; margin-left: auto; transition: transform 160ms ease; }
+.event[open] .event-chevron { transform: rotate(180deg); }
+.event-description { color: var(--ink); line-height: 1.55; }
 .event small {
   display: block;
+}
+.event-meta {
+  color: var(--muted);
+}
+.event-meta code {
+  display: block;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  font-size: 11px;
 }
 .event a {
   display: block;
