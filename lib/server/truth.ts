@@ -23,7 +23,7 @@ export function classifyTruth(input: {
   if (input.retrieved && (input.sourceIds || []).length > 0)
     return "SOURCE_VERIFIED";
   if (input.inferred) return "INFERENCE";
-  if (input.retrieved) return "FACT";
+  if (input.retrieved) return "UNKNOWN";
   return "UNKNOWN";
 }
 
