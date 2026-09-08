@@ -71,5 +71,6 @@ export function rankDirections(input: {
 export function creativeFingerprint(club: string, copy: string) {
   const zen = /禪|靜定|茶會/.test(copy);
   const photo = /攝影|鏡頭|快門/.test(copy);
-  return { club, zen, photo, generic: zen === photo };
+  const hasClubCues = /社團|迎新|茶會|排練|社課|練習|發表/.test(copy);
+  return { club, zen, photo, generic: !zen && !photo && !hasClubCues };
 }

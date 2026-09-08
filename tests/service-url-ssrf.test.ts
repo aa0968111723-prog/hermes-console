@@ -18,6 +18,7 @@ const { validateHttpsServiceUrl } = await import("../lib/server/settings");
 const { configuredMcp } = await import("../lib/server/mcp-registry");
 const { invokeLumen, resetLumenClient } = await import("../lib/server/lumen");
 const { invokeFramelab } = await import("../lib/server/framelab");
+const { target } = await import("../lib/server/hermes");
 
 function rejectsCode(fn: () => unknown, code: string) {
   return assert.rejects(async () => fn(), (error: unknown) => {
@@ -142,4 +143,33 @@ test("lumenRpc and framelabRpc validate protocol and private hosts", async () =>
   await rejectsCode(() => invokeFramelab("framelab_list_projects", {}), "invalid_url");
   process.env.FRAMELAB_MCP_URL = "https://169.254.169.254/mcp";
   await rejectsCode(() => invokeFramelab("framelab_list_projects", {}), "ssrf_rejected");
+});
+
+test("hermes target rejects private and metadata hosts", async () => {
+  await rejectsCode(
+    () => target("https://169.254.169.254", "hermes-test-key"),
+    "ssrf_rejected",
+  );
+  await rejectsCode(
+    () => target("https://10.0.0.5:8080", "hermes-test-key"),
+    "ssrf_rejected",
+  );
+  await rejectsCode(
+    () => target("https://metadata.google.internal", "hermes-test-key"),
+    "ssrf_rejected",
+  );
+  const previous = process.env.HERMES_ALLOW_LOOPBACK_HTTP;
+  delete process.env.HERMES_ALLOW_LOOPBACK_HTTP;
+  try {
+    await rejectsCode(
+      () => target("https://127.0.0.2:8443", "hermes-test-key"),
+      "ssrf_rejected",
+    );
+  } finally {
+    process.env.HERMES_ALLOW_LOOPBACK_HTTP = previous;
+  }
+  assert.equal(
+    target("https://hermes.example.invalid", "hermes-test-key"),
+    "https://hermes.example.invalid",
+  );
 });
