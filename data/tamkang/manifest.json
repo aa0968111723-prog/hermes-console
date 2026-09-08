@@ -1,7 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-08T10:41:00+08:00",
+  "updated_at": "2026-09-08T11:20:00+08:00",
+  "cycle": "hourly-2026-09-08-11",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -10,20 +11,31 @@
   },
   "sqlite": {
     "table": "records",
-    "import": "node scripts/import-tamkang-kb.mjs"
+    "import": "node scripts/import-tamkang-kb.mjs",
+    "note": "run on Console host only; sqlite is gitignored"
+  },
+  "automation": {
+    "task_id": "9937e72c-f973-4d72-955f-672c2d1c741f",
+    "cadence": "HOURLY Asia/Taipei"
   },
   "counts": {
-    "tku_club": 62,
-    "l2": {
-      "單源待核": 38,
-      "官方已核": 7,
-      "獨立二源已核": 17
-    }
+    "records": 31,
+    "tku_club": 8,
+    "tku_source": 5,
+    "tku_fair": 2,
+    "tku_unverified": 3,
+    "l2_note": "存在性以114-1官方一覽為底；184活躍／115-1名冊／115攤位圖仍待核"
   },
   "conflict": {
-    "173": "官網",
-    "178": "114-1名冊",
-    "184": "學務長轉述",
+    "173": "官網約有173個社團",
+    "178": "114-1名冊合計",
+    "184": "學務長轉述活躍社團",
     "l2": "矛盾待裁"
+  },
+  "priority": {
+    "roster_1151": "未公開",
+    "fair_115": "2026-09-10起連續一週（時程已核，攤位圖待核）",
+    "zen": "1051領袖禅學社→禅學社（113-1 vs 114-1）",
+    "hot_music": "無熱音社正式名；入口為地板／詞創／噴哈／電子音樂"
   }
 }

@@ -14,7 +14,7 @@
 2. 雙層驗證：每筆必有 L1 來源等級 + L2 驗證層
 3. 存在性事實 ≠ 生態性事實
 4. 173 / 178 / 184 社團數＝矛盾待裁，三數並陳
-5. 禁止社員姓名、學號、電話、信箱；禁止禪學社 Drive 名冊當第二源
+5. 禁止社員姓名、學號、電話、信箱；禁止禅學社 Drive 名冊當第二源
 
 ## 匯入 SQLite
 
@@ -25,6 +25,10 @@ node scripts/import-tamkang-kb.mjs
 ```
 
 預設讀 `data/tamkang/records.seed.json`，寫入 `$CONSOLE_DATA_DIR/console.sqlite`（未設則 `.data/console.sqlite`）。
+
+本腳本必須在 **Console 主機**執行。GitHub 只收 JSON 快照；不要 commit sqlite、不要改 Console 應用程式碼、不要部署、不要寫入金鑰。
+
+每小時研究循環（Automations task `9937e72c-f973-4d72-955f-672c2d1c741f`）會 upsert 本目錄三檔。
 
 ## kind 對照
 
@@ -49,4 +53,4 @@ node scripts/import-tamkang-kb.mjs
 | tku_log | 17_每小時研究紀錄 |
 | tku_kb_meta | 主檔中繼資料 |
 
-更新時間：2026-09-08 10:41 CST
+更新時間：2026-09-08 11:20 CST
