@@ -4,7 +4,8 @@
 
 使用 Dockerfile 建立長駐 Node.js 服務；正式部署由擁有者明確授權後執行。不能直接沿用無狀態 serverless 部署。
 
-- 單一 replica，掛載可寫持久化卷到 `/app/data`。
+- 單一 replica，掛載可寫持久化卷到 `/app/data`（SQLite 後備／回滾）。
+- 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（不是 ai_os）。SRE 另行掛上；此變更不修改 344 正式環境變數。未設定時仍用 SQLite 開機。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
 - 產品為免登入單一工作區。打開網站即可使用，不要求電子信箱、邀請連結或成員 session。邀請相關模組為休眠選項，不得擋住主入口或工作區 API。
 - 寫入請求驗證 Origin；本機未設定 `CONSOLE_ORIGIN` 時，僅允許與實際 loopback origin 相符的來源。正式環境未設定 `CONSOLE_ORIGIN` 必須 fail closed。
@@ -20,7 +21,7 @@
 
 ## 共用記憶
 
-Console SQLite（`CONSOLE_DATA_DIR`）是 Hermes 與控制台共用的記憶來源，不是兩套互相同步的遠端庫。
+Console 持久化庫是 Hermes 與控制台共用的記憶來源，不是兩套互相同步的遠端庫。有 `DATABASE_URL` 時寫入 Hermes 自有 `console_records`（`shared_memory` 只是其中一種 kind，另含專案／對話等全部 records）、`console_sessions`、`console_limits`（jsonb）。沒有 `DATABASE_URL` 時回退 `CONSOLE_DATA_DIR/console.sqlite`。Postgres 為空且 SQLite 有列時啟動一次性搬移，之後以 Postgres 為主；SQLite 卷保留作回滾。禁止使用 `cutos_memory_items` 或 ai_os schema。契約測試未設 `DATABASE_URL` 時略過 Postgres。
 
 - UI：設定 → 記憶 →「共用記憶庫」。CRUD 走 `/api/memory`。
 - Hermes 讀寫同一資料：Workspace MCP `workspace_list_memories`／`workspace_get_memory`／`workspace_save_memory`／`workspace_delete_memory`，以及任務指示裡的短摘要。

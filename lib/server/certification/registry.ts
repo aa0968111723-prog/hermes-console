@@ -38,7 +38,7 @@ export const TAMKANG_CAPABILITIES = [
 ] as const;
 
 export const MEMORY_CAPABILITIES = [
-  { id: "memory.local", name: "Console SQLite", required: true },
+  { id: "memory.local", name: "Console 持久化庫", required: true },
   { id: "memory.mcp", name: "Workspace MCP", required: false },
   { id: "memory.remote", name: "Hermes remote", required: false },
 ] as const;
@@ -89,7 +89,7 @@ const INTEGRATIONS: Record<
   memory: {
     name: "Memory",
     notice:
-      "Console SQLite 是共用來源。synced 永遠為 false，除非完成遠端 write 後 read-back。",
+      "Console 持久化庫（Postgres 或 SQLite 後備）是共用來源。synced 永遠為 false，除非完成遠端 write 後 read-back。",
     caps: MEMORY_CAPABILITIES,
   },
   mcp: {

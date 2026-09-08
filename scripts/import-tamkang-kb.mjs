@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /**
- * Import Tamkang club ecosystem snapshot into Hermes Console SQLite.
+ * Import Tamkang club ecosystem snapshot into Hermes Console SQLite fallback.
  * Source of truth in git: data/tamkang/records.seed.json
- * Runtime DB (gitignored): $CONSOLE_DATA_DIR/console.sqlite
+ * Runtime SQLite (gitignored): $CONSOLE_DATA_DIR/console.sqlite
+ * If DATABASE_URL Postgres is already primary, import into SQLite will not copy
+ * again (one-shot migrate only when Postgres is empty).
  */
 import { readFileSync, mkdirSync, existsSync } from "node:fs";
 import { resolve, join, dirname } from "node:path";

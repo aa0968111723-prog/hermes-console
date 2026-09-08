@@ -5,7 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
-import { db, get, put, transaction } from "./store";
+import { createSession, get, hitLimit, put, transaction } from "./store";
 
 export const WORKSPACE_OWNER = "workspace";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -142,15 +142,7 @@ export function redact(text: string) {
     .replace(/\bsk-[a-zA-Z0-9_-]{12,}/g, "[redacted]");
 }
 export function limited(key: string, maximum: number, windowMs: number) {
-  const now = Date.now();
-  db().prepare("DELETE FROM limits WHERE expires < ?").run(now);
-  db()
-    .prepare(
-      "INSERT INTO limits VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1",
-    )
-    .run(key, now + windowMs);
-  const row = db().prepare("SELECT count FROM limits WHERE key=?").get(key)!;
-  if (Number(row.count) > maximum)
+  if (hitLimit(key, windowMs) > maximum)
     throw new ApiError(429, "rate_limited", "請稍後再試，請求次數已達限制。");
 }
 function requestOrigin(request: Request) {
@@ -344,10 +336,7 @@ export function login(username: string, password: string) {
   if (username !== process.env.CONSOLE_USERNAME || !verified)
     throw new ApiError(401, "invalid_login", "帳號或密碼不正確。");
   const token = randomBytes(32).toString("hex");
-  db().prepare("DELETE FROM sessions WHERE expires < ?").run(Date.now());
-  db()
-    .prepare("INSERT INTO sessions VALUES(?,?,?)")
-    .run(hash(token), "owner", Date.now() + 12 * 60 * 60_000);
+  createSession(hash(token), "owner", Date.now() + 12 * 60 * 60_000);
   return token;
 }
 export function sessionCookie(token: string, logout = false) {

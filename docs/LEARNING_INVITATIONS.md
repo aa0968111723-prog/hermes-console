@@ -27,7 +27,8 @@ Console 的節點是「希望學習的資料與提交紀錄」，不是 Hermes �
 - `CONSOLE_ADMIN_EMAILS`：逗號分隔的管理員信箱。未設定時預設 `aa0968111723@gmail.com`。管理員可從入口要求自己的登入連結；移除管理員設定後，其舊登入連結與 session 失效，重新加入也不復活舊 session。
 - `RESEND_API_KEY`：新產生的寄信服務金鑰。
 - `CONSOLE_EMAIL_FROM`：Resend 已驗證網域下的寄件信箱。
-- `CONSOLE_DATA_DIR`：單一 replica 的持久化私人資料卷；沿用既有資料，不清空。
+- `CONSOLE_DATA_DIR`：單一 replica 的持久化私人資料卷；沿用既有資料，不清空。未設 `DATABASE_URL` 時為 SQLite 主庫，有 Postgres 時作為回滾卷。
+- `DATABASE_URL`：可選。Console 專用 Postgres，表為 `console_*`，不是 ai_os／`cutos_memory_items`。
 
 登入連結 15 分鐘、一用即失效；只保存雜湊。連結 token 放在 URL fragment，頁面立即清除，必須按確認才核銷，GET 不會消耗連結。12 小時的 session 使用 HttpOnly、SameSite=Lax、HTTPS Secure cookie。每次受保護 API 都確認成員仍有效，撤銷同時廢止 session 與尚未使用的連結；不代表撤回已下載內容或自動停止先前執行中的任務。
 
