@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { ApiError, limited } from "./security";
+import {
+  ApiError,
+  assertSafeServiceUrl,
+  isLoopbackHost,
+  limited,
+} from "./security";
 import {
   CREDENTIAL_KEYS,
   credentialPresence,
@@ -77,7 +82,8 @@ export function validateHttpsServiceUrl(
   }
   const local =
     process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
-    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+    isLoopbackHost(url.hostname);
+  assertSafeServiceUrl(value, kind === "hermes" ? "hermes" : "mcp");
   if (
     (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
     url.username ||

@@ -40,6 +40,8 @@ export async function saveUpload(
       "storage_limit",
       "素材已達 250 MB 限額，請由管理者整理備份。",
     );
+  if (projectId !== "personal" && !get("project", owner, projectId))
+    throw new ApiError(404, "project_not_found", "專案不存在。");
   let content: Buffer;
   let outputMime: string;
   let kind: Material["kind"];
@@ -81,6 +83,8 @@ export async function saveUpload(
   } else if (mime === "application/pdf") {
     if (bytes.length > 8_000_000)
       throw new ApiError(413, "pdf_too_large", "PDF 上限 8 MB。");
+    if (bytes.subarray(0, 5).toString("latin1") !== "%PDF-")
+      throw new ApiError(400, "invalid_pdf", "PDF 檔案格式不正確。");
     content = bytes;
     outputMime = mime;
     kind = "text";

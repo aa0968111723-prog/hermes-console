@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { ApiError, WORKSPACE_OWNER, redact } from "./security";
+import {
+  ApiError,
+  WORKSPACE_OWNER,
+  assertSafeServiceUrl,
+  redact,
+} from "./security";
 import { get, list, put } from "./store";
 import { safeMcpFetch } from "./mcp-network";
 import { runtimeEnv } from "./credentials";
@@ -70,6 +75,7 @@ function validateEndpoint(value: string) {
       "invalid_mcp_target",
       "後端 MCP 目標需為無帳密與查詢參數的受控 HTTPS 端點。",
     );
+  assertSafeServiceUrl(value, "mcp");
   return url.toString();
 }
 export function githubIsNotMcp(value: string) {

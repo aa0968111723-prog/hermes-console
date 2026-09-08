@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
-import { ApiError, redact } from "./security";
+import { ApiError, assertSafeServiceUrl, redact } from "./security";
 import { get, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
 import {
@@ -54,22 +54,7 @@ export function target(raw?: string, key?: string) {
       "hermes_unconfigured",
       "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。",
     );
-  const url = new URL(urlValue);
-  const local =
-    process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
-    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (
-    (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash
-  )
-    throw new ApiError(
-      503,
-      "invalid_target",
-      "Hermes 服務設定不安全；需要無帳密與查詢參數的 HTTPS 網域。",
-    );
+  const url = assertSafeServiceUrl(urlValue, "hermes");
   url.pathname = url.pathname.replace(/\/$/, "").replace(/\/v1$/, "");
   if (
     url.pathname &&

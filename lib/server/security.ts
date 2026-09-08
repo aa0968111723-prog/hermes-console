@@ -9,6 +9,108 @@ import { db, get, put, transaction } from "./store";
 
 export const WORKSPACE_OWNER = "workspace";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const METADATA_HOSTS = new Set([
+  "169.254.169.254",
+  "metadata.google.internal",
+]);
+
+export function normalizeServiceHost(hostname: string) {
+  let host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+  if (host.endsWith(".")) host = host.slice(0, -1);
+  if (host.startsWith("::ffff:")) {
+    const suffix = host.slice(7);
+    if (suffix.includes(".")) return suffix;
+    const parts = suffix.split(":").map((part) => parseInt(part, 16));
+    if (parts.length === 2 && parts.every((part) => Number.isInteger(part))) {
+      return [
+        (parts[0] >> 8) & 0xff,
+        parts[0] & 0xff,
+        (parts[1] >> 8) & 0xff,
+        parts[1] & 0xff,
+      ].join(".");
+    }
+  }
+  return host;
+}
+
+export function isLoopbackHost(hostname: string) {
+  const host = normalizeServiceHost(hostname);
+  return (
+    LOOPBACK_HOSTS.has(hostname.toLowerCase()) ||
+    LOOPBACK_HOSTS.has(host) ||
+    host === "::1" ||
+    host === "localhost" ||
+    /^127(?:\.\d{1,3}){3}$/.test(host)
+  );
+}
+
+export function isPrivateOrReservedHost(hostname: string) {
+  const host = normalizeServiceHost(hostname);
+  if (
+    isLoopbackHost(hostname) ||
+    METADATA_HOSTS.has(host) ||
+    host === "0.0.0.0" ||
+    host === "::" ||
+    host === ""
+  )
+    return true;
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (ipv4) {
+    const a = Number(ipv4[1]);
+    const b = Number(ipv4[2]);
+    if (a === 10 || a === 127 || a === 0) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+  }
+  if (host.includes(":")) {
+    if (
+      host === "::1" ||
+      host.startsWith("fe80:") ||
+      /^f[cd][0-9a-f]{0,2}:/i.test(host)
+    )
+      return true;
+  }
+  return false;
+}
+
+export function assertSafeServiceUrl(
+  value: string,
+  kind: "service" | "mcp" | "hermes" = "service",
+) {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new ApiError(400, "invalid_url", "網址格式不正確。");
+  }
+  const local =
+    process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
+    isLoopbackHost(url.hostname);
+  if (
+    (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  )
+    throw new ApiError(
+      400,
+      "invalid_url",
+      kind === "hermes"
+        ? "Hermes 服務設定不安全；需要無帳密與查詢參數的 HTTPS 網域。"
+        : kind === "mcp"
+          ? "MCP 目標需為無帳密與查詢參數的受控 HTTPS 端點。"
+          : "需為無帳密與查詢參數的受控 HTTPS 端點。",
+    );
+  if (!local && isPrivateOrReservedHost(url.hostname))
+    throw new ApiError(
+      400,
+      "ssrf_rejected",
+      "禁止連線至私有內網或雲端中繼端點。",
+    );
+  return url;
+}
 
 export class ApiError extends Error {
   constructor(
