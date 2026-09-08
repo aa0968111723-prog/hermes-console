@@ -31,7 +31,8 @@
 | `GET/POST/PUT /api/conversations` | live | 建立／讀取／匯入舊對話。可選 `assistantMode`: `creative` \| `research` \| `admin`。省略則 `creative`。`research` 會附上尚未執行的 `researchBundle`。 |
 | `GET/POST/PATCH /api/tasks` | live | 真實 Hermes 任務。`POST /api/chat` 同一條。可選 `mode`；省略則用對話已存模式，再否則創作提示。`mode=research` 時任務與對話會帶 `researchBundle`（`executed: false`）。 |
 | `GET/POST /api/materials` | live | 圖／文字／PDF 附件，綁專案。 |
-| `GET /api/health` | live | Hermes 連線與能力探測；未設定會誠實顯示未設定。`configSource` 標示 hermes 網址／金鑰來自 vault 或環境，不回傳秘密。 |
+| `GET /api/health` | live | Hermes 連線與能力探測；未設定會誠實顯示未設定。`configSource` 標示 hermes 網址／金鑰來自 vault 或環境。另回 `backend`／`dataDir`／`storeReady`，不回傳秘密或連線字串。 |
+| `GET /api/ready` | live | 部署探測：`dataDir`、目前 `backend`（sqlite／postgres）、對該後端做 SELECT 1。可用 200、不可用 503。不需閘道或成員 session，不回傳 `DATABASE_URL` 或憑證。 |
 | `GET/POST /api/settings/credentials` | live | 免登入工作區可讀寫連線設定。GET 只回 masked 狀態；POST 加密保存並覆寫 runtime env。 |
 | `POST /api/settings/tamkang` | live | `test` 探測 initialize／tools-list；`login` 僅在已設定 TKU 來源暴露已知交換端點時代為換權杖。 |
 | `GET/POST/DELETE /api/memory` | live | 共用記憶 CRUD。有 `DATABASE_URL` 時寫入 Console Postgres `console_records`（kind=`shared_memory`）；否則 SQLite 於 `CONSOLE_DATA_DIR`。Hermes 經 Workspace MCP 與任務指示讀同一庫。遠端 memory 同步未驗證，`synced` 為 false。 |

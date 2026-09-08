@@ -10,7 +10,7 @@
 2. 複製 `.env.example` 到 `.env.local`，依註解設定。本機可不設邀請／寄信變數。
 3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。未設定時 Console 仍應開啟，並顯示尚未連線。
 4. `npm run dev` 後開啟 http://localhost:3000，應直接進入工作區。正式環境使用 `npm run build` 與 `npm start`。
-5. 未設 `DATABASE_URL` 時使用 `CONSOLE_DATA_DIR` SQLite（容器預設 `/app/data`）。設定後改用 Hermes 自有 Postgres 表（`console_records`／`console_sessions`／`console_limits`）；若 Postgres 為空且 SQLite 有列，啟動時一次性搬移。不要指向 ai_os 或 `cutos_memory_items`。契約測試在沒有 `DATABASE_URL` 時略過 Postgres，只跑 SQLite。
+5. 未設或空白 `DATABASE_URL` 時使用 `CONSOLE_DATA_DIR` SQLite（容器預設 `/app/data`）。設定後改用 Hermes 自有 Postgres 表（`console_records`／`console_sessions`／`console_limits`）；若 Postgres 為空且 SQLite 有列，啟動時一次性搬移。不要指向 ai_os 或 `cutos_memory_items`。`GET /api/ready` 回傳目前 `backend` 與 `dataDir`（200／503）；`GET /api/health` 附相同欄位，都不回傳連線字串。契約測試在沒有 `DATABASE_URL` 時略過 Postgres，只跑 SQLite。
 
 ## 免登入單一工作區
 

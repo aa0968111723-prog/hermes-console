@@ -42,6 +42,15 @@ test("console store uses sqlite without DATABASE_URL and never ai_os schemas", a
     assert.equal(storeBackend(), "sqlite");
   });
 
+  await t.test("blank DATABASE_URL is sqlite, never postgres", () => {
+    for (const value of ["", "   ", "\t"]) {
+      process.env.DATABASE_URL = value;
+      assert.equal(storeBackend(), "sqlite");
+    }
+    delete process.env.DATABASE_URL;
+    assert.equal(storeBackend(), "sqlite");
+  });
+
   await t.test("migrates all record kinds including shared_memory", () => {
     put("shared_memory", "workspace", {
       id: "mem-1",

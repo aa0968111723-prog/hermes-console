@@ -5,7 +5,8 @@
 使用 Dockerfile 建立長駐 Node.js 服務；正式部署由擁有者明確授權後執行。不能直接沿用無狀態 serverless 部署。
 
 - 單一 replica，掛載可寫持久化卷到 `/app/data`（SQLite 後備／回滾）。
-- 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（不是 ai_os）。SRE 另行掛上；此變更不修改 344 正式環境變數。未設定時仍用 SQLite 開機。
+- 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（不是 ai_os）。SRE 另行掛上；此變更不修改正式環境變數。未設定或空白時仍用 SQLite 開機。
+- `GET /api/ready` 探測 `CONSOLE_DATA_DIR` 與目前 backend（SQLite 或 Postgres）。成功 200、儲存庫不可用 503。不回傳連線字串或秘密，也不需閘道標頭。`GET /api/health` 另附 `backend`／`dataDir`／`storeReady`。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
 - 產品為免登入單一工作區。打開網站即可使用，不要求電子信箱、邀請連結或成員 session。邀請相關模組為休眠選項，不得擋住主入口或工作區 API。
 - 寫入請求驗證 Origin；本機未設定 `CONSOLE_ORIGIN` 時，僅允許與實際 loopback origin 相符的來源。正式環境未設定 `CONSOLE_ORIGIN` 必須 fail closed。
