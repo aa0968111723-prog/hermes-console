@@ -16,7 +16,8 @@ process.env.CONSOLE_ORIGIN = "http://localhost:3213";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 
 const { put } = await import("../lib/server/store");
-const { acknowledge, taskFor } = await import("../lib/server/tasks");
+const { taskFor } = await import("../lib/server/tasks");
+const { acknowledge } = await import("../lib/server/task-acknowledge");
 const { ApiError } = await import("../lib/server/security");
 
 function seedUncertain() {

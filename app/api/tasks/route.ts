@@ -1,13 +1,7 @@
 import { z } from "zod";
 import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
-import {
-  acknowledge,
-  active,
-  reconcile,
-  stop,
-  submit,
-  taskInput,
-} from "@/lib/server/tasks";
+import { active, reconcile, stop, submit, taskInput } from "@/lib/server/tasks";
+import { acknowledge } from "@/lib/server/task-acknowledge";
 import { list } from "@/lib/server/store";
 import type { Task } from "@/lib/contracts";
 export const runtime = "nodejs";
