@@ -33,6 +33,8 @@ export const POST = route(async (req) => {
       label: z.string().max(120).optional(),
       institution: z.string().max(80).optional(),
       location: z.string().max(80).optional(),
+      ageRange: z.string().max(40).optional(),
+      lifeStage: z.string().max(80).optional(),
       copy: z.string().max(4000).optional(),
       title: z.string().max(200).optional(),
       projectId: z.string().max(100).optional(),
@@ -57,6 +59,8 @@ export const POST = route(async (req) => {
       institution: body.institution || "淡江大學",
       location: body.location || "淡水",
       name: body.label || "淡江大一新生",
+      ageRange: body.ageRange,
+      lifeStage: body.lifeStage,
     });
     return respond({
       profile,
@@ -71,6 +75,8 @@ export const POST = route(async (req) => {
       institution: body.institution || "淡江大學",
       location: body.location || "淡水",
       name: body.label || "淡江大一新生",
+      ageRange: body.ageRange,
+      lifeStage: body.lifeStage,
     });
     const roles = evaluateArtifact({
       profile,

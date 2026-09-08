@@ -19,14 +19,40 @@ const WEIGHTS: Partial<Record<keyof EvaluationScores["scores"], number>> = {
   joinIntent: 1.3,
   ctaClarity: 1.1,
   adFeeling: -0.8,
-  religiousDistance: -0.6,
   informationLoad: -0.4,
 };
 
-export function weightedScore(scores: EvaluationScores["scores"]) {
+export type RankingContext = {
+  club?: string;
+  project?: string;
+};
+
+const RELIGIOUS_OR_ZEN =
+  /禪|靜定|宗教|佛學|佛光|法會|開示|禪修|\bzen\b|buddhist|religious/i;
+
+function contextLabel(context?: RankingContext | string | null) {
+  if (!context) return "";
+  if (typeof context === "string") return context;
+  return [context.club, context.project].filter(Boolean).join(" ");
+}
+
+export function appliesReligiousDistance(context?: RankingContext | string | null) {
+  return RELIGIOUS_OR_ZEN.test(contextLabel(context));
+}
+
+export function rankingWeights(context?: RankingContext | string | null) {
+  if (!appliesReligiousDistance(context)) return { ...WEIGHTS };
+  return { ...WEIGHTS, religiousDistance: -0.6 };
+}
+
+export function weightedScore(
+  scores: EvaluationScores["scores"],
+  context?: RankingContext | string | null,
+) {
+  const weights = rankingWeights(context);
   let total = 0,
     weight = 0;
-  for (const [key, value] of Object.entries(WEIGHTS)) {
+  for (const [key, value] of Object.entries(weights)) {
     total += scores[key as keyof typeof scores] * (value || 0);
     weight += Math.abs(value || 0);
   }
@@ -52,11 +78,14 @@ export function diversityWarnings(directions: RankableDirection[]) {
 export function rankDirections(input: {
   directions: RankableDirection[];
   scores: EvaluationScores["scores"][];
+  club?: string;
+  project?: string;
 }) {
+  const context = { club: input.club, project: input.project };
   const ranked = input.directions.map((direction, index) => ({
     index,
     direction,
-    score: weightedScore(input.scores[index] || input.scores[0]),
+    score: weightedScore(input.scores[index] || input.scores[0], context),
   }));
   ranked.sort((a, b) => b.score - a.score);
   return {

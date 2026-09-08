@@ -11,8 +11,8 @@ export function debateFromEvaluations(roles: RoleEvaluation[]) {
   return {
     perspectives,
     consensus: [
-      "主標要讓大一立刻懂",
-      "放進校園／生活線索",
+      "主標要讓目標受眾立刻理解核心價值",
+      "結合情境與實質生活線索",
       "時間地點清楚",
     ],
     unresolved: concerns.filter((item, index) => concerns.indexOf(item) === index).slice(0, 4),
