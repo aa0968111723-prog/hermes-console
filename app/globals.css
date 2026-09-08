@@ -784,7 +784,7 @@ nav button[aria-current="page"] {
   line-height: 1.7;
   padding: 7px 9px 3px;
   min-height: 66px;
-  max-height: 190px;
+  max-height: min(190px, 28dvh);
   outline: 0;
 }
 .composer textarea[readonly] {
@@ -1522,7 +1522,7 @@ summary .badge {
   .composer textarea {
     min-height: 58px;
     font-size: 16px;
-    max-height: 125px;
+    max-height: min(125px, 28dvh);
   }
   .composer-row {
     gap: 4px;
@@ -1860,7 +1860,7 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .agent-activity > span { border-left: 1px solid var(--color-border); padding: 0 8px; }
 .activity-inspect { min-height: 44px; border: 0; background: var(--color-primary-soft); font-size: var(--type-caption); }
 .composer { display: grid; grid-template-columns: 44px minmax(0,1fr) 44px; align-items: end; column-gap: 6px; padding: 9px; background: var(--color-surface); }
-.composer textarea { grid-column: 2; grid-row: 2; min-height: 44px; padding: 8px 3px; width: 100%; }
+.composer textarea { grid-column: 2; grid-row: 2; min-height: 44px; max-height: min(190px, 28dvh); padding: 8px 3px; width: 100%; }
 .composer-tools { display: contents; }
 .composer-menu { grid-column: 1; grid-row: 2; position: relative; }
 .composer-tools > .send-button { grid-column: 3; grid-row: 2; }
@@ -1929,7 +1929,7 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   .quick-action-detail { display: none; }
   .composer-area { padding: 8px 10px 10px; }
   .composer { padding: 7px; }
-  .composer textarea { min-height: 44px; }
+  .composer textarea { min-height: 44px; max-height: min(125px, 28dvh); }
   .project-shelf { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
   .project-thumbnail { height: 110px; }
   .integration-picker { grid-template-columns: repeat(2,minmax(0,1fr)); }

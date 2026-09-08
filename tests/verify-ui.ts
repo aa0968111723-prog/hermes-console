@@ -442,11 +442,22 @@ try {
   );
   assert.ok((await textarea.boundingBox())!.height > originalHeight);
   await page.setViewportSize({ width: 390, height: 400 });
+  // visualViewport / ResizeObserver updates are async; CSS 28dvh cap should
+  // bound immediately, then wait until the used box is the short viewport.
+  await expect
+    .poll(() =>
+      page
+        .locator(".app-shell")
+        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
+    )
+    .toBe(400);
   const sendSmall = await page
     .getByRole("button", { name: "送出訊息", exact: true })
     .boundingBox();
   assert.ok(sendSmall && sendSmall.y + sendSmall.height <= 400);
-  assert.ok((await textarea.boundingBox())!.height <= 113);
+  await expect
+    .poll(async () => (await textarea.boundingBox())!.height)
+    .toBeLessThanOrEqual(113);
   assert.ok(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
