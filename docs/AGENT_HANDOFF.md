@@ -2,6 +2,46 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-08 22:22 TST）Grok 團隊
+
+- 基準 SHA：`330b1e8dddf9a6df479f83ee0d171ddf7c28c8f8`
+- 分支：`grok/memory-provenance-main-330b-2026-09-08`
+- 目標：在 **current main tip** 落地共用記憶 provenance（取代落後的 #58／#56／#55／#42）。
+- 使用者影響：記憶列可標記來源／信心／重要度；digest 寫入 `lastUsedAt`；`synced` 仍為 false，不宣稱 Hermes 遠端鏡像。
+- 本輪不碰：PR #10 / #30 / #4、`data/tamkang/`、正式部署、不覆蓋 `feat/consistencylab*`。
+
+### 讀到的現況
+
+- main tip：`330b1e8`（tamkang hourly + research IR + Cycle 17 已合）。
+- PR #58 基準停在 `fac99cb6`；#56／#55／#42 更舊。本輪以 330b 重開並接續同一功能。
+- 開放 PR：#58（draft）、#56、#55、#42、#30 ConsistencyLab、#21、#10（禁止合併）、#4。
+- 無活躍 `codex/*` 開發；多個 `cursor/*`、`cubelv-*`、`grok/*` 仍在。
+- `lib/server/memory.ts` 在 main 仍無 provenance；`memoryStoreId`／Postgres 後端已存在。
+
+### 本輪變更
+
+- `lib/server/memory.ts`：`memorySources`、provenance 欄位、`normalizeMemory`、`touchMemories`；保留 `memoryStoreId`／`memoryStoreLabel`。
+- `tests/shared-memory.test.ts`：預設 provenance、更新 confidence/importance/source、digest→lastUsedAt、舊列相容、`share.provenanceFields`。
+- 同一 store 列，不另開表、不改 MCP 工具名稱。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`。本 sandbox **未執行** `tsx --test`。依賴 GitHub Actions `npm test`。
+- 非 `LIVE_EXTERNAL`。Mock ≠ 實機 Hermes／Postgres。
+
+### 下一輪建議
+
+- 合併本 PR 後關閉 #58／#56／#55／#42。
+- 聊天中止後「建立重試分支」與 uncertain 任務的 UI 契約。
+- 不要合併 #10，不要覆蓋 `feat/consistencylab-clab-framelab`。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰／網域 → 不得宣稱 LIVE 整合通過
+- sandbox 無法穩定跑完整 test suite → 以 Actions 為準
+
+---
+
 ## 進行中（2026-09-08）Cycle 17 research-truth
 
 - 基準：`main` tip；分支 `fix/cycle17-research-truth`。新 PR 對 main，不碰 PR #10。
