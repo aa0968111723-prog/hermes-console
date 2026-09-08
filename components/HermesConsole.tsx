@@ -232,6 +232,7 @@ export default function HermesConsole() {
   const currentTasks = tasks.filter((t) => t.conversationId === activeId);
   const currentTask = currentTasks[0];
   const pending = currentTasks.find(isActive);
+  const uncertain = currentTasks.find((t) => t.state === "uncertain");
   const chosenTask = tasks.find((t) => t.id === selectedTask) || currentTask;
   const blocked = currentTasks.some(
     (t) => isActive(t) || t.state === "uncertain",
@@ -502,6 +503,20 @@ export default function HermesConsole() {
         action: "stop",
       });
       setTasks((old) => old.map((t) => (t.id === task.id ? result.task : t)));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  async function acknowledgeTask(task: Task) {
+    try {
+      const result = await api<{ task: Task }>("tasks", "PATCH", {
+        id: task.id,
+        action: "acknowledge",
+      });
+      setTasks((old) => old.map((t) => (t.id === task.id ? result.task : t)));
+      setError("");
+      setNotice("已確認此待確認結果，可以重新送出；未宣稱遠端已停止。");
+      input.current?.focus();
     } catch (e) {
       setError((e as Error).message);
     }
@@ -1127,6 +1142,14 @@ export default function HermesConsole() {
                               建立重試分支（保留原紀錄）
                             </button>
                           )}
+                          {currentTask.state === "uncertain" && (
+                            <button
+                              className="text-button"
+                              onClick={() => void acknowledgeTask(currentTask)}
+                            >
+                              確認並可重試
+                            </button>
+                          )}
                         </article>
                       )}
                   </>
@@ -1166,6 +1189,20 @@ export default function HermesConsole() {
                   offline={offline}
                   onClick={() => openTask(currentTask)}
                 />
+              )}
+              {uncertain && (
+                <div className="composer-uncertain-hint" role="status">
+                  <p>
+                    結果待確認，此對話暫時不能再送出。確認後即可重試；未宣稱遠端已停止。
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void acknowledgeTask(uncertain)}
+                  >
+                    <RefreshCw size={16} aria-hidden="true" />
+                    確認並可重試
+                  </button>
+                </div>
               )}
               <div className="composer-row">
                 {prefs.turtle && !!activeConv?.messages.length && (
@@ -2143,6 +2180,15 @@ export default function HermesConsole() {
                   <Square size={16} />
                   要求停止
                   {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
+                </button>
+              )}
+              {chosenTask.state === "uncertain" && (
+                <button
+                  type="button"
+                  onClick={() => void acknowledgeTask(chosenTask)}
+                >
+                  <RefreshCw size={16} aria-hidden="true" />
+                  確認並可重試
                 </button>
               )}
               {!!chosenTask.output && (

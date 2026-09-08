@@ -4,6 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import type { Task } from "../lib/contracts";
 
 /**
  * LOCAL_CONTRACT — acknowledge uncertain task unblocks conversation for retry.
@@ -15,10 +16,16 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(
 process.env.CONSOLE_ORIGIN = "http://localhost:3213";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 
-const { put } = await import("../lib/server/store");
-const { taskFor } = await import("../lib/server/tasks");
+const { list, put } = await import("../lib/server/store");
+const { active, taskFor } = await import("../lib/server/tasks");
 const { acknowledge } = await import("../lib/server/task-acknowledge");
 const { ApiError } = await import("../lib/server/security");
+
+function conversationBusy(owner: string, conversationId: string) {
+  return list<Task>("task", owner).some(
+    (t) => t.conversationId === conversationId && (active(t) || t.state === "uncertain"),
+  );
+}
 
 function seedUncertain() {
   const id = randomUUID();
@@ -60,17 +67,19 @@ function seedUncertain() {
     },
     stopSupported: false,
   });
-  return id;
+  return { id, conversationId };
 }
 
 test("acknowledge moves uncertain to cancelled so conversation can retry", () => {
-  const id = seedUncertain();
+  const { id, conversationId } = seedUncertain();
   const before = taskFor("owner", id);
   assert.equal(before.state, "uncertain");
+  assert.equal(conversationBusy("owner", conversationId), true);
   const after = acknowledge("owner", id);
   assert.equal(after.state, "cancelled");
   assert.match(after.error || "", /已確認|重新提交/);
   assert.ok(after.endedAt);
+  assert.equal(conversationBusy("owner", conversationId), false);
 });
 
 test("acknowledge rejects non-uncertain tasks", () => {
