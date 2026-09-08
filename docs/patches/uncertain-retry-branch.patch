@@ -1,0 +1,108 @@
+--- a/components/HermesConsole.tsx
++++ b/components/HermesConsole.tsx
+@@ -546,6 +546,29 @@
+       setBusy(false);
+     }
+   }
++  /** Fork a new conversation from the user message that started this task. */
++  function retryBranchFromTask(task: Task) {
++    const conv =
++      data.conversations.find((c) => c.id === task.conversationId) ||
++      activeConv;
++    if (!conv) {
++      setError("找不到對應對話，無法建立重試分支。");
++      return;
++    }
++    const message = conv.messages.find(
++      (m) => m.taskId === task.id && m.role === "user",
++    );
++    if (!message) {
++      setError("找不到觸發此任務的使用者訊息，無法建立重試分支。");
++      return;
++    }
++    // Branch uses activeConv parent; switch context if task is on another thread
++    if (activeId !== conv.id) {
++      setActiveId(conv.id);
++      setProject(conv.projectId);
++    }
++    void branch(message.id, message.content);
++  }
+   async function copy(value: string) {
+     try {
+       await navigator.clipboard.writeText(value);
+@@ -1124,20 +1147,12 @@
+                               "查看已保存的任務"}
+                             <ChevronDown size={16} />
+                           </button>
+-                          {["failed", "cancelled"].includes(
++                          {["failed", "cancelled", "uncertain"].includes(
+                             currentTask.state,
+                           ) && (
+                             <button
+                               className="text-button"
+-                              onClick={() => {
+-                                const message = activeConv.messages.find(
+-                                  (m) =>
+-                                    m.taskId === currentTask.id &&
+-                                    m.role === "user",
+-                                );
+-                                if (message)
+-                                  void branch(message.id, message.content);
+-                              }}
++                              onClick={() => retryBranchFromTask(currentTask)}
+                             >
+                               建立重試分支（保留原紀錄）
+                             </button>
+@@ -1193,15 +1208,25 @@
+               {uncertain && (
+                 <div className="composer-uncertain-hint" role="status">
+                   <p>
+-                    結果待確認，此對話暫時不能再送出。確認後即可重試；未宣稱遠端已停止。
++                    結果待確認，此對話暫時不能再送出。可確認後在原對話重試，或建立分支保留原紀錄；未宣稱遠端已停止。
+                   </p>
+-                  <button
+-                    type="button"
+-                    onClick={() => void acknowledgeTask(uncertain)}
+-                  >
+-                    <RefreshCw size={16} aria-hidden="true" />
+-                    確認並可重試
+-                  </button>
++                  <div className="composer-uncertain-actions">
++                    <button
++                      type="button"
++                      onClick={() => void acknowledgeTask(uncertain)}
++                    >
++                      <RefreshCw size={16} aria-hidden="true" />
++                      確認並可重試
++                    </button>
++                    <button
++                      type="button"
++                      className="text-button"
++                      onClick={() => retryBranchFromTask(uncertain)}
++                      disabled={busy}
++                    >
++                      建立重試分支（保留原紀錄）
++                    </button>
++                  </div>
+                 </div>
+               )}
+               <div className="composer-row">
+@@ -2182,6 +2207,18 @@
+                   {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
+                 </button>
+               )}
++              {["failed", "cancelled", "uncertain"].includes(
++                chosenTask.state,
++              ) && (
++                <button
++                  type="button"
++                  className="text-button"
++                  onClick={() => retryBranchFromTask(chosenTask)}
++                  disabled={busy}
++                >
++                  建立重試分支（保留原紀錄）
++                </button>
++              )}
+               {chosenTask.state === "uncertain" && (
+                 <button
+                   type="button"
