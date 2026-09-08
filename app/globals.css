@@ -797,6 +797,28 @@ nav button[aria-current="page"] {
 .composer-task-status[data-tone="waiting"] { color: #79521b; background: #fff7e8; border-color: #eadcc3; }
 .composer-task-status[data-tone="error"] { color: #9a392e; background: #fff1ee; border-color: #ecd5cf; }
 .composer-task-status:focus-visible { outline: 3px solid #356b45; outline-offset: 2px; }
+.composer-uncertain-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  width: 100%;
+  max-width: var(--reading-width, 780px);
+  margin: 0 auto 8px;
+  padding: 8px 12px;
+  border: 1px solid #eadcc3;
+  border-radius: 14px;
+  background: #fff7e8;
+  color: #79521b;
+  font-size: 13px;
+}
+.composer-uncertain-hint p {
+  margin: 0;
+  flex: 1 1 12rem;
+}
+.composer-uncertain-hint button {
+  flex: 0 0 auto;
+}
 .composer {
   display: block;
   flex: 1;
