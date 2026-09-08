@@ -172,6 +172,7 @@ class PgSync {
 }
 
 function postgresUrl() {
+  // Blank / whitespace DATABASE_URL is unset: keep SQLite. Never treat empty as Postgres.
   const value = (process.env.DATABASE_URL || "").trim();
   if (!/^postgres(ql)?:\/\//i.test(value)) return "";
   if (process.env.CONSOLE_TEST_POSTGRES === "1") return value;
@@ -194,6 +195,30 @@ export function sqliteFile() {
 
 export function storeBackend(): StoreBackend {
   return postgresUrl() ? "postgres" : "sqlite";
+}
+
+export type StoreProbe = {
+  backend: StoreBackend;
+  dataDir: string;
+  ok: boolean;
+};
+
+export function probeStore(): StoreProbe {
+  const backend = storeBackend();
+  const dir = dataDir();
+  try {
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    if (backend === "postgres") {
+      const n = Number(pg().query("SELECT 1::int AS n").rows[0]?.n);
+      if (n !== 1) throw new Error("postgres_probe_failed");
+    } else {
+      const n = Number(sqlite().prepare("SELECT 1 AS n").get()?.n);
+      if (n !== 1) throw new Error("sqlite_probe_failed");
+    }
+    return { backend, dataDir: dir, ok: true };
+  } catch {
+    return { backend, dataDir: dir, ok: false };
+  }
 }
 
 export function isPgStoreClient(database: unknown): database is PgQueryable {

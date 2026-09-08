@@ -190,6 +190,18 @@ export interface Health {
     hermesUrl: "vault" | "env" | "none";
     hermesKey: "vault" | "env" | "none";
   };
+  backend: "sqlite" | "postgres";
+  dataDir: string;
+  storeReady: boolean;
+}
+export interface ReadyStatus {
+  ready: boolean;
+  backend: "sqlite" | "postgres";
+  dataDir: string;
+  error?: {
+    code: "store_unavailable";
+    message: string;
+  };
 }
 export interface DiscoveryItem {
   name: string;
