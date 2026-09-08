@@ -10,7 +10,7 @@
 
 - 移除公開秘密預設值、前端金鑰欄位、模板 local-brain、XML 文字工具執行、假 ONLINE、寫死服務連線及專案數。
 - 更新 Next.js／React 與有安全問題的相依套件；部署端仍須撤銷所有舊憑證。
-- 免登入單一工作區（owner namespace=`workspace`）。Origin 檢查、持久化請求限制、秘密遮蔽、一次性高風險確認 token 仍在。CONSOLE_USERNAME／PASSWORD_HASH 不是啟動必要條件。
+- 免登入單一工作區（owner namespace=`workspace`）。Origin 檢查、持久化請求限制、秘密遮蔽、一次性高風險確認 token 仍在。CONSOLE_USERNAME／PASSWORD_HASH 不是啟動必要條件；設 `CONSOLE_REQUIRE_AUTH=true`＋帳號＋密碼雜湊後，改為單一擁有者登入（未登入時全部 API 回 401，首頁顯示登入閘）。
 - HTTPS 服務由後端受控設定；不接受客戶端 baseUrl／apiKey；禁止重導向攜出 Authorization。
 - 模型清單驗證、實例能力探索、工具／技能清單；明確區分服務可達、憑證有效、Agent 曾成功執行與各工具證據。
 - SQLite 保存專案、會話、任務、來源、素材、工具事件及使用量。瀏覽器只保存外觀和目前對話識別。

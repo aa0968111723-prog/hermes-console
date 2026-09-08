@@ -1,12 +1,12 @@
 "use client";
 
 import ConsoleErrorBoundary from "@/components/ConsoleErrorBoundary";
-import HermesConsole from "@/components/HermesConsole";
+import OwnerGate from "@/components/OwnerGate";
 
 export default function Page() {
   return (
     <ConsoleErrorBoundary>
-      <HermesConsole />
+      <OwnerGate />
     </ConsoleErrorBoundary>
   );
 }

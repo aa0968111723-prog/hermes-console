@@ -5,7 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
-import { createSession, get, hitLimit, put, transaction } from "./store";
+import { createSession, deleteSession, get, hitLimit, put, readSession, transaction } from "./store";
 
 export const WORKSPACE_OWNER = "workspace";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -187,12 +187,44 @@ export function checkOrigin(request: Request) {
     "後端尚未設定 CONSOLE_ORIGIN。",
   );
 }
+export function ownerLoginEnabled() {
+  return (
+    process.env.CONSOLE_REQUIRE_AUTH === "true" &&
+    !!process.env.CONSOLE_USERNAME &&
+    !!process.env.CONSOLE_PASSWORD_HASH
+  );
+}
+
+function cookieToken(request: Request, name: string) {
+  const cookie = request.headers.get("cookie") || "";
+  const hit = cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(name + "="));
+  const token = hit ? hit.slice(name.length + 1) : "";
+  return /^[a-f0-9]{64}$/.test(token) ? token : "";
+}
+
 export function authenticate(request: Request, mutation = false): string {
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
+  if (ownerLoginEnabled()) {
+    const url = new URL(request.url);
+    if (!url.pathname.startsWith("/api/auth")) {
+      const token = cookieToken(request, "hermes_session");
+      const session = token ? readSession(hash(token)) : null;
+      if (!session)
+        throw new ApiError(401, "owner_login_required", "請先登入工作區擁有者帳號。");
+    }
+  }
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;
+}
+
+export function endOwnerSession(request: Request) {
+  const token = cookieToken(request, "hermes_session");
+  if (token) deleteSession(hash(token));
 }
 
 // Optional deployment-level protection. Not an account login.

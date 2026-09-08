@@ -429,6 +429,35 @@ export function createSession(digest: string, owner: string, expires: number) {
     .run(digest, owner, expires);
 }
 
+export function readSession(digest: string): { owner: string; expires: number } | null {
+  const now = Date.now();
+  if (storeBackend() === "postgres") {
+    const row = pg().query(
+      "SELECT owner, expires FROM console_sessions WHERE digest=$1",
+      [digest],
+    ).rows[0] as { owner: unknown; expires: unknown } | undefined;
+    if (!row) return null;
+    const expires = Number(row.expires);
+    if (!Number.isFinite(expires) || expires <= now) return null;
+    return { owner: String(row.owner), expires };
+  }
+  const row = sqlite()
+    .prepare("SELECT owner, expires FROM sessions WHERE digest=?")
+    .get(digest) as { owner: unknown; expires: unknown } | undefined;
+  if (!row) return null;
+  const expires = Number(row.expires);
+  if (!Number.isFinite(expires) || expires <= now) return null;
+  return { owner: String(row.owner), expires };
+}
+
+export function deleteSession(digest: string) {
+  if (storeBackend() === "postgres") {
+    pg().query("DELETE FROM console_sessions WHERE digest=$1", [digest]);
+    return;
+  }
+  sqlite().prepare("DELETE FROM sessions WHERE digest=?").run(digest);
+}
+
 export function resetStoreForTests() {
   if (!process.env.NODE_TEST_CONTEXT) return;
   runtimeStore.hermesDatabase?.close();

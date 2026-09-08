@@ -43,7 +43,8 @@ test("no-login entry contracts", async (t) => {
   await t.test("root page does not import InvitationGate", async () => {
     const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
     assert.ok(!page.includes("InvitationGate"));
-    assert.ok(page.includes("HermesConsole"));
+    assert.ok(page.includes("OwnerGate"));
+    assert.ok(!security.ownerLoginEnabled());
   });
 
   await t.test("FEATURE_AUDIT matches no-login workspace and stub research", async () => {
