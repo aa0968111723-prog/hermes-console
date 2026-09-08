@@ -3,10 +3,15 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { ApiError, WORKSPACE_OWNER, redact } from "./security";
 import { get, list, put } from "./store";
+import { safeMcpFetch } from "./mcp-network";
 import { runtimeEnv } from "./credentials";
 
 export type McpStatus =
-  "unconfigured" | "connected" | "partial" | "verified" | "failed";
+  | "unconfigured"
+  | "connected"
+  | "partial"
+  | "verified"
+  | "failed";
 export interface McpEntry {
   id: string;
   name: string;
@@ -18,7 +23,12 @@ export interface McpEntry {
     name: string;
     description: string;
     inputSchema?: Record<string, unknown>;
-    annotations?: { readOnlyHint?: boolean; destructiveHint?: boolean; idempotentHint?: boolean };
+    outputSchema?: Record<string, unknown>;
+    annotations?: {
+      readOnlyHint?: boolean;
+      destructiveHint?: boolean;
+      idempotentHint?: boolean;
+    };
   }>;
   status: McpStatus;
   verifiedAt: string | null;
@@ -26,6 +36,8 @@ export interface McpEntry {
   readonly: boolean;
   trustedLevel: "untrusted" | "workspace" | "external";
   enabled: boolean;
+  serverInfo?: Record<string, unknown>;
+  capabilities?: Record<string, unknown>;
 }
 const definition = z
   .object({
@@ -210,13 +222,21 @@ export function seedRegistry(): McpEntry[] {
       authMode: config.credentialReference ? "bearer" : "none",
       tools: old?.enabled === false ? [] : matches ? old.tools : [],
       enabled: old?.enabled !== false,
-      status: old?.enabled === false ? "unconfigured" : matches
-        ? old.status === "verified"
-          ? "partial"
-          : old.status
-        : "unconfigured",
+      status:
+        old?.enabled === false
+          ? "unconfigured"
+          : matches
+            ? old.status === "verified"
+              ? "partial"
+              : old.status
+            : "unconfigured",
       verifiedAt: matches ? old.verifiedAt : null,
-      lastError: old?.enabled === false ? "此 MCP 已停用。" : matches ? old.lastError : "後端已配置，尚未驗證工具清單。",
+      lastError:
+        old?.enabled === false
+          ? "此 MCP 已停用。"
+          : matches
+            ? old.lastError
+            : "後端已配置，尚未驗證工具清單。",
       trustedLevel: "external",
     };
   });
@@ -282,11 +302,45 @@ export function interpretVerification(steps: {
   if (!steps.toolsList) return "connected";
   return steps.safeRead ? "verified" : "partial";
 }
-export async function probeMcp(entry: McpEntry) {
+export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
   const client = new Client({ name: "hermes-console-discovery", version: "2" });
   let connected = false;
+  const deadline = AbortSignal.timeout(20_000);
+  const credential = config.credentialReference
+    ? runtimeEnv(config.credentialReference)
+    : undefined;
+  const currentEntry = () => {
+    const current = getMcp(entry.id);
+    if (
+      !current?.enabled ||
+      current.endpoint !== config.endpoint ||
+      current.credentialReference !== config.credentialReference
+    )
+      return (
+        current || {
+          ...entry,
+          enabled: false,
+          tools: [],
+          status: "unconfigured" as const,
+        }
+      );
+    if (
+      credential !==
+      (config.credentialReference
+        ? runtimeEnv(config.credentialReference)
+        : undefined)
+    )
+      return {
+        ...current,
+        tools: [],
+        status: "unconfigured" as const,
+        verifiedAt: null,
+        lastError: "憑證已變更，需重新探索。",
+      };
+    return null;
+  };
   try {
     const headers: Record<string, string> = {};
     if (config.credentialReference) {
@@ -305,10 +359,12 @@ export async function probeMcp(entry: McpEntry) {
       fetch: async (url, init) => {
         if (new URL(String(url)).origin !== target.origin)
           throw new Error("MCP target changed");
-        const response = await fetch(url, {
+        const response = await safeMcpFetch(url, {
           ...init,
           redirect: "error",
           signal: AbortSignal.any([
+            deadline,
+            ...(signal ? [signal] : []),
             ...(init?.signal ? [init.signal] : []),
             AbortSignal.timeout(15_000),
           ]),
@@ -343,11 +399,17 @@ export async function probeMcp(entry: McpEntry) {
       });
       tools.push(
         ...result.tools.map((t) => ({
-          name: t.name,
+          name: redact(t.name),
           description: redact(t.description || ""),
           inputSchema: JSON.parse(
             redact(JSON.stringify(t.inputSchema)),
           ) as Record<string, unknown>,
+          outputSchema:
+            t.outputSchema &&
+            (JSON.parse(redact(JSON.stringify(t.outputSchema))) as Record<
+              string,
+              unknown
+            >),
           annotations: t.annotations && {
             readOnlyHint: t.annotations.readOnlyHint,
             destructiveHint: t.annotations.destructiveHint,
@@ -360,6 +422,8 @@ export async function probeMcp(entry: McpEntry) {
       if (!cursor) break;
     }
     if (cursor) throw new Error("MCP pagination limit");
+    const changed = currentEntry();
+    if (changed) return changed;
     return put("mcp_registry", WORKSPACE_OWNER, {
       ...entry,
       ...config,
@@ -367,9 +431,17 @@ export async function probeMcp(entry: McpEntry) {
       status: "partial" as const,
       verifiedAt: new Date().toISOString(),
       lastError: null,
+      serverInfo: JSON.parse(
+        redact(JSON.stringify(client.getServerVersion() || {})),
+      ),
+      capabilities: JSON.parse(
+        redact(JSON.stringify(client.getServerCapabilities() || {})),
+      ),
     });
   } catch (error) {
     // Never echo upstream bodies, arbitrary exception URLs or secret-bearing headers.
+    const changed = currentEntry();
+    if (changed) return changed;
     return put("mcp_registry", WORKSPACE_OWNER, {
       ...entry,
       ...config,
@@ -387,9 +459,18 @@ export async function probeMcp(entry: McpEntry) {
 }
 export function setMcpEnabled(id: string, enabled: boolean) {
   const entry = getMcp(id);
-  if (!entry || id === "workspace") throw new ApiError(404, "mcp_not_found", "找不到可管理的 MCP。");
+  if (!entry || id === "workspace")
+    throw new ApiError(404, "mcp_not_found", "找不到可管理的 MCP。");
   const config = controlled(id);
-  return put("mcp_registry", WORKSPACE_OWNER, { ...entry, ...config, enabled, status: "unconfigured" as const, tools: [], verifiedAt: null, lastError: enabled ? "已啟用，尚未重新同步工具清單。" : "此 MCP 已停用。" });
+  return put("mcp_registry", WORKSPACE_OWNER, {
+    ...entry,
+    ...config,
+    enabled,
+    status: "unconfigured" as const,
+    tools: [],
+    verifiedAt: null,
+    lastError: enabled ? "已啟用，尚未重新同步工具清單。" : "此 MCP 已停用。",
+  });
 }
 export function getMcp(id: string) {
   return seedRegistry().find((item) => item.id === id) || null;

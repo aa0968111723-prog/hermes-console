@@ -153,7 +153,7 @@ export default function HermesConsole() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
   const [nav, setNav] = useState<
-    "chat" | "projects" | "inspiration" | "agents"
+    "chat" | "projects" | "inspiration" | "agents" | "tasks"
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
@@ -615,8 +615,13 @@ export default function HermesConsole() {
         .then((result) => setAgents(result.agents))
         .catch(() => {});
     if (next === "inspiration")
-      api<{ items: InspirationItem[]; sheetsSync: SheetSyncResult | null }>("inspiration")
-        .then((result) => { setInspiration(result.items); setSheetsSync(result.sheetsSync); })
+      api<{ items: InspirationItem[]; sheetsSync: SheetSyncResult | null }>(
+        "inspiration",
+      )
+        .then((result) => {
+          setInspiration(result.items);
+          setSheetsSync(result.sheetsSync);
+        })
         .catch(() => {});
   };
   const navigation = (
@@ -662,6 +667,13 @@ export default function HermesConsole() {
         >
           <Bot size={19} />
           Agent
+        </button>
+        <button
+          aria-current={nav === "tasks" ? "page" : undefined}
+          onClick={() => navigate("tasks")}
+        >
+          <ListTodo size={19} />
+          任務
         </button>
       </nav>
       <div className="side-section">
@@ -753,7 +765,6 @@ export default function HermesConsole() {
       }
       data-compact={prefs.compact}
     >
-
       <a className="skip-link" href="#composer">
         跳至輸入區
       </a>
@@ -801,7 +812,9 @@ export default function HermesConsole() {
                 ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
-                  : "Agent"}
+                  : nav === "tasks"
+                    ? "任務"
+                    : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
@@ -886,7 +899,9 @@ export default function HermesConsole() {
                         onClick={() => openTask()}
                       />
                     )}
-                    <p className="eyebrow">歡迎使用 Hermes Creative Intelligence</p>
+                    <p className="eyebrow">
+                      歡迎使用 Hermes Creative Intelligence
+                    </p>
                     <h1>今天想做什麼？</h1>
                     <p>
                       直接告訴龜龜你想做什麼。
@@ -1295,9 +1310,16 @@ export default function HermesConsole() {
           <section className="secondary-page">
             <p className="eyebrow">收好靈感，接著創作</p>
             <h1>素材與靈感</h1>
-            <ProjectWorkbench key={project} projectId={project} materials={data.materials} workflows={workflows}
+            <ProjectWorkbench
+              key={project}
+              projectId={project}
+              materials={data.materials}
+              workflows={workflows}
               onCompose={(text) => {
-                if (busy) { setError("請先等目前任務結束或停止，再接續其他作品。"); return; }
+                if (busy) {
+                  setError("請先等目前任務結束或停止，再接續其他作品。");
+                  return;
+                }
                 fresh();
                 replaceDraft("project:" + project, { ...emptyDraft(), text });
               }}
@@ -1410,7 +1432,11 @@ export default function HermesConsole() {
             items={inspiration}
             syncStatus={sheetsSync}
             onSync={async () => {
-              const result = await api<{ sheetsSync: SheetSyncResult }>("inspiration", "POST", { action: "sync_sheets" });
+              const result = await api<{ sheetsSync: SheetSyncResult }>(
+                "inspiration",
+                "POST",
+                { action: "sync_sheets" },
+              );
               setSheetsSync(result.sheetsSync);
               const [updated, workspace] = await Promise.all([
                 api<{ items: InspirationItem[] }>("inspiration"),
@@ -1425,9 +1451,21 @@ export default function HermesConsole() {
           <section className="secondary-page">
             <p className="eyebrow">即時能力與工具</p>
             <h1>Agent Runtime</h1>
-            <p className="muted">Agent、Tools、Skills、Toolsets 與 MCP 以 Hermes Runtime 探索結果為準。</p>
-            <AgentPanel agents={agents} brain={[]} />
+            <p className="muted">
+              Agent、Tools、Skills、Toolsets 與 MCP 以 Hermes Runtime
+              探索結果為準。
+            </p>
             <RuntimeInspector />
+            <details>
+              <summary>已配置的連接設定</summary>
+              <AgentPanel
+                agents={agents.filter(
+                  (agent) =>
+                    agent.role === "general" || agent.status !== "unconfigured",
+                )}
+                brain={[]}
+              />
+            </details>
           </section>
         ) : (
           <section className="secondary-page">
@@ -1871,8 +1909,16 @@ export default function HermesConsole() {
                   <div className="settings-stack">
                     <h3>記憶與會話</h3>
                     <SharedMemory projectId={project} />
-                    <LearningMap key={project} projectId={project} skills={health?.skills || []} materials={data.materials}
-                      onTask={id => { setSelectedTask(id); setPanel("task"); }} />
+                    <LearningMap
+                      key={project}
+                      projectId={project}
+                      skills={health?.skills || []}
+                      materials={data.materials}
+                      onTask={(id) => {
+                        setSelectedTask(id);
+                        setPanel("task");
+                      }}
+                    />
                     <p>{data.memory.scope}</p>
                     <p className="muted">
                       上方「共用記憶庫」是 Console SQLite，Hermes 可經 Workspace MCP 與任務指示讀寫同一批資料。

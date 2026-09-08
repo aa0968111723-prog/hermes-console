@@ -180,6 +180,12 @@ export interface Health {
   models: string[];
   skills: DiscoveryItem[];
   toolsets: DiscoveryItem[];
+  discovery?: Partial<
+    Record<
+      "capabilities" | "skills" | "toolsets",
+      "available" | "unsupported" | "failed"
+    >
+  >;
   configSource?: {
     hermesUrl: "vault" | "env" | "none";
     hermesKey: "vault" | "env" | "none";

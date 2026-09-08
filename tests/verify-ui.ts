@@ -166,29 +166,62 @@ try {
   }
   await page.getByRole("button", { name: "開啟導覽" }).click();
   await page.getByRole("button", { name: "Agent", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Agent Runtime", exact: true })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Hermes Runtime 狀態" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "重新同步", exact: true })).toBeEnabled();
-  await page.screenshot({ path: join(output, "runtime-desktop.png"), fullPage: true });
+  await expect(
+    page.getByRole("heading", { name: "Agent Runtime", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Hermes Runtime 狀態" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "重新同步", exact: true }),
+  ).toBeEnabled();
+  await page.screenshot({
+    path: join(output, "runtime-mobile-360.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.screenshot({
+    path: join(output, "runtime-desktop.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.getByRole("button", { name: "開啟導覽" }).click();
+  await page.getByRole("button", { name: "任務", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "任務", exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "開啟導覽" }).click();
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();
   await page.getByRole("button", { name: "靈感", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "靈感", exact: true })).toBeVisible();
-  const syncButton = page.getByRole("button", { name: "匯入已設定的 4 份試算表" });
+  await expect(
+    page.getByRole("heading", { name: "靈感", exact: true }),
+  ).toBeVisible();
+  const syncButton = page.getByRole("button", {
+    name: "匯入已設定的 4 份試算表",
+  });
   await expect(syncButton).toBeVisible();
-  assert.equal((await (await context.request.get(base + "/api/inspiration")).json()).sheetsSync, null);
+  assert.equal(
+    (await (await context.request.get(base + "/api/inspiration")).json())
+      .sheetsSync,
+    null,
+  );
   const syncBox = await syncButton.boundingBox();
   assert.ok(syncBox && syncBox.height >= 44);
   // UI error fixture only; the real import handler is independently covered in sheets-sync.test.ts.
-  await page.route("**/api/inspiration", async route => {
+  await page.route("**/api/inspiration", async (route) => {
     if (route.request().method() !== "POST") return route.continue();
     assert.equal(route.request().postDataJSON().action, "sync_sheets");
-    await route.fulfill({ status: 503, json: { error: { message: "測試來源暫時不可用，請重試。" } } });
+    await route.fulfill({
+      status: 503,
+      json: { error: { message: "測試來源暫時不可用，請重試。" } },
+    });
   });
   await syncButton.click();
-  await expect(page.locator(".inspiration-board").getByRole("alert")).toContainText("測試來源暫時不可用");
+  await expect(
+    page.locator(".inspiration-board").getByRole("alert"),
+  ).toContainText("測試來源暫時不可用");
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
   await page.getByRole("button", { name: "開啟導覽" }).click();
