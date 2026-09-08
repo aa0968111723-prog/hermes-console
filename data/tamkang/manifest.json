@@ -1,0 +1,29 @@
+{
+  "name": "淡江大學社團全生態知識庫",
+  "path": "data/tamkang",
+  "updated_at": "2026-09-08T10:41:00+08:00",
+  "rules": {
+    "single_file": true,
+    "dual_layer": true,
+    "owner": "workspace",
+    "pii": "none"
+  },
+  "sqlite": {
+    "table": "records",
+    "import": "node scripts/import-tamkang-kb.mjs"
+  },
+  "counts": {
+    "tku_club": 62,
+    "l2": {
+      "單源待核": 38,
+      "官方已核": 7,
+      "獨立二源已核": 17
+    }
+  },
+  "conflict": {
+    "173": "官網",
+    "178": "114-1名冊",
+    "184": "學務長轉述",
+    "l2": "矛盾待裁"
+  }
+}
