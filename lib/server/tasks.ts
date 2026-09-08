@@ -37,7 +37,6 @@ import {
 import { executeResearchBundle } from "./research/executor";
 import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
-import { memoryDigest } from "./memory";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
 
@@ -93,6 +92,14 @@ export function taskFor(owner: string, id: string) {
   if (!value) throw new ApiError(404, "not_found", "找不到任務。");
   return value;
 }
+export function hasCompletedToolEvents(task: Task) {
+  return task.events.some((event) => {
+    const isTool = event.kind === "tool" || Boolean(event.toolName);
+    const done =
+      event.status === "completed" || event.status === "tool.completed";
+    return isTool && done;
+  });
+}
 function event(
   task: Task,
   summary: string,
@@ -103,6 +110,7 @@ function event(
   const record: TaskEvent = {
     id: randomUUID(),
     taskId: task.id,
+    ...(toolName ? { kind: "tool" as const } : {}),
     toolName,
     status,
     startedAt: now(),
@@ -395,10 +403,7 @@ async function execute(
         : "");
     const extras =
       (composed.includeFramelabManual ? framelabTaskInstructions() : "") +
-      (composed.includeLumenManual ? lumenTaskInstructions() : "") +
-      (isFastTier(orchestration.goal.intentTier)
-        ? ""
-        : memoryDigest(owner, conv.projectId));
+      (composed.includeLumenManual ? lumenTaskInstructions() : "");
     let instructions = composed.instructions + suffix + extras;
     let fitted = fitTaskInputBudget({
       instructions,
@@ -408,12 +413,7 @@ async function execute(
     });
     if (fitted.exceeded) {
       composed = dropOptionalPacks(composed);
-      instructions =
-        composed.instructions +
-        suffix +
-        (isFastTier(orchestration.goal.intentTier)
-          ? ""
-          : memoryDigest(owner, conv.projectId));
+      instructions = composed.instructions + suffix;
       fitted = fitTaskInputBudget({
         instructions,
         history: fitted.history,
@@ -588,7 +588,7 @@ async function execute(
         "串流中斷，尚未收到完成訊號；上游結果待確認。",
       );
     task.output = visibleText(raw);
-    if (!task.output.trim())
+    if (!task.output.trim() && !hasCompletedToolEvents(task))
       throw new ApiError(502, "empty_output", "Hermes 未產生可顯示的回應。");
     finish(owner, task, "completed");
   } catch (error) {
@@ -746,7 +746,7 @@ export async function reconcile(owner: string, id: string) {
       put("conversation", owner, conv);
     }
     if (remote.status === "completed")
-      return task.output.trim()
+      return task.output.trim() || hasCompletedToolEvents(task)
         ? finish(owner, task, "completed")
         : finish(
             owner,

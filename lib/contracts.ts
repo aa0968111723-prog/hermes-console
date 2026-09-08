@@ -29,6 +29,7 @@ export interface TaskEvent {
   retryable?: boolean;
   id: string;
   taskId: string;
+  kind?: "tool";
   toolName: string | null;
   status: string;
   startedAt: string;

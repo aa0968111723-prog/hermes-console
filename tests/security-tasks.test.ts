@@ -481,6 +481,13 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
   });
   await t.test("no internal thoughts or configured secrets returned", () => {
     assert.equal(visibleText("<thought>private</thought>公開"), "公開");
+    assert.equal(visibleText("<think>private</think>公開"), "公開");
+    assert.equal(visibleText("<thinking>private</thinking>公開"), "公開");
+    assert.equal(visibleText("<analysis>private</analysis>公開"), "公開");
+    assert.equal(visibleText("<reflection>private</reflection>公開"), "公開");
+    assert.equal(visibleText("<scratchpad>private</scratchpad>公開"), "公開");
+    assert.equal(visibleText("<tool_call>secret</tool_call>公開"), "公開");
+    assert.equal(visibleText("<tool_calls>secret</tool_calls>公開"), "公開");
     assert.equal(security.redact(process.env.HERMES_API_KEY!), "[redacted]");
     assert.ok(
       !JSON.stringify(list("task", "owner")).includes(

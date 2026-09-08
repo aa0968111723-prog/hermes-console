@@ -397,8 +397,11 @@ export function usage(
 export function visibleText(value: string) {
   return redact(
     value
-      .replace(/<(thought|think|analysis)>[\s\S]*?(<\/\1>|$)/gi, "")
-      .replace(/<tool_call>[\s\S]*?(<\/tool_call>|$)/gi, ""),
+      .replace(
+        /<(thought|think|thinking|analysis|reflection|scratchpad)>[\s\S]*?(<\/\1>|$)/gi,
+        "",
+      )
+      .replace(/<(tool_calls|tool_call)>[\s\S]*?(<\/\1>|$)/gi, ""),
   );
 }
 export function streamPreview(raw: string) {
