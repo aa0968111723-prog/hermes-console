@@ -12,6 +12,13 @@ export const memoryKinds = {
   scope: "範圍備註",
 } as const;
 
+export const memorySources = [
+  "console",
+  "workspace-mcp",
+  "import",
+  "operator",
+] as const;
+
 export const memoryInput = z
   .object({
     id: z.string().uuid().optional(),
@@ -21,6 +28,11 @@ export const memoryInput = z
     content: z.string().trim().min(1).max(2000),
     tags: z.array(z.string().trim().min(1).max(40)).max(8).default([]),
     expectedRevision: z.number().int().min(0).optional(),
+    // Provenance (same SQLite row; not a second store or Hermes remote mirror)
+    source: z.enum(memorySources).optional(),
+    createdBy: z.string().trim().min(1).max(80).optional(),
+    importance: z.number().min(0).max(1).nullable().optional(),
+    confidence: z.number().min(0).max(1).nullable().optional(),
   })
   .strict();
 
@@ -34,6 +46,16 @@ export type SharedMemory = {
   createdAt: string;
   updatedAt: string;
   revision: number;
+  /** Where the row was written from (console UI, MCP, import, operator). */
+  source: (typeof memorySources)[number];
+  /** Logical actor label; not an account login. */
+  createdBy: string;
+  /** 0–1 operator importance, or null if unset. */
+  importance: number | null;
+  /** Last time included in a task digest or explicit read; null until used. */
+  lastUsedAt: string | null;
+  /** 0–1 confidence in the content, or null if unset. */
+  confidence: number | null;
 };
 
 const KIND = "shared_memory";
@@ -46,17 +68,36 @@ function rejectSecrets(value: unknown) {
     throw new ApiError(400, "sensitive_content", "共用記憶不得包含憑證或金鑰。");
 }
 
+function normalizeMemory(raw: SharedMemory): SharedMemory {
+  return {
+    ...raw,
+    source: raw.source || "console",
+    createdBy: raw.createdBy || "workspace",
+    importance:
+      typeof raw.importance === "number" && Number.isFinite(raw.importance)
+        ? Math.min(1, Math.max(0, raw.importance))
+        : null,
+    lastUsedAt: raw.lastUsedAt || null,
+    confidence:
+      typeof raw.confidence === "number" && Number.isFinite(raw.confidence)
+        ? Math.min(1, Math.max(0, raw.confidence))
+        : null,
+  };
+}
+
 export function getMemory(owner: string, id: string) {
   const item = get<SharedMemory>(KIND, owner, id);
   if (!item) throw new ApiError(404, "memory_not_found", "找不到這筆共用記憶。");
-  return item;
+  return normalizeMemory(item);
 }
 
 export function listMemories(owner: string, scope?: string) {
-  return list<SharedMemory>(KIND, owner).filter((item) => {
-    if (!scope || scope === "all") return true;
-    return item.scope === scope || item.scope === "workspace";
-  });
+  return list<SharedMemory>(KIND, owner)
+    .map(normalizeMemory)
+    .filter((item) => {
+      if (!scope || scope === "all") return true;
+      return item.scope === scope || item.scope === "workspace";
+    });
 }
 
 export function saveMemory(
@@ -64,7 +105,11 @@ export function saveMemory(
   raw: z.input<typeof memoryInput>,
 ): SharedMemory {
   const input = memoryInput.parse(raw);
-  if (input.scope !== "workspace" && input.scope !== "personal" && !get("project", owner, input.scope))
+  if (
+    input.scope !== "workspace" &&
+    input.scope !== "personal" &&
+    !get("project", owner, input.scope)
+  )
     throw new ApiError(404, "project_not_found", "專案不存在。");
   rejectSecrets(input);
   const previous = input.id ? getMemory(owner, input.id) : null;
@@ -87,6 +132,17 @@ export function saveMemory(
     createdAt: previous?.createdAt || now,
     updatedAt: now,
     revision: (previous?.revision || 0) + 1,
+    source: input.source || previous?.source || "console",
+    createdBy: input.createdBy || previous?.createdBy || "workspace",
+    importance:
+      input.importance !== undefined
+        ? input.importance
+        : (previous?.importance ?? null),
+    lastUsedAt: previous?.lastUsedAt ?? null,
+    confidence:
+      input.confidence !== undefined
+        ? input.confidence
+        : (previous?.confidence ?? null),
   } satisfies SharedMemory);
 }
 
@@ -97,12 +153,35 @@ export function deleteMemory(owner: string, id: string) {
   return { deleted: true as const, id };
 }
 
+/** Mark memories as used when they enter a task digest (same row, no second store). */
+export function touchMemories(owner: string, ids: string[]) {
+  const now = new Date().toISOString();
+  for (const id of ids) {
+    const item = get<SharedMemory>(KIND, owner, id);
+    if (!item) continue;
+    put(KIND, owner, {
+      ...normalizeMemory(item),
+      lastUsedAt: now,
+    });
+  }
+}
+
 export function memoryDigest(owner: string, projectId?: string) {
   const items = listMemories(owner, projectId || "workspace").slice(0, 8);
   if (!items.length) return "";
+  touchMemories(
+    owner,
+    items.map((item) => item.id),
+  );
   const lines = items.map((item) => {
     const body = item.content.replace(/\s+/g, " ").slice(0, 200);
-    return `- [${item.kind}/${item.scope}] ${item.title}：${body}`;
+    const meta: string[] = [`${item.kind}/${item.scope}`];
+    if (item.source !== "console") meta.push(`src=${item.source}`);
+    if (item.confidence != null)
+      meta.push(`conf=${item.confidence.toFixed(2)}`);
+    if (item.importance != null)
+      meta.push(`imp=${item.importance.toFixed(2)}`);
+    return `- [${meta.join(" ")}] ${item.title}：${body}`;
   });
   return (
     "\n工作區共用記憶（Console SQLite，經 Workspace MCP 與任務指示共用；不是 Hermes 遠端記憶鏡像）：\n" +
@@ -128,6 +207,13 @@ export function memoryShareStatus(owner: string, connection?: Health) {
     scopeVerified,
     count: listMemories(owner).length,
     synced: false,
+    provenanceFields: [
+      "source",
+      "createdBy",
+      "importance",
+      "lastUsedAt",
+      "confidence",
+    ] as const,
     notice:
       hermesRemote === "available"
         ? "Console SQLite 是共用來源；Hermes 遠端記憶能力已宣告且管理者聲明範圍已驗證，仍不代表雙方已雙向鏡像。"
