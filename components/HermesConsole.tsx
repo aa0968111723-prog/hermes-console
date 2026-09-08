@@ -29,7 +29,6 @@ import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
-import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
 import RuntimeInspector from "./RuntimeInspector";
@@ -40,6 +39,17 @@ import IntegrationHealth from "./settings/IntegrationHealth";
 import CapabilityCertification from "./settings/CapabilityCertification";
 import ConnectionSettings from "./settings/ConnectionSettings";
 import SharedMemory from "./settings/SharedMemory";
+import HermesCore from "./visual/HermesCore";
+import QuickActions from "./visual/QuickActions";
+import AgentOrbit from "./visual/AgentOrbit";
+import AgentActivity from "./visual/AgentActivity";
+import VisualStatus from "./visual/VisualStatus";
+import AppDock from "./visual/AppDock";
+import ArtifactStage from "./visual/ArtifactStage";
+import ComposerMenu from "./visual/ComposerMenu";
+import ContextTray from "./visual/ContextTray";
+import ProjectShelf from "./visual/ProjectShelf";
+import VisualMessage from "./visual/VisualMessage";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -159,7 +169,8 @@ export default function HermesConsole() {
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
   const [sheetsSync, setSheetsSync] = useState<SheetSyncResult | null>(null);
   const [drawer, setDrawer] = useState(false);
-  const [sidebar, setSidebar] = useState(true);
+  const [sidebar, setSidebar] = useState(false);
+  const [referenceOpen, setReferenceOpen] = useState(false);
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
     null,
   );
@@ -366,7 +377,11 @@ export default function HermesConsole() {
       );
     update();
     viewport?.addEventListener("resize", update);
-    return () => viewport?.removeEventListener("resize", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
   useEffect(() => {
     if (panel) dialog.current?.showModal();
@@ -626,47 +641,60 @@ export default function HermesConsole() {
   };
   const navigation = (
     <>
-      <div className="brand">
+      <div className="brand" role="img" aria-label="Hermes 龜龜創作助手">
         <span className="brand-mark">
           <Leaf size={20} />
         </span>
-        <span>
+        <span className="brand-copy">
           Hermes<small>龜龜創作助手</small>
         </span>
       </div>
-      <button className="new-chat" onClick={fresh} disabled={busy}>
+      <button
+        className="new-chat"
+        aria-label="開啟新對話"
+        onClick={fresh}
+        disabled={busy}
+      >
         <Plus size={19} />
-        開啟新對話
+        <span>開啟新對話</span>
         <Pencil size={16} />
       </button>
-      <nav aria-label="主要導覽">
+      <nav className="visual-dock-nav" aria-label="主要導覽">
         <button
+          aria-label="對話"
+          title="對話"
           aria-current={nav === "chat" ? "page" : undefined}
           onClick={() => navigate("chat")}
         >
           <MessageSquare size={19} />
-          對話
+          <span>對話</span>
         </button>
         <button
+          aria-label="專案"
+          title="專案"
           aria-current={nav === "projects" ? "page" : undefined}
           onClick={() => navigate("projects")}
         >
           <Images size={19} />
-          專案
+          <span>專案</span>
         </button>
         <button
+          aria-label="靈感"
+          title="靈感"
           aria-current={nav === "inspiration" ? "page" : undefined}
           onClick={() => navigate("inspiration")}
         >
           <Sparkles size={19} />
-          靈感
+          <span>靈感</span>
         </button>
         <button
+          aria-label="Agent"
+          title="Agent"
           aria-current={nav === "agents" ? "page" : undefined}
           onClick={() => navigate("agents")}
         >
           <Bot size={19} />
-          Agent
+          <span>Agent</span>
         </button>
         <button
           aria-current={nav === "tasks" ? "page" : undefined}
@@ -676,7 +704,7 @@ export default function HermesConsole() {
           任務
         </button>
       </nav>
-      <div className="side-section">
+      <div className="side-section dock-section-label">
         <span>專案</span>
         <button
           aria-label="新增專案"
@@ -698,7 +726,7 @@ export default function HermesConsole() {
         }}
       >
         <Folder size={17} />
-        個人工作區
+        <span>個人工作區</span>
       </button>
       {data.projects.map((p) => (
         <button
@@ -714,7 +742,7 @@ export default function HermesConsole() {
           <span>{p.name}</span>
         </button>
       ))}
-      <div className="side-section">
+      <div className="side-section dock-section-label">
         <span>最近對話</span>
       </div>
       <div className="history">
@@ -738,13 +766,15 @@ export default function HermesConsole() {
       </div>
       <button
         className="settings-button"
+        aria-label="設定與連線"
+        title="設定與連線"
         onClick={() => {
           setPanel("settings");
           setDrawer(false);
         }}
       >
         <Settings size={19} />
-        設定與連線
+        <span>設定與連線</span>
         <span
           className={
             "status-dot " + (health?.credential === "valid" ? "good" : "")
@@ -768,7 +798,9 @@ export default function HermesConsole() {
       <a className="skip-link" href="#composer">
         跳至輸入區
       </a>
-      {sidebar && <aside className="sidebar">{navigation}</aside>}
+      <aside className="sidebar" data-expanded={sidebar}>
+        {navigation}
+      </aside>
       <dialog
         ref={mobileNav}
         className="mobile-nav"
@@ -794,6 +826,7 @@ export default function HermesConsole() {
           <button
             className="icon-button desktop-toggle"
             aria-label={sidebar ? "收合側欄" : "展開側欄"}
+            aria-expanded={sidebar}
             onClick={() => setSidebar(!sidebar)}
           >
             {sidebar ? <PanelLeftClose size={20} /> : <Menu size={20} />}
@@ -821,7 +854,23 @@ export default function HermesConsole() {
             </span>
           </div>
           <button
+            className="icon-button"
+            aria-label="任務與成果"
+            title="任務與成果"
+            onClick={() => navigate("tasks")}
+          >
+            <ListTodo size={20} />
+          </button>
+          <button
             className="connection-pill"
+            aria-label={
+              "連線狀態：" +
+              (offline
+                ? "離線"
+                : health
+                  ? connectionLabels[health.status]
+                  : "確認中")
+            }
             onClick={() => {
               setSettingsTab("連線");
               setPanel("settings");
@@ -832,7 +881,7 @@ export default function HermesConsole() {
                 "status-dot " + (health?.credential === "valid" ? "good" : "")
               }
             />
-            <span>
+            <span className="connection-label">
               {offline
                 ? "離線"
                 : health
@@ -890,60 +939,34 @@ export default function HermesConsole() {
             >
               <div className="conversation">
                 {!activeConv?.messages.length ? (
-                  <section className="welcome">
-                    {prefs.turtle && (
-                      <Turtle
-                        offline={offline}
-                        animation={prefs.animation}
-                        size={prefs.turtleSize}
-                        onClick={() => openTask()}
-                      />
-                    )}
-                    <p className="eyebrow">
-                      歡迎使用 Hermes Creative Intelligence
-                    </p>
-                    <h1>今天想做什麼？</h1>
-                    <p>
-                      直接告訴龜龜你想做什麼。
-                      <br className="mobile-break" />
-                      不必自己挑選工具。
-                    </p>
-                    <button
-                      className="primary"
-                      onClick={() => input.current?.focus()}
-                    >
-                      開始使用
-                    </button>
-                    <div className="starters">
-                      {[
-                        ["幫我找網宣靈感", "幫我找網宣靈感。"],
-                        [
-                          "幫我做淡江新生海報",
-                          "幫我做一張給淡江大一新生看的社團茶會海報。",
-                        ],
-                        ["分析這張文宣", "請分析這張文宣。"],
-                        [
-                          "站在目標客群角度看看",
-                          "站在目標客群角度看看，路人會不會滑掉。",
-                        ],
-                        [
-                          "找 IG / Pinterest 參考",
-                          "幫我找 IG 與 Pinterest 參考，不要假裝已搜尋完整平台。",
-                        ],
-                        ["做 Canva 草稿", "幫我做 Canva 草稿。"],
-                      ].map(([label, prompt]) => (
-                        <button
-                          key={label}
-                          onClick={() => {
-                            setText(prompt);
-                            input.current?.focus();
-                          }}
-                        >
-                          <span>{label}</span>
-                          <Plus size={16} />
-                        </button>
-                      ))}
+                  <section className="welcome" aria-labelledby="welcome-title">
+                    <div className="welcome-stage">
+                      {prefs.turtle && (
+                        <HermesCore
+                          task={currentTask}
+                          offline={offline}
+                          animation={prefs.animation}
+                          size={prefs.turtleSize * 1.8}
+                          onClick={() => openTask(currentTask)}
+                        />
+                      )}
+                      {prefs.turtle && (
+                        <AgentOrbit
+                          compact
+                          task={currentTask}
+                          integrations={integrations}
+                          stale={offline}
+                          animation={prefs.animation}
+                        />
+                      )}
                     </div>
+                    <h1 id="welcome-title">今天想做什麼？</h1>
+                    <QuickActions
+                      onSelect={(prompt) => {
+                        setText(prompt);
+                        input.current?.focus();
+                      }}
+                    />
                     {legacy && (
                       <button className="text-button" onClick={importLegacy}>
                         匯入這個瀏覽器中的舊對話（不覆蓋原資料）
@@ -956,6 +979,12 @@ export default function HermesConsole() {
                       <p className="branch-note">
                         此為獨立分支，原對話仍保留。
                       </p>
+                    )}
+                    {currentTask && isActive(currentTask) && (
+                      <AgentActivity
+                        task={currentTask}
+                        onInspect={() => openTask(currentTask)}
+                      />
                     )}
                     {activeConv.messages.map((message) => (
                       <article
@@ -973,6 +1002,16 @@ export default function HermesConsole() {
                         </div>
                         <div className="message-content">
                           <MessageBody text={message.content} />
+                          {message.role === "assistant" && message.taskId && (
+                            <VisualMessage
+                              task={tasks.find((t) => t.id === message.taskId)}
+                              onInspect={() =>
+                                openTask(
+                                  tasks.find((t) => t.id === message.taskId),
+                                )
+                              }
+                            />
+                          )}
                           {!!message.attachments?.length && (
                             <div className="message-attachments">
                               {message.attachments.map((id) => {
@@ -1134,78 +1173,32 @@ export default function HermesConsole() {
                     void send();
                   }}
                 >
-                  {(uploads.length > 0 || references.length > 0) && (
-                    <div className="upload-list">
-                      {uploads.map((u) => (
-                        <div className="upload-chip" key={u.key}>
-                          {u.material?.kind === "image" && (
-                            <img
-                              src={"/api/materials?id=" + u.material.id}
-                              alt="附件預覽"
-                            />
-                          )}
-                          <span>
-                            {u.file.name}
-                            <small>
-                              {u.error ||
-                                (!u.material
-                                  ? "上傳 " + u.progress + "%"
-                                  : "已保存")}
-                            </small>
-                          </span>
-                          {u.error && (
-                            <button
-                              type="button"
-                              aria-label="重試上傳"
-                              disabled={busy}
-                              onClick={() => uploadFile(u.file, u.key)}
-                            >
-                              <RefreshCw size={16} />
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            aria-label="移除附件"
-                            disabled={busy}
-                            onClick={() => {
-                              pendingXHR.current.get(u.key)?.abort();
-                              setUploads((old) =>
-                                old.filter((x) => x.key !== u.key),
-                              );
-                            }}
-                          >
-                            <X size={15} />
-                          </button>
-                        </div>
-                      ))}
-                      {references.map((id) => (
-                        <div className="upload-chip" key={id}>
-                          <LinkIcon size={16} />
-                          <span>
-                            {data.materials.find((m) => m.id === id)?.title}
-                          </span>
-                          <button
-                            type="button"
-                            aria-label="移除參考"
-                            disabled={busy}
-                            onClick={() =>
-                              setReferences((old) =>
-                                old.filter((x) => x !== id),
-                              )
-                            }
-                          >
-                            <X size={15} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <ContextTray
+                    uploads={uploads}
+                    references={references}
+                    materials={data.materials}
+                    disabled={busy}
+                    onPreview={(material) => {
+                      setPreview(material);
+                      setPanel("preview");
+                    }}
+                    onRetry={(upload) => uploadFile(upload.file, upload.key)}
+                    onRemoveUpload={(key) => {
+                      pendingXHR.current.get(key)?.abort();
+                      setUploads((old) => old.filter((u) => u.key !== key));
+                    }}
+                    onRemoveReference={(id) =>
+                      setReferences((old) =>
+                        old.filter((value) => value !== id),
+                      )
+                    }
+                  />
                   <textarea
                     ref={input}
                     value={text}
-                    rows={2}
+                    rows={1}
                     maxLength={20_000}
-                    placeholder="說說你的想法，或加入參考素材…"
+                    placeholder="想做什麼？"
                     aria-label="訊息"
                     aria-describedby="composer-hint"
                     readOnly={busy}
@@ -1235,6 +1228,7 @@ export default function HermesConsole() {
                       className="sr-only"
                       tabIndex={-1}
                       type="file"
+                      aria-label="選擇附件檔案"
                       accept="image/png,image/jpeg,image/webp,text/plain,application/pdf"
                       multiple
                       disabled={busy}
@@ -1251,26 +1245,29 @@ export default function HermesConsole() {
                         files.forEach((file) => uploadFile(file));
                       }}
                     />
-                    <button
-                      className="icon-button"
-                      type="button"
-                      aria-label="上傳圖片或文字檔"
+                    <ComposerMenu
                       disabled={busy}
-                      title="PNG、JPG、WebP、TXT 或 PDF；每個檔案最多 8 MB，每則訊息最多四個附件"
-                      onClick={() => uploadInput.current?.click()}
-                    >
-                      <Plus size={23} />
-                    </button>
-                    <button
-                      className="composer-label"
-                      type="button"
-                      disabled={busy}
-                      onClick={() => setNav("projects")}
-                    >
-                      <ImagePlus size={17} />
-                      加入素材
-                    </button>
-                    <span className="composer-mode">Hermes · 草稿工作區</span>
+                      onUpload={(kind) => {
+                        if (uploadInput.current) {
+                          uploadInput.current.accept =
+                            kind === "image"
+                              ? "image/png,image/jpeg,image/webp"
+                              : "text/plain,application/pdf";
+                          uploadInput.current.click();
+                        }
+                      }}
+                      onNavigate={(kind) => {
+                        if (kind === "canva") {
+                          setText(
+                            "請查回我已有的 Canva 設計，選擇要接續修改的作品。",
+                          );
+                          input.current?.focus();
+                        } else {
+                          setNav("projects");
+                          setReferenceOpen(kind === "reference");
+                        }
+                      }}
+                    />
                     {pending ? (
                       <button
                         className="send-button"
@@ -1298,7 +1295,7 @@ export default function HermesConsole() {
                   </div>
                 </form>
               </div>
-              <p className="composer-footnote" id="composer-hint">
+              <p className="sr-only" id="composer-hint">
                 {text || uploads.length || references.length
                   ? "草稿暫存於此分頁，重新整理將清除。"
                   : "請核對重要資訊與素材權利。"}
@@ -1308,69 +1305,89 @@ export default function HermesConsole() {
           </>
         ) : nav === "projects" ? (
           <section className="secondary-page">
-            <p className="eyebrow">收好靈感，接著創作</p>
             <h1>素材與靈感</h1>
-            <ProjectWorkbench
-              key={project}
-              projectId={project}
+            <ProjectShelf
+              projects={data.projects}
               materials={data.materials}
-              workflows={workflows}
-              onCompose={(text) => {
-                if (busy) {
-                  setError("請先等目前任務結束或停止，再接續其他作品。");
-                  return;
-                }
-                fresh();
-                replaceDraft("project:" + project, { ...emptyDraft(), text });
+              conversations={data.conversations}
+              selected={project}
+              onSelect={(id) => {
+                setProject(id);
+                setActiveId(null);
+              }}
+              onCreate={() => {
+                setPanel("settings");
+                setSettingsTab("專案");
               }}
             />
-            <p className="muted">
-              保存來源與你的素材，不將參考作品視為可直接發佈的素材。
-            </p>
-            <form
-              className="reference-form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                try {
-                  await api("materials", "POST", {
-                    projectId: project,
-                    title: refTitle,
-                    url: refURL,
-                  });
-                  setRefTitle("");
-                  setRefURL("");
-                  await loadWorkspace();
-                  setNotice("已保存來源連結；尚未擷取網頁內容。");
-                } catch (err) {
-                  setError((err as Error).message);
-                }
-              }}
+            <details className="workbench-disclosure">
+              <summary>活動與文案</summary>
+              <ProjectWorkbench
+                key={project}
+                projectId={project}
+                materials={data.materials}
+                workflows={workflows}
+                onCompose={(text) => {
+                  if (busy) {
+                    setError("請先等目前任務結束或停止，再接續其他作品。");
+                    return;
+                  }
+                  fresh();
+                  replaceDraft("project:" + project, { ...emptyDraft(), text });
+                }}
+              />
+            </details>
+            <details
+              className="reference-disclosure"
+              open={referenceOpen}
+              onToggle={(e) => setReferenceOpen(e.currentTarget.open)}
             >
-              <label>
-                參考標題
-                <input
-                  required
-                  maxLength={150}
-                  value={refTitle}
-                  onChange={(e) => setRefTitle(e.target.value)}
-                  placeholder="例如：校園活動構圖參考"
-                />
-              </label>
-              <label>
-                來源連結
-                <input
-                  required
-                  type="url"
-                  value={refURL}
-                  onChange={(e) => setRefURL(e.target.value)}
-                  placeholder="https://…"
-                />
-              </label>
-              <button className="primary">
-                <LinkIcon size={16} />
-                收藏連結
-              </button>
-            </form>
+              <summary>收藏參考連結</summary>
+              <form
+                className="reference-form"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  try {
+                    await api("materials", "POST", {
+                      projectId: project,
+                      title: refTitle,
+                      url: refURL,
+                    });
+                    setRefTitle("");
+                    setRefURL("");
+                    await loadWorkspace();
+                    setNotice("已保存來源連結；尚未擷取網頁內容。");
+                  } catch (err) {
+                    setError((err as Error).message);
+                  }
+                }}
+              >
+                <label>
+                  參考標題
+                  <input
+                    required
+                    maxLength={150}
+                    value={refTitle}
+                    onChange={(e) => setRefTitle(e.target.value)}
+                    placeholder="例如：校園活動構圖參考"
+                  />
+                </label>
+                <label>
+                  來源連結
+                  <input
+                    required
+                    type="url"
+                    value={refURL}
+                    onChange={(e) => setRefURL(e.target.value)}
+                    placeholder="https://…"
+                  />
+                </label>
+                <button className="primary">
+                  <LinkIcon size={16} />
+                  收藏連結
+                </button>
+              </form>
+            </details>
             <div className="material-grid">
               {data.materials
                 .filter((m) => m.projectId === project)
@@ -1449,15 +1466,20 @@ export default function HermesConsole() {
           />
         ) : nav === "agents" ? (
           <section className="secondary-page">
-            <p className="eyebrow">即時能力與工具</p>
-            <h1>Agent Runtime</h1>
-            <p className="muted">
-              Agent、Tools、Skills、Toolsets 與 MCP 以 Hermes Runtime
-              探索結果為準。
-            </p>
-            <RuntimeInspector />
-            <details>
-              <summary>已配置的連接設定</summary>
+            <div className="page-heading-row">
+              <div>
+                <p className="eyebrow">能力</p>
+                <h1>Agent Runtime</h1>
+              </div>
+              <VisualStatus health={health} offline={offline} />
+            </div>
+            <RuntimeInspector
+              task={currentTask}
+              health={health}
+              animation={prefs.animation}
+            />
+            <details className="agent-profiles">
+              <summary>Agent OS · 設定檔</summary>
               <AgentPanel
                 agents={agents.filter(
                   (agent) =>
@@ -1469,9 +1491,7 @@ export default function HermesConsole() {
           </section>
         ) : (
           <section className="secondary-page">
-            <p className="eyebrow">每一步都有紀錄</p>
             <h1>任務</h1>
-            <p className="muted">這裡只呈現後端儲存及 Hermes 回報的狀態。</p>
             {workflows
               .filter((w) => w.projectId === project)
               .map((w) => (
@@ -1565,34 +1585,59 @@ export default function HermesConsole() {
                       查回 Canva 製作結果
                     </button>
                   )}
-                  {w.design && <CanvaResult design={w.design} />}
+                  {w.design && (
+                    <ArtifactStage
+                      design={w.design}
+                      onContinue={() => {
+                        setNav("chat");
+                        setText(
+                          "請查回創作流程 " +
+                            w.id +
+                            " 的現有設計，接續修改同一作品。",
+                        );
+                        input.current?.focus();
+                      }}
+                    />
+                  )}
                 </section>
               ))}
-            {!tasks.length && !workflows.length && (
-              <div className="empty-state">
-                <ListTodo size={30} />
-                <h2>目前沒有任務</h2>
-                <p>送出第一則訊息後，便能在這裡查回執行結果。</p>
-              </div>
-            )}
-            {tasks.map((t) => (
-              <button
-                className="task-row"
-                key={t.id}
-                onClick={() => openTask(t)}
-              >
-                <span>
-                  <strong>{t.input.slice(0, 70)}</strong>
-                  <small>{time(t.createdAt)}</small>
-                </span>
-                <span className={"badge " + t.state}>
-                  {taskLabels[t.state]}
-                </span>
-              </button>
-            ))}
+            {!tasks.some(
+              (t) =>
+                data.conversations.find((c) => c.id === t.conversationId)
+                  ?.projectId === project,
+            ) &&
+              !workflows.some((w) => w.projectId === project) && (
+                <div className="empty-state">
+                  <ListTodo size={30} />
+                  <h2>目前沒有任務</h2>
+                  <p>送出第一則訊息後，便能在這裡查回執行結果。</p>
+                </div>
+              )}
+            {tasks
+              .filter(
+                (t) =>
+                  data.conversations.find((c) => c.id === t.conversationId)
+                    ?.projectId === project,
+              )
+              .map((t) => (
+                <button
+                  className="task-row"
+                  key={t.id}
+                  onClick={() => openTask(t)}
+                >
+                  <span>
+                    <strong>{t.input.slice(0, 70)}</strong>
+                    <small>{time(t.createdAt)}</small>
+                  </span>
+                  <span className={"badge " + t.state}>
+                    {taskLabels[t.state]}
+                  </span>
+                </button>
+              ))}
           </section>
         )}
       </main>
+      <AppDock nav={nav} onNavigate={navigate} />
       <dialog
         ref={dialog}
         className="detail-dialog"
@@ -1768,55 +1813,91 @@ export default function HermesConsole() {
                   </div>
                 ) : settingsTab === "連線" ? (
                   <div className="settings-stack">
-                    <h3>Hermes</h3>
-                    <p>{health?.message || "尚未取得狀態。"}</p>
-                    <dl className="facts">
-                      <dt>服務可達</dt>
-                      <dd>
-                        {health?.reachable === null || !health
-                          ? "未知"
-                          : health.reachable
-                            ? "是"
-                            : "否"}
-                      </dd>
-                      <dt>憑證驗證</dt>
-                      <dd>
-                        {health?.credential === "valid"
-                          ? "有效"
-                          : health?.credential === "invalid"
-                            ? "無效"
-                            : "尚未確認"}
-                      </dd>
-                      <dt>Agent 執行</dt>
-                      <dd>
-                        {health?.agent === "verified"
-                          ? "已有成功任務"
-                          : "未驗證"}
-                      </dd>
-                      <dt>最後連線檢查</dt>
-                      <dd>{health ? time(health.checkedAt) : "未知"}</dd>
-                    </dl>
-                    <button
-                      onClick={async () => {
-                        setBusy(true);
-                        try {
-                          setHealth(await api<Health>("health", "POST", {}));
-                          const result = await api<{
-                            integrations: Integration[];
-                          }>("integrations");
-                          setIntegrations(result.integrations);
-                        } catch (e) {
-                          setError((e as Error).message);
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                      disabled={busy}
-                    >
-                      <RefreshCw size={16} />
-                      {busy ? "驗證中…" : "重新驗證連線"}
-                    </button>
+                    <details className="connection-storage">
+                      <summary>Hermes · 健康與驗證</summary>
+                      <p>{health?.message || "尚未取得狀態。"}</p>
+                      <dl className="facts">
+                        <dt>服務可達</dt>
+                        <dd>
+                          {health?.reachable === null || !health
+                            ? "未知"
+                            : health.reachable
+                              ? "是"
+                              : "否"}
+                        </dd>
+                        <dt>憑證驗證</dt>
+                        <dd>
+                          {health?.credential === "valid"
+                            ? "有效"
+                            : health?.credential === "invalid"
+                              ? "無效"
+                              : "尚未確認"}
+                        </dd>
+                        <dt>Agent 執行</dt>
+                        <dd>
+                          {health?.agent === "verified"
+                            ? "已有成功任務"
+                            : "未驗證"}
+                        </dd>
+                        <dt>最後連線檢查</dt>
+                        <dd>{health ? time(health.checkedAt) : "未知"}</dd>
+                      </dl>
+                      <button
+                        onClick={async () => {
+                          setBusy(true);
+                          try {
+                            setHealth(await api<Health>("health", "POST", {}));
+                            const result = await api<{
+                              integrations: Integration[];
+                            }>("integrations");
+                            setIntegrations(result.integrations);
+                          } catch (e) {
+                            setError((e as Error).message);
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                        disabled={busy}
+                      >
+                        <RefreshCw size={16} />
+                        {busy ? "驗證中…" : "重新驗證連線"}
+                      </button>
+                    </details>
                     <ConnectionSettings
+                      canvaState={
+                        integrations.find((item) => item.id === "canva")
+                          ?.state || "unknown"
+                      }
+                      canva={
+                        <section
+                          className="canva-connection"
+                          aria-label="Canva 授權"
+                        >
+                          <h3>Canva · 授權</h3>
+                          <p>
+                            {canvaConfigured
+                              ? "後端已設定 OAuth；請前往 Canva 授權並確認所需權限。此授權只用於 Canva。"
+                              : "後端尚未設定 Canva OAuth。也可沿用 Hermes 已有的 Canva 設計 MCP。"}
+                          </p>
+                          <button
+                            disabled={!canvaConfigured}
+                            onClick={async () => {
+                              try {
+                                const result = await api<{ url: string }>(
+                                  "canva",
+                                  "POST",
+                                  { action: "authorize" },
+                                );
+                                window.location.assign(result.url);
+                              } catch (e) {
+                                setError((e as Error).message);
+                              }
+                            }}
+                          >
+                            前往 Canva 授權 <ExternalLink size={16} />
+                          </button>
+                        </section>
+                      }
                       onChanged={async () => {
                         try {
                           setHealth(await api<Health>("health", "POST", {}));
@@ -1829,81 +1910,62 @@ export default function HermesConsole() {
                         }
                       }}
                     />
-                    <IntegrationHealth items={integrations} />
-                    <CapabilityCertification />
-                    <h3>Canva Connect 授權</h3>
-                    <p>
-                      {canvaConfigured
-                        ? "後端已設定 OAuth；請前往 Canva 授權並確認所需權限。此授權只用於 Canva。"
-                        : "後端尚未設定 Canva OAuth。也可沿用 Hermes 已有的 Canva 設計 MCP。"}
-                    </p>
-                    <button
-                      disabled={!canvaConfigured}
-                      onClick={async () => {
-                        try {
-                          const result = await api<{ url: string }>(
-                            "canva",
-                            "POST",
-                            { action: "authorize" },
-                          );
-                          window.location.assign(result.url);
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      前往 Canva 授權 <ExternalLink size={16} />
-                    </button>
-                    <label>
-                      尋找工具與技能
-                      <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="搜尋名稱或用途"
-                      />
-                    </label>
-                    {integrations
-                      .filter((i) =>
-                        (i.name + " " + i.detail + " " + i.tools.join(" "))
-                          .toLowerCase()
-                          .includes(search.toLowerCase()),
-                      )
-                      .map((i) => (
-                        <details className="integration" key={i.id}>
-                          <summary>
-                            <strong>{i.name}</strong>
-                            <span className="badge">
-                              {connectionLabels[i.state]}
-                            </span>
-                          </summary>
-                          <p>{i.detail}</p>
-                          <p>{i.evidence || "尚無執行驗證證據。"}</p>
-                          <small>
-                            最後驗證：
-                            {i.verifiedAt ? time(i.verifiedAt) : "未驗證"}
-                          </small>
-                          <ul>
-                            {i.requirements.map((value) => (
-                              <li key={value}>{value}</li>
-                            ))}
-                          </ul>
-                          {!!i.tools.length && (
-                            <p>已宣告工具：{i.tools.join("、")}</p>
-                          )}
-                        </details>
-                      ))}
-                    {(health?.skills || [])
-                      .filter((s) =>
-                        (s.name + s.description)
-                          .toLowerCase()
-                          .includes(search.toLowerCase()),
-                      )
-                      .map((s) => (
-                        <details key={s.name}>
-                          <summary>{s.name}</summary>
-                          <p>{s.description}</p>
-                        </details>
-                      ))}
+
+                    <details className="connection-advanced">
+                      <summary>Advanced · 工具、技能與驗證證據</summary>
+                      <IntegrationHealth items={integrations} />
+                      <CapabilityCertification />
+                      <label>
+                        尋找工具與技能
+                        <input
+                          value={search}
+                          onChange={(e) => setSearch(e.target.value)}
+                          placeholder="搜尋名稱或用途"
+                        />
+                      </label>
+                      {integrations
+                        .filter((i) =>
+                          (i.name + " " + i.detail + " " + i.tools.join(" "))
+                            .toLowerCase()
+                            .includes(search.toLowerCase()),
+                        )
+                        .map((i) => (
+                          <details className="integration" key={i.id}>
+                            <summary>
+                              <strong>{i.name}</strong>
+                              <span className="badge">
+                                {connectionLabels[i.state]}
+                              </span>
+                            </summary>
+                            <p>{i.detail}</p>
+                            <p>{i.evidence || "尚無執行驗證證據。"}</p>
+                            <small>
+                              最後驗證：
+                              {i.verifiedAt ? time(i.verifiedAt) : "未驗證"}
+                            </small>
+                            <ul>
+                              {i.requirements.map((value) => (
+                                <li key={value}>{value}</li>
+                              ))}
+                            </ul>
+                            {!!i.tools.length && (
+                              <p>已宣告工具：{i.tools.join("、")}</p>
+                            )}
+                          </details>
+                        ))}
+                      {(health?.skills || [])
+                        .filter((s) =>
+                          (s.name + s.description)
+                            .toLowerCase()
+                            .includes(search.toLowerCase()),
+                        )
+                        .map((s) => (
+                          <details key={s.name}>
+                            <summary>{s.name}</summary>
+                            <p>{s.description}</p>
+                          </details>
+                        ))}
+                    </details>
                   </div>
                 ) : settingsTab === "記憶" ? (
                   <div className="settings-stack">
@@ -1921,8 +1983,9 @@ export default function HermesConsole() {
                     />
                     <p>{data.memory.scope}</p>
                     <p className="muted">
-                      上方「共用記憶庫」是 Console SQLite，Hermes 可經 Workspace MCP 與任務指示讀寫同一批資料。
-                      學習地圖仍是「請 Hermes 學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
+                      上方「共用記憶庫」是 Console SQLite，Hermes 可經 Workspace
+                      MCP 與任務指示讀寫同一批資料。 學習地圖仍是「請 Hermes
+                      學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
                     </p>
                     <button
                       disabled={!activeConv?.hermesSessionId}

@@ -1,7 +1,9 @@
 import { chromium, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { verifyVisualStates } from "./visual-states";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -60,7 +62,30 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
+  await context.addInitScript({
+    content: `
+    window.__metrics = { lcp: null, cls: 0, supported: PerformanceObserver.supportedEntryTypes };
+    if (PerformanceObserver.supportedEntryTypes.includes("largest-contentful-paint"))
+      new PerformanceObserver(list => { for (const e of list.getEntries()) window.__metrics.lcp = e.startTime; }).observe({type:"largest-contentful-paint",buffered:true});
+    if (PerformanceObserver.supportedEntryTypes.includes("layout-shift"))
+      new PerformanceObserver(list => { for (const e of list.getEntries()) if (!e.hadRecentInput) window.__metrics.cls += e.value; }).observe({type:"layout-shift",buffered:true});
+  `,
+  });
   const page = await context.newPage();
+  const accessibility: { page: string; violations: unknown[] }[] = [];
+  async function audit(name: string) {
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+      .analyze();
+    accessibility.push({
+      page: name,
+      violations: result.violations.map((v) => ({
+        id: v.id,
+        impact: v.impact,
+        nodes: v.nodes.map((n) => n.target),
+      })),
+    });
+  }
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   async function assertNoLogin(target = page) {
@@ -96,8 +121,23 @@ try {
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toBeVisible();
+  await page
+    .locator(".turtle img")
+    .evaluate((image: HTMLImageElement) => image.decode());
+  await audit("home-desktop");
+  const initialMetrics = await page.evaluate("window.__metrics");
   await assertNoLogin();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await expect(page.locator(".quick-action-label")).toHaveCount(6);
+  for (const label of await page
+    .locator(".quick-action-label")
+    .allTextContents())
+    assert.ok(label.length <= 4, "quick actions should remain concise");
+  await page.locator(".quick-action").first().click();
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toHaveValue("幫我找網宣靈感。");
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" });
   assert.equal(
     await page
@@ -129,11 +169,17 @@ try {
   await textarea.fill("");
   for (const [width, height, name] of [
     [1440, 1000, "desktop"],
+    [1024, 900, "desktop-1024"],
     [768, 1024, "tablet"],
+    [430, 900, "mobile-430"],
     [390, 844, "mobile-390"],
     [360, 800, "mobile-360"],
   ] as const) {
     await page.setViewportSize({ width, height });
+    // Resize events and visualViewport updates are asynchronous. Observe the
+    // actual layout instead of combining a stale send box with a new dock box.
+    await expect.poll(() => page.locator(".app-shell").evaluate(el =>
+      Math.round(el.getBoundingClientRect().height))).toBe(height);
     await expect(
       page.getByRole("heading", { name: "今天想做什麼？" }),
     ).toBeVisible();
@@ -154,6 +200,23 @@ try {
       "send button occluded at " + width,
     );
     const mascot = await page.locator(".turtle").boundingBox();
+    const columns = await page
+      .locator(".quick-actions")
+      .evaluate(
+        (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
+      );
+    assert.equal(
+      columns,
+      width <= 760 ? 2 : width <= 1100 ? 3 : 6,
+      "quick action layout at " + width,
+    );
+    if (width <= 760) {
+      const dock = await page.locator(".mobile-bottom-dock").boundingBox();
+      assert.ok(
+        dock && send && send.y + send.height <= dock.y,
+        "bottom dock overlaps send at "+width+": "+JSON.stringify({send,dock}),
+      );
+    }
     const composer = await page.locator(".composer").boundingBox();
     assert.ok(
       mascot && composer && mascot.y + mascot.height <= composer.y,
@@ -163,9 +226,24 @@ try {
       path: join(output, name + ".png"),
       fullPage: true,
     });
+    if (name === "desktop")
+      await page.screenshot({
+        path: join(output, "home-desktop.png"),
+        fullPage: true,
+      });
+    if (name === "mobile-390")
+      await page.screenshot({
+        path: join(output, "home-mobile.png"),
+        fullPage: true,
+      });
   }
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "Agent", exact: true }).click();
+  const mobileNavigation = page
+    .getByRole("dialog")
+    .filter({ has: page.getByRole("navigation") });
+  await mobileNavigation
+    .getByRole("button", { name: "Agent", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Agent Runtime", exact: true }),
   ).toBeVisible();
@@ -180,13 +258,23 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await audit("agents");
+  await page.screenshot({ path: join(output, "agents.png"), fullPage: true });
   await page.screenshot({
     path: join(output, "runtime-desktop.png"),
     fullPage: true,
   });
+  const advancedRuntime = page.locator(".runtime-advanced > summary");
+  await advancedRuntime.click();
+  await page.screenshot({
+    path: join(output, "runtime-advanced.png"),
+    fullPage: true,
+  });
   await page.setViewportSize({ width: 360, height: 800 });
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "任務", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "任務", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
@@ -194,13 +282,13 @@ try {
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "靈感", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "靈感", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
-  const syncButton = page.getByRole("button", {
-    name: "匯入已設定的 4 份試算表",
-  });
+  const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(
     (await (await context.request.get(base + "/api/inspiration")).json())
@@ -225,8 +313,12 @@ try {
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "專案", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "專案", exact: true })
+    .click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
+  await page.locator(".reference-disclosure > summary").click();
   await page
     .getByRole("textbox", { name: "參考標題" })
     .fill("官方 Hermes 文件");
@@ -239,7 +331,9 @@ try {
   ).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "專案", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "專案", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
@@ -247,7 +341,9 @@ try {
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("button", { name: "對話", exact: true }).click();
+  await mobileNavigation
+    .getByRole("button", { name: "對話", exact: true })
+    .click();
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);
@@ -268,6 +364,7 @@ try {
   await expect(
     page.getByRole("tab", { name: "外觀", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  await audit("settings-appearance");
   await page.screenshot({
     path: join(output, "settings-desktop.png"),
     fullPage: true,
@@ -282,6 +379,7 @@ try {
   await expect(settings).not.toBeVisible();
   await expect(settingsButton).toBeFocused();
 
+  await page.getByRole("button", { name: "展開側欄", exact: true }).click();
   // Real backend conversations; unsent drafts are private, tab-memory only.
   for (const title of ["草稿分流 A", "草稿分流 B"]) {
     const result = await context.request.post(base + "/api/conversations", {
@@ -390,11 +488,37 @@ try {
     restrictedPage.getByRole("combobox", { name: /文字大小/ }),
   ).toHaveValue("20");
   await restricted.close();
+  await verifyVisualStates(page, base, output, audit);
   assert.deepEqual(errors, []);
+  await writeFile(
+    join(output, "browser-report.json"),
+    JSON.stringify(
+      {
+        metrics: initialMetrics,
+        accessibility,
+        externalServices: "NOT verified",
+      },
+      null,
+      2,
+    ),
+  );
   console.log(
-    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 4 widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
+    "Initial browser metrics (local Chrome): " + JSON.stringify(initialMetrics),
+  );
+  console.log("Accessibility: " + JSON.stringify(accessibility));
+  assert.equal(
+    accessibility.reduce((sum, item) => sum + item.violations.length, 0),
+    0,
+    "axe violations; inspect browser-report.json",
+  );
+  console.log(
+    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
+} catch (error) {
+  const failedPage = browser?.contexts()[0]?.pages()[0];
+  await failedPage?.screenshot({path:join(output,"ui-failure.png"),fullPage:true}).catch(()=>{});
+  throw error;
 } finally {
   await browser?.close();
   child.kill();

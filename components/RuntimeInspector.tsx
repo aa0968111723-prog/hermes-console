@@ -1,6 +1,10 @@
 "use client";
+
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { Check, ChevronDown, CircleAlert, RefreshCw } from "lucide-react";
 import type { HermesRuntimeSnapshot, ToolDescriptor } from "@/lib/runtime";
+import AgentOrbit from "./visual/AgentOrbit";
+import type { Task, Health } from "@/lib/contracts";
 
 const labels: Record<string, string> = {
   available: "可用",
@@ -12,6 +16,7 @@ const labels: Record<string, string> = {
   syncing: "同步中",
 };
 const statusLabel = (value: string) => labels[value] || value;
+
 const ToolRow = memo(function ToolRow({
   tool,
   stale,
@@ -19,22 +24,32 @@ const ToolRow = memo(function ToolRow({
   tool: ToolDescriptor;
   stale: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const shown = stale ? "stale" : tool.status;
   return (
     <li className="runtime-tool">
-      <details>
-        <summary className="runtime-tool-summary">
-          <span
-            className={`runtime-status-dot ${stale ? "stale" : tool.status}`}
-            aria-hidden="true"
-          />
-          <strong>{tool.displayName}</strong>
-          <small>
-            {tool.canonicalName} ·{" "}
-            {tool.enabled
-              ? statusLabel(stale ? "stale" : tool.status)
-              : "未啟用"}
-          </small>
-        </summary>
+      <button
+        type="button"
+        className="runtime-tool-summary"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+      >
+        <span
+          className={`runtime-status-dot ${stale ? "stale" : tool.status}`}
+          aria-hidden="true"
+        />
+        <strong>{tool.displayName}</strong>
+        <small>
+          {tool.canonicalName} ·{" "}
+          {tool.enabled ? statusLabel(shown) : "未啟用"}
+        </small>
+        <ChevronDown
+          className={open ? "is-open" : ""}
+          size={15}
+          aria-hidden="true"
+        />
+      </button>
+      {open && (
         <div className="runtime-tool-detail">
           <p>{tool.description || "未提供描述。"}</p>
           <dl>
@@ -70,25 +85,32 @@ const ToolRow = memo(function ToolRow({
             </details>
           )}
         </div>
-      </details>
+      )}
     </li>
   );
 });
 
-export default function RuntimeInspector() {
+export default function RuntimeInspector({
+  task,
+  health = null,
+  animation = true,
+}: {
+  task?: Task;
+  health?: Health | null;
+  animation?: boolean;
+}) {
   const [snapshot, setSnapshot] = useState<HermesRuntimeSnapshot | null>(null);
-  const [stale, setStale] = useState(false),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
-  const [query, setQuery] = useState(""),
-    [limit, setLimit] = useState(100);
+  const [stale, setStale] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState("");
+  const [limit, setLimit] = useState(100);
   const accept = useCallback((next: HermesRuntimeSnapshot) => {
     setSnapshot((previous) =>
       previous && Date.parse(previous.fetchedAt) > Date.parse(next.fetchedAt)
         ? previous
         : next,
     );
-    // Transport freshness is separate from an individual upstream's stale state.
     setStale(false);
     setError("");
   }, []);
@@ -114,8 +136,6 @@ export default function RuntimeInspector() {
     }
   };
   useEffect(() => {
-    // EventSource reconnects with Last-Event-ID; server sends a fresh full snapshot.
-    // Do not start a second GET retry loop whenever the stream disconnects.
     let stream: EventSource;
     let lastEventAt = Date.now();
     const disconnected = () => {
@@ -196,80 +216,91 @@ export default function RuntimeInspector() {
     }
     return [...map.entries()];
   }, [filtered, limit]);
+  const state =
+    stale || snapshot?.status === "stale"
+      ? "stale"
+      : snapshot?.status || "unknown";
+  const availableTools =
+    snapshot?.tools.filter(
+      (tool) => tool.enabled && tool.status === "available",
+    ).length || 0;
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>
         <div>
-          <p className="eyebrow">Hermes Runtime</p>
-          <h2>即時能力同步</h2>
+          <p className="eyebrow">系統狀態</p>
+          <h2>能力中心</h2>
         </div>
         <div className="runtime-actions">
           <button onClick={() => void refresh()} disabled={busy}>
+            <RefreshCw size={15} />
             {busy ? "同步中…" : "重新同步"}
           </button>
-          <span
-            className={`runtime-state ${stale ? "stale" : snapshot?.status || "unknown"}`}
-          >
-            {snapshot
-              ? statusLabel(stale ? "stale" : snapshot.status)
-              : "尚未同步"}
+          <span className={`runtime-state ${state}`}>
+            <i aria-hidden="true" />
+            {snapshot ? statusLabel(state) : "尚未同步"}
           </span>
         </div>
       </header>
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <p role="alert" className="error">
+          <CircleAlert size={15} />
+          {error}
+        </p>
+      )}
+      <div className="runtime-human-summary">
+        <span>
+          <i
+            className={
+              !stale &&
+              health?.credential === "valid" &&
+              health.agent === "verified"
+                ? "good"
+                : "unknown"
+            }
+            aria-hidden="true"
+          />
+          Hermes{" "}
+          {stale
+            ? "待重新驗證"
+            : health?.agent === "verified" && health.credential === "valid"
+              ? "已驗證"
+              : "未驗證"}
+        </span>
+        <span>
+          <i
+            className={!stale && availableTools > 0 ? "good" : "unknown"}
+            aria-hidden="true"
+          />
+          工具{" "}
+          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未知"}
+        </span>
+        <span>
+          <i
+            className={
+              !stale && snapshot?.memorySupport === "available"
+                ? "good"
+                : "unknown"
+            }
+            aria-hidden="true"
+          />
+          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+        </span>
+        {!stale && snapshot?.status === "available" && (
+          <Check size={16} className="runtime-check" aria-label="狀態已同步" />
+        )}
+      </div>
+      <AgentOrbit
+        snapshot={snapshot}
+        task={task}
+        stale={stale}
+        animation={animation}
+      />
       {snapshot && (
         <>
           <p className="muted">
-            最後檢查：{new Date(snapshot.fetchedAt).toLocaleString("zh-TW")} ·{" "}
-            {snapshot.diagnostics.toolCount} 個工具／
-            {snapshot.diagnostics.skillCount} 個技能／
-            {snapshot.diagnostics.toolsetCount} 個 Toolset
-          </p>
-          <p className="muted">
             探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
           </p>
-          {snapshot.errors.map((message) => (
-            <p key={message} className="error">
-              {message}
-            </p>
-          ))}
-          <div className="runtime-summary">
-            <span>連接設定 {snapshot.agents.length}</span>
-            <span>Sessions {statusLabel(snapshot.sessionsSupport)}</span>
-            <span>Runs {statusLabel(snapshot.runsSupport)}</span>
-            <span>Memory {statusLabel(snapshot.memorySupport)}</span>
-          </div>
-          <details>
-            <summary>技能與 Toolsets</summary>
-            {(["skills", "toolsets"] as const).map((kind) => (
-              <section key={kind}>
-                <h3>
-                  {kind} ·{" "}
-                  {statusLabel(snapshot.discovery?.[kind] || "unknown")}
-                </h3>
-                <ul>
-                  {snapshot[kind].map((item) => (
-                    <li key={item.name}>
-                      {item.name}：{item.description}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </details>
-          <details>
-            <summary>MCP 連接 · {snapshot.mcpServers.length}</summary>
-            <ul>
-              {snapshot.mcpServers.map((server) => (
-                <li key={server.id}>
-                  <strong>{server.name}</strong> ·{" "}
-                  {server.enabled ? statusLabel(server.status) : "已停用"} ·{" "}
-                  {server.toolsCount} 個工具
-                  {server.lastError && <p>{server.lastError}</p>}
-                </li>
-              ))}
-            </ul>
-          </details>
           <label>
             搜尋工具用途
             <input
@@ -305,9 +336,70 @@ export default function RuntimeInspector() {
               顯示更多（共 {filtered.length} 個）
             </button>
           )}
-          {!groups.length && <p>目前沒有符合的工具；這不代表工具已可用。</p>}
+          {!groups.length && (
+            <p>目前沒有符合的工具；這不代表工具已可用。</p>
+          )}
         </>
       )}
+      <details className="runtime-advanced">
+        <summary>Advanced · Runtime 詳情</summary>
+        {snapshot && (
+          <>
+            <p className="muted">
+              最後同步：
+              {new Date(snapshot.lastSyncedAt).toLocaleString("zh-TW")} ·
+              snapshot {snapshot.hash.slice(0, 10)} ·{" "}
+              {snapshot.diagnostics.toolCount} 個工具／
+              {snapshot.diagnostics.skillCount} 個技能／
+              {snapshot.diagnostics.toolsetCount} 個 Toolset
+            </p>
+            {snapshot.errors.map((message) => (
+              <p key={message} className="error">
+                {message}
+              </p>
+            ))}
+            <div className="runtime-summary">
+              <span>Agent {snapshot.agents.length}</span>
+              <span>模型 {snapshot.models.length}</span>
+              <span>MCP {snapshot.mcpServers.length}</span>
+              <span>Sessions {statusLabel(snapshot.sessionsSupport)}</span>
+              <span>Runs {statusLabel(snapshot.runsSupport)}</span>
+              <span>Memory {statusLabel(snapshot.memorySupport)}</span>
+            </div>
+            <details>
+              <summary>技能與 Toolsets</summary>
+              {(["skills", "toolsets"] as const).map((kind) => (
+                <section key={kind}>
+                  <h3>
+                    {kind} ·{" "}
+                    {statusLabel(snapshot.discovery?.[kind] || "unknown")}
+                  </h3>
+                  <ul>
+                    {snapshot[kind].map((item) => (
+                      <li key={item.name}>
+                        {item.name}：{item.description}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </details>
+            <details>
+              <summary>MCP 連接 · {snapshot.mcpServers.length}</summary>
+              <ul>
+                {snapshot.mcpServers.map((server) => (
+                  <li key={server.id}>
+                    <strong>{server.name}</strong> ·{" "}
+                    {server.enabled ? statusLabel(server.status) : "已停用"} ·{" "}
+                    {server.toolsCount} 個工具
+                    {server.lastError && <p>{server.lastError}</p>}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </>
+        )}
+      </details>
     </section>
   );
 }
