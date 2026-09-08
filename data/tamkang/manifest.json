@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-09T02:00:00+08:00",
-  "cycle": "hourly-2026-09-09-0200",
+  "updated_at": "2026-09-09T03:02:00+08:00",
+  "cycle": "hourly-2026-09-09-0300",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -19,12 +19,13 @@
     "cadence": "HOURLY Asia/Taipei"
   },
   "counts": {
-    "records": 19,
+    "records": 20,
     "tku_club": 7,
     "tku_source": 4,
     "tku_fair": 2,
     "tku_unverified": 2,
     "tku_signal": 4,
+    "tku_log": 1,
     "l2_note": "existence based on 114-1 official roster + CNA; 184 active / 115-1 roster / booth map still pending"
   },
   "conflict": {
