@@ -13,13 +13,26 @@ export function rankContext(items: ContextItem[]) {
   return [...items].sort((a, b) => rankScore(b) - rankScore(a));
 }
 
+function hanBigrams(text: string) {
+  const chars = [...text.matchAll(/\p{Script=Han}/gu)].map((match) => match[0]);
+  const grams: string[] = [];
+  for (let i = 0; i < chars.length - 1; i++) grams.push(chars[i] + chars[i + 1]);
+  return grams;
+}
+
+export function relevanceTerms(text: string) {
+  const lower = text.toLowerCase();
+  const latin = lower
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((term) => term.length > 1 && !/^\p{Script=Han}+$/u.test(term));
+  return [...latin, ...hanBigrams(lower)];
+}
+
 export function relevanceTo(text: string, query: string) {
   const hay = text.toLowerCase();
-  const terms = query
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter((term) => term.length > 1);
+  const terms = relevanceTerms(query);
   if (!terms.length) return 0.2;
-  const hits = terms.filter((term) => hay.includes(term)).length;
-  return Math.min(1, 0.2 + hits / Math.min(8, terms.length));
+  const unique = [...new Set(terms)];
+  const hits = unique.filter((term) => hay.includes(term)).length;
+  return Math.min(1, 0.2 + hits / Math.min(8, unique.length));
 }

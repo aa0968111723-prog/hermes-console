@@ -6,6 +6,7 @@ import type { Material } from "../../contracts";
 import { estimateTokens, recencyScore, type ContextItem } from "./provenance";
 import { relevanceTo } from "./ranking";
 import { fitBudget } from "./budget";
+import { wrapUntrusted } from "../untrusted";
 
 function item(
   partial: Omit<ContextItem, "tokens"> & { tokens?: number },
@@ -122,7 +123,11 @@ export function assembleContext(input: {
 export function formatContextForInstructions(packed: ReturnType<typeof assembleContext>) {
   if (!packed.items.length) return "目前沒有可納入的專案上下文。";
   const lines = packed.items.map((entry) => {
-    return `- [${entry.source}/${entry.truth}] ${entry.title}：${entry.content.replace(/\s+/g, " ").slice(0, 220)}`;
+    const body = wrapUntrusted(
+      entry.source,
+      entry.content.replace(/\s+/g, " ").slice(0, 220),
+    );
+    return `- [${entry.source}/${entry.truth}] ${entry.title}：\n${body}`;
   });
   return [
     "已依相關性／新近／重要度與 token budget 挑選的上下文（" +

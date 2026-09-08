@@ -25,7 +25,14 @@ export interface ContextItem {
 }
 
 export function estimateTokens(text: string) {
-  return Math.max(1, Math.ceil(text.length / 3));
+  let han = 0;
+  let other = 0;
+  for (const char of text) {
+    if (/\p{Script=Han}/u.test(char)) han += 1;
+    else other += 1;
+  }
+  // Han is typically ~1 token per character; latin ~4 characters per token.
+  return Math.max(1, Math.ceil(han + other / 4));
 }
 
 export function recencyScore(iso?: string | null) {
