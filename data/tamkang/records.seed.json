@@ -63,7 +63,7 @@
     "kind": "tku_club",
     "owner": "workspace",
     "id": "tku_hotmusic_entry2",
-    "value": "電子音樂研究社 @new_tkudj 114-1招生中"
+    "value": "電子音樂研究社 @new_tkudj 114-1招生中+社博擺攤"
   },
   {
     "kind": "tku_club",
@@ -124,5 +124,11 @@
     "owner": "workspace",
     "id": "tku_log_20260909_0400",
     "value": "cycle hourly-2026-09-09-0400: 再驗證CNA184+社博9/10; 115-1仍null; R27/R28班距細化; Dcard多帖; zen/hotmusic L1+L2維持; xlsx完整重建並upsert"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0500",
+    "value": "cycle hourly-2026-09-09-0500: 再確認115-1名冊仍未公開；社博9/10起連續一週再驗證；zen正式名領袖禪學社L1+L2；熱音四大入口維持；Dcard心理研究社/動漫/新創/有氧等招生；通勤R27/R28維持；xlsx重建+seed upsert"
   }
 ]
