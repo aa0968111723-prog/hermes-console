@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -110,7 +110,7 @@ export async function verifyVisualStates(
     updatedAt: now,
     endedAt: null as string | null,
     error: null as string | null,
-    observationError: null,
+    observationError: null as string | null,
     usage: {
       model: null,
       inputTokens: null,
@@ -225,6 +225,90 @@ export async function verifyVisualStates(
   );
   await page.screenshot({ path: join(output, "tool-running-fixture.png") });
   await audit("tool-running-fixture");
+  // Keep the same sizes before/after composer changes for CI artifact review.
+  const accidentalSubmissions: string[] = [];
+  const observeSubmission = (request: Request) => {
+    if (request.method() === "POST" && /\/api\/(tasks|conversations)(\?|$)/.test(request.url()))
+      accidentalSubmissions.push(request.url());
+  };
+  page.on("request", observeSubmission);
+  for (const [width, height] of [[360, 740], [390, 420], [844, 390], [768, 1024], [1440, 1000]]) {
+    await page.setViewportSize({ width, height });
+    const composer = page.getByRole("textbox", { name: "訊息", exact: true });
+    const draft = "[介面測試草稿] 等候工具結果";
+    await composer.fill(draft);
+    const status = page.getByRole("button", { name: "查看目前任務：執行中，galley_research", exact: true });
+    await expect(status).toBeInViewport({ ratio: 1 });
+    await expect(composer).toBeInViewport({ ratio: 1 });
+    const box = await status.boundingBox();
+    assert.ok(box && box.width >= 44 && box.height >= 44);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "no horizontal overflow");
+    await page.screenshot({ path: join(output, `task-access-${width}x${height}.png`) });
+    await status.focus();
+    await page.keyboard.press("Enter");
+    const detail = page.getByRole("dialog", { name: "任務詳情" });
+    await expect(detail).toBeVisible();
+    await expect(detail).toContainText("ui-fixture-task");
+    await page.keyboard.press("Escape");
+    await expect(status).toBeFocused();
+    await expect(composer).toHaveValue(draft);
+  }
+  page.off("request", observeSubmission);
+  assert.deepEqual(accidentalSubmissions, [], "viewing task details must never submit the draft");
+  // Long conversations and unbroken tool names must not displace the shortcut.
+  const originalInput = task.input;
+  task.input = Array.from({ length: 24 }, (_, i) => `[介面測試段落 ${i + 1}] 保留長對話，查看目前任務`).join("\n\n");
+  task.events[0].toolName = "galley_" + "long_tool_name_".repeat(12);
+  await page.setViewportSize({ width: 360, height: 420 });
+  await page.reload();
+  await expect(page.locator(".conversation")).toContainText("[介面測試段落 24]");
+  await expect(page.locator(".composer-task-tool")).toHaveText(task.events[0].toolName);
+  const conversationScroll = page.locator(".conversation-scroll");
+  assert.ok(await conversationScroll.evaluate(el => el.scrollHeight > el.clientHeight));
+  await conversationScroll.evaluate(el => el.scrollTo(0, el.scrollHeight));
+  await expect(page.locator(".composer-task-status")).toBeInViewport({ ratio: 1 });
+  await conversationScroll.evaluate(el => el.scrollTo(0, 0));
+  await expect(page.locator(".composer-task-status")).toBeInViewport({ ratio: 1 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({ path: join(output, "task-access-long-conversation.png") });
+  task.input = originalInput;
+  task.events[0].toolName = "galley_research";
+  await page.reload();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  // The essential task shortcut must survive turning the decorative pet off.
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("tab", { name: "外觀", exact: true }).click();
+  await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".turtle")).toHaveCount(0);
+  await expect(page.locator(".composer-task-status")).toBeVisible();
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByLabel("顯示龜龜", { exact: true }).check();
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 360, height: 420 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  task.events[0].status = "completed";
+  for (const [state, label] of [["queued", "排隊"], ["waiting_user", "等待確認"], ["stopping", "停止確認中"], ["uncertain", "結果待確認"]]) {
+    task.state = state;
+    await page.reload();
+    const status = page.getByRole("button", { name: `查看目前任務：${label}`, exact: true });
+    await expect(status).toBeInViewport({ ratio: 1 });
+    await expect(status.locator(".composer-task-tool")).toHaveCount(0);
+    assert.equal(await status.evaluate(el => getComputedStyle(el).animationName), "none");
+    await page.screenshot({ path: join(output, `task-access-${state}-reduced.png`) });
+  }
+  task.state = "running";
+  task.events[0].status = "running";
+  task.observationError = "[介面測試] 狀態查詢失敗";
+  await page.reload();
+  await expect(page.locator(".composer-task-status")).toContainText("連線異常 · 狀態待確認");
+  await expect(page.locator(".composer-task-tool")).toHaveCount(0);
+  await page.screenshot({ path: join(output, "task-access-stale.png") });
+  await audit("task-access-stale-mobile");
+  task.observationError = null;
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   task.state = "completed";
   task.endedAt = now;
   task.events[0].status = "completed";
@@ -232,6 +316,7 @@ export async function verifyVisualStates(
   task.output =
     "[介面測試回覆] 已接收一個工具結果。\n\n| 方向 | 用途 |\n| --- | --- |\n| 春日共創 | 活動宣傳 |";
   await page.reload();
+  await expect(page.locator(".composer-task-status")).toContainText("完成");
   await expect(page.locator(".visual-message")).toContainText("1 / 1");
   await page.locator(".source-cards > summary").click();
   await expect(page.locator(".source-card")).toHaveAttribute(
@@ -256,6 +341,10 @@ export async function verifyVisualStates(
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();
   await expect(page.locator(".turtle")).toHaveAttribute("data-state", "error");
+  await expect(page.locator(".composer-task-status")).toContainText("失敗");
+  await page.locator(".composer-task-status").click();
+  await expect(page.getByRole("dialog", { name: "任務詳情" })).toContainText(task.error);
+  await page.keyboard.press("Escape");
   await page.screenshot({ path: join(output, "error-fixture.png") });
   await page.context().setOffline(true);
   await expect(page.locator(".turtle")).toHaveAttribute(
@@ -263,6 +352,7 @@ export async function verifyVisualStates(
     /連線待確認/,
   );
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".composer-task-status")).toContainText("離線 · 狀態待確認");
   await page.screenshot({ path: join(output, "offline-mobile.png") });
   await page.context().setOffline(false);
   await page.unrouteAll({ behavior: "wait" });

@@ -110,6 +110,7 @@ try {
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
   await assertNoLogin();
+  await expect(page.locator(".composer-task-status")).toHaveCount(0);
   assert.equal(
     (await context.request.get(base + "/api/workspace")).status(),
     200,

@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
 import { ApiError, assertSafeServiceUrl, redact } from "./security";
-import { get, put } from "./store";
+import { get, probeStore, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
 import {
   credentialReferenceFor,
@@ -203,12 +203,27 @@ function discovery(raw: unknown): DiscoveryItem[] {
     description: redact(item.description || ""),
   }));
 }
+function storeFields() {
+  const probe = probeStore();
+  return {
+    backend: probe.backend,
+    dataDir: probe.dataDir,
+    storeReady: probe.ok,
+  } as const;
+}
+
 export async function health(owner: string, refresh = false): Promise<Health> {
-  const cached = get<Health & { id: string; targetHash: string }>(
-    "health",
-    owner,
-    "current",
-  );
+  const store = storeFields();
+  let cached: (Health & { id: string; targetHash: string }) | null = null;
+  try {
+    cached = get<Health & { id: string; targetHash: string }>(
+      "health",
+      owner,
+      "current",
+    );
+  } catch {
+    cached = null;
+  }
   if (
     cached &&
     cached.targetHash === serviceIdentity() &&
@@ -218,7 +233,7 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     const { id, targetHash, ...publicState } = cached;
     void id;
     void targetHash;
-    return publicState;
+    return { ...publicState, ...store };
   }
   const state: Health = {
     checkedAt: new Date().toISOString(),
@@ -237,6 +252,7 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     skills: [],
     toolsets: [],
     discovery: {},
+    ...store,
   };
   // Discovery has its own total deadline; this does not shorten creative tasks.
   const signal = AbortSignal.timeout(
@@ -315,11 +331,20 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     );
     state.skills = lists[0].status === "fulfilled" ? lists[0].value : [];
     state.toolsets = lists[1].status === "fulfilled" ? lists[1].value : [];
-    const evidence = get<{
+    let evidence: {
       id: string;
       verifiedAt: string;
       targetHash: string;
-    }>("agent", owner, "verified");
+    } | null = null;
+    try {
+      evidence = get<{
+        id: string;
+        verifiedAt: string;
+        targetHash: string;
+      }>("agent", owner, "verified");
+    } catch {
+      evidence = null;
+    }
     if (evidence && evidence.targetHash === serviceIdentity()) {
       state.agent = "verified";
       state.status = "available";
@@ -334,12 +359,16 @@ export async function health(owner: string, refresh = false): Promise<Health> {
         ? error.message
         : "服務設定無效，請檢查連線設定或後端環境變數。";
   }
-  put("health", owner, {
-    ...state,
-    id: "current",
-    targetHash: serviceIdentity(),
-  });
-  return state;
+  try {
+    put("health", owner, {
+      ...state,
+      id: "current",
+      targetHash: serviceIdentity(),
+    });
+  } catch {
+    /* storeReady already recorded by probe */
+  }
+  return { ...state, ...storeFields() };
 }
 import { hash } from "./security";
 export function serviceIdentity() {

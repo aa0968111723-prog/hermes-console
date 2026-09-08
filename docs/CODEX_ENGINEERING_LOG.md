@@ -1,5 +1,20 @@
 # Codex 工程接續紀錄
 
+## 2026-09-08 — 手機輸入區的持續任務入口（UIUX 分工）
+
+- 基準 main：`5a3c4d3b650255171a42ac40f605679acd90ca09`；分支 `codex/mobile-task-status`，草稿 PR #50。前端實作產出 SHA：`3a2a264a043973ce8e73f8dd1961d697de5be200`；後續提交只補長對話驗收與本紀錄，PR head 為完整產出。
+- 已核對 AGENTS、README、package/lock、CI、現有前端及交接。Grok #47/#45 處理後端失敗與重試，#42 為 memory provenance；本輪不改 parser、API、儲存或研究資料。
+- 基準 CI `34209291264` 通過；先以 `c6ef08935df54c3d485c2a430149f30227e7c30e`（僅加畫面測試）在 CI `34210229011` 留下相同五種尺寸的 `task-access-*.png`。已下載並親自檢視基準手機/桌面與短高度畫面。
+- 問題：360px 輸入區隱藏龜龜；其他尺寸也只有無文字龜龜按鈕。狀態在可捲走的對話上方，關閉寵物後更不易從输入位置查看。
+- 新增獨立的 44px 任務入口，位於固定輸入區上方；文字/圖示來自既有 task/events，顯示目前狀態和實際活動工具。失敗、結果不確定、離線與 observationError 明確區別，後兩者不再呈現過時工具。無任務時不顯示入口；不綁定龜龜顯示偏好。
+- 點擊或 Enter 開啟既有任務詳情，Escape 返回原焦點，草稿不變。純 CSS 淺色層次/內光影（2.5D），不是 WebGL/真正 3D；沒有新依賴、常駐動畫或額外網路輪詢。
+- 本地基準：lint/typecheck/build 通過；211 項契約測試中 209 通過、2 跳過（Postgres 外部條件）。修改後 `node --import tsx --test --test-concurrency=1 tests/*.test.ts`：213 項中 211 通過、2 Postgres 條件測試跳過，零失敗；新狀態專項 2/2 通過。lint、typecheck、build、check:secrets 通過；`npm audit --omit=dev` 零漏洞。首頁 first-load JS 維持報表四捨五入的 210kB，不作真機效能承諾。
+- 實作 CI `34210711055` 全通過：npm ci/lint/typecheck/test/build/check:secrets/audit，加上 test:ui、test:chat、test:workbench、test:gateway。下載 artifact `10049751894`，親自檢視五種尺寸以及 stale/離線/等待畫面；入口和輸入框未遮擋，手機 360px 也有任務文字。Axe 10 個受測畫面無 violations。瀏覽器驗證涵蓋空狀態、排隊/執行、等待/停止確認、完成、失敗/不確定、離線/過時查詢、reduced-motion、詳情開關與草稿/焦點保留。
+- 另补長對話捲動、長工具名稱截斷、查看詳情不送出草稿，以及 stale 手機 Axe 驗收；此補充測試提交之 CI 以 PR Checks 為準。
+- 瀏覽器策略：本地受控預覽不相容既有 Next.js dev flags；保留架構，使用 GitHub CI 真實 Chrome 旅程與可下載 screenshots。視覺任務狀態為明確標示 UI fixture，不是正式 Hermes/GALLEY 執行證據。短高度是 viewport 模擬，不等於 iOS/Android 實體鍵盤驗證。
+- 下一輪：優先補 iOS/Android 真機鍵盤操作（目前只有短 viewport），再檢查等待授權的工具事件是否可直接提供恢復動作；Grok 可接手 #47 的失敗/重試後端契約與 observationError 恢復整合，本輪不代稱聯絡或執行 Grok。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-08 — 大型網路 chunk 內的多事件相容性
 
 - 延續 PR #43（`codex/chat-sse-boundaries`），遠端基準：`9eb8688ad765107fb45c2e18bd52f9e029f9cb15`；本輪開始時 main：`16767ab3f984358fd2453ce50aeb2bc61771656c`。

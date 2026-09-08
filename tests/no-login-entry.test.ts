@@ -17,6 +17,7 @@ const security = await import("../lib/server/security");
 const workspace = await import("../app/api/workspace/route");
 const tasks = await import("../app/api/tasks/route");
 const health = await import("../app/api/health/route");
+const ready = await import("../app/api/ready/route");
 const runtime = await import("../app/api/runtime/route");
 const conversations = await import("../app/api/conversations/route");
 const confirm = await import("../app/api/confirm/route");
@@ -81,6 +82,7 @@ test("no-login entry contracts", async (t) => {
   await t.test("workspace, health and tasks GET do not require a member session", async () => {
     assert.equal((await workspace.GET(request("workspace"))).status, 200);
     assert.equal((await health.GET(request("health"))).status, 200);
+    assert.equal((await ready.GET(request("ready"))).status, 200);
     assert.equal((await tasks.GET(request("tasks"))).status, 200);
     assert.equal(
       (await credentials.GET(request("settings/credentials"))).status,
