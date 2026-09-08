@@ -4,6 +4,7 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
+  Code2,
   Copy,
   Folder,
   ImagePlus,
@@ -2167,11 +2168,28 @@ export default function HermesConsole() {
                 {taskLabels[chosenTask.state]}
               </span>
               <h3>{chosenTask.input}</h3>
-              <small>
-                任務：{chosenTask.id}
-                <br />
-                Hermes 任務：{chosenTask.remoteId || "串流模式／尚未取得"}
-              </small>
+              <details className="task-technical">
+                <summary>
+                  <Code2 size={15} aria-hidden="true" />
+                  技術資訊
+                </summary>
+                <dl>
+                  <div>
+                    <dt>Console 任務</dt>
+                    <dd>
+                      <code>{chosenTask.id}</code>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Hermes 任務</dt>
+                    <dd>
+                      <code>
+                        {chosenTask.remoteId || "串流模式／尚未取得"}
+                      </code>
+                    </dd>
+                  </div>
+                </dl>
+              </details>
               {chosenTask.error && <p className="error">{chosenTask.error}</p>}
               {chosenTask.observationError && (
                 <p className="error">{chosenTask.observationError}</p>

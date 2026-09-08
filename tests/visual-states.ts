@@ -249,6 +249,19 @@ export async function verifyVisualStates(
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
     await expect(detail).toContainText("ui-fixture-task");
+    const technical = detail.locator(".task-technical");
+    const technicalSummary = technical.locator("summary");
+    if ((await technical.getAttribute("open")) !== null)
+      await technicalSummary.click();
+    await expect(technical).not.toHaveAttribute("open", "");
+    await expect(technicalSummary).toContainText("技術資訊");
+    await expect(technical.locator("code").first()).toBeHidden();
+    if (width === 390 && height === 420) {
+      await technicalSummary.click();
+      await expect(technical.locator("code").first()).toBeVisible();
+      await expect(technical.locator("code").first()).toHaveText(task.id);
+      await technicalSummary.click();
+    }
     const taskUsage = detail.getByRole("region", { name: "任務用量" });
     await expect(taskUsage).toContainText("等待 Hermes 回傳");
     await expect(taskUsage).not.toContainText("未知");
