@@ -10,7 +10,7 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-sheets-"));
 process.env.CONSOLE_ORIGIN = "https://console.example";
 process.env.CONSOLE_GATEWAY_SECRET = randomBytes(32).toString("hex");
 const { GET, POST } = await import("../app/api/inspiration/route");
-const { parseCsv, syncSheetsInspiration, sheetsSyncStatus } = await import("../lib/server/inspiration/sheets-sync");
+const { parseCsv, syncSheetsInspiration, sheetsSyncStatus, SHEETS } = await import("../lib/server/inspiration/sheets-sync");
 const { listInspiration } = await import("../lib/server/inspiration");
 const { put } = await import("../lib/server/store");
 const request = (body?: unknown, authorized = true) => new Request("https://console.example/api/inspiration", {
@@ -22,6 +22,12 @@ const request = (body?: unknown, authorized = true) => new Request("https://cons
   },
   body: body === undefined ? undefined : JSON.stringify(body),
 });
+
+function sheetByProject(projectId: string) {
+  const sheet = SHEETS.find((item) => item.projectId === projectId);
+  assert.ok(sheet, projectId);
+  return sheet;
+}
 
 test("CSV handles BOM, quoted commas/newlines/quotes and rejects malformed input", () => {
   assert.deepEqual(parseCsv('\uFEFFid,text\r\nTKU-1,"a,b\n""quote"""\r\n'), [
@@ -49,7 +55,7 @@ test("opening inspiration is read-only and unauthenticated import never fetches"
 test("explicit import persists text and projects, continues after 403, retries without overwriting", async () => {
   const original = globalThis.fetch;
   const ids = new Map<string, number>();
-  const prefixes = ["TKU", "POST", "GAP", "KP"];
+  const rowIds = ["TKU-1", "POST-1", "GAP-1", "KP-1", "1001", "PAP-1"];
   let denied = true, calls = 0;
   globalThis.fetch = async (input, init) => {
     calls++;
@@ -60,12 +66,12 @@ test("explicit import persists text and projects, continues after 403, retries w
     if (!ids.has(url)) ids.set(url, ids.size);
     const index = ids.get(url)!;
     if (index === 1 && denied) return new Response("private", { status: 403 });
-    return new Response(prefixes[index] + '-1,"文字,摘要",未核對日期');
+    return new Response(rowIds[index] + ',"文字,摘要",未核對日期');
   };
   try {
     const response = await POST(request({ action: "sync_sheets" }));
     const first = (await response.json()).sheetsSync;
-    assert.equal(first.created, 3);
+    assert.equal(first.created, 5);
     assert.equal(first.failed, 1);
     assert.match(first.errors[0], /csv_http_403/);
     assert.ok(first.finishedAt);
@@ -79,14 +85,14 @@ test("explicit import persists text and projects, continues after 403, retries w
     assert.equal(a, b, "concurrent submissions share one operation");
     const second = await a;
     assert.equal(second.created, 1);
-    assert.equal(second.skipped, 3);
+    assert.equal(second.skipped, 5);
     assert.equal(second.failed, 0);
-    assert.equal(calls, 8);
-    assert.equal(listInspiration().length, 4);
+    assert.equal(calls, 12);
+    assert.equal(listInspiration().length, 6);
     assert.equal(listInspiration("tamkang")[0].analysis, "使用者修改保留");
     const status = (await (await GET(request())).json()).sheetsSync;
     assert.equal(status.created, 1);
-    assert.equal(calls, 8, "GET never silently resynchronizes");
+    assert.equal(calls, 12, "GET never silently resynchronizes");
   } finally { globalThis.fetch = original; }
 });
 
@@ -99,8 +105,8 @@ test("sheet redirects cannot reach arbitrary targets and oversized or HTML respo
       return new Response(null, { status: 302, headers: { location: "http://127.0.0.1/private" } });
     };
     const blocked = await syncSheetsInspiration();
-    assert.equal(blocked.failed, 4);
-    assert.equal(calls, 4);
+    assert.equal(blocked.failed, 6);
+    assert.equal(calls, 6);
     assert.ok(blocked.errors.every(error => error.endsWith("redirect_blocked")));
     globalThis.fetch = async () => new Response("x".repeat(2 * 1024 * 1024 + 1));
     assert.ok((await syncSheetsInspiration()).errors.every(error => error.endsWith("csv_too_large")));
@@ -108,6 +114,88 @@ test("sheet redirects cannot reach arbitrary targets and oversized or HTML respo
     assert.ok((await syncSheetsInspiration()).errors.every(error => error.endsWith("csv_not_public")));
     globalThis.fetch = async () => { throw new DOMException("upstream deadline", "TimeoutError"); };
     assert.ok((await syncSheetsInspiration()).errors.every(error => error.endsWith("csv_timeout")));
-    assert.equal(listInspiration().length, 4);
+    assert.equal(listInspiration().length, 6);
+  } finally { globalThis.fetch = original; }
+});
+
+test("campus-clubs and zen-papers accept only matching row ids and pick caption columns", () => {
+  assert.equal(SHEETS.length, 6);
+  assert.deepEqual(SHEETS.slice(0, 4).map((sheet) => sheet.projectId), [
+    "tamkang", "campaigns", "console", "zen-club",
+  ]);
+  const campus = sheetByProject("campus-clubs");
+  const zen = sheetByProject("zen-papers");
+  assert.equal(campus.id, "1AqDu7nP_CCPRFIyedPIL94w_N-9RQI12JIfNhZRkjTo");
+  assert.equal(zen.id, "1LhZSQMb70ho4O22GHQeMWAI2FkHfkxxsyhbn-iEpvUk");
+
+  assert.equal(campus.accept.test("2026"), true);
+  assert.equal(campus.accept.test("0"), true);
+  assert.equal(campus.accept.test("TKU-1"), false);
+  assert.equal(campus.accept.test("PAP-1"), false);
+  assert.equal(campus.accept.test("12a"), false);
+  assert.equal(campus.accept.test(""), false);
+
+  assert.equal(zen.accept.test("PAP-1"), true);
+  assert.equal(zen.accept.test("pap-99"), true);
+  assert.equal(zen.accept.test("2026"), false);
+  assert.equal(zen.accept.test("KP-1"), false);
+  assert.equal(zen.accept.test("PAP-"), false);
+  assert.equal(zen.accept.test("POST-1"), false);
+
+  assert.equal(
+    campus.caption(["id", "a", "b", "c", "SKIP", "e", "f"]),
+    "id · a · b · c · e",
+  );
+  assert.equal(
+    zen.caption(["id", "a", "b", "s3", "s4", "e", "s6", "s7", "i", "extra"]),
+    "id · a · b · e · i",
+  );
+});
+
+test("campus-clubs and zen-papers skip unmatched rows and rematch on re-sync", async () => {
+  const original = globalThis.fetch;
+  const campusId = "1AqDu7nP_CCPRFIyedPIL94w_N-9RQI12JIfNhZRkjTo";
+  const zenId = "1LhZSQMb70ho4O22GHQeMWAI2FkHfkxxsyhbn-iEpvUk";
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes(campusId)) {
+      return new Response([
+        "2026,標題,副標,社團,略過欄,活動",
+        "not-id,x,x,x,x,x",
+        "TKU-1,x,x,x,x,x",
+        "3344,二,欄,值,略過,尾",
+      ].join("\n"));
+    }
+    if (url.includes(zenId)) {
+      return new Response([
+        "PAP-88,題目,作者,略3,略4,摘要,略6,略7,卷期",
+        "pap-99,題2,作者2,x,x,摘2,x,x,卷2",
+        "123,x,x,x,x,x,x,x,x",
+        "KP-1,x,x,x,x,x,x,x,x",
+        "PAP-,x,x,x,x,x,x,x,x",
+      ].join("\n"));
+    }
+    return new Response("id,text\nSKIP-1,no");
+  };
+  try {
+    const first = await syncSheetsInspiration();
+    assert.equal(first.read, 4);
+    assert.equal(first.created, 4);
+    const campus = listInspiration("campus-clubs");
+    const importedCampus = campus.find((item) => item.account === "2026");
+    assert.ok(importedCampus);
+    assert.match(importedCampus.analysis, /2026 · 標題 · 副標 · 社團 · 活動/);
+    assert.equal(/略過欄/.test(importedCampus.analysis), false);
+    assert.equal(campus.some((item) => item.account === "not-id" || item.account === "TKU-1"), false);
+    const zen = listInspiration("zen-papers");
+    const importedZen = zen.find((item) => item.account === "PAP-88");
+    assert.ok(importedZen);
+    assert.match(importedZen.analysis, /PAP-88 · 題目 · 作者 · 摘要 · 卷期/);
+    assert.equal(/略3/.test(importedZen.analysis), false);
+    assert.equal(zen.some((item) => item.account === "123" || item.account === "KP-1"), false);
+    const second = await syncSheetsInspiration();
+    assert.equal(second.created, 0);
+    assert.equal(second.skipped, 4);
+    assert.equal(second.read, 4);
   } finally { globalThis.fetch = original; }
 });

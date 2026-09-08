@@ -21,7 +21,7 @@ type SheetSource = {
   caption: (cells: string[]) => string;
 };
 
-const SHEETS: SheetSource[] = [
+export const SHEETS: SheetSource[] = [
   {
     id: "1JVM0trGOeS49Sjjg3BoaKnS1Z0lT0hoWT5dCRsD97bs",
     projectId: "tamkang",
@@ -57,6 +57,26 @@ const SHEETS: SheetSource[] = [
     caption: (cells) =>
       compact(
         [cells[0], cells[1], cells[2], cells[3], cells[4]].filter(Boolean).join(" · "),
+      ),
+  },
+  {
+    id: "1AqDu7nP_CCPRFIyedPIL94w_N-9RQI12JIfNhZRkjTo",
+    projectId: "campus-clubs",
+    label: "跨校社團文宣",
+    accept: /^\d+$/,
+    caption: (cells) =>
+      compact(
+        [cells[0], cells[1], cells[2], cells[3], cells[5]].filter(Boolean).join(" · "),
+      ),
+  },
+  {
+    id: "1LhZSQMb70ho4O22GHQeMWAI2FkHfkxxsyhbn-iEpvUk",
+    projectId: "zen-papers",
+    label: "禪學論文知識庫",
+    accept: /^PAP-\d+$/i,
+    caption: (cells) =>
+      compact(
+        [cells[0], cells[1], cells[2], cells[5], cells[8]].filter(Boolean).join(" · "),
       ),
   },
 ];
