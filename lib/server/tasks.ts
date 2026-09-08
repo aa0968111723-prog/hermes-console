@@ -350,8 +350,8 @@ async function execute(
     save(owner, task);
     submitted = true;
     if (task.transport === "runs") {
-      const response = await readJSON(
-        await upstream(
+      try {
+        const runsResponse = await upstream(
           "/v1/runs",
           {
             method: "POST",
@@ -367,13 +367,22 @@ async function execute(
           controller.signal,
           headers["X-Hermes-Session-Key"],
           { role: "general" },
-        ),
-      );
-      task.remoteId = idSchema.parse(response.run_id);
-      event(task, "Hermes 已接受任務，可在重新整理後查回。");
-      save(owner, task);
-      if (connection.features.run_events_sse) void observe(owner, task.id);
-      return;
+        );
+        if (!runsResponse.ok) throw httpError(runsResponse.status);
+        const created = await readJSON(runsResponse);
+        task.remoteId = idSchema.parse(created.run_id ?? created.id);
+        event(task, "Hermes 已接受任務，可在重新整理後查回。");
+        save(owner, task);
+        if (connection.features.run_events_sse) void observe(owner, task.id);
+        return;
+      } catch (error) {
+        // runs 通道不可用（端點未實作、回應形狀不符）時降級為 chat 串流：
+        // chat/completions 已驗證可用，不應讓整筆任務失敗。
+        if (error instanceof ApiError && error.code === "interrupted") throw error;
+        task.transport = "chat";
+        event(task, "runs 通道暫時不可用，已改用對話串流繼續執行。");
+        save(owner, task);
+      }
     }
     const content = task.attachments.length
       ? [
