@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { projectKey } from "../creative";
 import { ApiError, redact } from "./security";
-import { get, list, put, remove } from "./store";
+import { get, list, put, remove, storeBackend } from "./store";
 import type { Health } from "../contracts";
 
 export const memoryKinds = {
@@ -97,6 +97,16 @@ export function deleteMemory(owner: string, id: string) {
   return { deleted: true as const, id };
 }
 
+export function memoryStoreId() {
+  return storeBackend() === "postgres"
+    ? ("console-postgres" as const)
+    : ("console-sqlite" as const);
+}
+
+function memoryStoreLabel() {
+  return storeBackend() === "postgres" ? "Console Postgres" : "Console SQLite";
+}
+
 export function memoryDigest(owner: string, projectId?: string) {
   const items = listMemories(owner, projectId || "workspace").slice(0, 8);
   if (!items.length) return "";
@@ -105,7 +115,9 @@ export function memoryDigest(owner: string, projectId?: string) {
     return `- [${item.kind}/${item.scope}] ${item.title}：${body}`;
   });
   return (
-    "\n工作區共用記憶（Console SQLite，經 Workspace MCP 與任務指示共用；不是 Hermes 遠端記憶鏡像）：\n" +
+    "\n工作區共用記憶（" +
+    memoryStoreLabel() +
+    "，經 Workspace MCP 與任務指示共用；不是 Hermes 遠端記憶鏡像）：\n" +
     lines.join("\n")
   );
 }
@@ -121,8 +133,9 @@ export function memoryShareStatus(owner: string, connection?: Health) {
       : remoteFlag === false || connection?.status === "failed"
         ? "unsupported"
         : "unknown";
+  const label = memoryStoreLabel();
   return {
-    store: "console-sqlite" as const,
+    store: memoryStoreId(),
     sharedVia: ["workspace-mcp", "task-instructions"] as const,
     hermesRemote,
     scopeVerified,
@@ -130,7 +143,9 @@ export function memoryShareStatus(owner: string, connection?: Health) {
     synced: false,
     notice:
       hermesRemote === "available"
-        ? "Console SQLite 是共用來源；Hermes 遠端記憶能力已宣告且管理者聲明範圍已驗證，仍不代表雙方已雙向鏡像。"
-        : "Console SQLite 是 Hermes 可讀寫的共用來源（Workspace MCP 與任務指示）。尚未驗證 Hermes 遠端記憶同步，不會宣稱已對齊。",
+        ? label +
+          " 是共用來源；Hermes 遠端記憶能力已宣告且管理者聲明範圍已驗證，仍不代表雙方已雙向鏡像。"
+        : label +
+          " 是 Hermes 可讀寫的共用來源（Workspace MCP 與任務指示）。尚未驗證 Hermes 遠端記憶同步，不會宣稱已對齊。",
   };
 }

@@ -754,7 +754,7 @@ function certifyMemory(owner: string, health?: Health): IntegrationCertification
   const remote = findCapability(report, "memory.remote");
   const share = memoryShareStatus(owner, health);
   const count = listMemories(owner).length;
-  mark(local, "verified", "Console SQLite 共用記憶可用，目前 " + count + " 筆。synced=false。", {
+  mark(local, "verified", share.store + " 共用記憶可用，目前 " + count + " 筆。synced=false。", {
     kind: "LOCAL_CONTRACT",
     summary: share.store,
     latencyMs: null,
@@ -765,7 +765,7 @@ function certifyMemory(owner: string, health?: Health): IntegrationCertification
     mcp,
     credentialPresence("MCP_BRIDGE_TOKEN").configured ? "partial" : "unknown",
     credentialPresence("MCP_BRIDGE_TOKEN").configured
-      ? "Workspace MCP 與 SQLite 同一庫；列出工具不是遠端同步。"
+      ? "Workspace MCP 與 Console 持久化庫同一來源；列出工具不是遠端同步。"
       : "尚未設定 MCP 橋接權杖。",
     {
       kind: "UNVERIFIED",

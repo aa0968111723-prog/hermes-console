@@ -2,7 +2,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { ApiError, hash, limited, WORKSPACE_OWNER } from "./security";
-import { db, get, list, put, transaction } from "./store";
+import { get, list, put, remove, transaction } from "./store";
 export const emailInput = z.string().trim().email().max(254).transform(s => s.toLowerCase());
 export type Member = { id: string; email: string; role: "admin" | "member"; active: boolean; invitedAt: string; delivery: "not_sent" | "accepted" | "failed"; bootstrap?: boolean };
 type Link = { id: string; memberId: string; expires: number; used: boolean };
@@ -49,7 +49,7 @@ export function sessionHeader(token = "") {
 export function endSession(request: Request) {
   const token = (request.headers.get("cookie") || "").split(";").map(s => s.trim()).find(s => s.startsWith("hermes_invite_session="))?.split("=")[1] || "";
   if (/^[a-f0-9]{64}$/.test(token))
-    db().prepare("DELETE FROM records WHERE kind=? AND owner=? AND id=?").run("invite_session", scope, hash(token));
+    remove("invite_session", scope, hash(token));
 }
 function mailConfig() {
   const sender = emailInput.safeParse(process.env.CONSOLE_EMAIL_FROM);
@@ -142,7 +142,7 @@ export function revoke(memberId: string, actor: Member) {
 }
 function invalidateMemberAccess(memberId: string) {
   for (const record of list<Session>("invite_session", scope).filter(s => s.memberId === memberId))
-    db().prepare("DELETE FROM records WHERE kind=? AND owner=? AND id=?").run("invite_session", scope, record.id);
+    remove("invite_session", scope, record.id);
   for (const record of list<Link>("login_link", scope).filter(s => s.memberId === memberId))
     put("login_link", scope, { ...record, used: true });
 }

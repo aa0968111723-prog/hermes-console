@@ -112,7 +112,11 @@ export default function SharedMemory({ projectId }: { projectId: string }) {
       <p className="muted">{share?.notice}</p>
       <dl className="facts">
         <dt>存放位置</dt>
-        <dd>CONSOLE_DATA_DIR SQLite</dd>
+        <dd>
+          {share?.store === "console-postgres"
+            ? "DATABASE_URL Postgres"
+            : "CONSOLE_DATA_DIR SQLite"}
+        </dd>
         <dt>與 Hermes 共用</dt>
         <dd>Workspace MCP + 任務指示</dd>
         <dt>遠端記憶同步</dt>

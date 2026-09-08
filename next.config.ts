@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   output: "standalone",
   outputFileTracingRoot: process.cwd(),
+  serverExternalPackages: ["pg"],
   poweredByHeader: false,
   async headers() {
     return [
