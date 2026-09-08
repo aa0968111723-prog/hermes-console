@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -226,6 +226,12 @@ export async function verifyVisualStates(
   await page.screenshot({ path: join(output, "tool-running-fixture.png") });
   await audit("tool-running-fixture");
   // Keep the same sizes before/after composer changes for CI artifact review.
+  const accidentalSubmissions: string[] = [];
+  const observeSubmission = (request: Request) => {
+    if (request.method() === "POST" && /\/api\/(tasks|conversations)(\?|$)/.test(request.url()))
+      accidentalSubmissions.push(request.url());
+  };
+  page.on("request", observeSubmission);
   for (const [width, height] of [[360, 740], [390, 420], [844, 390], [768, 1024], [1440, 1000]]) {
     await page.setViewportSize({ width, height });
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
@@ -247,6 +253,26 @@ export async function verifyVisualStates(
     await expect(status).toBeFocused();
     await expect(composer).toHaveValue(draft);
   }
+  page.off("request", observeSubmission);
+  assert.deepEqual(accidentalSubmissions, [], "viewing task details must never submit the draft");
+  // Long conversations and unbroken tool names must not displace the shortcut.
+  const originalInput = task.input;
+  task.input = Array.from({ length: 24 }, (_, i) => `[介面測試段落 ${i + 1}] 保留長對話，查看目前任務`).join("\n\n");
+  task.events[0].toolName = "galley_" + "long_tool_name_".repeat(12);
+  await page.setViewportSize({ width: 360, height: 420 });
+  await page.reload();
+  const conversationScroll = page.locator(".conversation-scroll");
+  assert.ok(await conversationScroll.evaluate(el => el.scrollHeight > el.clientHeight));
+  await conversationScroll.evaluate(el => el.scrollTo(0, el.scrollHeight));
+  await expect(page.locator(".composer-task-status")).toBeInViewport({ ratio: 1 });
+  await conversationScroll.evaluate(el => el.scrollTo(0, 0));
+  await expect(page.locator(".composer-task-status")).toBeInViewport({ ratio: 1 });
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({ path: join(output, "task-access-long-conversation.png") });
+  task.input = originalInput;
+  task.events[0].toolName = "galley_research";
+  await page.reload();
+  await page.setViewportSize({ width: 1440, height: 1000 });
   // The essential task shortcut must survive turning the decorative pet off.
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("tab", { name: "外觀", exact: true }).click();
@@ -276,6 +302,7 @@ export async function verifyVisualStates(
   await expect(page.locator(".composer-task-status")).toContainText("連線異常 · 狀態待確認");
   await expect(page.locator(".composer-task-tool")).toHaveCount(0);
   await page.screenshot({ path: join(output, "task-access-stale.png") });
+  await audit("task-access-stale-mobile");
   task.observationError = null;
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 1000 });
