@@ -1,5 +1,18 @@
 # Codex 工程接續紀錄
 
+## 2026-09-08 — 手機輸入區的持續任務入口（UIUX 分工）
+
+- 基準 main：`5a3c4d3b650255171a42ac40f605679acd90ca09`；分支 `codex/mobile-task-status`，草稿 PR #50。產出 SHA 隨驗證結果補記。
+- 已核對 AGENTS、README、package/lock、CI、現有前端及交接。Grok #47/#45 處理後端失敗與重試，#42 為 memory provenance；本輪不改 parser、API、儲存或研究資料。
+- 基準 CI `34209291264` 通過；先以 `c6ef08935df54c3d485c2a430149f30227e7c30e`（僅加畫面測試）在 CI `34210229011` 留下相同五種尺寸的 `task-access-*.png`。已下載並親自檢視基準手機/桌面與短高度畫面。
+- 問題：360px 輸入區隱藏龜龜；其他尺寸也只有無文字龜龜按鈕。狀態在可捲走的對話上方，關閉寵物後更不易從输入位置查看。
+- 新增獨立的 44px 任務入口，位於固定輸入區上方；文字/圖示來自既有 task/events，顯示目前狀態和實際活動工具。失敗、結果不確定、離線與 observationError 明確區別，後兩者不再呈現過時工具。無任務時不顯示入口；不綁定龜龜顯示偏好。
+- 點擊或 Enter 開啟既有任務詳情，Escape 返回原焦點，草稿不變。純 CSS 淺色層次/內光影（2.5D），不是 WebGL/真正 3D；沒有新依賴、常駐動畫或額外網路輪詢。
+- 本地基準：lint/typecheck/build 通過；211 項契約測試中 209 通過、2 跳過（Postgres 外部條件）。新狀態專項 2/2 通過。修改後完整門檻與瀏覽器結果待補。
+- 瀏覽器策略：本地受控預覽不相容既有 Next.js dev flags；保留架構，使用 GitHub CI 真實 Chrome 旅程與可下載 screenshots。視覺任務狀態為明確標示 UI fixture，不是正式 Hermes/GALLEY 執行證據。短高度是 viewport 模擬，不等於 iOS/Android 實體鍵盤驗證。
+- 下一輪：檢查本 PR 同尺寸畫面與互動證據；Grok 可接手 #47 的失敗/重試後端契約與 observationError 恢復整合，本輪不代稱聯絡或執行 Grok。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-08 — 大型網路 chunk 內的多事件相容性
 
 - 延續 PR #43（`codex/chat-sse-boundaries`），遠端基準：`9eb8688ad765107fb45c2e18bd52f9e029f9cb15`；本輪開始時 main：`16767ab3f984358fd2453ce50aeb2bc61771656c`。

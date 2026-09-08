@@ -47,6 +47,7 @@ import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
 import ArtifactStage from "./visual/ArtifactStage";
 import ComposerMenu from "./visual/ComposerMenu";
+import ComposerTaskStatus from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
@@ -1157,6 +1158,13 @@ export default function HermesConsole() {
                   <ChevronDown size={16} />
                   回到最新訊息
                 </button>
+              )}
+              {currentTask && (
+                <ComposerTaskStatus
+                  task={currentTask}
+                  offline={offline}
+                  onClick={() => openTask(currentTask)}
+                />
               )}
               <div className="composer-row">
                 {prefs.turtle && !!activeConv?.messages.length && (
