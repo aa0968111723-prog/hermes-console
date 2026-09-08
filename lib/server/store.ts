@@ -97,7 +97,18 @@ type PgReply = {
   error?: string;
 };
 
+const PG_STORE_BRAND = Symbol.for("hermes.console.pg-sync");
+
+type PgQueryable = {
+  query: (sql: string, params?: unknown[]) => unknown;
+};
+
+type SqliteExec = {
+  exec: (sql: string) => unknown;
+};
+
 class PgSync {
+  readonly [PG_STORE_BRAND] = true as const;
   private worker: Worker;
   private port: MessagePort;
   private lock: Int32Array;
@@ -183,6 +194,47 @@ export function sqliteFile() {
 
 export function storeBackend(): StoreBackend {
   return postgresUrl() ? "postgres" : "sqlite";
+}
+
+export function isPgStoreClient(database: unknown): database is PgQueryable {
+  if (storeBackend() === "postgres") return true;
+  if (!database || typeof database !== "object") return false;
+  if (Reflect.get(database, PG_STORE_BRAND) === true) return true;
+  if (typeof (database as { query?: unknown }).query === "function") return true;
+  return false;
+}
+
+export function runStoreTransaction<T>(database: unknown, fn: () => T): T {
+  if (isPgStoreClient(database)) {
+    const client = database as PgQueryable;
+    try {
+      client.query("BEGIN");
+      const value = fn();
+      client.query("COMMIT");
+      return value;
+    } catch (error) {
+      try {
+        client.query("ROLLBACK");
+      } catch {
+        /* ROLLBACK can fail if BEGIN never started */
+      }
+      throw error;
+    }
+  }
+  const sqlite = database as SqliteExec;
+  sqlite.exec("BEGIN IMMEDIATE");
+  try {
+    const value = fn();
+    sqlite.exec("COMMIT");
+    return value;
+  } catch (error) {
+    try {
+      sqlite.exec("ROLLBACK");
+    } catch {
+      /* ROLLBACK can fail if BEGIN never started */
+    }
+    throw error;
+  }
 }
 
 function pg() {
@@ -363,27 +415,7 @@ export function remove(kind: string, owner: string, id: string) {
 }
 
 export function transaction<T>(fn: () => T): T {
-  const database = backend();
-  if (database instanceof PgSync) {
-    database.query("BEGIN");
-    try {
-      const value = fn();
-      database.query("COMMIT");
-      return value;
-    } catch (error) {
-      database.query("ROLLBACK");
-      throw error;
-    }
-  }
-  database.exec("BEGIN IMMEDIATE");
-  try {
-    const value = fn();
-    database.exec("COMMIT");
-    return value;
-  } catch (error) {
-    database.exec("ROLLBACK");
-    throw error;
-  }
+  return runStoreTransaction(backend(), fn);
 }
 
 export function hitLimit(key: string, windowMs: number) {

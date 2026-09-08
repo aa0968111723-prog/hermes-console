@@ -15,10 +15,12 @@ const {
   createSession,
   get,
   hitLimit,
+  isPgStoreClient,
   list,
   put,
   remove,
   resetStoreForTests,
+  runStoreTransaction,
   storeBackend,
   transaction,
 } = await import("../lib/server/store");
@@ -96,6 +98,76 @@ test("postgres CRUD when DATABASE_URL and CONSOLE_TEST_POSTGRES=1", { skip: !liv
   assert.equal(remove("project", "workspace", "p-" + id), true);
   resetStoreForTests();
   delete process.env.CONSOLE_TEST_POSTGRES;
+});
+
+test("postgres transaction uses BEGIN/COMMIT never BEGIN IMMEDIATE", () => {
+  const sql: string[] = [];
+  const previousUrl = process.env.DATABASE_URL;
+  const previousFlag = process.env.CONSOLE_TEST_POSTGRES;
+  process.env.CONSOLE_TEST_POSTGRES = "1";
+  process.env.DATABASE_URL = "postgres://example.invalid/db";
+  try {
+    assert.equal(storeBackend(), "postgres");
+    const sqliteShaped = {
+      exec(statement: string) {
+        sql.push("EXEC:" + statement);
+      },
+    };
+    assert.equal(isPgStoreClient(sqliteShaped), true);
+    const client = {
+      query(statement: string) {
+        sql.push(statement);
+        return { rows: [], rowCount: 0 };
+      },
+    };
+    assert.equal(runStoreTransaction(client, () => "ok"), "ok");
+    assert.deepEqual(sql, ["BEGIN", "COMMIT"]);
+    assert.equal(sql.some((statement) => /IMMEDIATE/i.test(statement)), false);
+  } finally {
+    if (previousFlag === undefined) delete process.env.CONSOLE_TEST_POSTGRES;
+    else process.env.CONSOLE_TEST_POSTGRES = previousFlag;
+    if (previousUrl === undefined) delete process.env.DATABASE_URL;
+    else process.env.DATABASE_URL = previousUrl;
+  }
+});
+
+test("PG-shaped non-instanceof still takes PG path", () => {
+  assert.equal(storeBackend(), "sqlite");
+  const sql: string[] = [];
+  const shaped = {
+    query(statement: string) {
+      sql.push(statement);
+      return { rows: [], rowCount: 0 };
+    },
+    exec(statement: string) {
+      sql.push("EXEC:" + statement);
+    },
+  };
+  assert.equal(shaped instanceof Object, true);
+  assert.equal(Object.getPrototypeOf(shaped).constructor.name, "Object");
+  assert.equal(isPgStoreClient(shaped), true);
+  assert.equal(runStoreTransaction(shaped, () => 7), 7);
+  assert.deepEqual(sql, ["BEGIN", "COMMIT"]);
+  assert.equal(sql.includes("BEGIN IMMEDIATE"), false);
+  assert.equal(sql.some((statement) => statement.startsWith("EXEC:")), false);
+  sql.length = 0;
+  assert.throws(
+    () =>
+      runStoreTransaction(shaped, () => {
+        throw new Error("work_failed");
+      }),
+    /work_failed/,
+  );
+  assert.deepEqual(sql, ["BEGIN", "ROLLBACK"]);
+  sql.length = 0;
+  const beginFails = {
+    query(statement: string) {
+      sql.push(statement);
+      if (statement === "BEGIN") throw new Error("begin_failed");
+    },
+  };
+  assert.throws(() => runStoreTransaction(beginFails, () => "no"), /begin_failed/);
+  assert.deepEqual(sql, ["BEGIN", "ROLLBACK"]);
 });
 
 test("postgres secrets are not echoed when the driver cannot connect", async (t) => {
