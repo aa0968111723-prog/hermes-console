@@ -33,7 +33,7 @@
     "kind": "tku_unverified",
     "owner": "workspace",
     "id": "tku_roster_1151",
-    "value": "115-1名冊尚未公開 as of 2026-09-08"
+    "value": "115-1名冊尚未公開 as of 2026-09-09"
   },
   {
     "kind": "tku_club",
@@ -93,7 +93,7 @@
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_dcard_recruit",
-    "value": "Dcard招生弱訊號 多為詢問/揪伴"
+    "value": "Dcard招生弱訊號 多為詢問/揪伴 + 少數正式招(動漫/新創/體適能)"
   },
   {
     "kind": "tku_signal",
@@ -105,7 +105,7 @@
     "kind": "tku_fair",
     "owner": "workspace",
     "id": "tku_fair_booth_pending",
-    "value": "115攤位圖尚未公開"
+    "value": "115攤位圖尚未公開 as of 2026-09-09"
   },
   {
     "kind": "tku_source",
