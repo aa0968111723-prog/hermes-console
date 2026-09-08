@@ -69,6 +69,12 @@ export function officialWebSources(): SourceRecord[] {
       "淡江大學官方網站（待查詢入口）",
       "research_entry",
     ),
+    sourceStub(
+      "tku-miraheze",
+      "https://tku.miraheze.org/wiki/zh-Hant/%E9%A6%96%E9%A0%81",
+      "淡江 wiki（Miraheze）",
+      "research_entry",
+    ),
   ];
 }
 export function officialEduPsychSources(): SourceRecord[] {

@@ -5,6 +5,7 @@ const OFFICIAL_HOSTS = new Set([
   "www.tku.edu.tw",
   "www.edpsy.tku.edu.tw",
   "law.moj.gov.tw",
+  "tku.miraheze.org",
 ]);
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
