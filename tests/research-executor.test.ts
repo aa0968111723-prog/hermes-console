@@ -4,6 +4,7 @@ import { createServer } from "node:http";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { ResearchSourceRecord } from "../lib/contracts";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-research-"));
 process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
@@ -129,7 +130,7 @@ test("Tamkang Miraheze wiki is an official research source", async (t) => {
 
   const wikiUrl = "https://tku.miraheze.org/wiki/zh-Hant/%E9%A6%96%E9%A0%81";
 
-  function directoryStub(id: string, url: string) {
+  function directoryStub(id: string, url: string): ResearchSourceRecord {
     return {
       id,
       url,
