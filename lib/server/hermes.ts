@@ -193,7 +193,8 @@ const itemSchema = z.object({
   tools: z.array(z.string()).optional(),
 });
 function discovery(raw: unknown): DiscoveryItem[] {
-  const list = Array.isArray(raw) ? raw : (raw as { data?: unknown })?.data ?? [];
+  // A non-array body is a failed catalog, not an empty success.
+  const list = Array.isArray(raw) ? raw : (raw as { data?: unknown })?.data;
   const items = z.array(itemSchema).max(1000).parse(list);
   return items.map((item) => ({
     ...item,
