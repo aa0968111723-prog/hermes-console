@@ -118,8 +118,10 @@ const { configuredMcp, githubIsNotMcp } = await import(
   "../lib/server/mcp-registry"
 );
 const { toolsList, callTool } = await import("../lib/server/mcp");
-const { galleyConfigured, galleyStatus } = await import("../lib/server/galley");
-const { WORKSPACE_OWNER } = await import("../lib/server/security");
+const { galleyConfigured, galleyStatus, callGalleyTool } = await import(
+  "../lib/server/galley"
+);
+const { WORKSPACE_OWNER, ApiError } = await import("../lib/server/security");
 
 test("GALLEY MCP auto-seed and workspace proxy", async (t) => {
   t.after(() => galley.close());
@@ -165,5 +167,38 @@ test("GALLEY MCP auto-seed and workspace proxy", async (t) => {
     assert.equal(parsed.name, "GALLEY");
     assert.equal(parsed.protocol, "2025-06-18");
     assert.ok(galleyCalls.includes("tools/call"));
+  });
+
+  await t.test("runtime fetch rejects private and metadata hosts", async () => {
+    const previous = process.env.GALLEY_MCP_URL;
+    process.env.GALLEY_MCP_TOKEN = galleyToken;
+    try {
+      process.env.GALLEY_MCP_URL = "https://169.254.169.254/mcp";
+      await assert.rejects(
+        () => callGalleyTool("galley_capability", {}),
+        (error: unknown) =>
+          error instanceof ApiError && error.code === "ssrf_rejected",
+      );
+      process.env.GALLEY_MCP_URL = "https://10.0.0.5:8080/mcp";
+      await assert.rejects(
+        () => callGalleyTool("galley_capability", {}),
+        (error: unknown) =>
+          error instanceof ApiError && error.code === "ssrf_rejected",
+      );
+      process.env.GALLEY_MCP_URL = "https://metadata.google.internal/mcp";
+      await assert.rejects(
+        () => callGalleyTool("galley_intel", {}),
+        (error: unknown) =>
+          error instanceof ApiError && error.code === "ssrf_rejected",
+      );
+      process.env.GALLEY_MCP_URL = "http://mcp.example.invalid/mcp";
+      await assert.rejects(
+        () => callGalleyTool("galley_intel", {}),
+        (error: unknown) =>
+          error instanceof ApiError && error.code === "invalid_url",
+      );
+    } finally {
+      process.env.GALLEY_MCP_URL = previous;
+    }
   });
 });

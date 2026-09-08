@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ApiError, limited } from "./security";
+import { ApiError, assertSafeServiceUrl, limited } from "./security";
 import {
   CREDENTIAL_KEYS,
   credentialPresence,
@@ -63,29 +63,7 @@ export function validateHttpsServiceUrl(
   value: string,
   kind: "hermes" | "mcp",
 ) {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    throw new ApiError(400, "invalid_url", "網址格式不正確。");
-  }
-  const local =
-    process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
-    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (
-    (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash
-  )
-    throw new ApiError(
-      400,
-      "invalid_url",
-      kind === "hermes"
-        ? "Hermes 服務設定不安全；需要無帳密與查詢參數的 HTTPS 網域。"
-        : "MCP 目標需為無帳密與查詢參數的受控 HTTPS 端點。",
-    );
+  const url = assertSafeServiceUrl(value, kind);
   if (kind === "hermes") {
     url.pathname = url.pathname.replace(/\/$/, "").replace(/\/v1$/, "");
     if (

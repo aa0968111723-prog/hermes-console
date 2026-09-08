@@ -201,4 +201,34 @@ test("Zeabur settings vault and mocked GraphQL operations", async (t) => {
     assert.equal(restarted.status, 200);
     assert.equal((await restarted.json()).ok, true);
   });
+
+  await t.test("Zeabur endpoint rejects private and metadata hosts", async () => {
+    const { testZeabur } = await import("../lib/server/zeabur");
+    const { ApiError } = await import("../lib/server/security");
+    const previous = process.env.ZEABUR_API_URL;
+    const blocked = [
+      "https://169.254.169.254/graphql",
+      "https://10.0.0.8/graphql",
+      "https://192.168.1.8/graphql",
+      "https://[::ffff:169.254.169.254]/graphql",
+    ];
+    try {
+      for (const target of blocked) {
+        process.env.ZEABUR_API_URL = target;
+        await assert.rejects(
+          () => testZeabur(),
+          (error: unknown) =>
+            error instanceof ApiError && error.code === "ssrf_rejected",
+        );
+      }
+      process.env.ZEABUR_API_URL = "https://api.zeabur.com/graphql";
+      await assert.rejects(
+        () => testZeabur(),
+        (error: unknown) =>
+          !(error instanceof ApiError && error.code === "ssrf_rejected"),
+      );
+    } finally {
+      process.env.ZEABUR_API_URL = previous;
+    }
+  });
 });

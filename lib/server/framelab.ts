@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ApiError, redact } from "./security";
+import { ApiError, assertSafeServiceUrl, redact } from "./security";
 import { runtimeEnv } from "./credentials";
 import { githubIsNotMcp } from "./mcp-registry";
 
@@ -208,11 +208,12 @@ async function framelabRpc(
   sessionId?: string,
   timeoutMs = 15_000,
 ) {
-  const endpoint = runtimeEnv("FRAMELAB_MCP_URL");
-  if (!endpoint)
+  const configured = runtimeEnv("FRAMELAB_MCP_URL");
+  if (!configured)
     throw new ApiError(503, "framelab_unconfigured", "尚未設定 FRAMELAB_MCP_URL。");
-  if (githubIsNotMcp(endpoint))
+  if (githubIsNotMcp(configured))
     throw new ApiError(400, "github_is_not_mcp", "GitHub 網址不是 MCP 端點。");
+  const endpoint = assertSafeServiceUrl(configured, "mcp").toString();
   const token = runtimeEnv("FRAMELAB_MCP_TOKEN");
   if (!token)
     throw new ApiError(503, "framelab_unconfigured", "尚未設定 FRAMELAB_MCP_TOKEN。");

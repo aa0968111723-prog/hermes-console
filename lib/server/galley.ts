@@ -1,6 +1,6 @@
-import { ApiError } from "./security";
+import { ApiError, assertSafeServiceUrl } from "./security";
 import { runtimeEnv } from "./credentials";
-import { getMcp } from "./mcp-registry";
+import { getMcp, githubIsNotMcp } from "./mcp-registry";
 
 export const GALLEY_TOOLS = [
   "galley_capability",
@@ -69,9 +69,9 @@ export function galleyStatus(input?: {
 }
 
 function endpoint() {
-  const value = runtimeEnv("GALLEY_MCP_URL");
+  const configured = runtimeEnv("GALLEY_MCP_URL");
   const token = runtimeEnv("GALLEY_MCP_TOKEN");
-  if (!value || !token)
+  if (!configured || !token)
     throw new ApiError(
       503,
       "galley_unconfigured",
@@ -83,7 +83,12 @@ function endpoint() {
       "galley_token_invalid",
       "GALLEY MCP 權杖至少需要 32 個字元。",
     );
-  return { value, token };
+  if (githubIsNotMcp(configured))
+    throw new ApiError(400, "github_is_not_mcp", "GitHub 網址不是 MCP 端點。");
+  return {
+    value: assertSafeServiceUrl(configured, "mcp").toString(),
+    token,
+  };
 }
 
 async function readJsonRpc(response: Response) {

@@ -23,3 +23,4 @@ export const POST = route(async (req) => {
     "Set-Cookie": `canva_oauth=${auth.state}; HttpOnly; SameSite=Lax; Path=/api/canva; Max-Age=600${process.env.CONSOLE_ORIGIN?.startsWith("https:") ? "; Secure" : ""}`,
   });
 });
+

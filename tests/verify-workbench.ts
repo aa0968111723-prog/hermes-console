@@ -5,6 +5,15 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 const data = await mkdtemp(join(tmpdir(), "hermes-workbench-ui-"));
+process.env.CONSOLE_DATA_DIR = data;
+const { saveDirections } = await import("../lib/server/workflows");
+const savedWorkflow = saveDirections("workspace", {
+  projectId: "personal", brief: "TEST ONLY 來源待核對的活動需求",
+  directions: [1, 2, 3].map(n => ({
+    title: "TEST ONLY 方向 " + n, claim: "使用者提供的主張", visual: "嫩綠留白",
+    copy: "日期待確認", cta: "詢問報名方式", sources: ["https://example.com/reference"],
+  })),
+});
 const port = Number(process.env.WORKBENCH_TEST_PORT || 3418), base = "http://127.0.0.1:" + port;
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port), "-H", "127.0.0.1"], {
   windowsHide: true, stdio: "pipe", env: { ...process.env, NODE_ENV: "production", CONSOLE_ORIGIN: base,
@@ -91,6 +100,26 @@ try {
   await expect(page.getByRole("heading",{name:"今天想做什麼？"})).toBeVisible();
   assert.equal((await (await context.request.get(base+"/api/learning")).json()).nodes.length,2);
   assert.equal((await context.request.get(base+"/api/creative")).status(),200);
+  const beforeConversations = (await (await context.request.get(base+"/api/workspace")).json()).conversations;
+  await page.getByRole("button", { name: "任務", exact: true }).click();
+  const direction = page.locator(".direction").nth(1);
+  await direction.getByText("延伸創作與匯出", {exact:true}).click();
+  const download = await context.request.get(base + "/api/workflows/export?id=" + savedWorkflow.id + "&direction=1");
+  assert.equal(download.status(),200);
+  assert.match(await download.text(), /日期待確認/);
+  await page.screenshot({path:join(output,"directions-desktop.png"),fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await direction.scrollIntoViewIfNeeded();
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth));
+  await page.screenshot({path:join(output,"directions-mobile-390.png"),fullPage:true});
+  await direction.getByRole("button",{name:"IG 限動腳本",exact:true}).click();
+  await expect(page.locator(".composer textarea")).toHaveValue(/TEST ONLY 方向 2/);
+  const workspaceAfter = await (await context.request.get(base+"/api/workspace")).json();
+  assert.equal(workspaceAfter.conversations.length,beforeConversations.length+1);
+  assert.equal(workspaceAfter.conversations[0].projectId,"personal");
+  assert.equal((await (await context.request.get(base+"/api/tasks")).json()).tasks.length,0);
+  assert.equal((await (await context.request.get(base+"/api/workflows")).json()).workflows[0].selected,null);
+  // The button prepares a draft, not a fake executed task. Actual submission uses the existing chat executor.
   assert.deepEqual(errors,[]);
   console.log("PASS: real production browser no-login workbench; activity confirmation; two-page revisions/export; persistent learning tree with honest unconfigured state. Hermes memory and Canva NOT live verified.");
 } catch (error) {

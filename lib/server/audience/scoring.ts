@@ -1,15 +1,32 @@
 import { clampScore } from "../audience";
 import { EVAL_METRICS, SIMULATION, type EvalMetric, type EvaluationScores } from "./types";
 
+export function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export function hasLocalCue(text: string, ...parts: string[]) {
+  const candidates = parts
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map(escapeRegExp);
+  return candidates.length > 0 && new RegExp(candidates.join("|")).test(text);
+}
+
 export function heuristicScores(input: {
   copy: string;
   audienceLocation: string;
   audienceInstitution: string;
 }): EvaluationScores {
   const text = input.copy;
-  const local = new RegExp(
-    input.audienceLocation + "|" + input.audienceInstitution + "|克難坡|淡水|公館",
-  ).test(text);
+  const local = hasLocalCue(
+    text,
+    input.audienceLocation,
+    input.audienceInstitution,
+    "克難坡",
+    "淡水",
+    "公館",
+  );
   const life = /朋友|社團|大一|迎新|茶會|生活|校園/.test(text);
   const jargon = /靜定|禪修|開示|法會/.test(text);
   const cta = /來參加|報名|時間|地點|週|點/.test(text);

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { ApiError, WORKSPACE_OWNER, redact } from "./security";
+import { ApiError, WORKSPACE_OWNER, assertSafeServiceUrl, redact } from "./security";
 import { get, list, put } from "./store";
 import { runtimeEnv } from "./credentials";
 
@@ -41,18 +41,18 @@ const definition = z
   })
   .strict();
 function validateEndpoint(value: string) {
-  const url = new URL(value);
-  const local =
-    process.env.HERMES_ALLOW_LOOPBACK_HTTP === "true" &&
-    ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (
-    (url.protocol !== "https:" && !(local && url.protocol === "http:")) ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash ||
-    githubIsNotMcp(value)
-  )
+  let url: URL;
+  try {
+    url = assertSafeServiceUrl(value, "mcp");
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "ssrf_rejected") throw error;
+    throw new ApiError(
+      503,
+      "invalid_mcp_target",
+      "後端 MCP 目標需為無帳密與查詢參數的受控 HTTPS 端點。",
+    );
+  }
+  if (githubIsNotMcp(value) || githubIsNotMcp(url.toString()))
     throw new ApiError(
       503,
       "invalid_mcp_target",

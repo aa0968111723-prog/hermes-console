@@ -20,3 +20,4 @@ export default function AudienceCard({ twin }: { twin: AudienceTwin }) {
     </section>
   );
 }
+

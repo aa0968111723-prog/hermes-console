@@ -28,6 +28,7 @@ import {
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
+import { buildDirectionChatPrompt, EXTENSION_SHORTCUTS, type ExtensionTopic } from "@/lib/client/chat-bridge";
 import MessageBody from "./MessageBody";
 import CanvaResult from "./CanvaResult";
 import Turtle from "./Turtle";
@@ -153,7 +154,7 @@ export default function HermesConsole() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
   const [nav, setNav] = useState<
-    "chat" | "projects" | "inspiration" | "agents"
+    "chat" | "projects" | "inspiration" | "agents" | "tasks"
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
@@ -474,6 +475,28 @@ export default function HermesConsole() {
       setBusy(false);
     }
   }
+  async function extendDirection(record: Workflow, index: number, topic: ExtensionTopic) {
+    if (busy || record.projectId !== project) return;
+    setBusy(true);
+    setError("");
+    try {
+      const prompt = buildDirectionChatPrompt(record, index, topic);
+      const result = await api<{ conversation: Conversation }>("conversations", "POST", {
+        title: "延伸：" + record.directions[index].title.slice(0, 55),
+        projectId: record.projectId,
+      });
+      replaceDraft("conversation:" + result.conversation.id, { ...emptyDraft(), text: prompt });
+      setRemoteHistory(null);
+      setActiveId(result.conversation.id);
+      writePreference("hermes.active.v2", result.conversation.id);
+      setNav("chat");
+      await loadWorkspace();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "準備延伸對話失敗，請重試。");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function stopTask(task: Task) {
     try {
       const result = await api<{ task: Task }>("tasks", "PATCH", {
@@ -635,6 +658,10 @@ export default function HermesConsole() {
         <Pencil size={16} />
       </button>
       <nav aria-label="主要導覽">
+        <button aria-current={nav === "tasks" ? "page" : undefined} onClick={() => navigate("tasks")}>
+          <ListTodo size={19} />
+          任務
+        </button>
         <button
           aria-current={nav === "chat" ? "page" : undefined}
           onClick={() => navigate("chat")}
@@ -801,7 +828,7 @@ export default function HermesConsole() {
                 ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
-                  : "Agent"}
+                  : nav === "tasks" ? "任務" : "Agent"}
             <span>
               {data.projects.find((p) => p.id === project)?.name ||
                 "個人工作區"}
@@ -1508,6 +1535,20 @@ export default function HermesConsole() {
                             "選擇這個方向"
                           )}
                         </button>
+                        <details>
+                          <summary>延伸創作與匯出</summary>
+                          <p className="muted">準備同專案新對話草稿；按送出後才執行。原方向不會被覆寫。</p>
+                          <div className="credential-actions">
+                            {EXTENSION_SHORTCUTS.map(shortcut => (
+                              <button key={shortcut.topic} disabled={busy} onClick={() => extendDirection(w, index, shortcut.topic)}>
+                                {shortcut.label}
+                              </button>
+                            ))}
+                          </div>
+                          <a className="button-link" href={"/api/workflows/export?id=" + w.id + "&direction=" + index}>
+                            <Download size={16} />下載方向 Markdown
+                          </a>
+                        </details>
                       </article>
                     ))}
                   </div>

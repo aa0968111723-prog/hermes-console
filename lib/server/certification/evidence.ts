@@ -1,6 +1,5 @@
 import type { CapabilityStatus, EvidenceKind } from "./types";
-
-const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
+import { isLoopbackHost, isPrivateOrReservedHost } from "../security";
 
 export function nowIso() {
   return new Date().toISOString();
@@ -10,8 +9,9 @@ export function evidenceKindForUrl(raw?: string | null): EvidenceKind {
   if (!raw) return "UNVERIFIED";
   try {
     const url = new URL(raw);
-    if (LOOPBACK.has(url.hostname)) return "LOCAL_CONTRACT";
-    if (url.protocol === "https:") return "LIVE_EXTERNAL";
+    if (isLoopbackHost(url.hostname)) return "LOCAL_CONTRACT";
+    if (url.protocol === "https:" && !isPrivateOrReservedHost(url.hostname))
+      return "LIVE_EXTERNAL";
     return "UNVERIFIED";
   } catch {
     return "UNVERIFIED";

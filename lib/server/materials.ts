@@ -27,6 +27,8 @@ export async function saveUpload(
   mime: string,
   bytes: Buffer,
 ) {
+  if (projectId !== "personal" && !get("project", owner, projectId))
+    throw new ApiError(404, "project_not_found", "專案不存在。");
   if (
     list<Material>("material", owner).reduce(
       (sum, m) => sum + (m.bytes || 0),
@@ -81,6 +83,8 @@ export async function saveUpload(
   } else if (mime === "application/pdf") {
     if (bytes.length > 8_000_000)
       throw new ApiError(413, "pdf_too_large", "PDF 上限 8 MB。");
+    if (bytes.length < 5 || !bytes.subarray(0, 5).equals(Buffer.from("%PDF-")))
+      throw new ApiError(400, "invalid_pdf", "PDF 檔案格式錯誤，缺少標頭標記。");
     content = bytes;
     outputMime = mime;
     kind = "text";
