@@ -2,6 +2,48 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-08 23:30 TST）Grok 團隊
+
+- 基準 SHA：`3e23360890fd9f725fe89b426da446b9d10622ac`
+- 分支：`grok/memory-provenance-3e233-2026-09-08`
+- 目標：在 **current main tip（#61 短訊息上下文後）** 落地共用記憶 provenance（取代落後的 #60／#58／#56／#55／#42）。
+- 使用者影響：記憶列可標記來源／信心／重要度；digest 寫入 `lastUsedAt`；`synced` 仍為 false，不宣稱 Hermes 遠端鏡像。
+- 本輪不碰：PR #10 / #30 / #4、`data/tamkang/`、正式部署、不覆蓋 `feat/consistencylab*`。
+
+### 讀到的現況
+
+- main tip：`3e233608`（#61 短訊息上下文視窗與 token 硬頂；CI success）。
+- 開放 draft：#60（基準 330b）、#59 codex readable-task-events、#58／#56／#55／#42 記憶 provenance（均落後 tip）。
+- 亦開：#30 ConsistencyLab、#21 長任務藍圖、#10（禁止合併）、#4 atelier。
+- `codex/readable-task-events`、`codex/chat-sse-boundaries` 仍在；無活躍改寫提交路徑的 codex 開發。
+- `stream-incomplete-uncertain`／`runs-chat-fallback` 契約已在 main。
+- `lib/server/memory.ts` 在 main 仍無 provenance；Postgres／SQLite 後端與 `memoryStoreId` 已存在。
+
+### 本輪變更
+
+- `lib/server/memory.ts`：`memorySources`、provenance 欄位、`normalizeMemory`、`touchMemories`；保留 `memoryStoreId`／`memoryStoreLabel`；`synced: false`。
+- `tests/shared-memory.test.ts`：預設 provenance、更新 confidence/importance/source、digest→lastUsedAt、舊列相容、`share.provenanceFields`。
+- 同一 store 列，不另開表、不改 MCP 工具名稱。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`。本 sandbox **未執行** `tsx --test`／完整 suite。依賴 GitHub Actions `npm test`。
+- 非 `LIVE_EXTERNAL`。Mock ≠ 實機 Hermes／Postgres。
+
+### 下一輪建議
+
+- 合併本 PR 後關閉 #60／#58／#56／#55／#42。
+- 驗證 codex #59（可讀任務事件）相對 tip 是否可直接審。
+- 聊天中止後「建立重試分支」與 uncertain 任務的 UI 契約。
+- 不要合併 #10，不要覆蓋 `feat/consistencylab-clab-framelab`。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰／網域 → 不得宣稱 LIVE 整合通過
+- sandbox 無法穩定跑完整 test suite → 以 Actions 為準
+
+---
+
 ## 進行中（2026-09-08）Cycle 17 research-truth
 
 - 基準：`main` tip；分支 `fix/cycle17-research-truth`。新 PR 對 main，不碰 PR #10。
