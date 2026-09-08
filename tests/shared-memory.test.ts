@@ -14,9 +14,16 @@ delete process.env.HERMES_LEARNING_SCOPE_VERIFIED;
 
 const memoryApi = await import("../app/api/memory/route");
 const workspace = await import("../app/api/workspace/route");
-const { saveMemory, listMemories, deleteMemory, memoryDigest } =
-  await import("../lib/server/memory");
+const {
+  saveMemory,
+  listMemories,
+  deleteMemory,
+  memoryDigest,
+  getMemory,
+  memoryShareStatus,
+} = await import("../lib/server/memory");
 const { callTool } = await import("../lib/server/mcp");
+const { put } = await import("../lib/server/store");
 
 function request(path: string, method = "GET", body?: unknown) {
   return new Request("http://localhost:3240/api/" + path, {
@@ -43,11 +50,17 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
     assert.equal(created.status, 201);
     const saved = (await created.json()).memory;
     assert.equal(saved.revision, 1);
+    assert.equal(saved.source, "console");
+    assert.equal(saved.createdBy, "workspace");
+    assert.equal(saved.importance, null);
+    assert.equal(saved.confidence, null);
+    assert.equal(saved.lastUsedAt, null);
     const listed = await memoryApi.GET(request("memory?scope=all"));
     assert.equal(listed.status, 200);
     const body = await listed.json();
     assert.equal(body.share.store, "console-sqlite");
     assert.equal(body.share.synced, false);
+    assert.ok(body.share.provenanceFields?.includes("source"));
     assert.match(body.share.notice, /不會宣稱已對齊|不是 Hermes 遠端記憶/);
     assert.equal(body.memories[0].title, "教心所常用縮寫");
 
@@ -60,10 +73,17 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
         title: "教心所常用縮寫",
         content: "IRB 需由審查單位判斷。",
         tags: ["tku"],
+        confidence: 0.8,
+        importance: 0.5,
+        source: "operator",
       }),
     );
     assert.equal(updated.status, 201);
-    assert.equal((await updated.json()).memory.revision, 2);
+    const next = (await updated.json()).memory;
+    assert.equal(next.revision, 2);
+    assert.equal(next.confidence, 0.8);
+    assert.equal(next.importance, 0.5);
+    assert.equal(next.source, "operator");
 
     process.env.TEST_MEMORY_SECRET = randomBytes(24).toString("hex");
     const rejected = await memoryApi.POST(
@@ -99,19 +119,23 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
     assert.equal(blocked.status, 403);
   });
 
-  await t.test("MCP tools read and write the same SQLite rows", async () => {
+  await t.test("MCP tools read and write the same store rows", async () => {
     process.env.MCP_REQUIRE_TASK_CONTEXT = "false";
     const memory = saveMemory("workspace", {
       kind: "preference",
       title: "語氣",
       content: "使用繁體中文。",
+      source: "workspace-mcp",
+      createdBy: "mcp",
     });
+    assert.equal(memory.source, "workspace-mcp");
+    assert.equal(memory.createdBy, "mcp");
     const listed = await callTool("workspace", "workspace_list_memories", {});
     assert.equal(listed.isError, false);
     const text = String((listed.content as Array<{ text?: string }>)[0].text);
     assert.match(text, /語氣/);
     const fetched = await callTool("workspace", "workspace_get_memory", {
-      memoryId: memory.id,
+      memoryId: memory.id},
     });
     assert.equal(fetched.isError, false);
     const written = await callTool("workspace", "workspace_save_memory", {
@@ -123,7 +147,7 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
     assert.equal(written.isError, false);
     assert.ok(listMemories("workspace").some((item) => item.title === "MCP 寫入"));
     const gone = await callTool("workspace", "workspace_delete_memory", {
-      memoryId: memory.id,
+      memoryId: memory.id},
     });
     assert.equal(gone.isError, false);
     assert.equal(
@@ -142,15 +166,59 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
   });
 
   await t.test("task instructions can include the same store digest", () => {
-    saveMemory("workspace", {
+    const item = saveMemory("workspace", {
       kind: "note",
       title: "摘要用",
       content: "這會進入任務指示。",
       scope: "personal",
+      confidence: 0.7,
+      importance: 0.9,
+      source: "operator",
     });
+    assert.equal(getMemory("workspace", item.id).lastUsedAt, null);
     const digest = memoryDigest("workspace", "personal");
     assert.match(digest, /摘要用/);
     assert.match(digest, /不是 Hermes 遠端記憶鏡像/);
+    assert.match(digest, /src=operator/);
+    assert.match(digest, /conf=0\.70/);
+    assert.match(digest, /imp=0\.90/);
+    const after = getMemory("workspace", item.id);
+    assert.ok(after.lastUsedAt);
+    assert.ok(Date.parse(after.lastUsedAt!) > 0);
+  });
+
+  await t.test("legacy rows without provenance normalize safely", () => {
+    const id = "00000000-0000-4000-8000-000000000099";
+    put("shared_memory", "workspace", {
+      id,
+      scope: "workspace",
+      kind: "note",
+      title: "舊列",
+      content: "無 provenance 欄位",
+      tags: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      revision: 1,
+    });
+    const item = getMemory("workspace", id);
+    assert.equal(item.source, "console");
+    assert.equal(item.createdBy, "workspace");
+    assert.equal(item.importance, null);
+    assert.equal(item.confidence, null);
+    assert.equal(item.lastUsedAt, null);
+    deleteMemory("workspace", id);
+  });
+
+  await t.test("share status exposes provenance field names", () => {
+    const status = memoryShareStatus("workspace");
+    assert.equal(status.synced, false);
+    assert.deepEqual(status.provenanceFields, [
+      "source",
+      "createdBy",
+      "importance",
+      "lastUsedAt",
+      "confidence",
+    ]);
   });
 
   await t.test("delete helper removes rows", () => {
