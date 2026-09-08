@@ -1,5 +1,6 @@
 "use client";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useRef } from "react";
+import { useInViewMotion } from "./useInViewMotion";
 import {
   Bot,
   Brain,
@@ -16,6 +17,7 @@ import type { Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { HermesRuntimeSnapshot } from "@/lib/runtime";
 import { workingEvent } from "@/lib/client/activity";
+import { importantNodes } from "@/lib/client/spatial";
 const statusNames: Record<string, string> = {
   available: "可用",
   partial: "部分可用",
@@ -47,6 +49,7 @@ export default memo(function AgentOrbit({
   stale = false,
   compact = false,
   animation = true,
+  limit,
 }: {
   task?: Task | null;
   integrations?: Integration[];
@@ -54,8 +57,11 @@ export default memo(function AgentOrbit({
   stale?: boolean;
   compact?: boolean;
   animation?: boolean;
+  limit?: number;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  useInViewMotion(root);
   const [visible, setVisible] = useState(true);
   useEffect(() => {
     const update = () => setVisible(!document.hidden);
@@ -64,7 +70,7 @@ export default memo(function AgentOrbit({
     return () => document.removeEventListener("visibilitychange", update);
   }, []);
   const current = stale ? undefined : workingEvent(task);
-  const nodes = snapshot
+  const allNodes = snapshot
     ? snapshot.mcpServers.map((server) => ({
         id: server.id,
         name: server.name,
@@ -89,11 +95,13 @@ export default memo(function AgentOrbit({
           verifiedAt: item.verifiedAt,
           tools: item.tools,
         }));
-  const chosen = nodes.find((node) => node.id === selected);
+  const nodes = compact || limit !== undefined ? importantNodes(allNodes, current?.toolName || null, limit ?? 4) : allNodes;
+  const chosen = allNodes.find((node) => node.id === selected);
   return (
     <div
       className={compact ? "orbit-layout compact-orbit" : "orbit-layout"}
       data-animate={animation && visible}
+      ref={root}
     >
       <div className="agent-orbit" role="group" aria-label="能力連線圖">
         <svg

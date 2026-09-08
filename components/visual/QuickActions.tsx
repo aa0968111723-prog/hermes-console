@@ -40,12 +40,19 @@ const actions: QuickAction[] = [
 
 export default function QuickActions({
   onSelect,
+  mobile = false,
 }: {
   onSelect: (prompt: string) => void;
+  mobile?: boolean;
 }) {
   return (
     <div className="quick-actions" aria-label="快速開始">
-      {actions.map(({ label, prompt, icon: Icon, tone }) => (
+      {(mobile ? [
+        {label:"找靈感",prompt:"幫我找網宣靈感。",icon:Search,tone:"sage"},
+        {label:"做企劃",prompt:"幫我規劃活動網宣，先一起確認活動資訊與受眾。",icon:Sparkles,tone:"gold"},
+        {label:"分析圖片",prompt:"請分析我上傳的圖片，整理構圖、配色與資訊層級。",icon:Eye,tone:"mint"},
+        {label:"開始任務",prompt:"我想開始一個網宣任務，請先協助釐清目標與需要的素材。",icon:Palette,tone:"pearl"},
+      ] : actions).map(({ label, prompt, icon: Icon, tone }) => (
         <button
           className={`quick-action quick-action-${tone}`}
           key={label}

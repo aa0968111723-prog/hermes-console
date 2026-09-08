@@ -16,8 +16,10 @@ function canvaURL(value: unknown) {
 }
 export default function CanvaResult({
   design,
+  onPreview,
 }: {
   design: Record<string, unknown>;
+  onPreview?: () => void;
 }) {
   const urls = design.urls as
     | { edit_url?: string; view_url?: string }
@@ -27,7 +29,9 @@ export default function CanvaResult({
   const image = canvaURL(thumbnail?.url);
   return (
     <article className="canva-result">
-      {image && (
+      {image && (onPreview ? <button className="artifact-preview-trigger" aria-label="放大設計預覽" onClick={onPreview}>
+        <img src={image} alt="Canva 回傳的設計預覽" referrerPolicy="no-referrer" />
+      </button> :
         <img
           src={image}
           alt="Canva 回傳的設計預覽"

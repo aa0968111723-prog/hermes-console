@@ -20,7 +20,7 @@ export async function verifyVisualStates(
     page.getByRole("button", { name: "加入內容", exact: true }),
   ).toBeFocused();
   const image = await readFile("public/mascot/turtle.png");
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('#composer input[type="file"]').setInputFiles({
     name: "龜龜參考.png",
     mimeType: "image/png",
     buffer: image,
@@ -335,6 +335,15 @@ export async function verifyVisualStates(
   await expect(page.locator(".artifact-stage img")).toBeVisible();
   await page.screenshot({ path: join(output, "artifact-fixture.png") });
   await audit("artifact-fixture");
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole("button",{name:"放大設計預覽",exact:true}).click();
+  const artifactPreview=page.getByRole("dialog",{name:"作品全螢幕預覽",exact:true});
+  await expect(artifactPreview).toBeVisible();
+  await expect.poll(()=>artifactPreview.locator("img").evaluate((img:HTMLImageElement)=>img.complete && img.naturalWidth>0)).toBe(true);
+  await audit("artifact-fullscreen-mobile-fixture");
+  await page.screenshot({path:join(output,"spatial-artifact-390-fixture.png")});
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button",{name:"放大設計預覽",exact:true})).toBeFocused();
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),

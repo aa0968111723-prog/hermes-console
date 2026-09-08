@@ -45,7 +45,9 @@ import AgentOrbit from "./visual/AgentOrbit";
 import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
-import ArtifactStage from "./visual/ArtifactStage";
+import SpatialPanel from "./visual/SpatialPanel";
+import { useSpatialMode } from "./visual/useSpatialMode";
+import ArtifactDeck from "./visual/ArtifactDeck";
 import ComposerMenu from "./visual/ComposerMenu";
 import ComposerTaskStatus from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
@@ -172,7 +174,7 @@ export default function HermesConsole() {
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
-  const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
+  const [panel, setPanel] = useState<"settings" | "task" | "preview" | "spatial" | null>(
     null,
   );
   const [settingsTab, setSettingsTab] = useState("外觀");
@@ -197,6 +199,8 @@ export default function HermesConsole() {
   const [notice, setNotice] = useState("");
   const [offline, setOffline] = useState(false);
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
+  const spatial = useSpatialMode(prefs.animation);
+  const [radialOpen, setRadialOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [legacy, setLegacy] = useState(false);
   const [newProject, setNewProject] = useState("");
@@ -799,6 +803,9 @@ export default function HermesConsole() {
         } as React.CSSProperties
       }
       data-compact={prefs.compact}
+      data-spatial={spatial.mode}
+      data-page-visible={spatial.visible}
+      data-sheet-open={!!panel || drawer || radialOpen}
     >
       <a className="skip-link" href="#composer">
         跳至輸入區
@@ -845,7 +852,7 @@ export default function HermesConsole() {
           </button>
           <div className="topbar-title">
             {nav === "chat"
-              ? "創作對話"
+              ? spatial.mobile ? "Hermes" : "創作對話"
               : nav === "projects"
                 ? "專案與素材"
                 : nav === "inspiration"
@@ -942,7 +949,7 @@ export default function HermesConsole() {
                 setJump(!nearBottom.current);
               }}
             >
-              <div className="conversation">
+              <div className="conversation" key={activeId || "new"}>
                 {!activeConv?.messages.length ? (
                   <section className="welcome" aria-labelledby="welcome-title">
                     <div className="welcome-stage">
@@ -952,7 +959,7 @@ export default function HermesConsole() {
                           offline={offline}
                           animation={prefs.animation}
                           size={prefs.turtleSize * 1.8}
-                          onClick={() => openTask(currentTask)}
+                          onClick={() => setPanel("spatial")}
                         />
                       )}
                       {prefs.turtle && (
@@ -967,6 +974,7 @@ export default function HermesConsole() {
                     </div>
                     <h1 id="welcome-title">今天想做什麼？</h1>
                     <QuickActions
+                      mobile={spatial.mobile}
                       onSelect={(prompt) => {
                         setText(prompt);
                         input.current?.focus();
@@ -1504,6 +1512,7 @@ export default function HermesConsole() {
         ) : (
           <section className="secondary-page">
             <h1>任務</h1>
+            <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} />
             {workflows
               .filter((w) => w.projectId === project)
               .map((w) => (
@@ -1597,20 +1606,7 @@ export default function HermesConsole() {
                       查回 Canva 製作結果
                     </button>
                   )}
-                  {w.design && (
-                    <ArtifactStage
-                      design={w.design}
-                      onContinue={() => {
-                        setNav("chat");
-                        setText(
-                          "請查回創作流程 " +
-                            w.id +
-                            " 的現有設計，接續修改同一作品。",
-                        );
-                        input.current?.focus();
-                      }}
-                    />
-                  )}
+
                 </section>
               ))}
             {!tasks.some(
@@ -1649,10 +1645,20 @@ export default function HermesConsole() {
           </section>
         )}
       </main>
-      <AppDock nav={nav} onNavigate={navigate} />
+      <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
+        onAction={action=>{
+          if(action==="spatial")setPanel("spatial");
+          else if(action==="memory"){setSettingsTab("記憶");setPanel("settings");}
+          else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
+        }}
+        onFiles={files=>{
+          if(files.length+uploads.length+references.length>4){setError("每則訊息最多四個附件。");return;}
+          setNav("chat");files.forEach(file=>uploadFile(file));
+        }}
+      />
       <dialog
         ref={dialog}
-        className="detail-dialog"
+        className={"detail-dialog "+(panel==="spatial"?"spatial-sheet":panel==="preview"?"preview-sheet":"")}
         aria-labelledby="detail-panel-title"
         onCancel={() => setPanel(null)}
         onClick={(e) => {
@@ -1662,7 +1668,7 @@ export default function HermesConsole() {
         <div className="panel-content">
           <header className="panel-header">
             <h2 id="detail-panel-title">
-              {panel === "settings"
+              {panel === "spatial" ? "Hermes 空間" : panel === "settings"
                 ? "工作區設定"
                 : panel === "preview"
                   ? "素材預覽"
@@ -1681,7 +1687,10 @@ export default function HermesConsole() {
               {error}
             </p>
           )}
-          {panel === "settings" ? (
+          {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
+            animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
+            onMemory={()=>{setSettingsTab("記憶");setPanel("settings");}}
+            onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
             <>
               <div
                 className="setting-tabs"
