@@ -225,6 +225,13 @@ export async function verifyVisualStates(
   );
   await page.screenshot({ path: join(output, "tool-running-fixture.png") });
   await audit("tool-running-fixture");
+  // Keep the same sizes before/after composer changes for CI artifact review.
+  for (const [width, height] of [[360, 740], [390, 420], [844, 390], [768, 1024], [1440, 1000]]) {
+    await page.setViewportSize({ width, height });
+    await page.getByRole("textbox", { name: "訊息", exact: true }).fill("[介面測試草稿] 等候工具結果");
+    await page.screenshot({ path: join(output, `task-access-${width}x${height}.png`) });
+  }
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   task.state = "completed";
   task.endedAt = now;
   task.events[0].status = "completed";
