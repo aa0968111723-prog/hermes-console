@@ -81,13 +81,13 @@
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r27",
-    "value": "R27尖峰約4-10分 離峰8-15分 TDX+Dcard+官方"
+    "value": "R27尖峰約4-6分 離峰8-12分(近期亦見20-30) TDX+維基學院+鐵道社FB"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r28",
-    "value": "R28尖峰約6-20分 正線/直達 Dcard+official"
+    "value": "R28正線尖峰6-10分 離峰15-20分 直達更快進校 維基學院+鐵道社FB"
   },
   {
     "kind": "tku_signal",
@@ -118,5 +118,11 @@
     "owner": "workspace",
     "id": "tku_log_20260909_0300",
     "value": "cycle hourly-2026-09-09-0300: roster仍未公開; fair確認; zen/hotmusic/commute/Dcard更新; xlsx重建"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0400",
+    "value": "cycle hourly-2026-09-09-0400: 再驗證CNA184+社博9/10; 115-1仍null; R27/R28班距細化; Dcard多帖; zen/hotmusic L1+L2維持; xlsx完整重建並upsert"
   }
 ]

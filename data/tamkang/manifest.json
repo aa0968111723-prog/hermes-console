@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-09T03:02:00+08:00",
-  "cycle": "hourly-2026-09-09-0300",
+  "updated_at": "2026-09-09T04:05:00+08:00",
+  "cycle": "hourly-2026-09-09-0400",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -19,13 +19,13 @@
     "cadence": "HOURLY Asia/Taipei"
   },
   "counts": {
-    "records": 20,
+    "records": 21,
     "tku_club": 7,
     "tku_source": 4,
-    "tku_fair": 2,
+    "tku_": 2,
     "tku_unverified": 2,
     "tku_signal": 4,
-    "tku_log": 1,
+    "tku_log": 2,
     "l2_note": "existence based on 114-1 official roster + CNA; 184 active / 115-1 roster / booth map still pending"
   },
   "conflict": {
@@ -39,7 +39,7 @@
     "fair_115": "starts 2026-09-10 one week; booth map pending",
     "zen": "official name 領袖禪學社; aka Leader Zen; SG109; formerly 禪學社/領袖社",
     "hot_music": "no official hot-music club; four entry clubs: 詞曲創作社/電子音樂研究社/地板音樂社/嘻哈研究社",
-    "commute": "R27 peak ~4-10min; R28 peak ~6-20min (direct faster)"
+    "commute": "R27 peak ~4-6min (also 20-30 seen); R28 peak ~6-10min direct faster"
   },
   "this_cycle": {
     "confirmed_seed_array": true,
@@ -48,10 +48,10 @@
       "fair date re-verified via CNA 2026-09-07; starts 09-10; booth map missing",
       "173/178/184 conflict remains pending",
       "zen naming dual-track verified (領袖禪學社) L1 sites.google + L2 Wiki/FB/IG",
-      "hot-music four-club entry dual-sourced",
-      "commute headway quantified via Dcard+official+lib",
+      "hot-music four-club entry dual-sourced (sites.google + 114-1 roster + Wiki)",
+      "commute headway refined via 維基學院 + TDX + 鐵道社FB",
       "Dcard recruit: weak signals + concrete posts (動漫社/新創社/體適能有氧社/心理研究社/咖啡社)",
-      "xlsx main KB rebuilt in artifacts (was missing); seed array confirmed"
+      "xlsx main KB fully rebuilt in artifacts; seed array confirmed length 21"
     ]
   }
 }
