@@ -193,7 +193,8 @@ const itemSchema = z.object({
   tools: z.array(z.string()).optional(),
 });
 function discovery(raw: unknown): DiscoveryItem[] {
-  const items = z.array(itemSchema).max(1000).parse(raw);
+  const list = Array.isArray(raw) ? raw : (raw as { data?: unknown })?.data ?? [];
+  const items = z.array(itemSchema).max(1000).parse(list);
   return items.map((item) => ({
     ...item,
     name: redact(item.name),

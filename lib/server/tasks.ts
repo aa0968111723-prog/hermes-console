@@ -261,24 +261,31 @@ async function execute(
   try {
     const connection = await health(owner);
     if (!conv.hermesSessionId && connection.features.session_resources) {
-      const created = await readJSON(
-        await upstream(
-          "/api/sessions",
-          { method: "POST", body: JSON.stringify({ title: conv.title }) },
-          controller.signal,
-          sessionKeyFor(conv.projectId),
-          { role: "general" },
-        ),
-      );
-      const remote = created.session_id ?? created.id;
-      if (!idSchema.safeParse(remote).success)
-        throw new ApiError(
-          502,
-          "session_invalid",
-          "Hermes 建立會話後未回傳有效識別。",
+      try {
+        const created = await readJSON(
+          await upstream(
+            "/api/sessions",
+            { method: "POST", body: JSON.stringify({ title: conv.title }) },
+            controller.signal,
+            sessionKeyFor(conv.projectId),
+            { role: "general" },
+          ),
         );
-      conv.hermesSessionId = String(remote);
-      put("conversation", owner, conv);
+        const remote =
+          created.session_id ??
+          created.id ??
+          created.session?.id ??
+          created.data?.id;
+        if (idSchema.safeParse(remote).success) {
+          conv.hermesSessionId = String(remote);
+          put("conversation", owner, conv);
+        }
+        // 會話建立只是加速後續關聯的 best-effort 步驟：遠端未回傳可用識別
+        // 時不應整筆任務失敗，後續 /v1/runs 或 chat 流程自帶重試與關聯。
+      } catch (error) {
+        if (error instanceof ApiError && error.code === "interrupted") throw error;
+        event(task, "Hermes 會話預建未成功，將以無會話模式繼續提交。");
+      }
     }
     const headers: Record<string, string> = {
       "X-Hermes-Session-Key": sessionKeyFor(conv.projectId),
