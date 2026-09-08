@@ -34,6 +34,14 @@ import {
   type XunheToolName,
 } from "./xunhe";
 import {
+  invokePlanform,
+  isPlanformTool,
+  planformConfigured,
+  planformDescriptions,
+  planformSchemas,
+  type PlanformToolName,
+} from "./planform";
+import {
   invokeLumen,
   isLumenTool,
   lumenConfigured,
@@ -250,7 +258,21 @@ export function toolsList(owner: string) {
         }))
       : []),
   ];
-  return extra.length ? local.concat(extra) : local;
+  if (planformConfigured())
+    extra.push(
+      ...Object.entries(planformSchemas).map(([name, schema]) => ({
+        name,
+        description: planformDescriptions[name as PlanformToolName],
+        inputSchema: z.toJSONSchema(schema),
+        annotations: {
+          readOnlyHint: /describe|list|get_|generate_layout|export/.test(name),
+          destructiveHint: false,
+          idempotentHint: /describe|list|get_|open|cancel|export/.test(name),
+          openWorldHint: false,
+        },
+      })),
+    );
+  return extra.length ? [...local, ...extra] : local;
 }
 async function once(
   owner: string,
@@ -462,6 +484,14 @@ export async function callTool(
       throw new ApiError(503, "xunhe_unconfigured", "尚未設定 XUNHE_MCP_URL。");
     const args = xunheSchemas[name].parse(input) as Record<string, unknown>;
     return finishToolCall(owner, name, args, rpcId, () => invokeXunhe(name, args));
+  }
+  if (isPlanformTool(name)) {
+    if (!planformConfigured())
+      throw new ApiError(503, "planform_unconfigured", "尚未設定 PLANFORM_MCP_URL。");
+    const args = planformSchemas[name].parse(input) as Record<string, unknown>;
+    return finishToolCall(owner, name, args, rpcId, () =>
+      invokePlanform(name, args),
+    );
   }
   if (isLumenTool(name)) {
     if (!lumenConfigured())
