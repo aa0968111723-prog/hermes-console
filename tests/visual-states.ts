@@ -257,6 +257,9 @@ export async function verifyVisualStates(
     await expect(technicalSummary).toContainText("技術資訊");
     await expect(technical.locator("code").first()).toBeHidden();
     if (width === 390 && height === 420) {
+      await page.screenshot({
+        path: join(output, "task-technical-collapsed-390x420.png"),
+      });
       await technicalSummary.click();
       await expect(technical.locator("code").first()).toBeVisible();
       await expect(technical.locator("code").first()).toHaveText(task.id);

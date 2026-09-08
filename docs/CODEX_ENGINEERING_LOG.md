@@ -1,5 +1,17 @@
 # Codex 工程接續紀錄
 
+## 2026-09-09 — 任務技術識別資訊收合（UIUX 分工）
+
+- 延續 `codex/compact-task-usage`／草稿 PR #69；本輪開始時 main 從 `8471ddaf55c98da04805aff03291bec4477df862` 前進至 `2f2185cea9e9311481b5727ede884e177a30b24a`。新提交只新增 AI research 文件，已用 merge commit `7d62fc62b0057a0090a52f24cf62954645118057` 同步，未覆蓋其他工作；main CI `34277411277` 通過。
+- 已再次核對 AGENTS、README、package/lock、CI、現有前端、未結 PR 與本紀錄。Grok #68/#65 處理 uncertain retry，其他 Grok PR 處理 memory provenance；本輪仍不修改其重試、記憶、API 或資料層。
+- 問題：任務詳情長期顯示兩行 Console／Hermes 技術 ID，手機首屏文字密度高；這些值對除錯有用，但不是每次查看狀態都需要。
+- 改為預設收合的 44px「技術資訊」入口，展開後仍完整顯示兩個真實 ID，長字串可安全換行；沒有刪除或偽造資料。只使用既有 disclosure 與 Code 圖示，無新依賴、動畫、API 或後端變更。
+- Chrome 旅程在五種任務尺寸驗證預設收合，390×420 額外驗證展開後 ID 可見、再收合且不影響用量與事件內容；並產出同尺寸 `task-technical-collapsed-390x420.png`。功能 SHA：`c9b8b790f088d57f48dda80fd1e369b9d6677e57`。
+- 本地 `npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過；`node --import tsx --test --test-concurrency=1 tests/*.test.ts`：254 通過、2 項 Postgres 條件跳過、零失敗。
+- 功能 CI `34278192777` 全通過，包含原 `npm test`、build、secrets、audit、test:ui、test:chat、test:workbench、test:gateway。已下載 artifact `10076634861`，親自檢視手機／桌面任務畫面；11 個 Axe 受測畫面零 violations。fixture LCP 96ms、CLS 0.0000803 是單次 CI 結果，不作真機承諾。
+- fixture 不是正式 Hermes／MCP 外部整合證據；仍缺 iOS／Android 實體裝置與軟鍵盤安全區驗證。Grok 可續修 uncertain retry／memory provenance；不需改本輪前端 disclosure。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-09 — 手機任務用量精簡呈現（UIUX 分工）
 
 - 基準 main：`8471ddaf55c98da04805aff03291bec4477df862`；分支 `codex/compact-task-usage`，草稿 PR #69。PR #59 已由其他操作者合併，本輪自最新 main 開新分支；基準 CI `34273027451` 全通過。
