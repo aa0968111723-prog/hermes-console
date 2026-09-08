@@ -152,6 +152,33 @@ test("campus-clubs and zen-papers accept only matching row ids and pick caption 
   );
 });
 
+test("sheet row import includes redacted thrown boom in errors", async () => {
+  const original = globalThis.fetch;
+  const sheet = SHEETS[0];
+  const originalCaption = sheet.caption;
+  sheet.caption = () => {
+    throw new Error("boom");
+  };
+  globalThis.fetch = async (input) => {
+    const url = String(input);
+    if (url.includes(sheet.id)) return new Response("TKU-999,文字,摘要");
+    return new Response("id,text\nSKIP-1,no");
+  };
+  try {
+    const result = await syncSheetsInspiration();
+    assert.ok(result.failed >= 1);
+    assert.ok(
+      result.errors.some(
+        (error) => error.includes("boom") && error.includes("敏感資訊"),
+      ),
+      result.errors.join(" | "),
+    );
+  } finally {
+    sheet.caption = originalCaption;
+    globalThis.fetch = original;
+  }
+});
+
 test("campus-clubs and zen-papers skip unmatched rows and rematch on re-sync", async () => {
   const original = globalThis.fetch;
   const campusId = "1AqDu7nP_CCPRFIyedPIL94w_N-9RQI12JIfNhZRkjTo";

@@ -132,9 +132,18 @@ async function runSync(): Promise<SheetSyncResult> {
             put("inspiration", WORKSPACE_OWNER, saved);
             result.created++;
           });
-        } catch {
+        } catch (error) {
           result.failed++;
-          result.errors.push(sheet.label + " 第 " + (index + 1) + " 列：匯入失敗，請檢查欄位或敏感資訊。");
+          const detail = redact(
+            error instanceof Error ? error.message : String(error ?? ""),
+          );
+          result.errors.push(
+            sheet.label +
+              " 第 " +
+              (index + 1) +
+              " 列：匯入失敗，請檢查欄位或敏感資訊。" +
+              (detail ? " " + detail : ""),
+          );
         }
       }
     } catch (error) {
