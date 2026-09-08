@@ -23,6 +23,7 @@ const {
   memoryShareStatus,
 } = await import("../lib/server/memory");
 const { callTool } = await import("../lib/server/mcp");
+const { put } = await import("../lib/server/store");
 
 function request(path: string, method = "GET", body?: unknown) {
   return new Request("http://localhost:3240/api/" + path, {
@@ -187,7 +188,6 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
   });
 
   await t.test("legacy rows without provenance normalize safely", () => {
-    const { put } = require("../lib/server/store") as typeof import("../lib/server/store");
     const id = "00000000-0000-4000-8000-000000000099";
     put("shared_memory", "workspace", {
       id,
