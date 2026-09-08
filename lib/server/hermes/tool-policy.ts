@@ -89,20 +89,20 @@ export function saveRuntimeBinding(
     owner,
     "current",
   )?.tools.find((t) => t.canonicalName === input.toolName);
+  const workspaceBinding =
+    tool?.source === "console-workspace" ||
+    (!tool && input.toolName.startsWith("console-workspace."));
+  if (!workspaceBinding || (input.agentId && input.agentId !== "general"))
+    throw new ApiError(
+      409,
+      "binding_execution_unsupported",
+      "目前僅能強制限制 Console workspace 工具與 general Agent；尚無已驗證的 Hermes 原生／外部 MCP 權限介面。",
+    );
   if (!tool)
     throw new ApiError(
       404,
       "runtime_tool_not_found",
       "請先同步，工具必須存在於目前清單。",
-    );
-  if (
-    tool.source !== "console-workspace" ||
-    (input.agentId && input.agentId !== "general")
-  )
-    throw new ApiError(
-      409,
-      "binding_execution_unsupported",
-      "目前僅能強制限制 Console workspace 工具與 general Agent；尚無已驗證的 Hermes 原生／外部 MCP 權限介面。",
     );
   if (Object.keys(input.permissionOverrides).length)
     throw new ApiError(

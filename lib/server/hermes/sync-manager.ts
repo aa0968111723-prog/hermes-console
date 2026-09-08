@@ -56,6 +56,9 @@ export function subscribeRuntime(owner: string, listener: Listener) {
     listeners.delete(listener);
   };
 }
+export function runtimeSyncInflight(owner: string) {
+  return Boolean(stateFor(owner).inflight);
+}
 function previous(owner: string) {
   const snapshot = get<HermesRuntimeSnapshot>(
     "runtime_snapshot",

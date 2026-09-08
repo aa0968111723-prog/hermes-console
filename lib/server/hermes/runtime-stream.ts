@@ -1,5 +1,6 @@
 import {
   runtimeSnapshot,
+  runtimeSyncInflight,
   subscribeRuntime,
   syncRuntime,
   RUNTIME_STALE_MS,
@@ -74,6 +75,10 @@ export function runtimeStream(
           send("runtime.error", { message: "同步失敗，舊資料僅供參考。" }),
         );
       heartbeat = setInterval(() => {
+        // Do not insert heartbeat while a sync is publishing added/removed tools,
+        // and do not pile unread heartbeats in front of those events.
+        if (runtimeSyncInflight(owner) || (controller.desiredSize ?? 0) <= 0)
+          return;
         const current = runtimeSnapshot(owner);
         if (current) sendSnapshot(current);
         send("heartbeat", {
