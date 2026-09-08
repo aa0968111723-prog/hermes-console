@@ -6,13 +6,14 @@ export function fallbacksFromRoutes(routes: RoutedTool[]): FallbackRecord[] {
     .filter((route) => route.tool !== "tamkang_mcp" && route.fallback)
     .map((route) => ({
       from: route.id === "campus" ? "tamkang_mcp" : route.tool,
-      to: route.tool,
+      to: route.fallback || route.tool,
       reason: route.reason,
       userVisible: userVisibleFallback(route),
     }));
 }
 
 export function userVisibleFallback(route: RoutedTool) {
+  if (route.id === "research") return route.reason;
   if (route.tool === "hermes_authorized_web")
     return "淡江 MCP 暫時不可用，已改用 Hermes 已授權網頁來源。";
   if (route.tool === "official_web_directory")

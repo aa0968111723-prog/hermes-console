@@ -2,6 +2,31 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-08）Cycle 17 research-truth
+
+- 基準：`main` tip；分支 `fix/cycle17-research-truth`。新 PR 對 main，不碰 PR #10。
+- 引用：https://github.com/aa0968111723-prog/hermes-console/pull/10#issuecomment-5585568775
+- 目標：通用研究路由、無來源不得升 FACT、拿掉茶／寺廟／香爐硬編碼、備援 `to` 寫 fallback。
+- 本輪不碰：PR #10 / #30 / #42、`data/tamkang/`、正式部署。
+
+### 本輪變更
+
+1. `tool-router.ts` — `requiresResearch`（非淡江）→ `hermes_authorized_web`，否則 `ask_user`，fallback `official_web_directory`。`planner.ts` 研究步驟吃 campus 或 research 路由。
+2. `truth.ts` — `retrieved` 但沒有 `sourceIds` → `UNKNOWN`，不再升 `FACT`。
+3. `creative/spec.ts` — 拿掉 tea / 寺廟金紅 / 香爐硬編碼。
+4. `fallback.ts` — `to = route.fallback || route.tool`。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`。`tests/cycle17-research-truth.test.ts`。非 `LIVE_EXTERNAL`。
+
+### 下一輪建議
+
+- 不要合併 #10。
+- 研究 fallback 的 userVisible 目前對 research 用 reason，campus 仍是淡江 MCP 文案。
+
+---
+
 ## 進行中（2026-09-08 18:06 TST）Grok 團隊第二輪
 
 - 基準 SHA：`1be96eb45be62f039ccce40d60ef1602028c1f3c`

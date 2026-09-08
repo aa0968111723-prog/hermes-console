@@ -51,6 +51,15 @@ export function routeTools(
         fallback: null,
       });
     }
+  } else if (goal.requiresResearch) {
+    routes.push({
+      id: "research",
+      tool: hermesChat ? "hermes_authorized_web" : "ask_user",
+      reason: hermesChat
+        ? "依需求使用 Hermes 已授權網頁研究。"
+        : "Hermes 網頁研究尚未就緒，需要使用者提供來源。",
+      fallback: "official_web_directory",
+    });
   }
 
   if (goal.requiresInspiration) {

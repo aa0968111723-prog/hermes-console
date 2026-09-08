@@ -164,6 +164,8 @@ test("capability certification does not treat discovery as whole-Hermes verified
       "SOURCE_VERIFIED",
     );
     assert.equal(classifyTruth({ inferred: true }), "INFERENCE");
+    assert.equal(classifyTruth({ retrieved: true }), "UNKNOWN");
+    assert.equal(classifyTruth({ retrieved: true, sourceIds: [] }), "UNKNOWN");
     assert.equal(classifyTruth({}), "UNKNOWN");
   });
 
