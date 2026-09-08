@@ -1,5 +1,16 @@
 # Codex 工程接續紀錄
 
+## 2026-09-09 — 長任務需求摘要與詳情回頂（UIUX 分工）
+
+- 延續 `codex/compact-task-usage`／草稿 PR #69；本輪基準 main：`c937a7cb5951f162132194e9d33f791bc409267a`，基準 CI `34279144820` 通過。用 merge commit `da53675bd108aa859716c2aae644c070ded3ceee` 同步最新 main；新增內容僅為淡江知識資料。本輪核對 AGENTS、README、package/lock、CI、前端、未結 PR 與本紀錄，避開 Grok #70/#68/#65 的 uncertain retry 與記憶資料工作。
+- 問題：任務詳情把完整 `task.input` 當標題；接近契約上限的長需求會佔滿手機畫面。初版 140 字摘要在 360px 仍約七行；CI 畫面又發現重開不同任務時沿用舊的內容捲動位置，使新任務標題從中段開始。
+- 新增集中式 `presentTaskInput`：正規化摘要空白、最多 140 字，並以 CSS 再限制四個視覺行；完整原文保留在 44px 原生「查看完整需求」disclosure，內容維持換行並限制自身高度可捲動。這是資料密度與層次修正，不是 3D；沒有新依賴、動畫、API、後端或資料契約變更，也不會以摘要取代原始需求。
+- 每次開啟任務詳情或切換選取任務，下一個 animation frame 將 `.panel-content` 回到頂部；避免 dialog 尚未開啟時重設失效。Chrome 旅程在 360×420 驗證回頂、標題在視窗內、預覽不超過四行、完整需求預設隱藏、入口至少 44px，以及展開後第 24 段完整原文仍存在；截圖為 `task-request-long-collapsed-360x420.png`。
+- 新增 3 項摘要單元測試；本地完整契約測試 259 項中 257 通過、2 項因未提供 Postgres 條件跳過，零失敗；`npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過。後續四行與回頂變更另跑 lint、typecheck 與專項測試通過。
+- 最終功能 SHA：`69b43f1a09f2762942ad715068f6ad6631722236`；CI `34281959622` 全通過，包含原 `npm test`、build、secrets、audit、test:ui、test:chat、test:workbench、test:gateway。已下載 artifact `10078042823` 並親自檢視 360×420 最終畫面；面板從頂部顯示，摘要四行且沒有技術 ID 佔據首屏。11 個 Axe 受測畫面零 violations；fixture LCP 132ms、CLS 0.0000803 僅為單次 CI 結果。
+- fixture 不是正式 Hermes／MCP 外部整合或 iOS／Android 實體鍵盤證據。下一輪優先驗證軟鍵盤與安全區，或改善任務 error／uncertain 的可恢復操作；Grok 可續修 retry／memory provenance，不需修改本輪前端摘要。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-09 — 任務技術識別資訊收合（UIUX 分工）
 
 - 延續 `codex/compact-task-usage`／草稿 PR #69；本輪開始時 main 從 `8471ddaf55c98da04805aff03291bec4477df862` 前進至 `2f2185cea9e9311481b5727ede884e177a30b24a`。新提交只新增 AI research 文件，已用 merge commit `7d62fc62b0057a0090a52f24cf62954645118057` 同步，未覆蓋其他工作；main CI `34277411277` 通過。
