@@ -274,8 +274,16 @@ async function execute(
         const remote =
           created.session_id ??
           created.id ??
-          created.session?.id ??
-          created.data?.id;
+          (typeof created.session === "object" &&
+          created.session &&
+          "id" in created.session
+            ? (created.session as { id?: unknown }).id
+            : undefined) ??
+          (typeof created.data === "object" &&
+          created.data &&
+          "id" in created.data
+            ? (created.data as { id?: unknown }).id
+            : undefined);
         if (idSchema.safeParse(remote).success) {
           conv.hermesSessionId = String(remote);
           put("conversation", owner, conv);
