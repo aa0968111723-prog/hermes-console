@@ -1,0 +1,52 @@
+{
+  "name": "淡江大學社團全生態知識庫",
+  "path": "data/tamkang",
+  "updated_at": "2026-09-08T13:00:00+08:00",
+  "cycle": "hourly-2026-09-08-13",
+  "rules": {
+    "single_file": true,
+    "dual_layer": true,
+    "owner": "workspace",
+    "pii": "none"
+  },
+  "sqlite": {
+    "table": "records",
+    "import": "node scripts/import-tamkang-kb.mjs",
+    "note": "run on Console host only; sqlite is gitignored"
+  },
+  "automation": {
+    "task_id": "9937e72c-f973-4d72-955f-672c2d1c741f",
+    "cadence": "HOURLY Asia/Taipei"
+  },
+  "counts": {
+    "records": 16,
+    "tku_club": 5,
+    "tku_source": 2,
+    "tku_fair": 1,
+    "tku_unverified": 2,
+    "l2_note": "存在性以114-1官方一覽為底；184活躍／115-1名冊／115攤位圖仍待核"
+  },
+  "conflict": {
+    "173": "官網約有173個社團",
+    "178": "114-1名冊合計",
+    "184": "學務長轉述活躍社團",
+    "l2": "矛盾待裁"
+  },
+  "priority": {
+    "roster_1151": "未公開",
+    "fair_115": "2026-09-10起連續一週（時程已核，攤位圖待核）",
+    "zen": "1051禅學社（官方）／領袖禅學社（社團自用）",
+    "hot_music": "無熱音社正式名；入口為地板／詞創／嘻研／電子音樂",
+    "commute": "紅27/紅28/克難坡路徑已核"
+  },
+  "this_cycle": {
+    "confirmed_seed_array": true,
+    "findings": [
+      "115-1名冊仍未公開",
+      "社博9/10起一週已核(CNA)",
+      "禅學命名雙源已核",
+      "熱音入口四社二源已核",
+      "通勤路徑已核"
+    ]
+  }
+}
