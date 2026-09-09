@@ -96,7 +96,7 @@ child.stdout?.on("data", (d) => {
 child.stderr?.on("data", (d) => {
   logs += d;
 });
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ headless: true });
 const output = resolve("output/playwright");
 await mkdir(output, { recursive: true });
 try {

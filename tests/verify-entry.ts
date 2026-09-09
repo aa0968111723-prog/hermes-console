@@ -66,7 +66,7 @@ try {
     body: JSON.stringify({ title: "免登入對話" }),
   });
   assert.equal(created.status, 201);
-  browser = await chromium.launch({ channel: "chrome", headless: true });
+  browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));

@@ -9,7 +9,7 @@ export async function verifyMobileEngines(base: string, output: string) {
   for (const engine of ["chrome", "webkit"] as const) {
     const browser =
       engine === "chrome"
-        ? await chromium.launch({ channel: "chrome" })
+        ? await chromium.launch()
         : await webkit.launch();
     try {
       const context = await browser.newContext({
