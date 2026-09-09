@@ -2326,6 +2326,9 @@ body::before {
 .handoff-card p { margin: 0 0 8px; font-size: 13px; line-height: 1.45; }
 .next-slot { margin: 0 0 18px; }
 .next-slot strong { display: block; margin: 4px 0 8px; font-size: 16px; }
+.live-watch { margin: 0 0 12px; background: #fffdf6; }
+.story-beats { margin: 8px 0 0; padding-left: 1.2em; font-size: 13px; }
+.story-beats small { color: var(--muted); }
 
 @media (min-width: 761px) {
   .quick-action:nth-child(1), .quick-action:nth-child(6) { transform: translateY(14px); }

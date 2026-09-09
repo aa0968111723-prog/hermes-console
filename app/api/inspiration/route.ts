@@ -9,6 +9,7 @@ import {
 import { searchInspiration, resolveInspirationUrl } from "@/lib/server/inspiration/engine";
 import { providerHealth } from "@/lib/server/inspiration/providers";
 import { syncSheetsInspiration, sheetsSyncStatus } from "@/lib/server/inspiration/sheets-sync";
+import { tkuVisualLanguage } from "@/lib/server/inspiration/visual-language";
 
 export const runtime = "nodejs";
 
@@ -22,6 +23,7 @@ export const GET = route(async (req) => {
     plan: inspirationSearchPlan("幫我找靈感"),
     providers: providerHealth(),
     sheetsSync: sheetsSyncStatus(),
+    visualLanguage: tkuVisualLanguage(),
   });
 });
 

@@ -44,6 +44,21 @@ description: 把公開 HTTPS 網址整理成 Hermes Console 靈感庫的收藏�
 7. 為何適合柯能的網宣
 8. 風險：著作權、商標、靈感不等於可發佈
 9. 建議專案：personal，除非使用者另指
+10. 對應模式（有才寫）：Design / Layout / Hook / CTA / Audience
+11. 資料層級：FACT / EVIDENCE / INFERENCE / INSPIRATION / UNKNOWN
+
+未讀圖片時，視覺分析必須寫 UNKNOWN，只能從 caption 推鉤子與 CTA。
+
+## 淡江禪學社視覺語言
+
+靈感板會顯示 `tkuVisualLanguage()`，不是 Pinterest 收藏牆。
+
+- 核心 IG：https://www.instagram.com/tku_zc/（觀察用，不是內部事實來源）
+- 內部事實優先 Google Drive
+- 目前未連接 Instagram；不得顯示 Connected
+- 值得學：2D 龜龜、淡江地標、手搖飲鉤子、淡水生存指南、低壓到場 CTA、「靜下來，也能玩起來」
+- 不要用：3D AI 人物、蓮花第一眼、補習班英雄海報
+- 給 Visual Agent 與 Copywriting Agent 的交接寫在靈感板卡片，不要另造一個腦
 
 ## 若已連上 Console 自訂應用程式
 
