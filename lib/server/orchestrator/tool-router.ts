@@ -83,6 +83,13 @@ export function routeTools(
   }
 
   if (goal.requiresDesign) {
+    routes.push({
+      id: "visual_spec",
+      tool: "workspace_get_visual_concepts",
+      reason:
+        "先依已確認活動事實編譯 4:5／9:16／A4 三個視覺概念；缺資料標 UNKNOWN，不出圖。",
+      fallback: null,
+    });
     const canvaReady =
       capStatus(canva, "canva.list") === "partial" ||
       capStatus(canva, "canva.create") === "verified";

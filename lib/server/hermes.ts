@@ -453,6 +453,14 @@ export const COPYWRITING_INSTRUCTION_PACK = [
   "日期地點未確認就標 UNKNOWN，不要捏造教室。寫完呼叫 workspace_review_copy 做新生視角審核。不得發佈 Instagram。",
 ].join("\n");
 
+export const VISUAL_INSTRUCTION_PACK = [
+  "網宣視覺先 workspace_get_activity，再 workspace_get_visual_concepts。",
+  "格式：IG 貼文／輪播 1080×1350（4:5）、限動與 Reels 封面 1080×1920（9:16）、海報 A4／A3。",
+  "每個活動給概念 A 攝影感、B 物件敘事、C 空間聚集。規格含 Creative Direction、Layout、Typography、Image Prompt、Background、Main Subject、CTA／QR／Logo 安全區、Visual Hierarchy。",
+  "明亮、年輕、校園感；不過度宗教、不水彩、不廉價模板、不滿版文字。imagePrompt 只描述場景。",
+  "缺日期地點報名標 UNKNOWN，不得補造。這不是已出圖，也不是已發佈。",
+].join("\n");
+
 export const DIRECTION_INSTRUCTION_PACK =
   "提出 3–5 個策略層不同的創作方向（不是只換顏色），等待使用者選擇後再製作草稿。來源上限 30，方向最多 5，受眾角色最多 5，修訂最多 3。";
 
@@ -463,7 +471,7 @@ export const CANVA_INSTRUCTION_PACK = [
 
 export const WORKSPACE_INSTRUCTION_PACK = [
   "若已連接 Console workspace MCP，先用 workspace_project_context 找回活動、文案及成果；workspace_get_activity 只提供公開資訊，候選資料用 workspace_save_activity 保存並等待使用者核對。來源日期只是提供的紀錄，不等於你已查證。",
-  "使用 workspace_list_references 取得專案素材，使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
+  "使用 workspace_list_references 取得專案素材。網宣視覺用 workspace_get_visual_concepts 編譯 4:5／9:16／A4 三概念，缺資料標 UNKNOWN，不得補造或假裝已出圖。使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
   "Console MCP 呼叫必須帶目前 taskId，可附 toolCallId；工具上限或停止錯誤不可自行繞過。用 workspace_read_material 取得真實圖片或文字後才分析內容；只有來源網址不代表已讀圖。",
 ].join("\n");
 
@@ -483,6 +491,7 @@ export const creativeInstructions = [
   GALLEY_INSTRUCTION_PACK,
   INSPIRATION_INSTRUCTION_PACK,
   AUDIENCE_INSTRUCTION_PACK,
+  VISUAL_INSTRUCTION_PACK,
   COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,
   CANVA_INSTRUCTION_PACK,

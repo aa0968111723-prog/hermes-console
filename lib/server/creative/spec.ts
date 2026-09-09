@@ -2,6 +2,7 @@ import { mapDataset } from "../canva";
 import { canvaStatus } from "../canva";
 import { WORKSPACE_OWNER } from "../security";
 import type { RankableDirection } from "./ranking";
+import { visualFormat, type VisualFormatId } from "./formats";
 
 export interface CanvaCreativeSpec {
   headline: string;
@@ -13,25 +14,35 @@ export interface CanvaCreativeSpec {
   colorMood: string;
   imageKeywords: string[];
   audienceNotes: string;
+  formatId: VisualFormatId;
+  width: number;
+  height: number;
+  aspect: string;
   templateDataset: Record<string, { type: "text"; text: string }>;
 }
 
 export function directionToSpec(
   direction: RankableDirection,
   audienceNotes: string,
+  formatId: VisualFormatId = "ig_feed_4x5",
 ): CanvaCreativeSpec {
   const headline = direction.title.slice(0, 40);
   const subheadline = (direction.coreIdea || direction.claim).slice(0, 80);
+  const format = visualFormat(formatId);
   return {
     headline,
     subheadline,
     body: direction.copy.slice(0, 200),
     cta: direction.cta,
     visualMood: direction.visual.slice(0, 120),
-    compositionHint: "主標上三分之一，生活場景當主視覺，資訊列貼底。",
+    compositionHint: format.compositionHint,
     colorMood: "符合社團與活動主題之視覺色調，低對比自然光。",
-    imageKeywords: ["campus", "students", "activity", "daylight"],
+    imageKeywords: [...format.sceneKeywords],
     audienceNotes,
+    formatId: format.id,
+    width: format.width,
+    height: format.height,
+    aspect: format.aspect,
     templateDataset: {
       TITLE: { type: "text", text: headline },
       SUBTITLE: { type: "text", text: subheadline },

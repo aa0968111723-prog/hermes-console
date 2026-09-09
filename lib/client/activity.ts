@@ -18,7 +18,11 @@ export function activityKind(name: string | null): ActivityKind {
     )
   )
     return "research";
-  if (/canva|lumen|framelab|atlas|design|render|poster/i.test(name))
+  if (
+    /canva|lumen|framelab|atlas|design|render|poster|visual_concepts/i.test(
+      name,
+    )
+  )
     return "creative";
   if (/audience|persona|twin/i.test(name)) return "audience";
   if (/memory|learning|skill/i.test(name)) return "memory";
@@ -32,6 +36,7 @@ export function toolDisplayLabel(name: string | null): string | null {
   if (/tku|tamkang|tamsui/i.test(name)) return "查詢 · 淡江";
   if (/instagram/i.test(name)) return "參考 · Instagram";
   if (/pinterest/i.test(name)) return "參考 · Pinterest";
+  if (/visual_concepts/i.test(name)) return "視覺 · 概念規格";
   if (/canva/i.test(name)) return "創作 · Canva";
   if (/planform/i.test(name)) return "場佈 · Planform";
   if (/framelab/i.test(name)) return "影像 · FrameLab";
