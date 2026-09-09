@@ -816,8 +816,16 @@ nav button[aria-current="page"] {
   margin: 0;
   flex: 1 1 12rem;
 }
-.composer-uncertain-hint button {
+.composer-uncertain-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: stretch;
+}
+.composer-uncertain-hint button,
+.composer-uncertain-actions button {
   flex: 0 0 auto;
+  min-height: 44px;
 }
 .composer {
   display: block;
