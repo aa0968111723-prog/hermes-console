@@ -1,5 +1,20 @@
 # Post PR20 Agent OS Progress
 
+## Grok 02 LOOP 2（2026-09-10）
+
+- CURRENT_STATE：社博當日。Feed 9/8 預告已過期；9/10 限動 UNKNOWN。
+- DONE_THIS_LOOP：liveWatch、過期鉤子、現場觀察卡。不重做 PR #80。
+- VERIFIED：`tests/visual-language.test.ts`；9/8 當天 stale=false，9/10 stale=true。
+- FAILED：無。
+- BLOCKED：無 Meta 授權讀限動。
+- NEW_FINDINGS：Drive 社博限動仍「新增」；IG 格無 9/10 新貼文。
+- MAIN_SHA：`ac5a7a4`
+- BRANCH：`grok/ig-visual-language-2026-09-09`
+- PR：https://github.com/aa0968111723-prog/hermes-console/pull/78
+- NEXT_TASK：當日 9:16 文案分層；rebase + CI。
+- NEXT_LOOP：START IMMEDIATELY
+- STATUS：CONTINUING
+
 ## Grok 02 Instagram Inspiration（2026-09-09）
 
 - CURRENT_STATE：靈感板改為禪學社視覺語言模式，不是連結牆。

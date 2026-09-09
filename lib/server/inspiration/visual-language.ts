@@ -41,6 +41,29 @@ export interface CampaignSlot {
   copywritingAgentInput: string;
 }
 
+export interface LiveWatch {
+  today: string;
+  instagramConnected: false;
+  feed: {
+    url: string;
+    postedAt: string;
+    hook: string;
+    stale: boolean;
+    staleReason: string | null;
+    provenance: "EVIDENCE";
+  };
+  story: {
+    seen: false;
+    provenance: "UNKNOWN";
+    note: string;
+  };
+  drivePlan: {
+    fairStoryStatus: string;
+    provenance: "FACT";
+  };
+  planVsLive: string;
+}
+
 export interface VisualLanguageBrief {
   account: "tku_zc";
   observedAt: string;
@@ -51,6 +74,7 @@ export interface VisualLanguageBrief {
   reelsMotionUnknown: true;
   biggestProblem: string;
   improvements: string[];
+  live: LiveWatch;
   nextSlot: CampaignSlot;
   slots: CampaignSlot[];
   keep: VisualPattern[];
@@ -376,9 +400,9 @@ const SLOTS: CampaignSlot[] = [
     patternIds: ["hook-boba-reward", "cta-booth-low-pressure"],
     location: { value: "文館左側", provenance: "FACT" },
     visualAgentInput:
-      "9:16。上：「社博開始啦！我們在這裡呦～」下：「來攤位就有機會拿到手搖飲」。能拍文館左側就用實景；沒有實景就 2D 龜龜＋手搖飲，標 UNKNOWN 實景。",
+      "今日社博。9:16 限動：上「我們在這裡呦」下「來玩就有機會拿手搖飲」。像素安全區見 Visual Agent PR #80，不要重做通用規格。能拍文館左側就用實景；沒有實景就 2D 龜龜＋手搖飲，標 UNKNOWN。不要再用 9/8「明天開始」封面。",
     copywritingAgentInput:
-      "Drive 已定稿。不要加宗教句。日期 9/10、11、9/14–17。不要捏造教室。",
+      "9/8 貼文「社博明天就要開始」在 9/10 已過期。改成「社博開始啦／我們在文館左側」。日期 9/10、11、9/14–17。不要捏造教室。限動是否已發 = UNKNOWN。",
   },
   {
     id: "tea-feed-2026-09-06",
@@ -408,10 +432,42 @@ const SLOTS: CampaignSlot[] = [
   },
 ];
 
-export function tkuVisualLanguage(): VisualLanguageBrief {
+export function liveWatch(today = "2026-09-10"): LiveWatch {
+  const hook = "社博明天就要開始啦！！";
+  const postedAt = "2026-09-08";
+  const stale = /明天/.test(hook) && today > postedAt;
+  return {
+    today,
+    instagramConnected: false,
+    feed: {
+      url: "https://www.instagram.com/tku_zc/p/DdDVyBMk0Xb/",
+      postedAt,
+      hook,
+      stale,
+      staleReason: stale
+        ? "9/8 封面與 caption 寫「明天開始」；" + today + " 已過期，不可再當當日素材。"
+        : null,
+      provenance: "EVIDENCE",
+    },
+    story: {
+      seen: false,
+      provenance: "UNKNOWN",
+      note: "未授權讀限動。Drive 計劃 9/10 發社博限動，狀態仍是「新增」，不代表已發。",
+    },
+    drivePlan: {
+      fairStoryStatus: "新增",
+      provenance: "FACT",
+    },
+    planVsLive:
+      "Feed 已有 9/8 社博預告；9/10 限動現場 UNKNOWN。不要把預告文案當成當日限動。",
+  };
+}
+
+export function tkuVisualLanguage(today = "2026-09-10"): VisualLanguageBrief {
+  const live = liveWatch(today);
   return {
     account: "tku_zc",
-    observedAt: "2026-09-09",
+    observedAt: today,
     instagramConnected: false,
     imageReadCount: 5,
     fullGridUnknown: true,
@@ -426,6 +482,7 @@ export function tkuVisualLanguage(): VisualLanguageBrief {
       "蓮花與廟宇不要當第一眼；FAQ 保留「禪是宗教嗎」但畫面先像校園生活。",
       "CTA 用「來玩／拿手搖飲／文館左側」，表單放第二層。",
     ],
+    live,
     nextSlot: SLOTS.find((slot) => slot.status === "next") || SLOTS[1],
     slots: SLOTS,
     keep: KEEP,
@@ -462,18 +519,21 @@ export function tkuVisualLanguage(): VisualLanguageBrief {
         "倒數逼單、原價最後一天。",
         "把表單藏在 200 字之後才出現。",
         "捏造教室或講師。",
+        "社博當天不要再用「明天開始」。",
       ],
     },
   };
 }
 
-export function visualLanguageHandoff() {
-  const brief = tkuVisualLanguage();
+export function visualLanguageHandoff(today = "2026-09-10") {
+  const brief = tkuVisualLanguage(today);
   return [
     "禪學社視覺語言交接（Grok 02，非 Instagram 連線）",
     "instagramConnected=false imageRead=" +
       brief.imageReadCount +
       " fullGrid=UNKNOWN stories=UNKNOWN",
+    "現場：" + brief.live.planVsLive,
+    brief.live.feed.stale ? "過期鉤子：" + brief.live.feed.staleReason : "Feed 鉤子未過期。",
     "最大問題：" + brief.biggestProblem,
     "Visual Agent：" + brief.visualAgent.brief,
     "要做：" + brief.visualAgent.do.join("／"),

@@ -64,6 +64,18 @@ export default function InspirationBoard({
         </ol>
       </article>
 
+      <article className="handoff-card live-watch">
+        <p className="eyebrow">現場觀察 · {language.live.today}</p>
+        <p>
+          Feed EVIDENCE：{language.live.feed.hook}
+          {language.live.feed.stale ? "（已過期）" : ""}
+        </p>
+        <p>
+          限動 {language.live.story.provenance}：{language.live.story.note}
+        </p>
+        <p>{language.live.planVsLive}</p>
+      </article>
+
       <article className="handoff-card next-slot">
         <p className="eyebrow">下一步 · {language.nextSlot.format}</p>
         <strong>

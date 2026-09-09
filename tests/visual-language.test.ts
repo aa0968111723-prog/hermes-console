@@ -54,6 +54,12 @@ test("tku visual language is provenance-labelled and not a fake IG connection", 
   assert.ok(handoff.includes("9:16 社博限動"));
   const tea = brief.slots.find((slot) => slot.id === "tea-feed-2026-09-06");
   assert.equal(tea?.location.provenance, "UNKNOWN");
+  assert.equal(brief.live.feed.stale, true);
+  assert.equal(brief.live.story.seen, false);
+  assert.equal(brief.live.story.provenance, "UNKNOWN");
+  assert.equal(brief.live.instagramConnected, false);
+  const onPostingDay = tkuVisualLanguage("2026-09-08");
+  assert.equal(onPostingDay.live.feed.stale, false);
 });
 
 test("caption rules match keep patterns without claiming image read", () => {
