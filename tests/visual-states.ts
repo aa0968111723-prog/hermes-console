@@ -287,7 +287,7 @@ export async function verifyVisualStates(
     await expect(detail.locator(".event-meta code").first()).toBeVisible();
     await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
     await page.keyboard.press("Escape");
-    await expect(status).toBeFocused();
+    await expect(composer).toBeFocused();
     await expect(composer).toHaveValue(draft);
   }
   page.off("request", observeSubmission);
