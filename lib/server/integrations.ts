@@ -21,7 +21,31 @@ export interface Integration {
   evidence: string | null;
   requirements: string[];
 }
+export type IntegrationsSnapshot = {
+  integrations: Integration[];
+  degraded: boolean;
+  error?: { code: "store_unavailable"; message: string };
+};
+const STORE_UNAVAILABLE = {
+  code: "store_unavailable" as const,
+  message: "儲存庫無法使用。",
+};
+function bestEffort<T>(fn: () => T, fallback: T, failed: { value: boolean }): T {
+  try {
+    return fn();
+  } catch {
+    failed.value = true;
+    return fallback;
+  }
+}
 export function integrations(owner: string, h: Health): Integration[] {
+  return integrationsSnapshot(owner, h).integrations;
+}
+export function integrationsSnapshot(
+  owner: string,
+  h: Health,
+): IntegrationsSnapshot {
+  const failed = { value: false };
   const definitions = [
     {
       id: "instagram",
@@ -126,8 +150,12 @@ export function integrations(owner: string, h: Health): Integration[] {
       ],
     },
   ];
-  const events = list<Task>("task", owner).flatMap((t) => t.events);
-  const registry = seedRegistry();
+  const events = bestEffort(
+    () => list<Task>("task", owner).flatMap((t) => t.events),
+    [],
+    failed,
+  );
+  const registry = bestEffort(() => seedRegistry(), [], failed);
   const extras: Integration[] = [
     {
       id: "hermes",
@@ -143,7 +171,7 @@ export function integrations(owner: string, h: Health): Integration[] {
       id: "workspace-mcp",
       name: "Workspace MCP",
       state: (registry.find((i) => i.id === "workspace")?.status ===
-      "unconfigured"
+        "unconfigured" || !registry.length
         ? "unconfigured"
         : "partial") as IntegrationState,
       detail: "Console 自身 MCP；成功連線不代表已 verified。",
@@ -191,7 +219,17 @@ export function integrations(owner: string, h: Health): Integration[] {
   const tku = tamkangStatus();
   const galley = galleyStatus();
   const ig = instagramPublishStatus();
-  const canva = canvaStatus(owner);
+  const canva = bestEffort(
+    () => canvaStatus(owner),
+    {
+      configured: false,
+      state: "unconfigured",
+      verifiedAt: null,
+      message: "Canva 狀態讀取失敗。",
+      needsAuthorization: false,
+    },
+    failed,
+  );
   for (const item of mapped) {
     if (item.id === "tku") {
       item.state = tku.state as IntegrationState;
@@ -238,5 +276,9 @@ export function integrations(owner: string, h: Health): Integration[] {
       item.verifiedAt = canva.verifiedAt;
     }
   }
-  return extras.concat(mapped);
+  return {
+    integrations: extras.concat(mapped),
+    degraded: failed.value,
+    ...(failed.value ? { error: STORE_UNAVAILABLE } : {}),
+  };
 }
