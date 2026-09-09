@@ -9,4 +9,5 @@ out
 .data/
 .playwright-cli/
 output/
+tmp-ig/
 *.tsbuildinfo
