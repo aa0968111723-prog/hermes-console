@@ -1060,6 +1060,80 @@ nav button[aria-current="page"] {
   min-height: 44px;
   min-width: 44px;
 }
+
+/* P4 task-resume sheet / pill: touch targets, safe-area, reduced-motion */
+.composer-task-status[data-tone="waiting"],
+.composer-task-status[data-tone="neutral"] {
+  position: relative;
+}
+.composer-task-status[data-action="refresh"] .composer-task-chevron {
+  opacity: 0.45;
+}
+.task-resume-sheet .task-resume-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.task-resume-sheet .task-resume-status small {
+  color: var(--muted, #6b7a64);
+}
+.task-offline-banner,
+.task-uncertain-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid #eadcc3;
+  background: #fff7e8;
+  color: #79521b;
+}
+.task-offline-banner p,
+.task-uncertain-block p {
+  margin: 0;
+  font-size: 13px;
+}
+.task-resume-cta,
+.task-resume-sheet button.task-resume-cta,
+.task-output-preview > summary {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.task-output-preview {
+  border: 1px solid var(--line, #dce5d3);
+  border-radius: 12px;
+  padding: 4px 12px 12px;
+  background: var(--color-surface, #fff);
+}
+.task-output-preview > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style-position: outside;
+  padding: 8px 0;
+}
+.detail-dialog {
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.detail-dialog .panel-header .icon-button {
+  min-height: 44px;
+  min-width: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .composer-task-status,
+  .task-resume-sheet,
+  .task-offline-banner,
+  .task-uncertain-block {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 .composer {
   display: block;
   flex: 1;
