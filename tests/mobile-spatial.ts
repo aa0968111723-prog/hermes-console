@@ -80,6 +80,42 @@ export async function verifyMobileSpatial(
   );
   await audit("spatial-radial-large-text");
   await page.keyboard.press("Escape");
+  // On a zoom-equivalent narrow and short viewport, the action grid scrolls
+  // inside the dialog; touch users must not lose the only visible close action.
+  await page.setViewportSize({ width: 320, height: 360 });
+  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
+  await expect(radial).toBeVisible();
+  await expect(radial).toHaveCSS("transform", "none");
+  assert.equal(
+    await radial.evaluate(
+      (element) => element.scrollHeight > element.clientHeight,
+    ),
+    true,
+    "large-text radial sheet must scroll in an extra-short viewport",
+  );
+  await radial.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() => radial.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  const shortSheetBounds = await radial.boundingBox();
+  const closeBounds = await radial
+    .getByRole("button", { name: "關閉 Hermes 操作" })
+    .boundingBox();
+  assert.ok(
+    shortSheetBounds &&
+      closeBounds &&
+      closeBounds.y >= shortSheetBounds.y &&
+      closeBounds.y + closeBounds.height <=
+        shortSheetBounds.y + shortSheetBounds.height,
+    "large-text radial close action must remain visible while scrolling",
+  );
+  await audit("spatial-radial-large-text-scrolled");
+  await page.screenshot({
+    path: join(output, "spatial-radial-large-text-scrolled-320x360.png"),
+  });
+  await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
