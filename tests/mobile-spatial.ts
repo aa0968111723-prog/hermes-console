@@ -38,6 +38,44 @@ export async function verifyMobileSpatial(
   await expect(
     page.getByRole("button", { name: "Hermes 操作", exact: true }),
   ).toBeFocused();
+  // The primary mobile action sheet must honor the real appearance preference,
+  // including on a short viewport where larger labels need flexible rows.
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page
+    .getByRole("combobox", { name: /文字大小/ })
+    .selectOption("20");
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 360, height: 560 });
+  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
+  await expect(radial).toBeVisible();
+  await page.screenshot({
+    path: join(output, "spatial-radial-large-text-360x560.png"),
+  });
+  await expect(radial.locator(".radial-actions button").first()).toHaveCSS(
+    "font-size",
+    "20px",
+  );
+  for (const button of await radial.locator(".radial-actions button").all()) {
+    const fits = await button.evaluate(
+      (element) =>
+        element.scrollWidth <= element.clientWidth &&
+        element.scrollHeight <= element.clientHeight,
+    );
+    assert.ok(fits, "large-text radial action must not clip");
+  }
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    true,
+    "large-text radial sheet must not overflow horizontally",
+  );
+  await audit("spatial-radial-large-text");
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("button", { name: "重設外觀", exact: true }).click();
+  await page.keyboard.press("Escape");
   // Real file chooser -> actual Console upload, including when opened outside chat.
   await page
     .locator(".mobile-bottom-dock")
