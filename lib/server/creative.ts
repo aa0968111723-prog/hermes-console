@@ -17,6 +17,7 @@ import { ApiError, hash, redact } from "./security";
 import { listMaterials, material } from "./materials";
 import { compileVisualConcepts } from "./creative/visual-concepts";
 import type { VisualFormatId } from "./creative/formats";
+import { auditEventCopy } from "./qa";
 import type { Task } from "../contracts";
 export function assertProject(owner: string, project: string) {
   if (project !== "personal" && !get("project", owner, project))
@@ -249,11 +250,23 @@ export function checkCopy(
       issues.push("引用素材已移除：" + id);
     }
   }
+  const audit = auditEventCopy({
+    title: revision.title,
+    facts: info.facts,
+    text,
+    format: revision.format,
+    retrievedSource: null,
+  });
+  const mergedIssues = [...new Set([...issues, ...audit.issues])];
   return {
-    issues,
+    issues: mergedIssues,
     checkedFacts,
-    readyForHumanReview: issues.length === 0,
+    readyForHumanReview: mergedIssues.length === 0,
     automaticVerificationComplete: false,
+    claims: audit.claims,
+    imageText: "UNVERIFIED" as const,
+    printSpec: "UNVERIFIED" as const,
+    publishBlocked: true as const,
   };
 }
 export function saveCopy(
