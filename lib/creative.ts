@@ -104,9 +104,22 @@ export type CopyDocument = {
   selectedRevision: number | null;
   revisions: CopyRevision[];
 };
+export type CopyCheckClaim = {
+  field: string;
+  label: string;
+  value: string | null;
+  status: "VERIFIED" | "LIKELY" | "UNVERIFIED" | "CONFLICTING";
+  sourceKind: "drive" | "tku_official" | "instagram" | "other" | "none";
+  inCopy: boolean | null;
+  note: string;
+};
 export type CopyCheck = {
   issues: string[];
   checkedFacts: string[];
   readyForHumanReview: boolean;
   automaticVerificationComplete: false;
+  claims: CopyCheckClaim[];
+  imageText: "UNVERIFIED";
+  printSpec: "UNVERIFIED";
+  publishBlocked: true;
 };

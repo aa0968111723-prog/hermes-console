@@ -16,6 +16,7 @@ import {
   LUMEN_INSTRUCTION_PACK,
   PLANFORM_INSTRUCTION_PACK,
   TAMKANG_INSTRUCTION_PACK,
+  TRUTH_QA_INSTRUCTION_PACK,
   WORKSPACE_INSTRUCTION_PACK,
   ZENCLUB_INSTRUCTION_PACK,
 } from "../hermes";
@@ -37,6 +38,7 @@ export type InstructionPackId =
   | "lumen"
   | "framelab"
   | "planform"
+  | "truth"
   | "research"
   | "admin";
 
@@ -114,6 +116,14 @@ export function composeTaskInstructions(input: {
   if (/場佈|教室|攤位|門口淨空|planform/i.test(input.text)) {
     parts.push(PLANFORM_INSTRUCTION_PACK);
     packs.push("planform");
+  }
+  if (
+    input.goal.requiresTamkang ||
+    input.goal.requiresDesign ||
+    /禪學社|文案|海報|貼文|報名|茶會|社博|講師|活動名稱|限時動態/.test(input.text)
+  ) {
+    parts.push(TRUTH_QA_INSTRUCTION_PACK);
+    packs.push("truth");
   }
   return {
     instructions: parts.join("\n"),

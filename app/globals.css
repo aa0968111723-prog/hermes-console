@@ -325,6 +325,19 @@
 .copy-review-next { display: grid; gap: 6px; }
 .fact-row { padding: 14px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .fact-row p { margin: 6px 0; }
+.qa-claims {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.qa-claims li {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  overflow-wrap: anywhere;
+}
 .preserve-lines { white-space: pre-wrap; overflow-wrap: anywhere; }
 .canva-result {
   background: var(--color-surface);
