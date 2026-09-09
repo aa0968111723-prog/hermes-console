@@ -1,6 +1,8 @@
 import { ExternalLink, Search, Check, Circle } from "lucide-react";
 import type { Task } from "@/lib/contracts";
 import { eventState, safeSource } from "@/lib/client/activity";
+import { layoutFromTask } from "@/lib/client/planform-layout";
+import PlanformStage from "./PlanformStage";
 export default function VisualMessage({
   task,
   onInspect,
@@ -9,6 +11,7 @@ export default function VisualMessage({
   onInspect: () => void;
 }) {
   if (!task) return null;
+  const layout = layoutFromTask(task);
   const sources = [...new Set(task.events.flatMap((event) => event.sources))]
     .map(safeSource)
     .filter((value): value is string => !!value);
@@ -19,9 +22,10 @@ export default function VisualMessage({
   const completed = [...calls.values()].filter(
     (state) => state === "completed",
   ).length;
-  if (!sources.length && !calls.size) return null;
+  if (!sources.length && !calls.size && !layout) return null;
   return (
     <div className="visual-message">
+      {layout && <PlanformStage layout={layout} />}
       {!!calls.size && (
         <button className="tool-result-summary" onClick={onInspect}>
           {completed === calls.size ? (
