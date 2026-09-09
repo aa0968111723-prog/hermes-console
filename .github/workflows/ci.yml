@@ -25,24 +25,38 @@ jobs:
       - run: npm audit --omit=dev
       - name: Install Playwright browsers (chromium + webkit, retry)
         run: |
-          set -e
-          # Block Google Chrome apt permanently for this job
-          sudo rm -f /etc/apt/sources.list.d/google-chrome*.list \
+          set -euo pipefail
+          # 1) 清掉任何仍指 dl.google.com/linux/chrome 的 apt 來源（.list / .sources / 殘檔）
+          sudo grep -rl 'dl.google.com/linux/chrome' /etc/apt 2>/dev/null \
+            | xargs -r sudo rm -f || true
+          sudo rm -f \
+            /etc/apt/sources.list.d/google-chrome*.list \
+            /etc/apt/sources.list.d/google-chrome*.sources \
             /etc/apt/sources.list.d/google*.list \
-            /etc/apt/sources.list.d/*chrome*.list 2>/dev/null || true
-          sudo grep -rl 'dl.google.com/linux/chrome' /etc/apt 2>/dev/null | xargs -r sudo rm -f || true
-          sudo rm -f /var/lib/apt/lists/*google* /var/lib/apt/lists/*chrome* || true
-          printf '%s\n' 'Package: *' 'Pin: origin dl.google.com' 'Pin-Priority: -1' | sudo tee /etc/apt/preferences.d/no-google-chrome >/dev/null
-          sudo apt-get update -y || true
+            /etc/apt/sources.list.d/google*.sources \
+            /etc/apt/sources.list.d/*chrome*.list \
+            /etc/apt/sources.list.d/*chrome*.sources \
+            2>/dev/null || true
+          # 2) 清 apt list 快取裡的 google/chrome，避免舊 InRelease 殘留
+          sudo rm -rf /var/lib/apt/lists/*google* /var/lib/apt/lists/*chrome* \
+            /var/lib/apt/lists/partial/*google* /var/lib/apt/lists/partial/*chrome* \
+            2>/dev/null || true
+          # 3) 確認 apt update 不再碰 google（失敗則重試清）
           for i in 1 2 3; do
-            sudo rm -f /etc/apt/sources.list.d/google-chrome*.list \
-              /etc/apt/sources.list.d/google*.list \
-              /etc/apt/sources.list.d/*chrome*.list 2>/dev/null || true
-            if npx playwright install-deps chromium \
-              && npx playwright install chromium webkit; then
-              exit 0
+            if sudo apt-get update -qq; then
+              break
             fi
-            echo "playwright install failed (attempt $i); sleeping 15s"
+            echo "apt-get update failed (attempt $i); re-scrubbing google apt"
+            sudo grep -rl 'dl.google.com' /etc/apt 2>/dev/null | xargs -r sudo rm -f || true
+            sudo rm -rf /var/lib/apt/lists/*google* /var/lib/apt/lists/*chrome* 2>/dev/null || true
+            sleep 5
+          done
+          sudo apt-get update -qq
+          # 4) 裝系統 deps + browsers（分開；失敗就 fail，禁止無 deps fallback）
+          for i in 1 2 3; do
+            npx playwright install-deps chromium webkit && \
+              npx playwright install chromium webkit && exit 0
+            echo "playwright install-deps/install failed (attempt $i); sleeping 15s"
             sleep 15
           done
           exit 1
