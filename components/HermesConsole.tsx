@@ -51,7 +51,12 @@ import SpatialPanel from "./visual/SpatialPanel";
 import { useSpatialMode } from "./visual/useSpatialMode";
 import ArtifactDeck from "./visual/ArtifactDeck";
 import ComposerMenu from "./visual/ComposerMenu";
-import ComposerTaskStatus from "./visual/ComposerTaskStatus";
+import ComposerTaskStatus, {
+  OFFLINE_NOTICE,
+  OFFLINE_PILL_LABEL,
+  composerTaskPillAction,
+  shortTaskError,
+} from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
@@ -445,6 +450,16 @@ export default function HermesConsole() {
     if (panel) dialog.current?.showModal();
     else dialog.current?.close();
   }, [panel]);
+  const previousPanel = useRef(panel);
+  useEffect(() => {
+    const was = previousPanel.current;
+    previousPanel.current = panel;
+    if (was === "task" && !panel) {
+      // Chat-first: closing task sheet returns focus to composer.
+      const frame = requestAnimationFrame(() => input.current?.focus());
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [panel]);
   useEffect(() => {
     if (panel !== "task") return;
     const frame = requestAnimationFrame(() => {
@@ -653,6 +668,17 @@ export default function HermesConsole() {
   function openTask(task?: Task) {
     setSelectedTask(task?.id || null);
     setPanel("task");
+  }
+  function closePanel() {
+    setPanel(null);
+  }
+  function onComposerTaskPillClick(task: Task) {
+    // Offline: refresh only — never open-resend or acknowledge.
+    if (composerTaskPillAction(offline) === "refresh") {
+      void refresh().catch(() => setOffline(true));
+      return;
+    }
+    openTask(task);
   }
   function uploadFile(file: File, key = crypto.randomUUID()) {
     if (file.size > 8_000_000) {
@@ -1017,9 +1043,7 @@ export default function HermesConsole() {
           >
             <span>
               {error ||
-                (offline
-                  ? "連線中斷，顯示上次已知資料。後端任務不會因關閉頁面而假裝停止。"
-                  : notice)}
+                (offline ? OFFLINE_NOTICE : notice)}
             </span>
             {!offline && (
               <button
@@ -1269,7 +1293,7 @@ export default function HermesConsole() {
                 <ComposerTaskStatus
                   task={currentTask}
                   offline={offline}
-                  onClick={() => openTask(currentTask)}
+                  onClick={() => onComposerTaskPillClick(currentTask)}
                 />
               )}
               {uncertain && (
@@ -1304,7 +1328,11 @@ export default function HermesConsole() {
                     animation={prefs.animation}
                     size={Math.min(prefs.turtleSize, 72)}
                     compact
-                    onClick={() => openTask(currentTask)}
+                    onClick={() =>
+                      currentTask
+                        ? onComposerTaskPillClick(currentTask)
+                        : undefined
+                    }
                   />
                 )}
                 <form
@@ -1802,7 +1830,7 @@ export default function HermesConsole() {
             <button
               className="icon-button"
               aria-label="關閉面板"
-              onClick={() => setPanel(null)}
+              onClick={() => closePanel()}
             >
               <X size={21} />
             </button>
@@ -2257,11 +2285,130 @@ export default function HermesConsole() {
               <small>保存時間：{time(preview.createdAt)}</small>
             </div>
           ) : chosenTask ? (
-            <div className="settings-stack">
-              <span className={"badge " + chosenTask.state}>
-                {taskLabels[chosenTask.state]}
-              </span>
+            <div className="settings-stack task-resume-sheet">
+              <div className="task-resume-status">
+                <span
+                  className={
+                    "badge " + (offline ? "uncertain" : chosenTask.state)
+                  }
+                >
+                  {offline
+                    ? OFFLINE_PILL_LABEL
+                    : taskLabels[chosenTask.state]}
+                </span>
+                <small>{time(chosenTask.updatedAt || chosenTask.createdAt)}</small>
+              </div>
               <TaskRequestSummary input={chosenTask.input} />
+              {offline && (
+                <div className="task-offline-banner" role="status">
+                  <p>連線中斷 · 顯示上次已知。後端未假裝停止。</p>
+                  <button
+                    type="button"
+                    className="task-resume-cta"
+                    onClick={() =>
+                      void refresh().catch(() => setOffline(true))
+                    }
+                  >
+                    重新整理
+                  </button>
+                </div>
+              )}
+              {chosenTask.state === "uncertain" && (
+                <div className="task-uncertain-block" role="status">
+                  <p>
+                    結果待確認，此對話暫時不能再送出。請確認後再重試，或建立分支保留原紀錄；系統不會自動重送上一則。
+                  </p>
+                  <button
+                    type="button"
+                    className="task-resume-cta"
+                    onClick={() => void acknowledgeTask(chosenTask)}
+                  >
+                    <RefreshCw size={16} aria-hidden="true" />
+                    確認並可重試
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button task-resume-cta"
+                    onClick={() => retryBranchFromTask(chosenTask)}
+                    disabled={busy}
+                  >
+                    建立重試分支
+                  </button>
+                </div>
+              )}
+              {isActive(chosenTask) && (
+                <button
+                  type="button"
+                  className="task-resume-cta"
+                  onClick={() => stopTask(chosenTask)}
+                >
+                  <Square size={16} />
+                  要求停止
+                  {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
+                </button>
+              )}
+              {["failed", "cancelled"].includes(chosenTask.state) && (
+                <button
+                  type="button"
+                  className="text-button task-resume-cta"
+                  onClick={() => retryBranchFromTask(chosenTask)}
+                  disabled={busy}
+                >
+                  建立重試分支（保留原紀錄）
+                </button>
+              )}
+              {!!chosenTask.output && (
+                <>
+                  <details className="task-output-preview">
+                    <summary>輸出預覽</summary>
+                    <MessageBody text={chosenTask.output} />
+                  </details>
+                  <button
+                    type="button"
+                    className="task-resume-cta"
+                    onClick={() => {
+                      const c = data.conversations.find(
+                        (c) => c.id === chosenTask.conversationId,
+                      );
+                      if (c) selectConversation(c);
+                      closePanel();
+                    }}
+                  >
+                    回到對話
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button task-resume-cta"
+                    onClick={() => download(chosenTask)}
+                  >
+                    <Download size={16} />
+                    下載文字成果
+                  </button>
+                </>
+              )}
+              {!chosenTask.output && (
+                <button
+                  type="button"
+                  className="task-resume-cta"
+                  onClick={() => {
+                    const c = data.conversations.find(
+                      (c) => c.id === chosenTask.conversationId,
+                    );
+                    if (c) selectConversation(c);
+                    closePanel();
+                  }}
+                >
+                  回到對話
+                </button>
+              )}
+              {shortTaskError(chosenTask.error) && (
+                <p className="error">{shortTaskError(chosenTask.error)}</p>
+              )}
+              {shortTaskError(chosenTask.observationError) && (
+                <p className="error">
+                  {shortTaskError(chosenTask.observationError)}
+                </p>
+              )}
               <details className="task-technical">
                 <summary>
                   <Code2 size={15} aria-hidden="true" />
@@ -2284,61 +2431,6 @@ export default function HermesConsole() {
                   </div>
                 </dl>
               </details>
-              {chosenTask.error && <p className="error">{chosenTask.error}</p>}
-              {chosenTask.observationError && (
-                <p className="error">{chosenTask.observationError}</p>
-              )}
-              {isActive(chosenTask) && (
-                <button onClick={() => stopTask(chosenTask)}>
-                  <Square size={16} />
-                  要求停止
-                  {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
-                </button>
-              )}
-              {["failed", "cancelled", "uncertain"].includes(
-                chosenTask.state,
-              ) && (
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => retryBranchFromTask(chosenTask)}
-                  disabled={busy}
-                >
-                  建立重試分支（保留原紀錄）
-                </button>
-              )}
-              {chosenTask.state === "uncertain" && (
-                <button
-                  type="button"
-                  onClick={() => void acknowledgeTask(chosenTask)}
-                >
-                  <RefreshCw size={16} aria-hidden="true" />
-                  確認並可重試
-                </button>
-              )}
-              {!!chosenTask.output && (
-                <>
-                  <MessageBody text={chosenTask.output} />
-                  <button onClick={() => download(chosenTask)}>
-                    <Download size={16} />
-                    下載文字成果
-                  </button>
-                  <button
-                    onClick={() => {
-                      const c = data.conversations.find(
-                        (c) => c.id === chosenTask.conversationId,
-                      );
-                      if (c) {
-                        selectConversation(c);
-                        setPanel(null);
-                        input.current?.focus();
-                      }
-                    }}
-                  >
-                    回到對話繼續修改
-                  </button>
-                </>
-              )}
               <TaskUsageSummary task={chosenTask} />
               {chosenTask.plan?.steps?.length ? (
                 <>

@@ -1,7 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { Task, TaskEvent } from "../lib/contracts";
-import { composerTaskStatus } from "../components/visual/ComposerTaskStatus";
+import {
+  OFFLINE_NOTICE,
+  OFFLINE_PILL_LABEL,
+  composerTaskPillAction,
+  composerTaskStatus,
+  recoveryOnReconnectAction,
+  shortTaskError,
+} from "../components/visual/ComposerTaskStatus";
 
 const task = (state: Task["state"], observationError: string | null = null) => ({
   state, observationError,
@@ -44,10 +51,31 @@ test("composer translates known tools and hides unknown technical identifiers", 
 
 test("composer marks stale observations and offline data as unconfirmed", () => {
   assert.deepEqual(composerTaskStatus(task("running"), true), {
-    label: "離線 · 狀態待確認", tone: "warning", tool: null,
+    label: OFFLINE_PILL_LABEL, tone: "warning", tool: null,
   });
+  assert.equal(OFFLINE_PILL_LABEL, "離線 · 顯示上次資料");
+  assert.match(OFFLINE_NOTICE, /離線 · 顯示上次資料/);
   assert.deepEqual(composerTaskStatus(task("running", "poll failed"), false), {
     label: "連線異常 · 狀態待確認", tone: "warning", tool: null,
   });
   assert.equal(composerTaskStatus(task("unexpected" as Task["state"]), false).label, "狀態未知");
+});
+
+test("uncertain and offline never auto-resend or auto-acknowledge via pill action", () => {
+  assert.equal(composerTaskPillAction(true), "refresh");
+  assert.equal(composerTaskPillAction(false), "open_sheet");
+  assert.equal(recoveryOnReconnectAction(), "refresh_only");
+  // Explicit contract: reconnect/offline paths expose refresh_only / refresh —
+  // never "resend" or "acknowledge". Keep the enum closed.
+  assert.notEqual(composerTaskPillAction(true), "open_sheet");
+  assert.notEqual(recoveryOnReconnectAction() as string, "resend");
+  assert.notEqual(recoveryOnReconnectAction() as string, "acknowledge");
+});
+
+test("shortTaskError hides long stacks", () => {
+  const stacked = "upstream timeout\n    at runTask (/app/lib/server/tasks.ts:1:1)\n    at processTicks";
+  assert.equal(shortTaskError(stacked), "upstream timeout");
+  assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
+  assert.equal(shortTaskError(""), null);
+  assert.equal(shortTaskError(null), null);
 });

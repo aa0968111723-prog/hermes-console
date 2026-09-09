@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 /**
- * LOCAL_CONTRACT — uncertain tasks should expose both in-place acknowledge and
- * conversation retry-branch, matching failed/cancelled recovery.
+ * LOCAL_CONTRACT — uncertain tasks expose acknowledge + retry-branch.
+ * P4 splits uncertain into its own sheet block (not failed/cancelled includes).
  * Not LIVE_EXTERNAL. Does not execute React.
  */
 test("uncertain UI offers acknowledge and retry branch alongside failed/cancelled", async () => {
@@ -13,20 +13,20 @@ test("uncertain UI offers acknowledge and retry branch alongside failed/cancelle
     "utf8",
   );
   assert.match(ui, /function retryBranchFromTask/);
+  // composer / task-list path still gates failed|cancelled|uncertain together
   assert.match(
     ui,
     /\["failed", "cancelled", "uncertain"\]\.includes\(\s*currentTask\.state/,
   );
-  assert.match(
-    ui,
-    /\["failed", "cancelled", "uncertain"\]\.includes\(\s*chosenTask\.state/,
-  );
+  // P4 sheet: independent uncertain block + CTAs on chosenTask
+  assert.match(ui, /chosenTask\.state === "uncertain"/);
+  assert.match(ui, /acknowledgeTask\(chosenTask\)/);
+  assert.match(ui, /retryBranchFromTask\(chosenTask\)/);
+  assert.match(ui, /task-uncertain-block/);
   assert.match(ui, /composer-uncertain-actions/);
+  assert.match(ui, /結果待確認/);
   assert.match(ui, /確認並可重試/);
-  assert.match(ui, /建立重試分支（保留原紀錄）/);
-  assert.match(
-    ui,
-    /可確認後在原對話重試，或建立分支保留原紀錄；未宣稱遠端已停止/,
-  );
+  assert.match(ui, /系統不會自動重送上一則/);
+  assert.match(ui, /建立重試分支/);
   assert.match(ui, /action:\s*"acknowledge"/);
 });
