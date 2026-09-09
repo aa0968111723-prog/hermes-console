@@ -1,0 +1,117 @@
+import { expect, type Page } from "@playwright/test";
+import assert from "node:assert/strict";
+import { join } from "node:path";
+import { readFile } from "node:fs/promises";
+export async function verifyMobileSpatial(
+  page: Page,
+  base: string,
+  output: string,
+  audit: (name: string) => Promise<void>,
+) {
+  await page.reload();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("button", { name: "重設外觀", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "開啟 Hermes 空間", exact: true }),
+  ).toBeVisible();
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect(page.locator(".app-shell")).toHaveAttribute(
+    "data-spatial",
+    "reduced",
+  );
+  assert.ok((await page.locator(".compact-orbit .orbit-node").count()) <= 4);
+  await page.screenshot({ path: join(output, "spatial-home-390.png") });
+  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
+  const radial = page.getByRole("dialog", { name: "Hermes", exact: true });
+  await expect(radial).toBeVisible();
+  await expect(radial).toHaveCSS("transform", "none");
+  await expect(radial.locator(".radial-actions button")).toHaveCount(5);
+  for (const button of await radial.locator("button").all()) {
+    const box = await button.boundingBox();
+    assert.ok(box && box.width >= 44 && box.height >= 44);
+  }
+  await audit("spatial-radial");
+  await page.screenshot({ path: join(output, "spatial-radial-390.png") });
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Hermes 操作", exact: true }),
+  ).toBeFocused();
+  // Real file chooser -> actual Console upload, including when opened outside chat.
+  await page
+    .locator(".mobile-bottom-dock")
+    .getByRole("button", { name: "專案", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
+  const choosing = page.waitForEvent("filechooser");
+  await radial.getByRole("button", { name: "圖片", exact: true }).click();
+  await (
+    await choosing
+  ).setFiles({
+    name: "spatial-reference.png",
+    mimeType: "image/png",
+    buffer: await readFile("public/mascot/turtle.png"),
+  });
+  await expect(page.locator(".context-card")).toContainText("已保存");
+  await page
+    .getByRole("button", { name: "預覽附件：spatial-reference.png" })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "素材預覽" }).locator("img"),
+  ).toBeVisible();
+  await page.screenshot({
+    path: join(output, "spatial-upload-preview-390.png"),
+  });
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "移除附件" }).click();
+  const workspace = await (
+    await page.request.get(base + "/api/workspace")
+  ).json();
+  const foreign = workspace.projects[0]?.id;
+  for (const [scope, title] of [
+    ["workspace", "空間測試偏好"],
+    ...(foreign ? [[foreign, "其他專案的隱藏資料"]] : []),
+  ]) {
+    const response = await page.request.post(base + "/api/memory", {
+      headers: { Origin: base },
+      data: {
+        scope,
+        title,
+        kind: "preference",
+        content: "只使用已確認的活動資訊。",
+        tags: [],
+      },
+    });
+    assert.ok(response.ok(), "real memory fixture save");
+  }
+  await page
+    .getByRole("button", { name: "開啟 Hermes 空間", exact: true })
+    .click();
+  const space = page.getByRole("dialog", { name: "Hermes 空間", exact: true });
+  await expect(space.getByText("空間測試偏好", { exact: true })).toBeVisible();
+  await expect(
+    space.getByText("其他專案的隱藏資料", { exact: true }),
+  ).toHaveCount(0);
+  assert.ok((await space.locator(".orbit-node").count()) <= 5);
+  await space
+    .getByRole("button", { name: "空間測試偏好", exact: true })
+    .click();
+  await expect(space.locator(".memory-node-detail")).toContainText(
+    "只使用已確認",
+  );
+  await audit("spatial-memory");
+  await page.screenshot({ path: join(output, "spatial-memory-390.png") });
+  await space.getByRole("button", { name: "管理記憶", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "工作區設定" })).toBeVisible();
+  await expect(
+    page.getByRole("tab", { name: "記憶", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Escape");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".app-shell")).toHaveAttribute(
+    "data-spatial",
+    "static",
+  );
+  await page.reload(); // Unsent attachments/drafts do not leak into the next suite.
+}

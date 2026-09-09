@@ -1,0 +1,630 @@
+/* Mobile workspace material / motion contract. No WebGL, device sensors or new data plane. */
+:root {
+  --motion-micro: 160ms;
+  --motion-spatial: 380ms;
+  --ease-spatial: cubic-bezier(0.2, 0.75, 0.25, 1);
+  --glass-toolbar: rgba(255, 255, 255, 0.95);
+  --glass-sheet: #fafcf8;
+  --spatial-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --layer-content: 1;
+  --layer-context: 30;
+  --layer-system: 60;
+}
+.app-shell {
+  position: relative;
+}
+.app-shell > main {
+  transform-origin: center 20%;
+  transition: transform var(--motion-standard) var(--ease-spatial);
+}
+.app-shell[data-sheet-open="true"] > main {
+  transform: translateY(-3px) scale(0.985);
+}
+.spatial-panel {
+  min-width: 0;
+}
+.spatial-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.spatial-shortcuts button {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+  background: var(--color-surface);
+  box-shadow: var(--depth-1);
+  border-color: transparent;
+}
+.spatial-shortcuts button,
+.memory-orbs button {
+  color: var(--color-ink);
+}
+.spatial-panel .agent-orbit {
+  height: 230px;
+}
+.spatial-panel .orbit-detail {
+  box-shadow: none;
+}
+.memory-constellation {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  background: var(--surface-light);
+  box-shadow: var(--depth-1);
+}
+.memory-constellation header,
+.artifact-deck > header,
+.artifact-preview header,
+.radial-sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.memory-constellation h3 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+}
+.memory-orbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0;
+}
+.memory-orbs button {
+  min-width: 0;
+  padding: 8px 4px;
+  background: transparent;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.memory-orbs button > span {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: radial-gradient(
+    circle at 30% 20%,
+    var(--color-surface),
+    var(--color-primary-soft)
+  );
+  box-shadow: var(--spatial-highlight), var(--depth-2);
+}
+.memory-orbs button[aria-pressed="true"] > span {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+.memory-orbs strong {
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.memory-node-detail {
+  padding: 12px;
+  background: var(--color-surface);
+  border-radius: var(--radius-control);
+  overflow-wrap: anywhere;
+}
+.memory-node-detail p {
+  white-space: pre-wrap;
+}
+.memory-empty {
+  width: 100%;
+  min-height: 100px;
+  margin: 12px 0;
+  border: 0;
+  background: transparent;
+  gap: 12px;
+}
+.memory-constellation > small {
+  display: block;
+  color: var(--color-muted);
+  margin-top: 12px;
+}
+.radial-sheet {
+  border: 0;
+  border-radius: 28px;
+  background: var(--glass-sheet);
+  padding: 18px;
+  width: min(380px, calc(100% - 24px));
+  max-height: calc(min(100dvh, var(--app-height)) - 100px);
+  inset: auto 0 calc(90px + env(safe-area-inset-bottom));
+  margin: 0 auto;
+  box-shadow: var(--depth-overlay);
+  overflow-y: auto;
+}
+.radial-sheet::backdrop,
+.artifact-preview::backdrop {
+  background: rgba(38, 51, 43, 0.25);
+}
+.radial-sheet h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.radial-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, 76px);
+  gap: 8px;
+  margin-top: 10px;
+}
+.radial-actions button {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 14px;
+  background: var(--color-surface);
+  box-shadow: var(--depth-2), var(--spatial-highlight);
+  border: 0;
+  border-radius: 20px;
+}
+.radial-actions button:nth-child(1) {
+  grid-area: 1/2;
+}
+.radial-actions button:nth-child(2) {
+  grid-area: 2/1;
+}
+.radial-actions button:nth-child(4) {
+  grid-area: 2/3;
+}
+.radial-actions button:nth-child(5) {
+  grid-area: 3/1;
+}
+.radial-actions button:nth-child(6) {
+  grid-area: 3/3;
+}
+.radial-center {
+  grid-area: 2/2;
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-radius: 50%;
+  margin: 8px;
+  box-shadow: var(--spatial-highlight), var(--depth-card);
+}
+.artifact-deck {
+  margin: 20px 0;
+  min-width: 0;
+}
+.artifact-deck > header h2 {
+  font-size: 20px;
+  margin: 0;
+}
+.artifact-deck > header > div {
+  display: flex;
+  gap: 6px;
+}
+.artifact-deck small {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+.artifact-rail {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  padding: 10px 4px 22px;
+}
+.artifact-rail > .artifact-stage {
+  flex: 0 0 calc(100% - 16px);
+  min-width: 0;
+  scroll-snap-align: start;
+  margin: 0;
+  box-shadow: var(--depth-2);
+}
+.artifact-rail > .artifact-stage:only-child {
+  flex-basis: 100%;
+}
+.artifact-preview-trigger {
+  display: block;
+  padding: 0;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.artifact-preview {
+  width: min(1000px, 100%);
+  max-width: 100%;
+  height: min(100dvh, var(--app-height));
+  max-height: min(100dvh, var(--app-height));
+  padding: 20px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--color-canvas);
+}
+.artifact-preview header {
+  position: sticky;
+  top: 0;
+  background: var(--color-canvas);
+  z-index: 1;
+}
+.artifact-preview header h2 {
+  font-size: 20px;
+}
+.artifact-preview .canva-result img {
+  max-height: 65dvh;
+  object-fit: contain;
+}
+.artifact-preview .canva-result {
+  border: 0;
+}
+.compact-orbit .orbit-empty {
+  display: none;
+}
+.hermes-core[data-task-state="offline"] {
+  filter: saturate(0.6);
+  opacity: 0.8;
+}
+.hermes-core[data-core-state="error"] .core-orbit-one {
+  border-color: var(--color-warning);
+}
+.hermes-core[data-core-state="success"] .core-glow {
+  background: radial-gradient(
+    circle,
+    var(--color-primary-soft),
+    transparent 70%
+  );
+}
+.hermes-core[data-core-state="waiting"] .core-orbit-one {
+  border-style: dashed;
+}
+[data-page-visible="false"] *,
+[data-in-view="false"] * {
+  animation-play-state: paused !important;
+}
+[data-spatial="static"] *,
+[data-spatial="static"] *::before,
+[data-spatial="static"] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+[data-spatial="static"] .hermes-core {
+  transform: none !important;
+}
+[data-spatial="static"][data-sheet-open="true"] > main {
+  transform: none;
+}
+[data-spatial="reduced"] .topbar,
+[data-spatial="reduced"] .mobile-bottom-dock {
+  backdrop-filter: none;
+}
+[data-spatial="reduced"] .core-orbit-two {
+  display: none;
+}
+[data-spatial="reduced"] .orbit-beams line,
+[data-spatial="reduced"] .turtle img {
+  animation: none !important;
+}
+
+@media (max-width: 760px) {
+  .app-shell,
+  .app-shell.sidebar-closed {
+    padding-bottom: calc(90px + env(safe-area-inset-bottom));
+  }
+  .topbar {
+    padding: 8px 12px;
+    min-height: 60px;
+    flex: none;
+  }
+  .topbar-title {
+    font-size: 17px;
+  }
+  .welcome {
+    padding: 0 0 12px;
+  }
+  .welcome h1 {
+    font-size: 22px;
+    line-height: 1.35;
+    margin: 6px 0 20px;
+  }
+  .welcome-stage {
+    min-height: 200px;
+  }
+  .compact-orbit .agent-orbit {
+    height: 200px;
+    width: 100%;
+  }
+  .hermes-core {
+    height: 180px;
+    width: 160px;
+  }
+  .hermes-core .turtle img {
+    max-height: 155px;
+  }
+  .core-glow {
+    width: 155px;
+    height: 155px;
+    background: radial-gradient(
+      circle at 35% 25%,
+      rgba(255, 255, 255, 0.95),
+      rgba(207, 232, 190, 0.5) 50%,
+      transparent 71%
+    );
+  }
+  .quick-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0 4px;
+  }
+  .quick-action {
+    min-height: 80px;
+    padding: 12px;
+    gap: 10px;
+    box-shadow: var(--spatial-highlight), var(--depth-1);
+    border-color: transparent;
+  }
+  .quick-action-icon {
+    width: 42px;
+    height: 42px;
+    position: relative;
+    box-shadow: 0 3px 0 rgba(53, 107, 69, 0.07);
+  }
+  .quick-action-label {
+    font-size: 15px;
+  }
+  .quick-action::after {
+    display: none;
+  }
+  .spatial-dock {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    height: 64px;
+    padding: 5px 7px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 3px;
+    border: 0;
+    border-radius: 25px;
+    background: var(--glass-toolbar);
+    box-shadow: var(--spatial-highlight), var(--depth-3);
+  }
+  .spatial-dock button {
+    min-width: 44px;
+    min-height: 48px;
+    font-size: 11px;
+    border-radius: 17px;
+  }
+  .spatial-dock .dock-core {
+    transform: translateY(-7px);
+    padding: 0;
+    background: none;
+  }
+  .dock-core > span:first-child {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    color: var(--color-surface);
+    background: radial-gradient(
+      circle at 35% 20%,
+      #5b956b,
+      var(--color-primary)
+    );
+    box-shadow: var(--spatial-highlight), var(--depth-2);
+    display: grid;
+    place-items: center;
+  }
+  .spatial-dock button[aria-current="page"] {
+    background: var(--color-primary-soft);
+  }
+  .composer-area {
+    padding: 6px 12px 4px;
+    background: transparent;
+  }
+  .composer {
+    border-radius: 25px;
+    padding: 9px;
+    border: 1px solid rgba(53, 107, 69, 0.16);
+    background: var(--glass-toolbar);
+    box-shadow: var(--spatial-highlight), var(--depth-2);
+  }
+  .composer textarea {
+    font-size: 16px;
+  }
+  .composer .send-button {
+    border-radius: 50%;
+  }
+  .composer-row .turtle.compact {
+    align-self: end;
+    width: 44px;
+    flex: none;
+  }
+  .context-tray {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 7px 1px 12px;
+    max-height: 120px;
+  }
+  .context-card {
+    flex: 0 0 245px;
+    scroll-snap-align: start;
+    border: 0;
+    box-shadow: var(--spatial-highlight), var(--depth-1);
+    border-radius: 17px;
+    padding: 5px;
+    min-height: 64px;
+  }
+  .context-card > span {
+    max-height: 80px;
+    overflow-y: auto;
+  }
+  .context-preview img {
+    object-fit: cover;
+  }
+  .secondary-page {
+    padding: 20px 14px;
+  }
+  .secondary-page > h1,
+  .page-heading-row h1 {
+    font-size: 24px;
+    margin-top: 0;
+  }
+  .project-shelf {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    padding: 8px 4px 18px;
+    margin: 14px 0;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+  }
+  .project-cover {
+    flex: 0 0 160px;
+    scroll-snap-align: start;
+    transform: scale(0.96);
+    box-shadow: var(--depth-1);
+    min-height: 190px;
+  }
+  .project-cover[aria-pressed="true"] {
+    transform: translateY(-3px) scale(1);
+    box-shadow: var(--depth-3);
+    border-color: var(--color-primary);
+  }
+  .project-thumbnail {
+    height: 105px;
+  }
+  .create-project {
+    min-height: 180px;
+  }
+  .detail-dialog {
+    inset: auto 0 0;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: calc(min(100dvh, var(--app-height)) - 12px);
+    border: 0;
+    border-radius: 28px 28px 0 0;
+    background: var(--glass-sheet);
+    padding: 0;
+    overscroll-behavior: contain;
+    box-shadow: var(--depth-overlay);
+  }
+  .detail-dialog[open],
+  .radial-sheet[open] {
+    animation: sheet-arrive var(--motion-spatial) var(--ease-spatial);
+  }
+  .detail-dialog .panel-content {
+    padding: 0 18px max(22px, env(safe-area-inset-bottom));
+  }
+  .detail-dialog .panel-header {
+    position: sticky;
+    top: 0;
+    padding: 14px 0 10px;
+    margin-bottom: 14px;
+    background: var(--glass-sheet);
+    z-index: 2;
+  }
+  .panel-header h2 {
+    font-size: 21px;
+  }
+  .detail-dialog .setting-tabs {
+    position: relative;
+    gap: 4px;
+  }
+  .preview-sheet,
+  .artifact-preview {
+    height: min(100dvh, var(--app-height));
+    max-height: min(100dvh, var(--app-height));
+    border-radius: 0;
+  }
+  .artifact-preview {
+    margin: 0;
+    padding: 12px;
+  }
+  .artifact-preview .canva-result img {
+    max-height: 62dvh;
+  }
+  .artifact-stage .canva-result > img,
+  .artifact-preview-trigger img {
+    max-height: 32dvh;
+  }
+  .artifact-stage .canva-result h3 {
+    font-size: 17px;
+  }
+  .artifact-rail {
+    gap: 12px;
+  }
+  .artifact-rail > .artifact-stage {
+    flex-basis: calc(100% - 22px);
+    padding: 12px;
+  }
+  .spatial-panel .orbit-layout {
+    margin-top: 0;
+  }
+  .spatial-panel .orbit-node {
+    width: 48px;
+    height: 48px;
+    background: radial-gradient(
+      circle at 35% 25%,
+      var(--color-surface),
+      var(--color-canvas)
+    );
+    box-shadow: var(--spatial-highlight), var(--depth-2);
+  }
+  .spatial-panel .orbit-node[data-working="true"] {
+    background: var(--color-primary);
+  }
+  .spatial-panel .orbit-tooltip {
+    max-width: 160px;
+    white-space: normal;
+  }
+  .spatial-panel .agent-activity {
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+  .conversation {
+    animation: conversation-arrive var(--motion-standard) var(--ease-spatial);
+  }
+}
+@keyframes sheet-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes conversation-arrive {
+  from {
+    opacity: 0.5;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .app-shell[data-sheet-open="true"] > main {
+    transform: none;
+  }
+}

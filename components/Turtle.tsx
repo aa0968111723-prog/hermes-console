@@ -47,6 +47,7 @@ export default memo(function Turtle({
   size,
   onClick,
   compact = false,
+  label,
 }: {
   task?: Task;
   offline: boolean;
@@ -54,6 +55,7 @@ export default memo(function Turtle({
   size: number;
   onClick: () => void;
   compact?: boolean;
+  label?: string;
 }) {
   const [visible, setVisible] = useState(true);
   useEffect(() => {
@@ -70,8 +72,8 @@ export default memo(function Turtle({
       data-state={state.id}
       data-animate={animation && visible}
       style={{ "--turtle-size": size + "px" } as React.CSSProperties}
-      aria-label={"查看目前任務：" + state.label}
-      title={state.label}
+      aria-label={label || "查看目前任務：" + state.label}
+      title={label || state.label}
     >
       <img
         src="/mascot/turtle.png"

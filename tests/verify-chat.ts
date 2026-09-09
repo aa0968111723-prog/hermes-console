@@ -169,7 +169,7 @@ try {
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
   const textarea = page.getByRole("textbox", { name: "訊息", exact: true });
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('#composer input[type="file"]').setInputFiles({
     name: "branch-reference.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("契約測試附件，分支必須保留。"),

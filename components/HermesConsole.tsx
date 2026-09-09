@@ -4,6 +4,7 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
+  Code2,
   Copy,
   Folder,
   ImagePlus,
@@ -45,13 +46,17 @@ import AgentOrbit from "./visual/AgentOrbit";
 import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
-import ArtifactStage from "./visual/ArtifactStage";
+import SpatialPanel from "./visual/SpatialPanel";
+import { useSpatialMode } from "./visual/useSpatialMode";
+import ArtifactDeck from "./visual/ArtifactDeck";
 import ComposerMenu from "./visual/ComposerMenu";
 import ComposerTaskStatus from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
 import TaskEventSummary from "./visual/TaskEventSummary";
+import TaskUsageSummary from "./visual/TaskUsageSummary";
+import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -173,7 +178,7 @@ export default function HermesConsole() {
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
-  const [panel, setPanel] = useState<"settings" | "task" | "preview" | null>(
+  const [panel, setPanel] = useState<"settings" | "task" | "preview" | "spatial" | null>(
     null,
   );
   const [settingsTab, setSettingsTab] = useState("外觀");
@@ -198,6 +203,8 @@ export default function HermesConsole() {
   const [notice, setNotice] = useState("");
   const [offline, setOffline] = useState(false);
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
+  const spatial = useSpatialMode(prefs.animation);
+  const [radialOpen, setRadialOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [legacy, setLegacy] = useState(false);
   const [newProject, setNewProject] = useState("");
@@ -437,6 +444,15 @@ export default function HermesConsole() {
     if (panel) dialog.current?.showModal();
     else dialog.current?.close();
   }, [panel]);
+  useEffect(() => {
+    if (panel !== "task") return;
+    const frame = requestAnimationFrame(() => {
+      dialog.current
+        ?.querySelector<HTMLElement>(".panel-content")
+        ?.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [panel, selectedTask]);
   useEffect(() => {
     if (drawer) mobileNav.current?.showModal();
     else mobileNav.current?.close();
@@ -858,6 +874,9 @@ export default function HermesConsole() {
         } as React.CSSProperties
       }
       data-compact={prefs.compact}
+      data-spatial={spatial.mode}
+      data-page-visible={spatial.visible}
+      data-sheet-open={!!panel || drawer || radialOpen}
     >
       <a className="skip-link" href="#composer">
         跳至輸入區
@@ -904,7 +923,7 @@ export default function HermesConsole() {
           </button>
           <div className="topbar-title">
             {nav === "chat"
-              ? "創作對話"
+              ? spatial.mobile ? "Hermes" : "創作對話"
               : nav === "projects"
                 ? "專案與素材"
                 : nav === "inspiration"
@@ -1001,7 +1020,7 @@ export default function HermesConsole() {
                 setJump(!nearBottom.current);
               }}
             >
-              <div className="conversation">
+              <div className="conversation" key={activeId || "new"}>
                 {!activeConv?.messages.length ? (
                   <section className="welcome" aria-labelledby="welcome-title">
                     <div className="welcome-stage">
@@ -1011,7 +1030,7 @@ export default function HermesConsole() {
                           offline={offline}
                           animation={prefs.animation}
                           size={prefs.turtleSize * 1.8}
-                          onClick={() => openTask(currentTask)}
+                          onClick={() => setPanel("spatial")}
                         />
                       )}
                       {prefs.turtle && (
@@ -1026,6 +1045,7 @@ export default function HermesConsole() {
                     </div>
                     <h1 id="welcome-title">今天想做什麼？</h1>
                     <QuickActions
+                      mobile={spatial.mobile}
                       onSelect={(prompt) => {
                         setText(prompt);
                         input.current?.focus();
@@ -1585,6 +1605,7 @@ export default function HermesConsole() {
         ) : (
           <section className="secondary-page">
             <h1>任務</h1>
+            <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} />
             {workflows
               .filter((w) => w.projectId === project)
               .map((w) => (
@@ -1678,20 +1699,7 @@ export default function HermesConsole() {
                       查回 Canva 製作結果
                     </button>
                   )}
-                  {w.design && (
-                    <ArtifactStage
-                      design={w.design}
-                      onContinue={() => {
-                        setNav("chat");
-                        setText(
-                          "請查回創作流程 " +
-                            w.id +
-                            " 的現有設計，接續修改同一作品。",
-                        );
-                        input.current?.focus();
-                      }}
-                    />
-                  )}
+
                 </section>
               ))}
             {!tasks.some(
@@ -1730,10 +1738,20 @@ export default function HermesConsole() {
           </section>
         )}
       </main>
-      <AppDock nav={nav} onNavigate={navigate} />
+      <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
+        onAction={action=>{
+          if(action==="spatial")setPanel("spatial");
+          else if(action==="memory"){setSettingsTab("記憶");setPanel("settings");}
+          else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
+        }}
+        onFiles={files=>{
+          if(files.length+uploads.length+references.length>4){setError("每則訊息最多四個附件。");return;}
+          setNav("chat");files.forEach(file=>uploadFile(file));
+        }}
+      />
       <dialog
         ref={dialog}
-        className="detail-dialog"
+        className={"detail-dialog "+(panel==="spatial"?"spatial-sheet":panel==="preview"?"preview-sheet":"")}
         aria-labelledby="detail-panel-title"
         onCancel={() => setPanel(null)}
         onClick={(e) => {
@@ -1743,7 +1761,7 @@ export default function HermesConsole() {
         <div className="panel-content">
           <header className="panel-header">
             <h2 id="detail-panel-title">
-              {panel === "settings"
+              {panel === "spatial" ? "Hermes 空間" : panel === "settings"
                 ? "工作區設定"
                 : panel === "preview"
                   ? "素材預覽"
@@ -1762,7 +1780,10 @@ export default function HermesConsole() {
               {error}
             </p>
           )}
-          {panel === "settings" ? (
+          {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
+            animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
+            onMemory={()=>{setSettingsTab("記憶");setPanel("settings");}}
+            onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
             <>
               <div
                 className="setting-tabs"
@@ -2121,7 +2142,7 @@ export default function HermesConsole() {
                     {tasks.map((t) => (
                       <details key={t.id}>
                         <summary>{t.input.slice(0, 40)}</summary>
-                        <Usage task={t} />
+                        <TaskUsageSummary task={t} />
                       </details>
                     ))}
                     {!tasks.length && (
@@ -2208,12 +2229,29 @@ export default function HermesConsole() {
               <span className={"badge " + chosenTask.state}>
                 {taskLabels[chosenTask.state]}
               </span>
-              <h3>{chosenTask.input}</h3>
-              <small>
-                任務：{chosenTask.id}
-                <br />
-                Hermes 任務：{chosenTask.remoteId || "串流模式／尚未取得"}
-              </small>
+              <TaskRequestSummary input={chosenTask.input} />
+              <details className="task-technical">
+                <summary>
+                  <Code2 size={15} aria-hidden="true" />
+                  技術資訊
+                </summary>
+                <dl>
+                  <div>
+                    <dt>Console 任務</dt>
+                    <dd>
+                      <code>{chosenTask.id}</code>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Hermes 任務</dt>
+                    <dd>
+                      <code>
+                        {chosenTask.remoteId || "串流模式／尚未取得"}
+                      </code>
+                    </dd>
+                  </div>
+                </dl>
+              </details>
               {chosenTask.error && <p className="error">{chosenTask.error}</p>}
               {chosenTask.observationError && (
                 <p className="error">{chosenTask.observationError}</p>
@@ -2257,7 +2295,7 @@ export default function HermesConsole() {
                   </button>
                 </>
               )}
-              <Usage task={chosenTask} />
+              <TaskUsageSummary task={chosenTask} />
               {chosenTask.plan?.steps?.length ? (
                 <>
                   <h3>執行計畫</h3>
@@ -2319,31 +2357,5 @@ export default function HermesConsole() {
         </div>
       </dialog>
     </div>
-  );
-}
-function Usage({ task }: { task: Task }) {
-  const value = (input: number | null) =>
-    input === null ? "未知" : input.toLocaleString("zh-TW");
-  return (
-    <dl className="facts">
-      <dt>實際模型</dt>
-      <dd>{task.usage.model || "未知"}</dd>
-      <dt>輸入 tokens</dt>
-      <dd>{value(task.usage.inputTokens)}</dd>
-      <dt>輸出 tokens</dt>
-      <dd>{value(task.usage.outputTokens)}</dd>
-      <dt>總 tokens</dt>
-      <dd>{value(task.usage.totalTokens)}</dd>
-      <dt>任務耗時</dt>
-      <dd>
-        {task.usage.durationMs === null
-          ? "尚未結束"
-          : (task.usage.durationMs / 1000).toFixed(1) + " 秒"}
-      </dd>
-      <dt>模型供應商費用</dt>
-      <dd>{value(task.usage.providerCost)}</dd>
-      <dt>外部工具費用</dt>
-      <dd>{value(task.usage.toolCost)}</dd>
-    </dl>
   );
 }

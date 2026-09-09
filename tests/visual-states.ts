@@ -20,7 +20,7 @@ export async function verifyVisualStates(
     page.getByRole("button", { name: "加入內容", exact: true }),
   ).toBeFocused();
   const image = await readFile("public/mascot/turtle.png");
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('#composer input[type="file"]').setInputFiles({
     name: "龜龜參考.png",
     mimeType: "image/png",
     buffer: image,
@@ -249,6 +249,26 @@ export async function verifyVisualStates(
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
     await expect(detail).toContainText("ui-fixture-task");
+    const technical = detail.locator(".task-technical");
+    const technicalSummary = technical.locator("summary");
+    if ((await technical.getAttribute("open")) !== null)
+      await technicalSummary.click();
+    await expect(technical).not.toHaveAttribute("open", "");
+    await expect(technicalSummary).toContainText("技術資訊");
+    await expect(technical.locator("code").first()).toBeHidden();
+    if (width === 390 && height === 420) {
+      await page.screenshot({
+        path: join(output, "task-technical-collapsed-390x420.png"),
+      });
+      await technicalSummary.click();
+      await expect(technical.locator("code").first()).toBeVisible();
+      await expect(technical.locator("code").first()).toHaveText(task.id);
+      await technicalSummary.click();
+    }
+    const taskUsage = detail.getByRole("region", { name: "任務用量" });
+    await expect(taskUsage).toContainText("等待 Hermes 回傳");
+    await expect(taskUsage).not.toContainText("未知");
+    await expect(taskUsage.locator(".usage-metric")).toHaveCount(0);
     const eventDetails = detail.locator(".event").first();
     const eventSummary = eventDetails.locator("summary");
     if ((await eventDetails.getAttribute("open")) !== null)
@@ -290,6 +310,41 @@ export async function verifyVisualStates(
   await expect(page.locator(".composer-task-status")).toBeInViewport({ ratio: 1 });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: join(output, "task-access-long-conversation.png") });
+  await page.locator(".composer-task-status").click();
+  const longTaskDetail = page.getByRole("dialog", { name: "任務詳情" });
+  await expect
+    .poll(() =>
+      longTaskDetail
+        .locator(".panel-content")
+        .evaluate((element) => element.scrollTop),
+    )
+    .toBe(0);
+  await expect(longTaskDetail.locator(".panel-header")).toBeInViewport();
+  const requestPreview = longTaskDetail.locator(".task-request-preview");
+  await expect(requestPreview).toBeVisible();
+  assert.ok((await requestPreview.innerText()).length <= 141);
+  const previewLayout = await requestPreview.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      height: element.getBoundingClientRect().height,
+      lineHeight: Number.parseFloat(style.lineHeight),
+    };
+  });
+  assert.ok(
+    previewLayout.height <= previewLayout.lineHeight * 4 + 1,
+    "long request preview must stay within four visible lines",
+  );
+  const fullRequest = longTaskDetail.locator(".task-request-full");
+  const fullRequestSummary = fullRequest.locator("summary");
+  await expect(fullRequestSummary).toContainText("查看完整需求");
+  await expect(fullRequest.locator("p")).toBeHidden();
+  const fullRequestBox = await fullRequestSummary.boundingBox();
+  assert.ok(fullRequestBox && fullRequestBox.height >= 44);
+  await page.screenshot({ path: join(output, "task-request-long-collapsed-360x420.png") });
+  await fullRequestSummary.click();
+  await expect(fullRequest.locator("p")).toBeVisible();
+  await expect(fullRequest.locator("p")).toContainText("[介面測試段落 24]");
+  await page.keyboard.press("Escape");
   task.input = originalInput;
   task.events[0].toolName = "galley_research";
   await page.reload();
@@ -337,6 +392,51 @@ export async function verifyVisualStates(
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("完成");
   await expect(page.locator(".visual-message")).toContainText("1 / 1");
+  await page.setViewportSize({ width: 390, height: 420 });
+  await page.locator(".composer-task-status").click();
+  let taskUsage = page.getByRole("dialog", { name: "任務詳情" })
+    .getByRole("region", { name: "任務用量" });
+  await expect(taskUsage).toContainText("未回傳用量資料");
+  await expect(taskUsage).not.toContainText("未知");
+  await taskUsage.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(output, "task-usage-missing-390x420.png") });
+  await page.keyboard.press("Escape");
+
+  Object.assign(task.usage, {
+    model: "[介面測試模型]",
+    inputTokens: 1000,
+    outputTokens: null,
+    totalTokens: 1234,
+    durationMs: 1650,
+    providerCost: null,
+    toolCost: 0,
+  });
+  await page.reload();
+  await page.locator(".composer-task-status").click();
+  taskUsage = page.getByRole("dialog", { name: "任務詳情" })
+    .getByRole("region", { name: "任務用量" });
+  await expect(taskUsage).toContainText("已回傳 5 項");
+  await expect(taskUsage.locator(".usage-highlights")).toContainText("1,234");
+  await expect(taskUsage).not.toContainText("輸出 tokens");
+  const usageDetails = taskUsage.getByText("查看明細", { exact: true });
+  const usageDetailsBox = await usageDetails.boundingBox();
+  assert.ok(usageDetailsBox && usageDetailsBox.height >= 44);
+  await usageDetails.click();
+  await expect(taskUsage).toContainText("輸入 tokens");
+  await expect(taskUsage).toContainText("外部工具費用");
+  await taskUsage.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(output, "task-usage-partial-390x420.png") });
+  await page.keyboard.press("Escape");
+  Object.assign(task.usage, {
+    model: null,
+    inputTokens: null,
+    outputTokens: null,
+    totalTokens: null,
+    durationMs: null,
+    providerCost: null,
+    toolCost: null,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.locator(".source-cards > summary").click();
   await expect(page.locator(".source-card")).toHaveAttribute(
     "href",
@@ -352,6 +452,15 @@ export async function verifyVisualStates(
   await expect(page.locator(".artifact-stage img")).toBeVisible();
   await page.screenshot({ path: join(output, "artifact-fixture.png") });
   await audit("artifact-fixture");
+  await page.setViewportSize({width:390,height:844});
+  await page.getByRole("button",{name:"放大設計預覽",exact:true}).click();
+  const artifactPreview=page.getByRole("dialog",{name:"作品全螢幕預覽",exact:true});
+  await expect(artifactPreview).toBeVisible();
+  await expect.poll(()=>artifactPreview.locator("img").evaluate((img:HTMLImageElement)=>img.complete && img.naturalWidth>0)).toBe(true);
+  await audit("artifact-fullscreen-mobile-fixture");
+  await page.screenshot({path:join(output,"spatial-artifact-390-fixture.png")});
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button",{name:"放大設計預覽",exact:true})).toBeFocused();
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),

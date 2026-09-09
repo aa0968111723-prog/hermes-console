@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./mobile-spatial.css";
 
 export const metadata: Metadata = {
   title: "Hermes Creative Intelligence",

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Turtle from "../Turtle";
+import Turtle, { turtleState } from "../Turtle";
 import type { Task } from "@/lib/contracts";
+import { useInViewMotion } from "./useInViewMotion";
 
 export default function HermesCore({
   task,
@@ -18,6 +19,7 @@ export default function HermesCore({
   onClick: () => void;
 }) {
   const core = useRef<HTMLDivElement>(null);
+  useInViewMotion(core);
   useEffect(() => {
     const el = core.current;
     if (!el || !animation) return;
@@ -53,12 +55,14 @@ export default function HermesCore({
     <div
       className="hermes-core"
       ref={core}
-      data-task-state={task?.state || (offline ? "offline" : "idle")}
+      data-task-state={offline ? "offline" : task?.state || "idle"}
+      data-core-state={turtleState(task,offline).id}
     >
       <span className="core-orbit core-orbit-one" aria-hidden="true" />
       <span className="core-orbit core-orbit-two" aria-hidden="true" />
       <span className="core-glow" aria-hidden="true" />
       <Turtle
+        label="開啟 Hermes 空間"
         task={task}
         offline={offline}
         animation={animation}

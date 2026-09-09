@@ -1,6 +1,8 @@
 import { chromium, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { verifyVisualStates } from "./visual-states";
+import { verifyMobileSpatial } from "./mobile-spatial";
+import { verifyMobileEngines } from "./mobile-engines";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
@@ -172,8 +174,11 @@ try {
     [1440, 1000, "desktop"],
     [1024, 900, "desktop-1024"],
     [768, 1024, "tablet"],
-    [430, 900, "mobile-430"],
+    [430, 932, "mobile-430"],
+    [412, 915, "mobile-412"],
+    [393, 852, "mobile-393"],
     [390, 844, "mobile-390"],
+    [375, 812, "mobile-375"],
     [360, 800, "mobile-360"],
   ] as const) {
     await page.setViewportSize({ width, height });
@@ -201,6 +206,7 @@ try {
       "send button occluded at " + width,
     );
     const mascot = await page.locator(".turtle").boundingBox();
+    await expect(page.locator(".quick-action")).toHaveCount(width<=760 ? 4 : 6);
     const columns = await page
       .locator(".quick-actions")
       .evaluate(
@@ -400,7 +406,7 @@ try {
     await uploadGate;
     await route.fulfill({ response });
   });
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('#composer input[type="file"]').setInputFiles({
     name: "draft-a.txt",
     mimeType: "text/plain",
     buffer: Buffer.from("真實上傳的測試附件"),
@@ -553,7 +559,9 @@ try {
     restrictedPage.getByRole("combobox", { name: /文字大小/ }),
   ).toHaveValue("20");
   await restricted.close();
+  await verifyMobileSpatial(page,base,output,audit);
   await verifyVisualStates(page, base, output, audit);
+  await verifyMobileEngines(base,output);
   assert.deepEqual(errors, []);
   await writeFile(
     join(output, "browser-report.json"),
