@@ -29,6 +29,18 @@ export interface VisualPattern {
   copywritingAgentInput: string;
 }
 
+export interface CampaignSlot {
+  id: string;
+  title: string;
+  format: "4:5" | "9:16" | "carousel";
+  date: string;
+  status: "done" | "ready" | "next" | "later";
+  patternIds: string[];
+  location: { value: string; provenance: Provenance };
+  visualAgentInput: string;
+  copywritingAgentInput: string;
+}
+
 export interface VisualLanguageBrief {
   account: "tku_zc";
   observedAt: string;
@@ -39,6 +51,8 @@ export interface VisualLanguageBrief {
   reelsMotionUnknown: true;
   biggestProblem: string;
   improvements: string[];
+  nextSlot: CampaignSlot;
+  slots: CampaignSlot[];
   keep: VisualPattern[];
   avoid: VisualPattern[];
   visualAgent: { brief: string; do: string[]; dont: string[] };
@@ -341,6 +355,59 @@ const AVOID: VisualPattern[] = [
   },
 ];
 
+const SLOTS: CampaignSlot[] = [
+  {
+    id: "faq-2026-08-31",
+    title: "FAQ 貼文",
+    format: "carousel",
+    date: "2026-08-31",
+    status: "done",
+    patternIds: ["hook-faq-religion", "design-turtle-student"],
+    location: { value: "不適用", provenance: "FACT" },
+    visualAgentInput: "已上線。下一輪改版拿掉封面蓮花。",
+    copywritingAgentInput: "已上線。保留「禪是宗教嗎」。",
+  },
+  {
+    id: "fair-story-2026-09-10",
+    title: "社博限動",
+    format: "9:16",
+    date: "2026-09-10",
+    status: "next",
+    patternIds: ["hook-boba-reward", "cta-booth-low-pressure"],
+    location: { value: "文館左側", provenance: "FACT" },
+    visualAgentInput:
+      "9:16。上：「社博開始啦！我們在這裡呦～」下：「來攤位就有機會拿到手搖飲」。能拍文館左側就用實景；沒有實景就 2D 龜龜＋手搖飲，標 UNKNOWN 實景。",
+    copywritingAgentInput:
+      "Drive 已定稿。不要加宗教句。日期 9/10、11、9/14–17。不要捏造教室。",
+  },
+  {
+    id: "tea-feed-2026-09-06",
+    title: "期初茶會貼文",
+    format: "4:5",
+    date: "2026-09-06",
+    status: "ready",
+    patternIds: ["layout-cover-then-facts", "audience-line-play-and-still"],
+    location: { value: "待定", provenance: "UNKNOWN" },
+    visualAgentInput:
+      "4:5 封面只放「改變自己從靜定開始」＋龜龜。時間地點第 2 頁；地點未定就寫待公布，不要發明教室。",
+    copywritingAgentInput:
+      "2026/9/30 19:00–21:30。地點 UNKNOWN。表單 https://forms.gle/Xs4PXyWKQW5ob29z6。",
+  },
+  {
+    id: "talk-feed-2026-09-06",
+    title: "期初演講貼文",
+    format: "4:5",
+    date: "2026-09-06",
+    status: "ready",
+    patternIds: ["layout-cover-then-facts"],
+    location: { value: "待定", provenance: "UNKNOWN" },
+    visualAgentInput:
+      "不要 3D 少女、不要彩虹社名。2D 龜龜＋一句「由數字探索自己」。",
+    copywritingAgentInput:
+      "2026/10/7 19:00–21:30，講師盧玫竹。地點 UNKNOWN。不要內部法輪句。",
+  },
+];
+
 export function tkuVisualLanguage(): VisualLanguageBrief {
   return {
     account: "tku_zc",
@@ -359,6 +426,8 @@ export function tkuVisualLanguage(): VisualLanguageBrief {
       "蓮花與廟宇不要當第一眼；FAQ 保留「禪是宗教嗎」但畫面先像校園生活。",
       "CTA 用「來玩／拿手搖飲／文館左側」，表單放第二層。",
     ],
+    nextSlot: SLOTS.find((slot) => slot.status === "next") || SLOTS[1],
+    slots: SLOTS,
     keep: KEEP,
     avoid: AVOID,
     visualAgent: {
@@ -414,6 +483,19 @@ export function visualLanguageHandoff() {
     "不要：" + brief.copywritingAgent.dont.join("／"),
     "值得學：" + brief.keep.map((item) => item.kind + "·" + item.title).join("；"),
     "不要用：" + brief.avoid.map((item) => item.title).join("；"),
+    "下一步：" +
+      brief.nextSlot.format +
+      " " +
+      brief.nextSlot.title +
+      " " +
+      brief.nextSlot.date +
+      " @" +
+      brief.nextSlot.location.value +
+      " (" +
+      brief.nextSlot.location.provenance +
+      ")",
+    "Visual 下一步：" + brief.nextSlot.visualAgentInput,
+    "文案下一步：" + brief.nextSlot.copywritingAgentInput,
   ].join("\n");
 }
 

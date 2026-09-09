@@ -9,7 +9,7 @@
 - BLOCKERS：無 Meta 授權；茶會／演講地點 UNKNOWN。
 - NEXT_BEST_TASK：115-1 網宣日曆 × 模式槽；9:16 社博限動規格。
 - FILES_TOUCHED：`lib/server/inspiration/visual-language.ts`、`engine.ts`、`InspirationBoard.tsx`、`app/api/inspiration/route.ts`、tests、skill、handoff。
-- PR：待開 `grok/ig-visual-language-2026-09-09`
+- PR：https://github.com/aa0968111723-prog/hermes-console/pull/78
 - MAIN_SHA：`5e245e79668390deef4ccfb012cee889588cb719`
 
 

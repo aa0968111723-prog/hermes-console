@@ -47,6 +47,13 @@ test("tku visual language is provenance-labelled and not a fake IG connection", 
   const handoff = visualLanguageHandoff();
   assert.ok(handoff.includes("instagramConnected=false"));
   assert.ok(!handoff.toLowerCase().includes("chain-of-thought"));
+  assert.equal(brief.nextSlot.id, "fair-story-2026-09-10");
+  assert.equal(brief.nextSlot.format, "9:16");
+  assert.equal(brief.nextSlot.location.provenance, "FACT");
+  assert.equal(brief.nextSlot.location.value, "文館左側");
+  assert.ok(handoff.includes("9:16 社博限動"));
+  const tea = brief.slots.find((slot) => slot.id === "tea-feed-2026-09-06");
+  assert.equal(tea?.location.provenance, "UNKNOWN");
 });
 
 test("caption rules match keep patterns without claiming image read", () => {

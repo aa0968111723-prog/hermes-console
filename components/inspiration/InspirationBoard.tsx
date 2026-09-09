@@ -64,6 +64,19 @@ export default function InspirationBoard({
         </ol>
       </article>
 
+      <article className="handoff-card next-slot">
+        <p className="eyebrow">下一步 · {language.nextSlot.format}</p>
+        <strong>
+          {language.nextSlot.title} {language.nextSlot.date}
+        </strong>
+        <p>
+          {language.nextSlot.location.value}
+          <span className="provenance-pill">{language.nextSlot.location.provenance}</span>
+        </p>
+        <p>Visual：{language.nextSlot.visualAgentInput}</p>
+        <p>文案：{language.nextSlot.copywritingAgentInput}</p>
+      </article>
+
       <h2 className="language-section">值得學</h2>
       <ul className="pattern-grid">
         {language.keep.map((pattern) => (
