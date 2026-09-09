@@ -25,16 +25,27 @@ jobs:
       - run: npm audit --omit=dev
       - name: Install Playwright browsers (chromium + webkit, retry)
         run: |
-          # Drop Google Chrome apt sources so --with-deps never hits
-          # dl.google.com Packages.gz Hash Sum mismatch.
+          set -e
+          # Block Google Chrome apt permanently for this job
           sudo rm -f /etc/apt/sources.list.d/google-chrome*.list \
-            /etc/apt/sources.list.d/google*.list 2>/dev/null || true
+            /etc/apt/sources.list.d/google*.list \
+            /etc/apt/sources.list.d/*chrome*.list 2>/dev/null || true
+          sudo grep -rl 'dl.google.com/linux/chrome' /etc/apt 2>/dev/null | xargs -r sudo rm -f || true
+          sudo rm -f /var/lib/apt/lists/*google* /var/lib/apt/lists/*chrome* || true
+          printf '%s\n' 'Package: *' 'Pin: origin dl.google.com' 'Pin-Priority: -1' | sudo tee /etc/apt/preferences.d/no-google-chrome >/dev/null
+          sudo apt-get update -y || true
           for i in 1 2 3; do
-            npx playwright install --with-deps chromium webkit && exit 0
+            sudo rm -f /etc/apt/sources.list.d/google-chrome*.list \
+              /etc/apt/sources.list.d/google*.list \
+              /etc/apt/sources.list.d/*chrome*.list 2>/dev/null || true
+            if npx playwright install-deps chromium \
+              && npx playwright install chromium webkit; then
+              exit 0
+            fi
             echo "playwright install failed (attempt $i); sleeping 15s"
             sleep 15
           done
-          npx playwright install chromium webkit
+          exit 1
       - run: npm run test:ui
       - run: npm run test:chat
       - run: npm run test:workbench
