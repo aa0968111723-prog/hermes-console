@@ -480,7 +480,7 @@ export async function verifyVisualStates(
     /連線待確認/,
   );
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator(".composer-task-status")).toContainText("離線 · 狀態待確認");
+  await expect(page.locator(".composer-task-status")).toContainText("離線 · 顯示上次資料");
   await page.screenshot({ path: join(output, "offline-mobile.png") });
   await page.context().setOffline(false);
   await page.unrouteAll({ behavior: "wait" });
