@@ -2599,6 +2599,38 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
     padding-bottom: 8px;
   }
 }
+
+/* P5: <=430 keyboard-open -> composer task pill shrinks to icon float (no full row). */
+@media (max-width: 430px) {
+  html[data-composer-keyboard="open"] .composer-task-status {
+    position: absolute;
+    z-index: 3;
+    top: 8px;
+    right: 10px;
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+    justify-content: center;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px #34452c14;
+  }
+  html[data-composer-keyboard="open"] .composer-task-status .composer-task-label,
+  html[data-composer-keyboard="open"] .composer-task-status .composer-task-tool,
+  html[data-composer-keyboard="open"] .composer-task-status .composer-task-chevron {
+    display: none;
+  }
+}
+@media (max-width: 430px) and (prefers-reduced-motion: reduce) {
+  html[data-composer-keyboard="open"] .composer-task-status {
+    transition: none !important;
+    animation: none !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .orbit-beams line { animation: none; }
   .project-cover:hover { transform: none; }
