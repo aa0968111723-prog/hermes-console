@@ -26,7 +26,7 @@ jobs:
       - name: Install Playwright browsers (chromium + webkit, retry)
         run: |
           for i in 1 2 3; do
-            npx playwright install --with-deps chromium webkit && exit 0
+            npx playwright install chromium webkit && exit 0
             echo "playwright install failed (attempt $i); sleeping 15s"
             sleep 15
           done
