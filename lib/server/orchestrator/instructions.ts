@@ -6,6 +6,7 @@ import {
   AUDIENCE_INSTRUCTION_PACK,
   BASE_CREATIVE_INSTRUCTIONS,
   CANVA_INSTRUCTION_PACK,
+  COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,
   FAST_TASK_INSTRUCTIONS,
   FRAMELAB_INSTRUCTION_PACK,
@@ -26,6 +27,7 @@ export type InstructionPackId =
   | "galley"
   | "inspiration"
   | "audience"
+  | "copywriting"
   | "canva"
   | "lumen"
   | "framelab"
@@ -71,6 +73,16 @@ export function composeTaskInstructions(input: {
   if (input.goal.requiresAudienceEvaluation) {
     parts.push(AUDIENCE_INSTRUCTION_PACK);
     packs.push("audience");
+  }
+  if (
+    input.goal.requiresDesign ||
+    input.goal.output ||
+    /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
+      input.text,
+    )
+  ) {
+    parts.push(COPYWRITING_INSTRUCTION_PACK);
+    packs.push("copywriting");
   }
   if (input.goal.requiresDesign || input.goal.output) {
     parts.push(DIRECTION_INSTRUCTION_PACK, CANVA_INSTRUCTION_PACK);

@@ -4,9 +4,9 @@ import { classifyIntent } from "./intent";
 const TAMKANG = /淡江|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
 const DESIGN = /海報|網宣|Canva|canva|視覺|設計|稿/;
-const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|受眾/;
+const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會/;
 const INSPIRATION = /靈感|參考|IG|Pinterest|instagram/i;
-const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文/;
+const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA/;
 
 export function interpretGoal(input: string): StructuredGoal {
   const text = input.trim();
