@@ -1,5 +1,5 @@
 "use client";
-import { Activity, Check, ChevronRight, CircleHelp, Clock, TriangleAlert } from "lucide-react";
+import { Activity, Check, ChevronRight, CircleHelp, Clock, RefreshCw, TriangleAlert } from "lucide-react";
 import type { Task } from "@/lib/contracts";
 import {
   activityKind,
@@ -64,7 +64,9 @@ export default function ComposerTaskStatus({ task, offline, onClick }: {
 }) {
   const status = composerTaskStatus(task, offline);
   const action = composerTaskPillAction(offline);
-  const Icon = status.tone === "error" ? TriangleAlert
+  /* Offline → RefreshCw icon; full aria-label kept for screen readers. */
+  const Icon = action === "refresh" ? RefreshCw
+    : status.tone === "error" ? TriangleAlert
     : status.tone === "warning" ? CircleHelp
     : status.tone === "success" ? Check
     : status.tone === "waiting" ? Clock : Activity;
