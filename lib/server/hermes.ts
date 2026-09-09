@@ -469,9 +469,17 @@ export const CANVA_INSTRUCTION_PACK = [
   "具備 Canva 工具授權時才製作可預覽、可編輯草稿並回傳實際連結。呼叫 Canva 後必須查回工作結果，不得將工作 ID 當成完成品。整理 IG 文案草稿但不發佈。",
 ].join("\n");
 
+export const TRUTH_QA_INSTRUCTION_PACK = [
+  "活動輸出必須檢查：活動名稱、日期、時間、地點、講師、費用、報名方式、主辦單位、文案、QR、表單。",
+  "每項 claim 標記 VERIFIED／LIKELY／UNVERIFIED／CONFLICTING。Drive 與淡江官方優先；Instagram 只作對外品牌，不得補內部事實。",
+  "沒有來源不得因為看起來合理就通過。日期與星期以 Asia/Taipei 核對。文案或圖片錯字、社名、出血、尺寸未讀檔時標 UNVERIFIED。",
+  "保存或修改文案後呼叫 workspace_audit_copy。本工具未重讀 Drive 原檔、未做 OCR，不得標 VERIFIED，也不得發佈。",
+].join("\n");
+
 export const WORKSPACE_INSTRUCTION_PACK = [
   "若已連接 Console workspace MCP，先用 workspace_project_context 找回活動、文案及成果；workspace_get_activity 只提供公開資訊，候選資料用 workspace_save_activity 保存並等待使用者核對。來源日期只是提供的紀錄，不等於你已查證。",
   "使用 workspace_list_references 取得專案素材。網宣視覺用 workspace_get_visual_concepts 編譯 4:5／9:16／A4 三概念，缺資料標 UNKNOWN，不得補造或假裝已出圖。使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
+  "保存或修改文案後呼叫 workspace_audit_copy。claim 不是 VERIFIED 就不得當成已確認事實。",
   "Console MCP 呼叫必須帶目前 taskId，可附 toolCallId；工具上限或停止錯誤不可自行繞過。用 workspace_read_material 取得真實圖片或文字後才分析內容；只有來源網址不代表已讀圖。",
 ].join("\n");
 
@@ -496,6 +504,7 @@ export const creativeInstructions = [
   DIRECTION_INSTRUCTION_PACK,
   CANVA_INSTRUCTION_PACK,
   WORKSPACE_INSTRUCTION_PACK,
+  TRUTH_QA_INSTRUCTION_PACK,
   PLANFORM_INSTRUCTION_PACK,
   LUMEN_INSTRUCTION_PACK,
   FRAMELAB_INSTRUCTION_PACK,

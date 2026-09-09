@@ -592,6 +592,22 @@ export default function ProjectWorkbench({
               {issue}
             </p>
           ))}
+          {d.check.claims?.length ? (
+            <ul className="qa-claims">
+              {d.check.claims.map((claim) => (
+                <li key={claim.field}>
+                  <strong>{claim.status}</strong>
+                  {" · "}
+                  {claim.label}
+                  {claim.value ? "：" + claim.value : "：（無）"}
+                  <small className="muted"> {claim.note}</small>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {d.check.publishBlocked ? (
+            <p className="muted">自動核對未讀圖、未重抓 Drive，發佈仍封鎖。</p>
+          ) : null}
           <div className="workbench-actions">
             <button
               disabled={busy}

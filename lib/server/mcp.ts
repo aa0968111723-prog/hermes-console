@@ -25,6 +25,7 @@ import {
   visualConceptsFor,
 } from "./creative";
 import { VISUAL_FORMAT_IDS } from "./creative/formats";
+import { auditEventCopy } from "./qa";
 import { z } from "zod";
 import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
 import { runtimeEnv } from "./credentials";
@@ -172,6 +173,14 @@ const schemas = {
       ...context,
     })
     .strict(),
+  workspace_audit_copy: z
+    .object({
+      copyId: z.string().uuid().optional(),
+      activityId: z.string().uuid().optional(),
+      text: z.string().max(20_000).optional(),
+      ...context,
+    })
+    .strict(),
   workspace_read_material: z
     .object({ materialId: z.string().uuid(), ...context })
     .strict(),
@@ -278,6 +287,8 @@ const descriptions: Record<ToolName, string> = {
     "保存貼文、輪播、限動或短影音文字草稿。沿用 id 修改並保存歷史，不能包含私人活動資訊，不代表已發佈。引用 workflowId 時必須由使用者先選定方向。",
   workspace_review_copy:
     "規則式審核文案：A／B／C 是否齊、HOOK 結構、禁用詞、未確認地點、十個淡江新生視角。不是生成文案，不是發佈，也不是真實轉換率。",
+  workspace_audit_copy:
+    "核對活動名稱、日期、時間、地點、講師、費用、報名、主辦。標記 VERIFIED／LIKELY／UNVERIFIED／CONFLICTING。未重讀 Drive 原檔不得標 VERIFIED。不代表已發佈。",
   workspace_read_material:
     "讀取此任務專案已保存的真實 PNG 圖片（MCP image content）或 UTF-8 TXT；純連結和未解析 PDF 明確回報不可分析，不把檔名當內容。",
   workspace_list_references:
@@ -323,7 +334,7 @@ export function toolsList(owner: string) {
       description: descriptions[name as ToolName],
       inputSchema: z.toJSONSchema(schema),
       annotations: {
-        readOnlyHint: /list|search|get|dataset|read|context|capability|review|simulate/.test(name),
+        readOnlyHint: /list|search|get|dataset|read|context|capability|review|simulate|audit/.test(name),
         destructiveHint: name.includes("delete_memory"),
         idempotentHint: true,
         openWorldHint: name.startsWith("canva_") || name.startsWith("galley_"),
@@ -493,6 +504,22 @@ async function execute(
         variants: input.variants,
         facts: input.facts,
         allowSpiritual: input.allowSpiritual,
+      });
+    }
+    case "workspace_audit_copy": {
+      const parsed = schemas[name].parse(args);
+      if (!parsed.copyId && !parsed.activityId && !(parsed.text || "").trim())
+        throw new ApiError(400, "audit_input", "需要 copyId、activityId 或 text。");
+      if (parsed.copyId) {
+        const document = publicCopy(owner, parsed.copyId);
+        return checkCopy(owner, document);
+      }
+      const facts = parsed.activityId
+        ? publicActivity(activity(owner, parsed.activityId)).facts
+        : [];
+      return auditEventCopy({
+        facts,
+        text: parsed.text || "",
       });
     }
     case "workspace_read_material": {
