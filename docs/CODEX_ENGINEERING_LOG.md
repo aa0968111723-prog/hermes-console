@@ -1,5 +1,16 @@
 # Codex 工程接續紀錄
 
+## 2026-09-09 — 大字與短視窗的 Hermes 快捷選單（UIUX 分工）
+
+- 基準 main：`f6fa7b9779b8f01143ed46fb2e2a6024ef966129`；分支 `codex/mobile-radial-access`，草稿 PR #75。開始與完成前均確認 main 未前進；已核對 AGENTS、README、package/lock、CI、前端、未結 PR 與本紀錄。Grok #73/#71/#70/#68 仍處理 uncertain retry，#62/#60/#56/#55/#42 處理記憶，本輪不修改其 API、資料或後端契約。
+- 問題：外觀設定可選 14–20px，但手機 Hermes 快捷按鈕硬編碼為 14px；在頁面載入後縮成 360×560 的短視窗時，原生 dialog 的絕對定位仍可能沿用較高的初始 containing block，使整張選單落到可視區下方。先推只有測試的 SHA `69f6e7322c7988ac0491d35091d7f769e7811c3c`，CI `34319665659` 如預期失敗：設定 20px 後實際仍是 14px；artifact `10091431379` 的同尺寸截圖也顯示選單未在短視窗內。
+- 修復：`.radial-sheet` 改採 fixed 視窗定位；按鈕改用真實 `--font-size` 偏好、1.25 行高與至少 76px 的可伸展網格列。沒有改內容、操作或資料來源；原有 CSS 2.5D 光影、原生 dialog、reduced-motion 與 44px 觸控規則保留，無 WebGL、新依賴、常駐動畫、API 或後端變更。
+- Chrome 驗收透過真實外觀設定選 20px，再把 viewport 改為 360×560；檢查選單完整位於視窗內、5 個按鈕計算字級為 20px、內容不裁切、頁面無水平溢出，並等待進場轉場完成後擷取 `spatial-radial-large-text-360x560.png`。最終 artifact `10091909345` 已親自檢視：選單完整顯示 Hermes 標題、關閉鍵及圖片／能力／Canva／文件／記憶五個入口，固定輸入列與 dock 不再遮住它。
+- 本地 `npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過；本環境的 `npm run test:ui` 因 tsx Unix IPC `EPERM` 無法啟動，沒有冒充本地 browser pass。完整契約測試 262 項中 259 通過、3 項條件跳過、零失敗。
+- 最終功能 SHA：`30cc7f55814697d18bba2ffa9ad9964c77d6dd17`；CI `34320908943` 全通過，包含 lint、typecheck、unit、build、secrets、audit、Chrome UI、Chrome/WebKit 六種手機寬度、chat、workbench、gateway 與 artifact。15 個 Axe 畫面零 violations；fixture LCP 128ms、CLS 0.0000803 僅為單次 CI，不作真機效能承諾。
+- CI 是模擬 Chrome/WebKit，不是 iOS／Android 實體裝置；正式 Hermes／MCP、Canva、Zeabur、郵件及 SSO 未驗證。下一輪優先檢查 200% browser zoom 或極端安全區時的快捷選單捲動與焦點；Grok 可續修 uncertain retry／memory provenance，不需修改本輪樣式。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-09 — 空間工作區合併後的鍵盤與觸控相容性（UIUX 分工）
 
 - 延續 `codex/mobile-keyboard-inset`／草稿 PR #74；本輪基準 main：`0168545976d917ed60d3805529da90348c7abce4`，已由其他操作者合併 #72 的 mobile spatial workspace。同步前核對 AGENTS、README、package/lock、CI、前端、未結 PR 與本紀錄；Grok #73/#71 仍處理 uncertain retry，本輪不修改其資料或後端契約。
