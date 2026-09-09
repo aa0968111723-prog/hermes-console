@@ -1,5 +1,42 @@
 # Codex 工程接續紀錄
 
+## 2026-09-09 — 長任務需求摘要與詳情回頂（UIUX 分工）
+
+- 延續 `codex/compact-task-usage`／草稿 PR #69；本輪基準 main：`c937a7cb5951f162132194e9d33f791bc409267a`，基準 CI `34279144820` 通過。用 merge commit `da53675bd108aa859716c2aae644c070ded3ceee` 同步最新 main；新增內容僅為淡江知識資料。本輪核對 AGENTS、README、package/lock、CI、前端、未結 PR 與本紀錄，避開 Grok #70/#68/#65 的 uncertain retry 與記憶資料工作。
+- 問題：任務詳情把完整 `task.input` 當標題；接近契約上限的長需求會佔滿手機畫面。初版 140 字摘要在 360px 仍約七行；CI 畫面又發現重開不同任務時沿用舊的內容捲動位置，使新任務標題從中段開始。
+- 新增集中式 `presentTaskInput`：正規化摘要空白、最多 140 字，並以 CSS 再限制四個視覺行；完整原文保留在 44px 原生「查看完整需求」disclosure，內容維持換行並限制自身高度可捲動。這是資料密度與層次修正，不是 3D；沒有新依賴、動畫、API、後端或資料契約變更，也不會以摘要取代原始需求。
+- 每次開啟任務詳情或切換選取任務，下一個 animation frame 將 `.panel-content` 回到頂部；避免 dialog 尚未開啟時重設失效。Chrome 旅程在 360×420 驗證回頂、標題在視窗內、預覽不超過四行、完整需求預設隱藏、入口至少 44px，以及展開後第 24 段完整原文仍存在；截圖為 `task-request-long-collapsed-360x420.png`。
+- 新增 3 項摘要單元測試；本地完整契約測試 259 項中 257 通過、2 項因未提供 Postgres 條件跳過，零失敗；`npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過。後續四行與回頂變更另跑 lint、typecheck 與專項測試通過。
+- 最終功能 SHA：`69b43f1a09f2762942ad715068f6ad6631722236`；CI `34281959622` 全通過，包含原 `npm test`、build、secrets、audit、test:ui、test:chat、test:workbench、test:gateway。已下載 artifact `10078042823` 並親自檢視 360×420 最終畫面；面板從頂部顯示，摘要四行且沒有技術 ID 佔據首屏。11 個 Axe 受測畫面零 violations；fixture LCP 132ms、CLS 0.0000803 僅為單次 CI 結果。
+- fixture 不是正式 Hermes／MCP 外部整合或 iOS／Android 實體鍵盤證據。下一輪優先驗證軟鍵盤與安全區，或改善任務 error／uncertain 的可恢復操作；Grok 可續修 retry／memory provenance，不需修改本輪前端摘要。
+- 不合併、不部署、不呼叫正式外部服務。
+
+## 2026-09-09 — 任務技術識別資訊收合（UIUX 分工）
+
+- 延續 `codex/compact-task-usage`／草稿 PR #69；本輪開始時 main 從 `8471ddaf55c98da04805aff03291bec4477df862` 前進至 `2f2185cea9e9311481b5727ede884e177a30b24a`。新提交只新增 AI research 文件，已用 merge commit `7d62fc62b0057a0090a52f24cf62954645118057` 同步，未覆蓋其他工作；main CI `34277411277` 通過。
+- 已再次核對 AGENTS、README、package/lock、CI、現有前端、未結 PR 與本紀錄。Grok #68/#65 處理 uncertain retry，其他 Grok PR 處理 memory provenance；本輪仍不修改其重試、記憶、API 或資料層。
+- 問題：任務詳情長期顯示兩行 Console／Hermes 技術 ID，手機首屏文字密度高；這些值對除錯有用，但不是每次查看狀態都需要。
+- 改為預設收合的 44px「技術資訊」入口，展開後仍完整顯示兩個真實 ID，長字串可安全換行；沒有刪除或偽造資料。只使用既有 disclosure 與 Code 圖示，無新依賴、動畫、API 或後端變更。
+- Chrome 旅程在五種任務尺寸驗證預設收合，390×420 額外驗證展開後 ID 可見、再收合且不影響用量與事件內容；並產出同尺寸 `task-technical-collapsed-390x420.png`。功能 SHA：`c9b8b790f088d57f48dda80fd1e369b9d6677e57`。
+- 本地 `npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過；`node --import tsx --test --test-concurrency=1 tests/*.test.ts`：254 通過、2 項 Postgres 條件跳過、零失敗。
+- 功能 CI `34278192777` 全通過，包含原 `npm test`、build、secrets、audit、test:ui、test:chat、test:workbench、test:gateway。已下載 artifact `10076634861`，親自檢視手機／桌面任務畫面；11 個 Axe 受測畫面零 violations。fixture LCP 96ms、CLS 0.0000803 是單次 CI 結果，不作真機承諾。
+- fixture 不是正式 Hermes／MCP 外部整合證據；仍缺 iOS／Android 實體裝置與軟鍵盤安全區驗證。Grok 可續修 uncertain retry／memory provenance；不需改本輪前端 disclosure。
+- 不合併、不部署、不呼叫正式外部服務。
+
+## 2026-09-09 — 手機任務用量精簡呈現（UIUX 分工）
+
+- 基準 main：`8471ddaf55c98da04805aff03291bec4477df862`；分支 `codex/compact-task-usage`，草稿 PR #69。PR #59 已由其他操作者合併，本輪自最新 main 開新分支；基準 CI `34273027451` 全通過。
+- 已核對 AGENTS、README、package/lock、CI、現有前端、未結 PR 與本紀錄。Grok #68/#65 在處理 uncertain 任務重試，#62/#60/#56/#55/#42 是 memory provenance；本輪不修改重試、記憶、API、儲存、parser 或研究資料。
+- 已下載基準 artifact `10074667900` 並親自檢視 390×420／1440×1000：沒有 usage 的執行中任務仍列出模型、tokens、耗時與費用等多個「未知」，把真實事件紀錄推到手機折線以下。
+- 新增共用任務用量摘要：執行中無資料只顯示「等待 Hermes 回傳」，已結束無資料顯示「未回傳用量資料」；部分資料只呈現實際 `task.usage` 欄位，未知不替換成 0，實際回傳的 0 仍保留。模型、總 tokens、耗時優先，輸入／輸出與費用收進 44px 明細 disclosure。
+- Gauge 圖示、淺色漸層、內光影與資料小卡是 CSS 2.5D，不是 WebGL／真正 3D。沒有新依賴、常駐動畫、額外輪詢、API 或後端改動；資料狀態只來自 `task.state` 與 `task.usage`。
+- 新增 4 項 presentation 回歸測試，涵蓋執行中缺資料、完成後缺資料、部分資料、實際 0 與缺少 total 時的 input/output。Chrome 旅程驗證五種任務入口尺寸、390×420 缺資料／部分資料畫面、明細觸控高度、既有 reduced-motion、錯誤、離線、對話、工作台與 Gateway 流程。
+- 本地 `node --import tsx --test --test-concurrency=1 tests/*.test.ts`：256 項中 254 通過、2 項因未提供 Postgres 測試條件而跳過，零失敗。`npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過；第一次 build 在移除 `.next/export/_next` 暫存目錄時遇 `ENOTEMPTY`，刪除純建置產物後重跑成功。
+- 實作 SHA：`4bcc966864392c16cc8df33c4661849c0d98f7a2`；畫面 framing 測試 SHA：`4370388f584dc10ef0645b2f30ab50e77c138253`。最終功能 CI `34276354010` 全通過，包含原 `npm test`、build、secrets、audit、test:ui、test:chat、test:workbench、test:gateway。
+- 已下載 artifact `10075945903` 並親自對照 390×420：無資料卡由七列縮為單一誠實狀態，事件紀錄同屏可見；部分資料只顯示測試 fixture 真正提供的模型、總 tokens、耗時、輸入 tokens 與工具費用。11 個 Axe 受測畫面零 violations；fixture LCP 136ms、CLS 0.0000803 為單次 CI 結果，不作真機效能承諾。
+- screenshots 是明確標示的 UI fixture，不是正式 Hermes／MCP 外部整合證據；沒有 iOS／Android 實體裝置。下一輪優先改善手機任務詳情頂部過長的技術 ID，或補實體鍵盤／安全區驗證；Grok 可續修 uncertain retry 與 memory provenance，不需修改本摘要元件。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-08 — 任務詳情事件視覺層級（UIUX 分工）
 
 - 基準 main：`330b1e8dddf9a6df479f83ee0d171ddf7c28c8f8`；分支 `codex/readable-task-events`，草稿 PR #59。PR #54 已由其他操作者合併，本輪自最新 main 開新分支。基準 main CI `34237305437` 全通過。

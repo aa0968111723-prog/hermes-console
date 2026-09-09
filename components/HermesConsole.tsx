@@ -4,6 +4,7 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
+  Code2,
   Copy,
   Folder,
   ImagePlus,
@@ -52,6 +53,8 @@ import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
 import TaskEventSummary from "./visual/TaskEventSummary";
+import TaskUsageSummary from "./visual/TaskUsageSummary";
+import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -394,6 +397,15 @@ export default function HermesConsole() {
     if (panel) dialog.current?.showModal();
     else dialog.current?.close();
   }, [panel]);
+  useEffect(() => {
+    if (panel !== "task") return;
+    const frame = requestAnimationFrame(() => {
+      dialog.current
+        ?.querySelector<HTMLElement>(".panel-content")
+        ?.scrollTo({ top: 0, behavior: "auto" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [panel, selectedTask]);
   useEffect(() => {
     if (drawer) mobileNav.current?.showModal();
     else mobileNav.current?.close();
@@ -2078,7 +2090,7 @@ export default function HermesConsole() {
                     {tasks.map((t) => (
                       <details key={t.id}>
                         <summary>{t.input.slice(0, 40)}</summary>
-                        <Usage task={t} />
+                        <TaskUsageSummary task={t} />
                       </details>
                     ))}
                     {!tasks.length && (
@@ -2165,12 +2177,29 @@ export default function HermesConsole() {
               <span className={"badge " + chosenTask.state}>
                 {taskLabels[chosenTask.state]}
               </span>
-              <h3>{chosenTask.input}</h3>
-              <small>
-                任務：{chosenTask.id}
-                <br />
-                Hermes 任務：{chosenTask.remoteId || "串流模式／尚未取得"}
-              </small>
+              <TaskRequestSummary input={chosenTask.input} />
+              <details className="task-technical">
+                <summary>
+                  <Code2 size={15} aria-hidden="true" />
+                  技術資訊
+                </summary>
+                <dl>
+                  <div>
+                    <dt>Console 任務</dt>
+                    <dd>
+                      <code>{chosenTask.id}</code>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Hermes 任務</dt>
+                    <dd>
+                      <code>
+                        {chosenTask.remoteId || "串流模式／尚未取得"}
+                      </code>
+                    </dd>
+                  </div>
+                </dl>
+              </details>
               {chosenTask.error && <p className="error">{chosenTask.error}</p>}
               {chosenTask.observationError && (
                 <p className="error">{chosenTask.observationError}</p>
@@ -2214,7 +2243,7 @@ export default function HermesConsole() {
                   </button>
                 </>
               )}
-              <Usage task={chosenTask} />
+              <TaskUsageSummary task={chosenTask} />
               {chosenTask.plan?.steps?.length ? (
                 <>
                   <h3>執行計畫</h3>
@@ -2276,31 +2305,5 @@ export default function HermesConsole() {
         </div>
       </dialog>
     </div>
-  );
-}
-function Usage({ task }: { task: Task }) {
-  const value = (input: number | null) =>
-    input === null ? "未知" : input.toLocaleString("zh-TW");
-  return (
-    <dl className="facts">
-      <dt>實際模型</dt>
-      <dd>{task.usage.model || "未知"}</dd>
-      <dt>輸入 tokens</dt>
-      <dd>{value(task.usage.inputTokens)}</dd>
-      <dt>輸出 tokens</dt>
-      <dd>{value(task.usage.outputTokens)}</dd>
-      <dt>總 tokens</dt>
-      <dd>{value(task.usage.totalTokens)}</dd>
-      <dt>任務耗時</dt>
-      <dd>
-        {task.usage.durationMs === null
-          ? "尚未結束"
-          : (task.usage.durationMs / 1000).toFixed(1) + " 秒"}
-      </dd>
-      <dt>模型供應商費用</dt>
-      <dd>{value(task.usage.providerCost)}</dd>
-      <dt>外部工具費用</dt>
-      <dd>{value(task.usage.toolCost)}</dd>
-    </dl>
   );
 }
