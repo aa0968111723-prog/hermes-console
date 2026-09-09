@@ -2050,6 +2050,18 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   .project-thumbnail { height: 110px; }
   .integration-picker { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
+@media (max-width: 760px) {
+  html[data-composer-keyboard="open"] .app-shell,
+  html[data-composer-keyboard="open"] .app-shell.sidebar-closed {
+    padding-bottom: 0;
+  }
+  html[data-composer-keyboard="open"] .mobile-bottom-dock {
+    display: none;
+  }
+  html[data-composer-keyboard="open"] .composer-area {
+    padding-bottom: 8px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .orbit-beams line { animation: none; }
   .project-cover:hover { transform: none; }

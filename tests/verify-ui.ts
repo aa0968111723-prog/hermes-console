@@ -464,6 +464,52 @@ try {
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   );
+  // A software keyboard shrinks visualViewport while the layout viewport
+  // remains tall. The bottom dock should yield that space only while the
+  // composer owns the keyboard.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await textarea.focus();
+  await page.evaluate(() => {
+    if (!window.visualViewport) throw new Error("visualViewport unavailable");
+    Object.defineProperty(window.visualViewport, "height", {
+      configurable: true,
+      value: 420,
+    });
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
+  await expect(page.locator(".mobile-bottom-dock")).toBeHidden();
+  await expect
+    .poll(() =>
+      page
+        .locator(".app-shell")
+        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
+    )
+    .toBe(420);
+  const keyboardSend = await page
+    .getByRole("button", { name: "送出訊息", exact: true })
+    .boundingBox();
+  assert.ok(
+    keyboardSend && keyboardSend.y + keyboardSend.height <= 420,
+    "software keyboard must not cover the send button",
+  );
+  await page.screenshot({
+    path: join(output, "composer-keyboard-390x420.png"),
+    clip: { x: 0, y: 0, width: 390, height: 420 },
+  });
+  await page.evaluate(() => {
+    if (!window.visualViewport) return;
+    Reflect.deleteProperty(window.visualViewport, "height");
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
+  await expect(page.locator(".mobile-bottom-dock")).toBeVisible();
   await textarea.fill("重新整理前仍保留的草稿");
   assert.ok((await textarea.boundingBox())!.height < 100);
   await page.setViewportSize({ width: 1440, height: 1000 });
