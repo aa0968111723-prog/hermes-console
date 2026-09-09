@@ -5,7 +5,14 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
-import { createSession, get, hitLimit, put, transaction } from "./store";
+import {
+  createSession,
+  get,
+  hitLimit,
+  put,
+  transaction,
+  StoreUnavailableError,
+} from "./store";
 
 export const WORKSPACE_OWNER = "workspace";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -407,6 +414,16 @@ export function route(fn: (req: Request) => Promise<Response>) {
             },
           },
           400,
+        );
+      if (error instanceof StoreUnavailableError)
+        return respond(
+          {
+            error: {
+              code: "store_unavailable",
+              message: "儲存庫無法使用。",
+            },
+          },
+          503,
         );
       return respond(
         {

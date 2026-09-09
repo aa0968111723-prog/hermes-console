@@ -62,6 +62,7 @@ function redact(value) {
 }
 parentPort.once("message", ({ port }) => {
   port.on("message", async (msg) => {
+    const id = msg && msg.id;
     try {
       if (msg.type === "init") {
         client = new Client({
@@ -71,16 +72,16 @@ parentPort.once("message", ({ port }) => {
         });
         await client.connect();
         await client.query(msg.schema);
-        port.postMessage({ ok: true });
+        port.postMessage({ ok: true, id });
       } else if (msg.type === "end") {
         if (client) await client.end();
-        port.postMessage({ ok: true });
+        port.postMessage({ ok: true, id });
       } else {
         const result = await client.query(msg.sql, msg.params || []);
-        port.postMessage({ rows: result.rows, rowCount: result.rowCount });
+        port.postMessage({ rows: result.rows, rowCount: result.rowCount, id });
       }
     } catch (error) {
-      port.postMessage({ error: redact(error && error.message) });
+      port.postMessage({ error: redact(error && error.message), id });
     }
     Atomics.store(lock, 0, 1);
     Atomics.notify(lock, 0);
@@ -91,11 +92,29 @@ parentPort.once("message", ({ port }) => {
 `;
 
 type PgReply = {
+  id?: number;
   ok?: boolean;
   rows?: Record<string, unknown>[];
   rowCount?: number;
   error?: string;
 };
+
+/** Match worker replies to the in-flight call. Stale leftovers caused live POST 201 / GET 404. */
+export function classifyPgReply(
+  expectedId: number,
+  reply: { id?: number } | undefined,
+): "accept" | "stale" | "empty" {
+  if (!reply) return "empty";
+  if (typeof reply.id === "number" && reply.id !== expectedId) return "stale";
+  return "accept";
+}
+
+export class StoreUnavailableError extends Error {
+  constructor(message = "Console store unavailable") {
+    super(message);
+    this.name = "StoreUnavailableError";
+  }
+}
 
 const PG_STORE_BRAND = Symbol.for("hermes.console.pg-sync");
 
@@ -112,6 +131,8 @@ class PgSync {
   private worker: Worker;
   private port: MessagePort;
   private lock: Int32Array;
+  private seq = 0;
+  private dead = false;
   constructor(connectionString: string) {
     const sab = new SharedArrayBuffer(4);
     this.lock = new Int32Array(sab);
@@ -127,11 +148,10 @@ class PgSync {
     Atomics.store(this.lock, 0, 0);
     this.worker.postMessage({ port: port2 }, [port2]);
     try {
-      this.wait();
+      if (this.wait(20_000)) throw new StoreUnavailableError();
       this.call({ type: "init", schema: CONSOLE_SCHEMA_SQL });
     } catch (error) {
-      void this.worker.terminate();
-      this.port.close();
+      this.poison();
       throw error;
     }
   }
@@ -145,25 +165,57 @@ class PgSync {
   }
   terminate() {
     try {
-      this.call({ type: "end" });
+      if (!this.dead) this.call({ type: "end" });
     } catch {
       /* still stop the worker */
     }
-    void this.worker.terminate();
-    this.port.close();
+    this.poison();
   }
   private call(message: Record<string, unknown>): PgReply {
+    if (this.dead) throw new StoreUnavailableError();
+    const id = ++this.seq;
+    this.drain();
     Atomics.store(this.lock, 0, 0);
-    this.port.postMessage(message);
-    this.wait();
-    const reply = receiveMessageOnPort(this.port)?.message as PgReply | undefined;
-    if (!reply) throw new Error("Console Postgres unavailable");
-    if (reply.error) throw new Error(reply.error);
-    return reply;
+    this.port.postMessage({ ...message, id });
+    const deadline = Date.now() + 20_000;
+    while (Date.now() < deadline) {
+      const left = Math.max(1, deadline - Date.now());
+      const timedOut = this.wait(left);
+      let matched: PgReply | undefined;
+      for (;;) {
+        const incoming = receiveMessageOnPort(this.port)?.message as
+          | PgReply
+          | undefined;
+        if (!incoming) break;
+        if (classifyPgReply(id, incoming) === "accept") matched = incoming;
+      }
+      if (matched) {
+        if (matched.error) throw new Error(matched.error);
+        return matched;
+      }
+      if (timedOut) break;
+      Atomics.store(this.lock, 0, 0);
+    }
+    this.poison();
+    throw new StoreUnavailableError();
   }
-  private wait() {
-    if (Atomics.wait(this.lock, 0, 0, 20_000) === "timed-out")
-      throw new Error("Console Postgres unavailable");
+  private drain() {
+    while (receiveMessageOnPort(this.port)) {
+      /* drop leftover replies from a previous timed-out call */
+    }
+  }
+  private wait(ms: number) {
+    return Atomics.wait(this.lock, 0, 0, ms) === "timed-out";
+  }
+  private poison() {
+    this.dead = true;
+    if (runtimeStore.hermesPg === this) delete runtimeStore.hermesPg;
+    void this.worker.terminate();
+    try {
+      this.port.close();
+    } catch {
+      /* already closed */
+    }
   }
   private release() {
     Atomics.store(this.lock, 0, 1);
@@ -207,7 +259,11 @@ export function probeStore(): StoreProbe {
   const backend = storeBackend();
   const dir = dataDir();
   try {
-    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    try {
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
+    } catch {
+      if (backend !== "postgres") throw new Error("datadir_unwritable");
+    }
     if (backend === "postgres") {
       const n = Number(pg().query("SELECT 1::int AS n").rows[0]?.n);
       if (n !== 1) throw new Error("postgres_probe_failed");
@@ -373,6 +429,16 @@ function parseValue<T>(value: unknown): T {
   return (typeof value === "string" ? JSON.parse(value) : value) as T;
 }
 
+function parseRow<T>(value: unknown): T | null {
+  if (value == null) return null;
+  try {
+    const parsed = parseValue<T>(value);
+    return parsed == null ? null : parsed;
+  } catch {
+    return null;
+  }
+}
+
 type StoreFault = Partial<{
   list: (kind: string, owner: string) => void;
   get: (kind: string, owner: string, id: string) => void;
@@ -395,30 +461,31 @@ export function get<T>(kind: string, owner: string, id: string): T | null {
       "SELECT value FROM console_records WHERE kind=$1 AND owner=$2 AND id=$3",
       [kind, owner, id],
     ).rows[0];
-    return row ? parseValue<T>(row.value) : null;
+    return row ? parseRow<T>(row.value) : null;
   }
   const row = sqlite()
     .prepare("SELECT value FROM records WHERE kind=? AND owner=? AND id=?")
     .get(kind, owner, id);
-  return row ? (JSON.parse(String(row.value)) as T) : null;
+  return row ? parseRow<T>(row.value) : null;
 }
 
 export function list<T>(kind: string, owner: string): T[] {
   storeFault?.list?.(kind, owner);
-  if (storeBackend() === "postgres") {
-    return pg()
-      .query(
-        "SELECT value FROM console_records WHERE kind=$1 AND owner=$2 ORDER BY rowid DESC",
-        [kind, owner],
-      )
-      .rows.map((row) => parseValue<T>(row.value));
-  }
-  return sqlite()
-    .prepare(
-      "SELECT value FROM records WHERE kind=? AND owner=? ORDER BY rowid DESC",
-    )
-    .all(kind, owner)
-    .map((r) => JSON.parse(String(r.value)) as T);
+  const rows =
+    storeBackend() === "postgres"
+      ? pg()
+          .query(
+            "SELECT value FROM console_records WHERE kind=$1 AND owner=$2 ORDER BY rowid DESC",
+            [kind, owner],
+          )
+          .rows.map((row) => parseRow<T>(row.value))
+      : sqlite()
+          .prepare(
+            "SELECT value FROM records WHERE kind=? AND owner=? ORDER BY rowid DESC",
+          )
+          .all(kind, owner)
+          .map((row) => parseRow<T>(row.value));
+  return rows.filter((row): row is T => row != null);
 }
 
 export function put<T extends { id: string }>(
@@ -428,10 +495,14 @@ export function put<T extends { id: string }>(
 ) {
   storeFault?.put?.(kind, owner, value);
   if (storeBackend() === "postgres") {
-    pg().query(
+    const written = pg().query(
       "INSERT INTO console_records(kind,owner,id,value) VALUES($1,$2,$3,$4::jsonb) ON CONFLICT (kind,owner,id) DO UPDATE SET value=EXCLUDED.value",
       [kind, owner, value.id, JSON.stringify(value)],
     );
+    if (Number(written.rowCount || 0) < 1)
+      throw new StoreUnavailableError("Console Postgres write failed");
+    if (!get<T>(kind, owner, value.id))
+      throw new StoreUnavailableError("Console Postgres write was not readable");
     return value;
   }
   sqlite()
