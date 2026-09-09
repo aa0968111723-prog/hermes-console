@@ -15,6 +15,8 @@ import { get, list, put, transaction } from "./store";
 import { listMemories } from "./memory";
 import { ApiError, hash, redact } from "./security";
 import { listMaterials, material } from "./materials";
+import { compileVisualConcepts } from "./creative/visual-concepts";
+import type { VisualFormatId } from "./creative/formats";
 import type { Task } from "../contracts";
 export function assertProject(owner: string, project: string) {
   if (project !== "personal" && !get("project", owner, project))
@@ -445,4 +447,12 @@ export function exportCopy(owner: string, id: string, number: number) {
     ),
   ];
   return `# ${revision.title}\n\n草稿 v${revision.revision} · ${revision.format} · ${revision.at}\n\n${revision.pages.map((p, i) => `## ${i + 1}. ${p.title}\n\n${p.body}\n\n視覺備註：${p.visual}`).join("\n\n")}\n\n## 核對結果（不等於可直接發佈）\n\n${[...check.checkedFacts, ...check.issues, "仍須人工確認全文、來源、日期時區與素材權利。"].map((s) => "- " + s).join("\n")}\n\n## 此版本活动來源\n\n${sources.length ? sources.map((s) => "- " + s).join("\n") : "尚未記錄可核對來源。"}\n`;
+}
+
+export function visualConceptsFor(
+  owner: string,
+  activityId: string,
+  formatId: VisualFormatId = "ig_feed_4x5",
+) {
+  return compileVisualConcepts(activity(owner, activityId), formatId);
 }
