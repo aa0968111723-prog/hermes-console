@@ -2,6 +2,29 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-10）Grok 06 · Space & 3D · LOOP 2
+
+- AGENT_ID：Grok 06 Space & 3D
+- LOOP_ID：2
+- 基準 SHA：`ac5a7a4140911e2496962c78ff583619ad5470dd`
+- 分支：`grok/space-3d-planform-visual-2026-09-10`
+- PR：https://github.com/aa0968111723-prog/hermes-console/pull/81
+- 目標：俯視圖加上真實動線編號、物件標籤與公尺尺標。
+- 本輪不碰：`HermesConsole.tsx`、其他代理 worktree、#10。
+
+### DONE_THIS_LOOP
+
+- 動線節點 ①②③ 來自 planform-iso `routes.points`
+- 物件短標籤來自回傳 label／kind
+- 尺標長度由實際 bounds 推 0.5／1／2 m，不發明場地尺寸
+
+### NEXT_TASK
+
+- 區域名稱上圖；有 `parentId` 的桌面小物分層
+- 仍不改巨型 HermesConsole
+
+---
+
 ## 進行中（2026-09-10）Grok 06 · Space & 3D × planform-iso 視覺化 · LOOP 1
 
 - AGENT_ID：Grok 06 Space & 3D

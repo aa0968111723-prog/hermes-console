@@ -172,6 +172,23 @@ test("top view places objects from planform-iso centre coordinates", () => {
   assert.ok(frame.marks.some((mark) => mark.kind === "route" && mark.d.startsWith("M")));
 });
 
+test("top view numbers walking-flow stops and shows a metre scale from real bounds", () => {
+  const layout = parsePlanformLayout(fixture)!;
+  const frame = planformFrame(layout, "top");
+  const stops = frame.marks.filter((mark) => mark.id.startsWith("entry-stop-"));
+  assert.equal(stops.length, 3);
+  assert.deepEqual(stops.map((mark) => mark.text), ["1", "2", "3"]);
+  assert.equal(stops[0]?.x, 4);
+  assert.equal(stops[0]?.z, -1);
+  const scale = frame.marks.find((mark) => mark.kind === "scale");
+  assert.ok(scale);
+  assert.match(scale?.text || "", /m$/);
+  assert.ok(frame.scaleM > 0);
+  assert.ok(frame.marks.some((mark) => mark.id === "table-1-label" && mark.text === "報到桌"));
+  const iso = planformFrame(layout, "iso");
+  assert.equal(iso.marks.filter((mark) => mark.id.startsWith("entry-stop-")).length, 3);
+});
+
 test("layoutFromTask keeps latest geometry and later confirm status", () => {
   const event = (id: string, name: string, result: unknown): TaskEvent =>
     ({

@@ -589,18 +589,22 @@ export type PlanformView = "top" | "iso";
 
 export type PlanformMark = {
   id: string;
-  kind: "area" | "zone" | "object" | "route";
+  kind: "area" | "zone" | "object" | "route" | "label" | "scale";
   label: string;
   fill: string;
   d: string;
   points?: string;
   polygons?: string[];
+  x?: number;
+  z?: number;
+  text?: string;
 };
 
 export type PlanformFrame = {
   viewBox: string;
   widthM: number;
   depthM: number;
+  scaleM: number;
   marks: PlanformMark[];
 };
 
@@ -638,6 +642,12 @@ function bounds(layout: PlanformScene): {
     maxX: maxX + pad,
     maxZ: maxZ + pad,
   };
+}
+
+function scaleLength(widthM: number): number {
+  if (widthM >= 8) return 2;
+  if (widthM >= 3) return 1;
+  return 0.5;
 }
 
 function objectFill(kind: string): string {
@@ -772,18 +782,60 @@ export function planformFrame(
           .map((p, i) => (i ? "L" : "M") + p.x.toFixed(3) + " " + p.z.toFixed(3))
           .join(" "),
       });
+      for (const [i, point] of route.points.entries()) {
+        marks.push({
+          id: route.id + "-stop-" + (i + 1),
+          kind: "label",
+          label: route.name,
+          fill: "#c45b3a",
+          d: "",
+          x: point.x,
+          z: point.z,
+          text: String(i + 1),
+        });
+      }
     }
+    for (const object of layout.objects) {
+      if (object.width * object.depth < 0.12) continue;
+      marks.push({
+        id: object.id + "-label",
+        kind: "label",
+        label: object.label,
+        fill: "#26332b",
+        d: "",
+        x: object.x,
+        z: object.z,
+        text: object.label.slice(0, 6),
+      });
+    }
+    const widthM = box.maxX - box.minX;
+    const depthM = box.maxZ - box.minZ;
+    const scaleM = scaleLength(widthM);
+    marks.push({
+      id: "scale",
+      kind: "scale",
+      label: scaleM + " m",
+      fill: "#26332b",
+      d:
+        "M " +
+        (box.minX + 0.15).toFixed(3) +
+        " " +
+        (box.maxZ - 0.18).toFixed(3) +
+        " L " +
+        (box.minX + 0.15 + scaleM).toFixed(3) +
+        " " +
+        (box.maxZ - 0.18).toFixed(3),
+      x: box.minX + 0.15 + scaleM / 2,
+      z: box.maxZ - 0.05,
+      text: scaleM + " m",
+    });
     return {
-      viewBox: [
-        box.minX,
-        box.minZ,
-        box.maxX - box.minX,
-        box.maxZ - box.minZ,
-      ]
+      viewBox: [box.minX, box.minZ, widthM, depthM]
         .map((n) => n.toFixed(3))
         .join(" "),
-      widthM: box.maxX - box.minX,
-      depthM: box.maxZ - box.minZ,
+      widthM,
+      depthM,
+      scaleM,
       marks,
     };
   }
@@ -866,6 +918,18 @@ export function planformFrame(
         .map((p, i) => (i ? "L" : "M") + p.x.toFixed(3) + " " + p.z.toFixed(3))
         .join(" "),
     });
+    for (const [i, p] of pts.entries()) {
+      isoMarks.push({
+        id: route.id + "-stop-" + (i + 1),
+        kind: "label",
+        label: route.name,
+        fill: "#c45b3a",
+        d: "",
+        x: p.x,
+        z: p.z,
+        text: String(i + 1),
+      });
+    }
   }
   let minX = Infinity;
   let minZ = Infinity;
@@ -895,6 +959,7 @@ export function planformFrame(
       .join(" "),
     widthM: box.maxX - box.minX,
     depthM: box.maxZ - box.minZ,
+    scaleM: scaleLength(box.maxX - box.minX),
     marks: isoMarks,
   };
 }
