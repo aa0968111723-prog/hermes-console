@@ -1,5 +1,6 @@
 import { loadCatalog, loadGraph } from "./catalog";
 import { needsZenclubKnowledge } from "./detect";
+import { entitiesForWindow, happeningOn, relativeWindow, taipeiDay } from "./timeline";
 import type {
   KnowledgeConflict,
   KnowledgeEntity,
@@ -88,11 +89,15 @@ export function currentSemesterEntities() {
   return loadGraph().entities.filter((entity) => entity.semester === "115-1");
 }
 
-export function searchZenclubKnowledge(query: string): KnowledgeSearchResult {
+export function searchZenclubKnowledge(
+  query: string,
+  now = new Date(),
+): KnowledgeSearchResult {
   const graph = loadGraph();
   const catalog = loadCatalog();
   const trimmed = query.trim();
   const redacted = catalog.files.filter((file) => file.piiRestricted).length;
+  const todayIds = new Set(happeningOn(taipeiDay(now)).map((item) => item.id));
   const scored = graph.entities
     .map((entity) => {
       const text = haystack(entity);
@@ -103,7 +108,21 @@ export function searchZenclubKnowledge(query: string): KnowledgeSearchResult {
           score = 3;
           matched.push("current_semester");
         }
+        if (todayIds.has(entity.id)) {
+          score += 8;
+          matched.push("today");
+        }
       } else {
+        const window = relativeWindow(trimmed);
+        if (window) {
+          const timed = new Set(
+            entitiesForWindow(window, now).map((item) => item.id),
+          );
+          if (timed.has(entity.id)) {
+            score += 10;
+            matched.push(window);
+          }
+        }
         const needle = trimmed.toLowerCase();
         if (text.includes(needle)) {
           score += 8;

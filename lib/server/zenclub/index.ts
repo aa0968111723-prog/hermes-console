@@ -6,6 +6,13 @@ export {
   currentSemesterEntities,
   formatKnowledgeForHermes,
 } from "./search";
+export {
+  taipeiDay,
+  happeningOn,
+  relativeWindow,
+  entitiesForWindow,
+  claimDates,
+} from "./timeline";
 export type {
   ClaimStatus,
   KnowledgeHit,

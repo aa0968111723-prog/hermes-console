@@ -11,8 +11,13 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(
 process.env.CONSOLE_ORIGIN = "http://localhost:3221";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 
-const { searchZenclubKnowledge, needsZenclubKnowledge, loadCatalog, loadGraph } =
-  await import("../lib/server/zenclub");
+const {
+  searchZenclubKnowledge,
+  needsZenclubKnowledge,
+  loadCatalog,
+  loadGraph,
+  happeningOn,
+} = await import("../lib/server/zenclub");
 const { interpretGoal } = await import("../lib/server/orchestrator/goal");
 const { routeTools } = await import("../lib/server/orchestrator/tool-router");
 const { buildPlan } = await import("../lib/server/orchestrator/planner");
@@ -104,6 +109,7 @@ test("fair booth days and 文館左側 come from the copy bank", () => {
 test("knowledge routing is club-specific, not every tea party", () => {
   assert.equal(needsZenclubKnowledge("幫我做給淡江大一新生的期初茶會 IG"), true);
   assert.equal(needsZenclubKnowledge("禪學社社博攤位"), true);
+  assert.equal(needsZenclubKnowledge("今天社博在哪"), true);
   assert.equal(needsZenclubKnowledge("國立臺灣大學新生茶會文宣海報"), false);
   assert.equal(needsZenclubKnowledge("淡江大一新生通勤"), false);
   const goal = interpretGoal("幫我做給淡江大一新生的期初茶會 IG");
@@ -124,6 +130,42 @@ test("knowledge routing is club-specific, not every tea party", () => {
     otherRoutes.find((item) => item.id === "club_knowledge"),
     undefined,
   );
+});
+
+test("today timeline surfaces the 115-1 fair booth", () => {
+  const fairIds = happeningOn("2026-09-10").map((entity) => entity.id);
+  assert.ok(fairIds.includes("activity:115-1-fair"));
+  const today = searchZenclubKnowledge(
+    "今天社博在哪",
+    new Date("2026-09-10T10:00:00+08:00"),
+  );
+  assert.ok(
+    today.hits.some((hit) => hit.entity.id === "activity:115-1-fair"),
+  );
+  assert.equal(
+    today.hits.find((hit) => hit.entity.id === "activity:115-1-fair")
+      ?.entity.claims.find((claim) => claim.field === "place")?.value,
+    "文館左側",
+  );
+});
+
+test("2026 皇帝殿 camp facts come from the plan, not the roster", () => {
+  const result = searchZenclubKnowledge("皇帝殿 挑戰營");
+  const camp = result.hits.find((hit) =>
+    hit.entity.id.includes("huangdidian"),
+  )?.entity;
+  assert.ok(camp);
+  assert.match(
+    camp.claims.find((claim) => claim.field === "dates")?.value || "",
+    /2026-07-18/,
+  );
+  assert.equal(
+    camp.claims.find((claim) => claim.field === "place")?.value,
+    "皇帝殿東峰+天王峰",
+  );
+  const raw = readFileSync("data/zenclub/archive-camp-10th.json", "utf8");
+  assert.equal(raw.includes("學號"), false);
+  assert.equal(raw.includes("健保卡"), false);
 });
 
 test("114-1 class archive is filename-likely and 生命靈數 is a series", () => {

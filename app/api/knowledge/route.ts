@@ -2,18 +2,32 @@ import { z } from "zod";
 import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
 import {
   catalogNotice,
+  happeningOn,
   loadCatalog,
   searchZenclubKnowledge,
+  taipeiDay,
 } from "@/lib/server/zenclub";
 
 export const runtime = "nodejs";
 
 export const GET = route(async (req) => {
   authenticate(req);
-  const query = new URL(req.url).searchParams.get("q") || "";
+  const url = new URL(req.url);
+  const query = url.searchParams.get("q") || "";
+  const when = url.searchParams.get("when");
   const catalog = loadCatalog();
+  const today = taipeiDay();
   return respond({
     source: catalogNotice(),
+    today,
+    happeningToday:
+      when === "today" || when === "upcoming"
+        ? happeningOn(today).map((entity) => ({
+            id: entity.id,
+            title: entity.title,
+            kind: entity.kind,
+          }))
+        : undefined,
     areas: catalog.areas.map((area) => ({
       id: area.id,
       name: area.name,
@@ -22,7 +36,9 @@ export const GET = route(async (req) => {
       note: area.note,
       url: area.url,
     })),
-    result: searchZenclubKnowledge(query),
+    result: searchZenclubKnowledge(
+      when === "today" && !query ? "今天" : query,
+    ),
   });
 });
 
