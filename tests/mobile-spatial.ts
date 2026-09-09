@@ -48,6 +48,7 @@ export async function verifyMobileSpatial(
   await page.setViewportSize({ width: 360, height: 560 });
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
   await expect(radial).toBeVisible();
+  await expect(radial).toHaveCSS("transform", "none");
   const radialBounds = await radial.boundingBox();
   assert.ok(
     radialBounds &&
