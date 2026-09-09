@@ -129,17 +129,40 @@ export function parseDriveSource(url: string): MaterialSource | null {
   };
 }
 
+/** Detect inspiration hosts for materials write-path (no import from inspiration; avoid cycle). */
+function detectInspirationPlatform(url: string): string | undefined {
+  try {
+    const host = new URL(canonicalUrl(url)).hostname.replace(/^www\./, "");
+    if (host === "instagram.com" || host.endsWith(".instagram.com"))
+      return "instagram";
+    if (
+      host === "pinterest.com" ||
+      host.endsWith(".pinterest.com") ||
+      host === "pin.it"
+    )
+      return "pinterest";
+    if (host === "behance.net" || host.endsWith(".behance.net")) return "behance";
+    if (host === "dribbble.com" || host.endsWith(".dribbble.com"))
+      return "dribbble";
+    if (host === "canva.com" || host.endsWith(".canva.com")) return "canva";
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
 export function sourceForRemoteUrl(
   url: string,
   inspirationPlatform?: string,
 ): MaterialSource {
   const drive = parseDriveSource(url);
   if (drive) return drive;
-  if (inspirationPlatform) {
+  const platform = inspirationPlatform || detectInspirationPlatform(url);
+  // Explicit "web" from inspiration ingest still marks inspiration; auto-detect never yields "web".
+  if (platform) {
     const provider: MaterialSourceProvider | undefined =
-      inspirationPlatform === "instagram" ||
-      inspirationPlatform === "pinterest"
-        ? inspirationPlatform
+      platform === "instagram" || platform === "pinterest"
+        ? platform
         : undefined;
     return {
       type: "inspiration",
@@ -201,6 +224,8 @@ export function saveReference(
     tags: string[];
   },
 ) {
+  // M1: classify via sourceForRemoteUrl — Drive/Sheets -> drive_fact,
+  // inspiration hosts -> inspiration, else web_https (no hard-coded web_https).
   return saveLinkedMaterial({
     owner,
     projectId: input.projectId,
@@ -208,7 +233,7 @@ export function saveReference(
     url: input.url,
     notes: input.notes,
     tags: input.tags,
-    source: { type: "web_https", locator: canonicalUrl(input.url) },
+    source: sourceForRemoteUrl(input.url),
   });
 }
 
