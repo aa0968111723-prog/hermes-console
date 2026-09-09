@@ -85,6 +85,12 @@ export type VisualConceptPack = {
   concepts: VisualConcept[];
   styleGuardrails: string[];
   overlayText: Record<OnImageField, string | null>;
+  carouselPages: Array<{
+    page: number;
+    role: "hook" | "story" | "info";
+    overlay: Record<string, string | null>;
+    note: string;
+  }> | null;
   directions: Array<{
     title: string;
     claim: string;
@@ -424,6 +430,34 @@ export function compileVisualConcepts(
     concepts,
     styleGuardrails: STYLE_GUARDRAILS,
     overlayText: overlay,
+    carouselPages:
+      format.role === "carousel"
+        ? [
+            {
+              page: 1,
+              role: "hook" as const,
+              overlay: { name: overlay.name },
+              note: "幾乎無字，只放鉤子與主視覺。",
+            },
+            {
+              page: 2,
+              role: "story" as const,
+              overlay: {},
+              note: "只說一件事；不要堆時間地點。",
+            },
+            {
+              page: 3,
+              role: "info" as const,
+              overlay: {
+                date: overlay.date,
+                time: overlay.time,
+                location: overlay.location,
+                registration: overlay.registration,
+              },
+              note: "最後一頁才放已確認資訊／CTA／QR；缺值留空。",
+            },
+          ]
+        : null,
     directions,
     notice: missingRequired.length
       ? `活動資訊不完整（${missingRequired.join("、")}）。已標 UNKNOWN，沒有補造，也沒有出圖。`

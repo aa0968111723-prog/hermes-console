@@ -185,6 +185,12 @@ test("confirmed facts can overlay; QR only when registration is public", () => {
   assert.match(pack.concepts[2].layout.grid, /14%–78%|4:5/);
   assert.equal(pack.directions.length, 3);
   assert.equal(pack.directions[0].platform, "ig_story");
+  assert.equal(pack.carouselPages, null);
+  const carousel = visualConceptsFor("workspace", confirmed.id, "ig_carousel_4x5");
+  assert.equal(carousel.carouselPages?.length, 3);
+  assert.equal(carousel.carouselPages?.[0].role, "hook");
+  assert.equal(carousel.carouselPages?.[2].role, "info");
+  assert.equal(carousel.carouselPages?.[2].overlay.location, "淡水校園");
 });
 
 test("workspace_get_visual_concepts is a read tool and never claims a render", async () => {
