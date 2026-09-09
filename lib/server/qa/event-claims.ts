@@ -4,7 +4,7 @@ import {
   dateWeekdayConflicts,
   parseCalendarDate,
 } from "./calendar";
-import { lintCopyText } from "./copy-lint";
+import { clubContext, lintCopyText } from "./copy-lint";
 import { claimStatusCeiling, strongestSourceKind } from "./sources";
 import {
   EVENT_QA_FIELDS,
@@ -154,13 +154,25 @@ export function auditEventCopy(input: {
     );
   }
 
-  const dateClaim = claims.find((item) => item.field === "date");
+  for (const field of ["date", "time", "location"] as const) {
+    const claim = claims.find((item) => item.field === field);
+    if (claim?.status === "LIKELY" && claim.value && claim.inCopy === false) {
+      issues.push("文案未包含已記錄的" + claim.label + "「" + claim.value + "」，請人工核對。");
+    }
+  }
+
+  const organizer = claims.find((item) => item.field === "organizer");
   if (
-    dateClaim?.status === "LIKELY" &&
-    dateClaim.value &&
-    dateClaim.inCopy === false
+    clubContext(text) &&
+    organizer?.value &&
+    !/禪學社|淡江大學禪學社|淡江禪學社|tku_zc/i.test(organizer.value)
   ) {
-    issues.push("文案未包含已記錄的日期「" + dateClaim.value + "」，請人工核對。");
+    issues.push(
+      "主辦單位「" + organizer.value + "」未含禪學社，CONFLICTING／請人工核對。",
+    );
+  }
+  if (/[週周星期][一二三四五六日天]/.test(text) && !claims.find((item) => item.field === "date")?.value) {
+    issues.push("文案有星期、沒有可核對日期，星期標 UNVERIFIED。");
   }
 
   const registration = claims.find((item) => item.field === "registration");

@@ -126,6 +126,19 @@ test("LOCAL_CONTRACT: Instagram source cannot upgrade an internal fact", () => {
   );
 });
 
+test("LOCAL_CONTRACT: confirmed time missing from copy, and organizer without 禪學社", () => {
+  const missingTime = auditEventCopy({
+    facts: [
+      fact("name", "迎新茶會", "confirmed"),
+      fact("time", "19:00", "confirmed"),
+      fact("organizer", "某單位", "confirmed"),
+    ],
+    text: "淡江大學禪學社迎新茶會，地點之後再講。",
+  });
+  assert.ok(missingTime.issues.some((item) => item.includes("時間") && item.includes("19:00")));
+  assert.ok(missingTime.issues.some((item) => item.includes("主辦單位")));
+});
+
 test("LOCAL_CONTRACT: speaker in copy without a sourced fact stays UNVERIFIED", () => {
   const audit = auditEventCopy({
     facts: [fact("name", "期初演講", "confirmed")],
