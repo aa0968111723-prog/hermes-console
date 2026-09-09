@@ -157,7 +157,7 @@ async function shutdown() {
     await done;
   }
 }
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ headless: true });
 try {
   await start();
   const context = await browser.newContext({

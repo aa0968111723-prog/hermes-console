@@ -13,7 +13,7 @@ const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start
 });
 let logs = "";
 child.stdout?.on("data", d => { logs += d; }); child.stderr?.on("data", d => { logs += d; });
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const browser = await chromium.launch({ headless: true });
 const output = resolve("output/playwright");
 await mkdir(output, {recursive:true});
 try {
