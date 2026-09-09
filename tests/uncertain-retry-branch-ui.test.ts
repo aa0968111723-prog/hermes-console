@@ -6,21 +6,12 @@ import { readFile } from "node:fs/promises";
  * LOCAL_CONTRACT — uncertain tasks should expose both in-place acknowledge and
  * conversation retry-branch, matching failed/cancelled recovery.
  * Not LIVE_EXTERNAL. Does not execute React.
- *
- * When HermesConsole still lacks retryBranchFromTask (patch pending push),
- * this test records the gap without failing the suite.
  */
-test("uncertain UI offers acknowledge and retry branch alongside failed/cancelled", async (t) => {
+test("uncertain UI offers acknowledge and retry branch alongside failed/cancelled", async () => {
   const ui = await readFile(
     new URL("../components/HermesConsole.tsx", import.meta.url),
     "utf8",
   );
-  if (!ui.includes("function retryBranchFromTask")) {
-    t.skip(
-      "HermesConsole patch pending: retryBranchFromTask not yet on branch (see docs/patches/uncertain-retry-branch.patch)",
-    );
-    return;
-  }
   assert.match(ui, /function retryBranchFromTask/);
   assert.match(
     ui,
