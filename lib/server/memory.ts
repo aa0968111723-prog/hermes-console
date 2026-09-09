@@ -62,6 +62,15 @@ const KIND = "shared_memory";
 const SECRETISH =
   /(API[_-]?KEY|TOKEN|PASSWORD|SECRET|AUTHORIZATION|BEARER)\s*[:=]/i;
 
+function storeOp<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(503, "store_unavailable", "儲存庫無法使用。");
+  }
+}
+
 function rejectSecrets(value: unknown) {
   const text = JSON.stringify(value);
   if (redact(text) !== text || SECRETISH.test(text))
@@ -86,13 +95,13 @@ function normalizeMemory(raw: SharedMemory): SharedMemory {
 }
 
 export function getMemory(owner: string, id: string) {
-  const item = get<SharedMemory>(KIND, owner, id);
+  const item = storeOp(() => get<SharedMemory>(KIND, owner, id));
   if (!item) throw new ApiError(404, "memory_not_found", "找不到這筆共用記憶。");
   return normalizeMemory(item);
 }
 
 export function listMemories(owner: string, scope?: string) {
-  return list<SharedMemory>(KIND, owner)
+  return storeOp(() => list<SharedMemory>(KIND, owner))
     .map(normalizeMemory)
     .filter((item) => {
       if (!scope || scope === "all") return true;
@@ -108,7 +117,7 @@ export function saveMemory(
   if (
     input.scope !== "workspace" &&
     input.scope !== "personal" &&
-    !get("project", owner, input.scope)
+    !storeOp(() => get("project", owner, input.scope))
   )
     throw new ApiError(404, "project_not_found", "專案不存在。");
   rejectSecrets(input);
@@ -122,33 +131,35 @@ export function saveMemory(
   )
     throw new ApiError(409, "revision_conflict", "記憶已被更新，請重新讀取後修改。");
   const now = new Date().toISOString();
-  return put(KIND, owner, {
-    id: previous?.id || randomUUID(),
-    scope: input.scope,
-    kind: input.kind,
-    title: input.title,
-    content: input.content,
-    tags: input.tags,
-    createdAt: previous?.createdAt || now,
-    updatedAt: now,
-    revision: (previous?.revision || 0) + 1,
-    source: input.source || previous?.source || "console",
-    createdBy: input.createdBy || previous?.createdBy || "workspace",
-    importance:
-      input.importance !== undefined
-        ? input.importance
-        : (previous?.importance ?? null),
-    lastUsedAt: previous?.lastUsedAt ?? null,
-    confidence:
-      input.confidence !== undefined
-        ? input.confidence
-        : (previous?.confidence ?? null),
-  } satisfies SharedMemory);
+  return storeOp(() =>
+    put(KIND, owner, {
+      id: previous?.id || randomUUID(),
+      scope: input.scope,
+      kind: input.kind,
+      title: input.title,
+      content: input.content,
+      tags: input.tags,
+      createdAt: previous?.createdAt || now,
+      updatedAt: now,
+      revision: (previous?.revision || 0) + 1,
+      source: input.source || previous?.source || "console",
+      createdBy: input.createdBy || previous?.createdBy || "workspace",
+      importance:
+        input.importance !== undefined
+          ? input.importance
+          : (previous?.importance ?? null),
+      lastUsedAt: previous?.lastUsedAt ?? null,
+      confidence:
+        input.confidence !== undefined
+          ? input.confidence
+          : (previous?.confidence ?? null),
+    } satisfies SharedMemory),
+  );
 }
 
 export function deleteMemory(owner: string, id: string) {
   getMemory(owner, id);
-  if (!remove(KIND, owner, id))
+  if (!storeOp(() => remove(KIND, owner, id)))
     throw new ApiError(404, "memory_not_found", "找不到這筆共用記憶。");
   return { deleted: true as const, id };
 }

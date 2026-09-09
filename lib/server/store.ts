@@ -373,7 +373,23 @@ function parseValue<T>(value: unknown): T {
   return (typeof value === "string" ? JSON.parse(value) : value) as T;
 }
 
+type StoreFault = Partial<{
+  list: (kind: string, owner: string) => void;
+  get: (kind: string, owner: string, id: string) => void;
+  put: (kind: string, owner: string, value: { id: string }) => void;
+  remove: (kind: string, owner: string, id: string) => void;
+}>;
+
+let storeFault: StoreFault | null = null;
+
+/** Test-only: make get/list/put/remove throw before touching sqlite/pg. */
+export function mockStoreThrowForTests(fault: StoreFault | null) {
+  if (!process.env.NODE_TEST_CONTEXT) return;
+  storeFault = fault;
+}
+
 export function get<T>(kind: string, owner: string, id: string): T | null {
+  storeFault?.get?.(kind, owner, id);
   if (storeBackend() === "postgres") {
     const row = pg().query(
       "SELECT value FROM console_records WHERE kind=$1 AND owner=$2 AND id=$3",
@@ -388,6 +404,7 @@ export function get<T>(kind: string, owner: string, id: string): T | null {
 }
 
 export function list<T>(kind: string, owner: string): T[] {
+  storeFault?.list?.(kind, owner);
   if (storeBackend() === "postgres") {
     return pg()
       .query(
@@ -409,6 +426,7 @@ export function put<T extends { id: string }>(
   owner: string,
   value: T,
 ) {
+  storeFault?.put?.(kind, owner, value);
   if (storeBackend() === "postgres") {
     pg().query(
       "INSERT INTO console_records(kind,owner,id,value) VALUES($1,$2,$3,$4::jsonb) ON CONFLICT (kind,owner,id) DO UPDATE SET value=EXCLUDED.value",
@@ -425,6 +443,7 @@ export function put<T extends { id: string }>(
 }
 
 export function remove(kind: string, owner: string, id: string) {
+  storeFault?.remove?.(kind, owner, id);
   if (storeBackend() === "postgres") {
     return (
       pg().query(
@@ -488,6 +507,7 @@ export function createSession(digest: string, owner: string, expires: number) {
 
 export function resetStoreForTests() {
   if (!process.env.NODE_TEST_CONTEXT) return;
+  storeFault = null;
   runtimeStore.hermesDatabase?.close();
   delete runtimeStore.hermesDatabase;
   runtimeStore.hermesPg?.terminate();
