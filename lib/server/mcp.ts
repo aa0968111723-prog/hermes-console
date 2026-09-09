@@ -178,6 +178,10 @@ const schemas = {
       copyId: z.string().uuid().optional(),
       activityId: z.string().uuid().optional(),
       text: z.string().max(20_000).optional(),
+      sourceText: z.string().max(20_000).optional(),
+      sourceKind: z
+        .enum(["drive", "tku_official", "instagram", "other"])
+        .optional(),
       ...context,
     })
     .strict(),
@@ -520,6 +524,10 @@ async function execute(
       return auditEventCopy({
         facts,
         text: parsed.text || "",
+        retrievedSource:
+          parsed.sourceText && parsed.sourceKind
+            ? { kind: parsed.sourceKind, text: parsed.sourceText }
+            : null,
       });
     }
     case "workspace_read_material": {

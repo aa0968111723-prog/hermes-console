@@ -83,6 +83,21 @@ export function extractDatesFromText(
     );
   }
 
+  const slash = /(^|[^\d])(\d{1,2})\/(\d{1,2})(?!\d)/g;
+  for (const match of text.matchAll(slash)) {
+    const year = yearHint;
+    if (!year) continue;
+    const raw = match[2] + "/" + match[3];
+    const index = (match.index || 0) + match[1]!.length;
+    if (text.slice(Math.max(0, index - 5), index).match(/\d{4}\s*[-/.]/))
+      continue;
+    push(
+      raw,
+      pack(year, Number(match[2]), Number(match[3])),
+      weekdayNear(text, index, raw.length),
+    );
+  }
+
   return found;
 }
 
@@ -136,9 +151,20 @@ export function dateWeekdayConflicts(
 
 export function copyMentionsDate(text: string, value: string, yearHint: number | null) {
   if (text.includes(value)) return true;
-  const parsed = parseCalendarDate(value);
+  const parsed = parseCalendarDate(value) || parseLooseDate(value, yearHint);
   if (!parsed) return false;
-  return extractDatesFromText(text, yearHint).some((item) =>
+  if (text.includes(formatDate(parsed))) return true;
+  if (text.includes(parsed.year + "/" + parsed.month + "/" + parsed.day)) return true;
+  if (text.includes(parsed.month + "月" + parsed.day + "日")) return true;
+  return extractDatesFromText(text, yearHint ?? parsed.year).some((item) =>
     sameDate(item.date, parsed),
   );
+}
+
+function parseLooseDate(value: string, yearHint: number | null): CalendarDate | null {
+  const slash = value.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (slash) return pack(Number(slash[1]), Number(slash[2]), Number(slash[3]));
+  const md = value.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (md && yearHint) return pack(yearHint, Number(md[1]), Number(md[2]));
+  return null;
 }

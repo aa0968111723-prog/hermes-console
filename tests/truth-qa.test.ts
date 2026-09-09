@@ -139,6 +139,39 @@ test("LOCAL_CONTRACT: confirmed time missing from copy, and organizer without �
   assert.ok(missingTime.issues.some((item) => item.includes("主辦單位")));
 });
 
+test("LOCAL_CONTRACT: Drive excerpt can VERIFIED matching fields; 待確認 and weekday errors stay closed", () => {
+  const drive = [
+    "演講名稱：由數字探索自己-生命靈數開啟你的蛻變之路",
+    "日期：2026/10/7(三)",
+    "時間：19:00~21:30",
+    "地點：待確認",
+    "講師：盧玫竹老師",
+    "9/10(五) 文宣&演講貼文-設計完成",
+  ].join("\n");
+  const audit = auditEventCopy({
+    facts: [
+      fact("name", "由數字探索自己-生命靈數開啟你的蛻變之路", "pending"),
+      fact("date", "2026-10-07", "pending"),
+      fact("time", "19:00~21:30", "pending"),
+      fact("location", "待確認", "pending"),
+    ],
+    text: "禪學社期初演講\n講師：盧玫竹老師\n2026-10-07 19:00",
+    retrievedSource: { kind: "drive", text: drive },
+  });
+  assert.equal(audit.claims.find((item) => item.field === "name")?.status, "VERIFIED");
+  assert.equal(audit.claims.find((item) => item.field === "date")?.status, "VERIFIED");
+  assert.equal(audit.claims.find((item) => item.field === "speaker")?.status, "VERIFIED");
+  assert.equal(audit.claims.find((item) => item.field === "location")?.status, "UNVERIFIED");
+  assert.ok(audit.issues.some((item) => item.includes("日期與星期不符") && item.includes("9/10")));
+
+  const invented = auditEventCopy({
+    facts: [fact("date", "2026-10-08", "confirmed")],
+    text: "2026-10-08 生命靈數演講",
+    retrievedSource: { kind: "drive", text: drive },
+  });
+  assert.notEqual(invented.claims.find((item) => item.field === "date")?.status, "VERIFIED");
+});
+
 test("LOCAL_CONTRACT: speaker in copy without a sourced fact stays UNVERIFIED", () => {
   const audit = auditEventCopy({
     facts: [fact("name", "期初演講", "confirmed")],

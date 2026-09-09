@@ -43,10 +43,19 @@ function extractSpeaker(text: string) {
   return [...new Set(names)];
 }
 
+const UNRESOLVED = /待確認|未定|尚未|TBD|TODO/i;
+
+function valueInSource(value: string, sourceText: string, yearHint: number | null) {
+  if (!value) return false;
+  if (sourceText.includes(value)) return true;
+  return copyMentionsDate(sourceText, value, yearHint);
+}
+
 function classifyField(
   field: EventQaField,
   facts: PublicFact[],
   text: string,
+  retrieved: { kind: QaSourceKind; text: string } | null,
 ): EventClaim {
   const label = EVENT_QA_LABELS[field];
   const rows =
@@ -83,21 +92,32 @@ function classifyField(
 
   const value = combined[0]!;
   const matching = rows.filter((row) => row.value.trim() === value);
-  const sourceKind: QaSourceKind = strongestSourceKind(
+  let sourceKind: QaSourceKind = strongestSourceKind(
     matching.flatMap((row) => row.sources.map((s) => s.url)),
   );
+  const retrievedKind = retrieved?.kind || "none";
   const confirmed = matching.some((row) => row.state === "confirmed");
   const userProvided = matching.some((row) => row.state === "user_provided");
-  const ceiling = claimStatusCeiling(sourceKind);
+  const yearHint = parseCalendarDate(value)?.year ?? null;
+  const inRetrieved =
+    !!retrieved && valueInSource(value, retrieved.text, yearHint);
   let status: QaClaimStatus = "UNVERIFIED";
   let note = "尚未確認，也尚未重讀 Drive／官方原檔。";
 
-  if (confirmed && sourceKind !== "none") {
-    // Owner confirmation + URL is not a live retrieve. Ceiling VERIFIED is reserved
-    // for fetched Drive / TKU pages; this engine does not fetch, so stay at LIKELY.
+  if (UNRESOLVED.test(value)) {
+    status = "UNVERIFIED";
+    note = "來源寫待確認／未定，維持 UNVERIFIED，不得補造。";
+  } else if (
+    inRetrieved &&
+    (retrievedKind === "drive" || retrievedKind === "tku_official")
+  ) {
+    status = "VERIFIED";
+    sourceKind = retrievedKind;
+    note = "已在本次讀到的 Drive／官方原文中找到此值。";
+  } else if (confirmed && sourceKind !== "none") {
     status = "LIKELY";
     note =
-      ceiling === "VERIFIED"
+      claimStatusCeiling(sourceKind) === "VERIFIED"
         ? "已附 Drive／官方網址且使用者確認，但本核對未重讀原檔，最高 LIKELY。"
         : sourceKind === "instagram"
           ? "來源是 Instagram。IG 只作對外呈現，不能當內部事實 VERIFIED。"
@@ -127,10 +147,12 @@ export function auditEventCopy(input: {
   facts: PublicFact[];
   text: string;
   format?: string;
+  retrievedSource?: { kind: QaSourceKind; text: string; url?: string } | null;
 }): EventCopyAudit {
   const text = [input.title || "", input.text].filter(Boolean).join("\n");
+  const retrieved = input.retrievedSource || null;
   const claims = EVENT_QA_FIELDS.map((field) =>
-    classifyField(field, input.facts, text),
+    classifyField(field, input.facts, text, retrieved),
   );
   const lint = lintCopyText(text);
   const issues: string[] = [];
@@ -142,7 +164,8 @@ export function auditEventCopy(input: {
   }
 
   const dateFacts = publicFacts(input.facts, "date").map((item) => item.value);
-  for (const conflict of dateWeekdayConflicts(text, dateFacts)) {
+  const weekdayCorpus = retrieved ? text + "\n" + retrieved.text : text;
+  for (const conflict of dateWeekdayConflicts(weekdayCorpus, dateFacts)) {
     issues.push(
       "日期與星期不符：" +
         conflict.raw +
@@ -216,8 +239,9 @@ export function auditEventCopy(input: {
     printSpec: "UNVERIFIED",
     qr,
     publishBlocked: true,
-    retrieved: false,
-    notice:
-      "自動核對不是發佈許可。未重讀 Drive 原檔、未做圖片 OCR、未量測出血。" + print,
+    retrieved: Boolean(retrieved),
+    notice: retrieved
+      ? "已對照本次讀到的原文。圖片 OCR／出血仍未做，不得發佈。" + print
+      : "自動核對不是發佈許可。未重讀 Drive 原檔、未做圖片 OCR、未量測出血。" + print,
   };
 }

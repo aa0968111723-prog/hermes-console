@@ -65,6 +65,6 @@ export type EventCopyAudit = {
   printSpec: "UNVERIFIED";
   qr: "UNVERIFIED" | "OMITTED" | "CONFLICTING";
   publishBlocked: true;
-  retrieved: false;
+  retrieved: boolean;
   notice: string;
 };
