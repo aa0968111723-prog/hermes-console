@@ -51,6 +51,24 @@ export default function CopyReviewCard({
           <li key={item}>{item}</li>
         ))}
       </ol>
+      {review.suggestions && (
+        <details>
+          <summary>規則草稿 A／B／C（未保存、未發佈）</summary>
+          <p>
+            <strong>A 最自然</strong>
+          </p>
+          <p className="preserve-lines">{review.suggestions.variants.a}</p>
+          <p>
+            <strong>B 最有梗</strong>
+          </p>
+          <p className="preserve-lines">{review.suggestions.variants.b}</p>
+          <p>
+            <strong>C 最溫暖</strong>
+          </p>
+          <p className="preserve-lines">{review.suggestions.variants.c}</p>
+          <small>{review.suggestions.note}</small>
+        </details>
+      )}
       <small>{review.disclaimer}</small>
     </section>
   );

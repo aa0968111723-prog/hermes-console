@@ -46,7 +46,7 @@ export function emptyFacts(): CopyFacts {
 }
 
 function field(value: string | null | undefined) {
-  const trimmed = value?.trim() || "";
+  const trimmed = typeof value === "string" ? value.trim() : "";
   if (!trimmed || /待定|待確認|OOOO|TBD/i.test(trimmed))
     return { value: trimmed || null, kind: "UNKNOWN" as const };
   return { value: trimmed, kind: "FACT" as const };

@@ -1,3 +1,4 @@
+import { scaffoldVariants } from "./drafts";
 import { evaluateFreshmen } from "./freshmen";
 import { lintCopy } from "./lint";
 import {
@@ -89,6 +90,29 @@ export function reviewCopy(input: {
     next.push("超過一半新生視角不會停下來，主標改成生活場景。");
   if (!next.length) next.push("三版可給幹部選；選定後才保存，不要發佈。");
 
+  const kind = /社博|攤位|文館/.test(text + (facts.location.value || ""))
+    ? "fair"
+    : /茶會/.test(text + (facts.name.value || ""))
+      ? "tea"
+      : /演講|講座/.test(text + (facts.name.value || ""))
+        ? "talk"
+        : "generic";
+  const suggestions = variants.missing.length
+    ? scaffoldVariants({
+        channel,
+        facts: {
+          name: facts.name.value,
+          date: facts.date.value,
+          time: facts.time.value,
+          location: facts.location.value,
+          formUrl: facts.formUrl.value,
+        },
+        kind,
+      })
+    : null;
+  if (suggestions)
+    next.push("下面是規則草稿，不是 Hermes 生成；選定後才保存。");
+
   return {
     simulation: true,
     method: "rule_contract",
@@ -100,6 +124,7 @@ export function reviewCopy(input: {
     facts,
     personas,
     next,
+    suggestions,
     disclaimer: COPY_REVIEW_DISCLAIMER,
     note: "這是審核契約，不是 Hermes 生成的文案，也不是已發佈。",
   };

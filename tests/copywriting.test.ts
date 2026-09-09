@@ -97,6 +97,8 @@ test("Drive 期初茶會文案：地點 UNKNOWN、缺 A/B/C、不發佈", () => 
   assert.equal(review.facts.date.kind, "FACT");
   assert.ok(review.variants.missing.includes("B｜最有梗"));
   assert.ok(review.variants.missing.includes("C｜最溫暖"));
+  assert.equal(review.suggestions?.method, "rule_scaffold");
+  assert.equal(review.suggestions?.publish, false);
   assert.ok(review.lint.some((item) => item.term === "靜定"));
   assert.ok(review.lint.some((item) => item.term === "漣漪擴散"));
   assert.equal(review.personas.length, 10);

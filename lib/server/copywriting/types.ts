@@ -102,6 +102,12 @@ export interface CopyReview {
   facts: CopyFacts;
   personas: CopyPersonaReview[];
   next: string[];
+  suggestions: {
+    method: "rule_scaffold";
+    publish: false;
+    variants: { a: string; b: string; c: string };
+    note: string;
+  } | null;
   disclaimer: string;
   note: string;
 }
