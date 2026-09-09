@@ -1,43 +1,5 @@
 # Post PR20 Agent OS Progress
 
-## Grok 02 LOOP 2（2026-09-10）
-
-- CURRENT_STATE：社博當日。Feed 9/8 預告已過期；9/10 限動 UNKNOWN。
-- DONE_THIS_LOOP：liveWatch、過期鉤子、現場觀察卡。不重做 PR #80。
-- VERIFIED：`tests/visual-language.test.ts`；9/8 當天 stale=false，9/10 stale=true。
-- FAILED：無。
-- BLOCKED：無 Meta 授權讀限動。
-- NEW_FINDINGS：Drive 社博限動仍「新增」；IG 格無 9/10 新貼文。
-- MAIN_SHA：`ac5a7a4`
-- BRANCH：`grok/ig-visual-language-2026-09-09`
-- PR：https://github.com/aa0968111723-prog/hermes-console/pull/78
-- NEXT_TASK：當日 9:16 文案分層；merge main + CI。
-- NEXT_LOOP：3 文案分層已在進行
-- STATUS：CONTINUING
-
-## Grok 02 LOOP 3（2026-09-10）
-
-- CURRENT_STATE：社博限動三格畫面字（≤8字）已進 nextSlot.beats。像素規格交給 PR #80。
-- DONE_THIS_LOOP：3 story beats；merge main ac5a7a4（不 force push）。
-- VERIFIED：beats 字數契約。
-- BLOCKED：限動是否已發仍 UNKNOWN。
-- PR：#78
-- NEXT_TASK：CI 綠了再補 9/11 續攤限動；觀察是否有實景。
-- STATUS：CONTINUING
-
-## Grok 02 Instagram Inspiration（2026-09-09）
-
-- CURRENT_STATE：靈感板改為禪學社視覺語言模式，不是連結牆。
-- DONE：5 張 tku_zc 封面判讀；Drive 115-1 網宣對照；8 keep / 3 avoid；Visual／Copy 交接。
-- VERIFIED：caption 規則對應、GET `instagramConnected=false`、ingest 無 caption 時 `borrow=[]`。
-- UNVERIFIED：限動實景、Reels 動態、完整 IG 格、現場文館左側照片。
-- BLOCKERS：無 Meta 授權；茶會／演講地點 UNKNOWN。
-- NEXT_BEST_TASK：115-1 網宣日曆 × 模式槽；9:16 社博限動規格。
-- FILES_TOUCHED：`lib/server/inspiration/visual-language.ts`、`engine.ts`、`InspirationBoard.tsx`、`app/api/inspiration/route.ts`、tests、skill、handoff。
-- PR：https://github.com/aa0968111723-prog/hermes-console/pull/78
-- MAIN_SHA：`5e245e79668390deef4ccfb012cee889588cb719`
-
-
 ## Current Phase
 
 P2 research executor and P4-C Zeabur confirmation done locally. Next: P3 budget UI / P4 resume UX / P5 task pill.
