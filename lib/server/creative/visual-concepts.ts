@@ -173,6 +173,14 @@ function formatZones(format: VisualFormat): Record<string, PlacementZone> {
   };
 }
 
+const PLACEHOLDER_VALUE =
+  /^(待確認|未定|未知|不明|UNKNOWN|NEEDS_VERIFICATION|TBD|TODO|N\/A|待討論|地點待確認|\?+)$/i;
+
+export function usableOnImageValue(value: string | null | undefined) {
+  const text = value?.trim() || "";
+  return text.length > 0 && !PLACEHOLDER_VALUE.test(text);
+}
+
 function pickPublicFact(facts: Fact[], field: OnImageField): Fact | null {
   const matches = facts.filter(
     (item) =>
@@ -202,13 +210,18 @@ export function visualFactSlots(
 ): VisualFactSlot[] {
   return ON_IMAGE_FIELDS.map((field) => {
     const fact = pickPublicFact(activity.facts, field);
-    const ready = fact?.state === "confirmed" || fact?.state === "user_provided";
+    const ready =
+      (fact?.state === "confirmed" || fact?.state === "user_provided") &&
+      usableOnImageValue(fact.value);
     return {
       field,
       label: fieldLabels[field],
-      value: ready ? fact.value : null,
+      value: ready ? fact!.value : null,
       state: fact?.state || "missing",
-      classification: classifyFact(fact),
+      classification:
+        fact && !usableOnImageValue(fact.value)
+          ? "NEEDS_VERIFICATION"
+          : classifyFact(fact),
       onImage: Boolean(ready),
     };
   });

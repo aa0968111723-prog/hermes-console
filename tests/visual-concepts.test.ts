@@ -72,6 +72,33 @@ test("canonical visual formats use IG 4:5, 9:16 and print A4/A3 pixels", () => {
   assert.equal(reels.height, 1350);
 });
 
+test("placeholder locations like 待確認 stay off the poster", () => {
+  const saved = saveActivity(
+    "workspace",
+    {
+      projectId: "personal",
+      expectedRevision: 0,
+      operationId: randomUUID(),
+      title: "TEST ONLY 期初演講",
+      facts: [
+        fact("name", "由數字探索自己-生命靈數開啟你的蛻變之路"),
+        fact("date", "2026/10/7"),
+        fact("time", "19:00~21:30"),
+        fact("location", "待確認"),
+      ],
+    },
+    "owner",
+  );
+  const pack = compileVisualConcepts(saved, "ig_feed_4x5");
+  assert.equal(pack.overlayText.name, "由數字探索自己-生命靈數開啟你的蛻變之路");
+  assert.equal(pack.overlayText.date, "2026/10/7");
+  assert.equal(pack.overlayText.time, "19:00~21:30");
+  assert.equal(pack.overlayText.location, null);
+  assert.ok(pack.unknownFields.includes("地點"));
+  assert.equal(pack.concepts[0].qrPlacement.include, false);
+  assert.equal(JSON.stringify(pack.concepts).includes("待確認"), false);
+});
+
 test("incomplete activity facts stay UNKNOWN and are not invented", () => {
   const saved = saveActivity(
     "workspace",
