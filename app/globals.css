@@ -2672,9 +2672,10 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 }
 .soft-info-notice-dismiss {
   flex: none;
-  width: 32px;
-  height: 32px;
-  min-height: 32px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   display: grid;
   place-items: center;
   border: 0;
