@@ -33,7 +33,7 @@
     "kind": "tku_unverified",
     "owner": "workspace",
     "id": "tku_roster_1151",
-    "value": "115-1名冊尚未公開 as of 2026-09-09 07:02"
+    "value": "115-1名冊尚未公開 as of 2026-09-09 08:06"
   },
   {
     "kind": "tku_club",
@@ -81,19 +81,19 @@
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r27",
-    "value": "R27尖峰約4-6分 離峰8-12分(近期亦見20-30) 維基學院+鐵道社FB"
+    "value": "R27尖峰約3-5/4-6分 離峰更長(近期亦見20-30) 鐵道社FB+校方+維基"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_commute_r28",
-    "value": "R28正線尖峰6-10分 離峰15-20分 直達更快進校 維基學院+鐵道社FB"
+    "value": "R28正線尖峰6-10分 離峰15-20分 直達更快進校 維基學院+鐵道社FB+busgooo"
   },
   {
     "kind": "tku_signal",
     "owner": "workspace",
     "id": "tku_dcard_recruit",
-    "value": "Dcard招生：心理研究社正式招新、動漫社、新創社WE WANT YOU、體適能有氧社、咖啡社等 2026-09"
+    "value": "Dcard招生：心理研究社正式招新、動漫社、新創社WE WANT YOU、體適能有氧社、咖啡社、電子音樂研究社等 2026-09"
   },
   {
     "kind": "tku_signal",
@@ -105,7 +105,7 @@
     "kind": "tku_fair",
     "owner": "workspace",
     "id": "tku_fair_booth_pending",
-    "value": "115攤位圖尚未公開 as of 2026-09-09 07:02"
+    "value": "115攤位圖尚未公開 as of 2026-09-09 08:06"
   },
   {
     "kind": "tku_source",
@@ -142,5 +142,11 @@
     "owner": "workspace",
     "id": "tku_log_20260909_0700",
     "value": "cycle hourly-2026-09-09-0700: records.seed.json確認陣列；115-1仍unpublished as of 07:02；社博9/10 CNA再確認；Dcard心理/動漫/新創/有氧/咖啡招生；zen正式名領袖禪學社 L1 sites+114-1 L2 Wiki/FB/IG；熱音四大入口維持；通勤R27/R28維基學院維持；xlsx重建+seed upsert"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0800",
+    "value": "cycle hourly-2026-09-09-0800: records.seed.json確認為陣列；115-1名冊仍unpublished as of 08:06；社博9/10 CNA再確認+booth pending；zen/hotmusic L1+L2維持；Dcard/IG招生持續(心理/動漫/新創/有氧/咖啡/電子音樂)；通勤R27/R28雙源維持；xlsx完整重建+seed/manifest upsert"
   }
 ]

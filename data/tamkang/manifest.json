@@ -1,8 +1,8 @@
 {
   "name": "淡江大學社團全生態知識庫",
   "path": "data/tamkang",
-  "updated_at": "2026-09-09T07:02:00+08:00",
-  "cycle": "hourly-2026-09-09-0700",
+  "updated_at": "2026-09-09T08:06:00+08:00",
+  "cycle": "hourly-2026-09-09-0800",
   "rules": {
     "single_file": true,
     "dual_layer": true,
@@ -19,13 +19,13 @@
     "cadence": "HOURLY Asia/Taipei"
   },
   "counts": {
-    "records": 24,
+    "records": 25,
     "tku_club": 7,
     "tku_source": 4,
     "tku_fair": 2,
     "tku_unverified": 2,
     "tku_signal": 4,
-    "tku_log": 5,
+    "tku_log": 6,
     "l2_note": "existence based on 114-1 official roster + CNA; 184 active / 115-1 roster / booth map still pending"
   },
   "conflict": {
@@ -35,23 +35,23 @@
     "l2": "pending adjudication"
   },
   "priority": {
-    "roster_1151": "unpublished as of 2026-09-09 07:02",
+    "roster_1151": "unpublished as of 2026-09-09 08:06",
     "fair_115": "starts 2026-09-10 one week; booth map pending",
     "zen": "official name 領袖禪學社; aka Leader Zen; SG109; formerly 禪學社/領袖社",
     "hot_music": "no official hot-music club; four entry clubs: 詞曲創作社/電子音樂研究社/地板音樂社/嘻哈研究社",
-    "commute": "R27 peak ~4-6min (also 20-30 seen); R28 peak ~6-10min direct faster"
+    "commute": "R27 peak ~3-5/4-6min (also 20-30 seen); R28 peak ~6-10min direct faster"
   },
   "this_cycle": {
     "confirmed_seed_array": true,
     "findings": [
-      "115-1 roster still unpublished (search null as of 2026-09-09 07:02)",
+      "115-1 roster still unpublished (search null as of 2026-09-09 08:06)",
       "fair date re-verified via CNA 2026-09-07; starts 09-10 continuous one week; booth map missing",
       "173/178/184 conflict remains pending",
       "zen naming dual-track verified (領袖禪學社) L1 sites.google + 114-1 + L2 Wiki/FB/IG",
-      "hot-music four-club entry dual-sourced (sites.google + 114-1 roster + 時報/IG)",
-      "commute headway maintained via 維基學院 + 經驗源",
-      "Dcard recruit: 心理研究社正式招新 + 動漫社 + 新創社 + 體適能有氧社 + 咖啡社",
-      "xlsx main KB fully rebuilt in artifacts; seed array confirmed length 24"
+      "hot-music four-club entry dual-sourced (sites.google + 114-1 roster + IG/時報)",
+      "commute headway maintained via 維基學院 + 鐵道社FB + bus data",
+      "Dcard/IG recruit: 心理研究社 + 動漫社 + 新創社 + 體適能有氧社 + 咖啡社 + 電子音樂研究社",
+      "xlsx main KB fully rebuilt in artifacts; seed array confirmed length 25"
     ]
   }
 }
