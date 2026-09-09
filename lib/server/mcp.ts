@@ -5,6 +5,7 @@ import {
 } from "./hermes/tool-policy";
 import { readFile } from "node:fs/promises";
 import { listInspiration } from "./inspiration";
+import { simulateFreshmanReactions } from "./audience/personas";
 import { activityInput, copyInput } from "../creative";
 import {
   COPY_CHANNELS,
@@ -237,6 +238,20 @@ const schemas = {
       ...context,
     })
     .strict(),
+  workspace_simulate_audience: z
+    .object({
+      kind: z
+        .enum(["poster", "ig", "form", "event", "booth", "layout", "copy"])
+        .default("copy"),
+      title: z.string().max(200).optional(),
+      copy: z.string().max(4000).default(""),
+      visualNotes: z.string().max(1000).optional(),
+      institution: z.string().max(80).optional(),
+      location: z.string().max(80).optional(),
+      projectId: id.optional(),
+      ...context,
+    })
+    .strict(),
 };
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
@@ -285,6 +300,8 @@ const descriptions: Record<ToolName, string> = {
     "請 GALLEY 做來源優先研究：先擷取真實網頁再分析。沒有可核對來源時標記資料不足，不得憑記憶填事實。NVIDIA／NIM／Omniverse 問題優先官方文件。",
   galley_intel:
     "請 GALLEY 依創作任務從已擷取來源推薦 AI 工具或模型。沒有來源證據的項目不列入；未設定金鑰不得標成可使用。",
+  workspace_simulate_audience:
+    "用十個淡江新生人格模擬看到海報／IG／表單／活動／攤位／場佈／文案的第一眼反應。規則式 SIMULATION，分數只是比較工具，不是轉換率。沒有視覺描述時標 UNKNOWN，不得假裝已看圖。",
 };
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
@@ -295,7 +312,7 @@ export function toolsList(owner: string) {
       description: descriptions[name as ToolName],
       inputSchema: z.toJSONSchema(schema),
       annotations: {
-        readOnlyHint: /list|search|get|dataset|read|context|capability|review/.test(name),
+        readOnlyHint: /list|search|get|dataset|read|context|capability|review|simulate/.test(name),
         destructiveHint: name.includes("delete_memory"),
         idempotentHint: true,
         openWorldHint: name.startsWith("canva_") || name.startsWith("galley_"),
@@ -596,6 +613,17 @@ async function execute(
       return callGalleyTool("galley_research", schemas[name].parse(args));
     case "galley_intel":
       return callGalleyTool("galley_intel", schemas[name].parse(args));
+    case "workspace_simulate_audience": {
+      const input = schemas[name].parse(args);
+      return simulateFreshmanReactions({
+        kind: input.kind,
+        title: input.title,
+        copy: input.copy,
+        visualNotes: input.visualNotes,
+        institution: input.institution,
+        location: input.location,
+      });
+    }
   }
 }
 export async function callTool(

@@ -21,7 +21,7 @@ const rules: Array<{ class: ToolPermissionClass; pattern: RegExp }> = [
   {
     class: "read",
     pattern:
-      /(^|_)(get|list|read|search|query|probe|context|check|inspect|capability|dataset)(_|$)/i,
+      /(^|_)(get|list|read|search|query|probe|context|check|inspect|capability|dataset|simulate)(_|$)/i,
   },
 ];
 

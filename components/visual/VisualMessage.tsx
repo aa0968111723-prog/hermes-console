@@ -1,6 +1,8 @@
 import { ExternalLink, Search, Check, Circle } from "lucide-react";
 import type { Task } from "@/lib/contracts";
 import { eventState, safeSource } from "@/lib/client/activity";
+import { isTwinPanel } from "@/lib/server/audience/personas";
+import FirstReactionBoard from "../audience/FirstReactionBoard";
 export default function VisualMessage({
   task,
   onInspect,
@@ -19,7 +21,8 @@ export default function VisualMessage({
   const completed = [...calls.values()].filter(
     (state) => state === "completed",
   ).length;
-  if (!sources.length && !calls.size) return null;
+  const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
+  if (!sources.length && !calls.size && !twinPanel) return null;
   return (
     <div className="visual-message">
       {!!calls.size && (
@@ -58,6 +61,7 @@ export default function VisualMessage({
           </div>
         </details>
       )}
+      {twinPanel && <FirstReactionBoard panel={twinPanel} />}
     </div>
   );
 }

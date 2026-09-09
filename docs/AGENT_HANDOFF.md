@@ -2,6 +2,69 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-09 23:40 TST）Grok 05 · Drive 真實 115-1 文案進 Twin
+
+- 基準 SHA：`ac5a7a4` 之後的 audience 分支
+- PR：https://github.com/aa0968111723-prog/hermes-console/pull/83
+- 目標：用 Drive「期初宣傳區」真實文案跑第一眼模擬；地點待定標 UNKNOWN。
+- 本輪不碰：PR #10、HermesConsole、正式部署。
+
+### Drive FACT（非編造）
+
+- 期初茶會主標：改變自己從靜定開始；2026/9/30 19:00–21:30；地點待定
+- 社博攤位：9/10、11、14–17 文館左側；專注力遊戲＋手搖飲
+- 來源：https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw
+
+### 本輪變更
+
+- 訊號補 文館／手搖飲；地點待定 → unknownPlace
+- `tests/audience-1151-drive-copy.test.ts`
+
+### 下一輪建議
+
+- 讀入社單／報名表欄位（若可匯出文字）再模擬填表壓力
+- 有海報圖才評 visualAttraction
+- 社博文比靜定主標更能停下「沒興趣型」——可當改稿方向，不是民調
+
+---
+
+## 進行中（2026-09-09 23:20 TST）Grok 05 · Audience Twin 第一眼模擬
+
+- 基準 SHA：`5e245e79668390deef4ccfb012cee889588cb719`
+- 分支：`grok/audience-twin-first-reaction-2026-09-09`
+- 目標：十個淡江新生人格模擬海報／IG／表單／活動／攤位／場佈／文案的第一眼；分數只做比較，不假裝民調。
+- 使用者影響：Hermes 可呼叫 `workspace_simulate_audience`；對話工具結果可顯示第一眼卡片。
+- 本輪不碰：PR #10 / #30、`HermesConsole.tsx`、正式部署、記憶 store、Drive 刪除。
+
+### 讀到的現況
+
+- main tip：`5e245e7`。Audience Twin 已有抽象五角色與共用 heuristic 分數，無法回答「這個學生為什麼停下來」。
+- 共用 clone 同時被其他代理改寫，本輪改在獨立 worktree 實作。
+
+### 本輪變更
+
+- `lib/server/audience/personas.ts`：十人格 + 素材種類訊號 + 比較分數（12–78）。
+- API `action=simulate`；`evaluate` 附 `twinPanel`。
+- MCP `workspace_simulate_audience`（read-only）。
+- `FirstReactionBoard` 手機橫滑卡片；`VisualMessage` 顯示真實工具結果。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`。
+- 非 `LIVE_EXTERNAL`。沒有真實新生樣本。
+
+### 下一輪建議
+
+- 用 Drive 已核對的真實活動文案跑一輪比較，標記 FACT vs SIMULATION。
+- 有圖時才提高 visualAttraction；沒圖維持 UNKNOWN。
+- 不要合併 #10。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰 → 不得宣稱 LIVE 整合通過
+
+---
+
 ## 完成（2026-09-09 20:45 TST）Codex · 手機底部安全區
 
 - 基準 SHA：`4003f482d6ee8961e635fba655d8196c97a39f24`
