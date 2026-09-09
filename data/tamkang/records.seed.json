@@ -33,7 +33,7 @@
     "kind": "tku_unverified",
     "owner": "workspace",
     "id": "tku_roster_1151",
-    "value": "115-1名冊尚未公開 as of 2026-09-09 08:06"
+    "value": "115-1名冊尚未公開 as of 2026-09-09 09:14"
   },
   {
     "kind": "tku_club",
@@ -105,7 +105,7 @@
     "kind": "tku_fair",
     "owner": "workspace",
     "id": "tku_fair_booth_pending",
-    "value": "115攤位圖尚未公開 as of 2026-09-09 08:06"
+    "value": "115攤位圖尚未公開 as of 2026-09-09 09:14"
   },
   {
     "kind": "tku_source",
@@ -148,5 +148,11 @@
     "owner": "workspace",
     "id": "tku_log_20260909_0800",
     "value": "cycle hourly-2026-09-09-0800: records.seed.json確認為陣列；115-1名冊仍unpublished as of 08:06；社博9/10 CNA再確認+booth pending；zen/hotmusic L1+L2維持；Dcard/IG招生持續(心理/動漫/新創/有氧/咖啡/電子音樂)；通勤R27/R28雙源維持；xlsx完整重建+seed/manifest upsert"
+  },
+  {
+    "kind": "tku_log",
+    "owner": "workspace",
+    "id": "tku_log_20260909_0900",
+    "value": "cycle hourly-2026-09-09-0900: records.seed.json確認陣列；115-1仍unpublished as of 09:14；社博9/10 CNA再確認；Dcard/IG招生持續；zen/hotmusic/commute L1+L2維持；xlsx完整重建+seed/manifest upsert"
   }
 ]
