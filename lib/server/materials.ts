@@ -1,11 +1,16 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import sharp from "sharp";
-import type { Material } from "../contracts";
+import type {
+  Material,
+  MaterialSource,
+  MaterialSourceProvider,
+} from "../contracts";
 import { dataDir, get, list, put } from "./store";
 import { ApiError, WORKSPACE_OWNER } from "./security";
 import { wrapUntrusted } from "./untrusted";
+import { canonicalUrl } from "./inspiration/dedupe";
 
 export function material(owner: string, id: string) {
   const value = get<Material>("material", owner, id);
@@ -19,6 +24,217 @@ export function filePath(owner: string, id: string) {
   )
     throw new ApiError(400, "invalid_id", "素材識別錯誤。");
   return join(dataDir(), "uploads", owner, id);
+}
+
+export function includeDuplicatesQuery(url: URL) {
+  const value = url.searchParams.get("includeDuplicates");
+  return value === "1" || value === "true";
+}
+
+export function listMaterials(
+  owner: string,
+  options: { includeDuplicates?: boolean; projectId?: string } = {},
+) {
+  return list<Material>("material", owner).filter((entry) => {
+    if (options.projectId && entry.projectId !== options.projectId) return false;
+    if (!options.includeDuplicates && entry.dedupeStatus === "duplicate")
+      return false;
+    return true;
+  });
+}
+
+export function fingerprintBytes(bytes: Buffer) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+export function fingerprintUrl(url: string) {
+  return fingerprintBytes(Buffer.from("url\n" + canonicalUrl(url), "utf8"));
+}
+
+function dualWriteRights(rights: Material["rights"], license?: string) {
+  const resolvedLicense = license || rights;
+  const resolvedRights: Material["rights"] =
+    resolvedLicense === "reference_only" || rights === "reference_only"
+      ? "reference_only"
+      : "user_provided";
+  return { rights: resolvedRights, license: resolvedLicense };
+}
+
+function primaryForFingerprint(owner: string, fingerprint: string) {
+  return list<Material>("material", owner)
+    .filter(
+      (entry) =>
+        entry.contentSha256 === fingerprint &&
+        entry.dedupeStatus !== "duplicate",
+    )
+    .sort(
+      (a, b) =>
+        a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+    )[0];
+}
+
+function assertProject(owner: string, projectId: string) {
+  if (projectId !== "personal" && !get("project", owner, projectId))
+    throw new ApiError(404, "project_not_found", "專案不存在。");
+}
+
+function normalizePeople(people?: string[]) {
+  if (!people?.length) return undefined;
+  const cleaned = people
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+    .map((value) => value.slice(0, 20));
+  return cleaned.length ? cleaned : undefined;
+}
+
+function withDedupe(
+  owner: string,
+  fingerprint: string,
+  record: Material,
+): Material {
+  const { rights, license } = dualWriteRights(record.rights, record.license);
+  const primary = primaryForFingerprint(owner, fingerprint);
+  const duplicate = !!(primary && primary.id !== record.id);
+  return {
+    ...record,
+    rights,
+    license,
+    people: normalizePeople(record.people),
+    contentSha256: fingerprint,
+    duplicateOf: duplicate ? primary.id : null,
+    dedupeStatus: duplicate ? "duplicate" : "primary",
+  };
+}
+
+export function parseDriveSource(url: string): MaterialSource | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(canonicalUrl(url));
+  } catch {
+    return null;
+  }
+  const host = parsed.hostname.replace(/^www\./, "");
+  const sheets = parsed.pathname.includes("/spreadsheets/");
+  const drive =
+    host === "drive.google.com" ||
+    host === "docs.google.com" ||
+    host === "sheets.google.com";
+  if (!drive) return null;
+  const id = parsed.pathname.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1];
+  return {
+    type: "drive_fact",
+    locator: id || parsed.toString(),
+    provider: sheets ? "sheets" : "google_drive",
+  };
+}
+
+export function sourceForRemoteUrl(
+  url: string,
+  inspirationPlatform?: string,
+): MaterialSource {
+  const drive = parseDriveSource(url);
+  if (drive) return drive;
+  if (inspirationPlatform) {
+    const provider: MaterialSourceProvider | undefined =
+      inspirationPlatform === "instagram" ||
+      inspirationPlatform === "pinterest"
+        ? inspirationPlatform
+        : undefined;
+    return {
+      type: "inspiration",
+      locator: canonicalUrl(url),
+      provider,
+    };
+  }
+  return { type: "web_https", locator: canonicalUrl(url) };
+}
+
+export function saveLinkedMaterial(input: {
+  owner: string;
+  projectId: string;
+  title: string;
+  url: string;
+  notes: string;
+  tags?: string[];
+  source: MaterialSource;
+}): Material {
+  assertProject(input.owner, input.projectId);
+  const url = canonicalUrl(input.url);
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password)
+    throw new ApiError(
+      400,
+      "unsafe_link",
+      "請貼上不含帳密的 HTTPS 來源連結。",
+    );
+  const fingerprint = fingerprintUrl(url);
+  return put(
+    "material",
+    input.owner,
+    withDedupe(input.owner, fingerprint, {
+      id: randomUUID(),
+      projectId: input.projectId,
+      title: input.title.slice(0, 150),
+      kind: "reference",
+      url,
+      mime: null,
+      bytes: null,
+      tags: (input.tags || []).slice(0, 10),
+      createdAt: new Date().toISOString(),
+      rights: "reference_only",
+      license: "reference_only",
+      notes: input.notes,
+      source: input.source,
+      format: "url/https",
+    }),
+  );
+}
+
+export function saveReference(
+  owner: string,
+  input: {
+    projectId: string;
+    title: string;
+    url: string;
+    notes: string;
+    tags: string[];
+  },
+) {
+  return saveLinkedMaterial({
+    owner,
+    projectId: input.projectId,
+    title: input.title,
+    url: input.url,
+    notes: input.notes,
+    tags: input.tags,
+    source: { type: "web_https", locator: canonicalUrl(input.url) },
+  });
+}
+
+export function ingestDriveFact(input: {
+  owner: string;
+  projectId: string;
+  title: string;
+  locator: string;
+  notes?: string;
+}) {
+  const href = /^https:/i.test(input.locator)
+    ? input.locator
+    : "https://drive.google.com/file/d/" + input.locator + "/view";
+  return saveLinkedMaterial({
+    owner: input.owner,
+    projectId: input.projectId,
+    title: input.title,
+    url: href,
+    notes: input.notes || "Drive 事實紀錄；僅保存定位，未改寫 Drive。",
+    source:
+      parseDriveSource(href) || {
+        type: "drive_fact",
+        locator: input.locator,
+        provider: "google_drive",
+      },
+  });
 }
 export async function saveUpload(
   owner: string,
@@ -40,8 +256,7 @@ export async function saveUpload(
       "storage_limit",
       "素材已達 250 MB 限額，請由管理者整理備份。",
     );
-  if (projectId !== "personal" && !get("project", owner, projectId))
-    throw new ApiError(404, "project_not_found", "專案不存在。");
+  assertProject(owner, projectId);
   let content: Buffer;
   let outputMime: string;
   let kind: Material["kind"];
@@ -100,19 +315,27 @@ export async function saveUpload(
     mode: 0o700,
   });
   await writeFile(filePath(owner, id), content, { flag: "wx", mode: 0o600 });
-  return put("material", owner, {
-    id,
-    projectId,
-    title: name.slice(0, 150),
-    kind,
-    url: null,
-    mime: outputMime,
-    bytes: content.length,
-    tags: [],
-    createdAt: new Date().toISOString(),
-    rights: "user_provided",
-    notes: "使用者上傳；公開發佈前仍需确认權利。",
-  } satisfies Material);
+  const fingerprint = fingerprintBytes(content);
+  return put(
+    "material",
+    owner,
+    withDedupe(owner, fingerprint, {
+      id,
+      projectId,
+      title: name.slice(0, 150),
+      kind,
+      url: null,
+      mime: outputMime,
+      bytes: content.length,
+      tags: [],
+      createdAt: new Date().toISOString(),
+      rights: "user_provided",
+      license: "user_provided",
+      notes: "使用者上傳；公開發佈前仍需确认權利。",
+      source: { type: "upload", provider: "hermes_upload" },
+      format: outputMime,
+    }),
+  );
 }
 export async function attachmentParts(owner: string, ids: string[]) {
   const parts: Array<Record<string, unknown>> = [];

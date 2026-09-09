@@ -14,8 +14,8 @@ import {
 import { get, list, put, transaction } from "./store";
 import { listMemories } from "./memory";
 import { ApiError, hash, redact } from "./security";
-import { material } from "./materials";
-import type { Material, Task } from "../contracts";
+import { listMaterials, material } from "./materials";
+import type { Task } from "../contracts";
 export function assertProject(owner: string, project: string) {
   if (project !== "personal" && !get("project", owner, project))
     throw new ApiError(404, "project_not_found", "專案不存在。");
@@ -394,9 +394,7 @@ export function projectContext(owner: string, projectId: string) {
         selectedRevision: d.selectedRevision,
         check: checkCopy(owner, d),
       })),
-    materials: list<Material>("material", owner)
-      .filter((m) => m.projectId === projectId)
-      .slice(0, 100),
+    materials: listMaterials(owner, { projectId }).slice(0, 100),
     tasks: list<Task>("task", owner)
       .filter(
         (t) =>

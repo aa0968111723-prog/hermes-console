@@ -30,14 +30,14 @@ import {
   createDraft,
   pollDraft,
 } from "./workflows";
-import { filePath, material } from "./materials";
+import { filePath, listMaterials, material } from "./materials";
 import {
   deleteMemory,
   getMemory,
   listMemories,
   saveMemory,
 } from "./memory";
-import type { Material, Task, TaskEvent } from "../contracts";
+import type { Task, TaskEvent } from "../contracts";
 import {
   invokeXunhe,
   isXunheTool,
@@ -131,7 +131,13 @@ const schemas = {
   workspace_read_material: z
     .object({ materialId: z.string().uuid(), ...context })
     .strict(),
-  workspace_list_references: z.object({ projectId: id, ...context }).strict(),
+  workspace_list_references: z
+    .object({
+      projectId: id,
+      includeDuplicates: z.boolean().optional(),
+      ...context,
+    })
+    .strict(),
   workspace_save_directions: directionsInput.extend(context).strict(),
   workspace_list_memories: z
     .object({ projectId: id.optional(), ...context })
@@ -428,9 +434,10 @@ async function execute(
     case "workspace_list_references": {
       const input = schemas[name].parse(args);
       return {
-        materials: list<Material>("material", owner).filter(
-          (m) => m.projectId === input.projectId,
-        ),
+        materials: listMaterials(owner, {
+          projectId: input.projectId,
+          includeDuplicates: input.includeDuplicates,
+        }),
         queriedAt: new Date().toISOString(),
         references: listInspiration(input.projectId).slice(0, 100),
         notice: "已保存資料；查回時間不等於來源網頁已重新擷取。",

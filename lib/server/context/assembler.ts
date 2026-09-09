@@ -2,7 +2,7 @@ import type { BudgetMode, Conversation } from "../../contracts";
 import { list } from "../store";
 import { listMemories } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
-import type { Material } from "../../contracts";
+import { listMaterials } from "../materials";
 import { estimateTokens, recencyScore, type ContextItem } from "./provenance";
 import { relevanceTo } from "./ranking";
 import { fitBudget } from "./budget";
@@ -81,9 +81,9 @@ export function assembleContext(input: {
       }),
     );
   }
-  for (const material of list<Material>("material", input.owner)
-    .filter((entry) => entry.projectId === input.projectId)
-    .slice(0, 12)) {
+  for (const material of listMaterials(input.owner, {
+    projectId: input.projectId,
+  }).slice(0, 12)) {
     items.push(
       item({
         id: material.id,

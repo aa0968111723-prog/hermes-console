@@ -3,6 +3,7 @@ import { ApiError, WORKSPACE_OWNER, hash, redact } from "./security";
 import { get, list, put } from "./store";
 import { canonicalUrl } from "./inspiration/dedupe";
 import { wrapUntrusted } from "./untrusted";
+import { saveLinkedMaterial, sourceForRemoteUrl } from "./materials";
 
 export type InspirationPlatform =
   | "instagram"
@@ -114,7 +115,17 @@ export function ingestUrl(input: {
     sourceType: "user_url",
     saved: true,
   };
-  return put("inspiration", WORKSPACE_OWNER, item);
+  const saved = put("inspiration", WORKSPACE_OWNER, item);
+  saveLinkedMaterial({
+    owner: WORKSPACE_OWNER,
+    projectId: saved.projectId,
+    title: (saved.account || saved.platform).slice(0, 150),
+    url: saved.sourceUrl,
+    notes: saved.captionExcerpt || saved.analysis,
+    tags: saved.hashtags.slice(0, 10),
+    source: sourceForRemoteUrl(saved.sourceUrl, saved.platform),
+  });
+  return saved;
 }
 
 export function listInspiration(projectId?: string) {

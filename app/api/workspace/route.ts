@@ -2,7 +2,11 @@ import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
 import { list, put } from "@/lib/server/store";
-import type { Conversation, Material } from "@/lib/contracts";
+import type { Conversation } from "@/lib/contracts";
+import {
+  includeDuplicatesQuery,
+  listMaterials,
+} from "@/lib/server/materials";
 import { health } from "@/lib/server/hermes";
 import { capabilityFromHealth } from "@/lib/server/agents";
 import { memoryShareStatus } from "@/lib/server/memory";
@@ -11,10 +15,13 @@ export const GET = route(async (req) => {
   const owner = authenticate(req);
   const connection = await health(owner);
   const capabilities = capabilityFromHealth(connection);
+  const url = new URL(req.url);
   return respond({
     conversations: list<Conversation>("conversation", owner),
     projects: list("project", owner),
-    materials: list<Material>("material", owner),
+    materials: listMaterials(owner, {
+      includeDuplicates: includeDuplicatesQuery(url),
+    }),
     imageInput: process.env.HERMES_IMAGE_INPUT === "true",
     memory: {
       status: capabilities.memory,

@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import {
@@ -8,9 +7,15 @@ import {
   respond,
   route,
 } from "@/lib/server/security";
-import { get, put } from "@/lib/server/store";
-import { filePath, material, saveUpload } from "@/lib/server/materials";
-import type { Material } from "@/lib/contracts";
+import { get } from "@/lib/server/store";
+import {
+  filePath,
+  includeDuplicatesQuery,
+  listMaterials,
+  material,
+  saveReference,
+  saveUpload,
+} from "@/lib/server/materials";
 export const runtime = "nodejs";
 const projectSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
 function verifyProject(owner: string, id: string) {
@@ -18,8 +23,16 @@ function verifyProject(owner: string, id: string) {
     throw new ApiError(404, "project_not_found", "專案不存在。");
 }
 export const GET = route(async (req) => {
-  const owner = authenticate(req),
-    id = z.string().uuid().parse(new URL(req.url).searchParams.get("id"));
+  const owner = authenticate(req);
+  const url = new URL(req.url);
+  const rawId = url.searchParams.get("id");
+  if (!rawId)
+    return respond({
+      materials: listMaterials(owner, {
+        includeDuplicates: includeDuplicatesQuery(url),
+      }),
+    });
+  const id = z.string().uuid().parse(rawId);
   const asset = material(owner, id);
   if (asset.kind === "reference") return respond({ material: asset });
   return new Response(new Uint8Array(await readFile(filePath(owner, id))), {
@@ -53,17 +66,8 @@ export const POST = route(async (req) => {
         "unsafe_link",
         "請貼上不含帳密的 HTTPS 來源連結。",
       );
-    const record: Material = {
-      ...body,
-      id: randomUUID(),
-      kind: "reference",
-      mime: null,
-      bytes: null,
-      createdAt: new Date().toISOString(),
-      rights: "reference_only",
-    };
     // Save a reference, never fetch an arbitrary user-supplied URL on this server.
-    return respond({ material: put("material", owner, record) }, 201);
+    return respond({ material: saveReference(owner, body) }, 201);
   }
   const projectId = projectSchema.parse(
     new URL(req.url).searchParams.get("projectId") || "personal",

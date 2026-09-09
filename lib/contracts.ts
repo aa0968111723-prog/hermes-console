@@ -159,6 +159,26 @@ export interface ResearchBundle {
   tamkang?: unknown;
   mapping?: unknown;
 }
+export type MaterialSourceType =
+  | "upload"
+  | "drive_fact"
+  | "inspiration"
+  | "line_export"
+  | "web_https"
+  | "unknown";
+export type MaterialSourceProvider =
+  | "google_drive"
+  | "sheets"
+  | "instagram"
+  | "pinterest"
+  | "local_inbox"
+  | "hermes_upload";
+export interface MaterialSource {
+  type: MaterialSourceType;
+  locator?: string;
+  provider?: MaterialSourceProvider;
+}
+export type MaterialDedupeStatus = "primary" | "duplicate" | "unscanned";
 export interface Material {
   id: string;
   projectId: string;
@@ -171,6 +191,18 @@ export interface Material {
   createdAt: string;
   rights: "reference_only" | "user_provided";
   notes: string;
+  source?: MaterialSource;
+  /** Super-set of `rights`; dual-write both during the transition. */
+  license?: string;
+  event?: string;
+  year?: number;
+  /** Roles / mascots / titles only — never real member names. */
+  people?: string[];
+  usage?: string[];
+  format?: string;
+  contentSha256?: string;
+  duplicateOf?: string | null;
+  dedupeStatus?: MaterialDedupeStatus;
 }
 export interface Health {
   checkedAt: string;
