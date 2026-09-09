@@ -2,44 +2,6 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
-## 進行中（2026-09-09）Grok 04 · Copywriting Agent
-
-- 基準 SHA：`5e245e79668390deef4ccfb012cee889588cb719`
-- 分支：`grok/copywriting-agent-2026-09-09`
-- 目標：文案契約（A／B／C、HOOK 結構、禁用詞、十個新生視角、UNKNOWN 地點），Hermes 可審核、不可發佈。
-- 使用者影響：工作區可「新生視角審核」與「請 Hermes 寫 A／B／C」；MCP `workspace_review_copy` 是規則審核，不是第二個腦。
-- 本輪不碰：`HermesConsole.tsx`、PR #10 / #30 / #76、`data/tamkang/`、`data/zenclub/`、正式部署、IG 發佈。
-
-### 讀到的現況
-
-- main tip：`5e245e7`。`socialDrafts` 只裁切使用者文字。Audience Twin 只有 5 個辯論角色，沒有 10 個大一新生反向思考。
-- Drive FACT：115-1 期初茶會「改變自己從靜定開始」2026/9/30 19:00–21:30，地點 UNKNOWN；期初演講「生命靈數」2026/10/7，地點 UNKNOWN；社博 9/10–11、9/14–17 文館左側。
-- 既有對外文案主標先講「靜定」，新生怕宗教的視角會滑掉。內部企劃有「法輪／輪迴」不得上 IG。
-
-### 本輪變更
-
-- `lib/server/copywriting/` 規則契約：渠道、lint、結構、10 twins、review。
-- MCP `workspace_review_copy`、`/api/copywriting`、工作區審核卡片。
-- Hermes `COPYWRITING_INSTRUCTION_PACK`；create intent 含 caption／文案。
-
-### 驗證
-
-- 標籤：`LOCAL_CONTRACT`。見 `tests/copywriting.test.ts`。
-- 非 `LIVE_EXTERNAL`。未發佈 IG。未部署。
-
-### 下一輪建議
-
-- 用 Drive 已確認事實產出茶會／社博 A／B／C 草稿並保存為 copy revision（仍不發佈）。
-- 表單說明與私訊邀約渠道接到招生 CRM。
-- 不要合併 #10。不要改 HermesConsole。
-
-### 阻塞
-
-- 茶會／演講地點 Drive 仍為待定 → UNKNOWN。
-- 無 Hermes 實機金鑰 → 不得宣稱 LIVE 文案生成通過。
-
----
-
 ## 完成（2026-09-09 20:45 TST）Codex · 手機底部安全區
 
 - 基準 SHA：`4003f482d6ee8961e635fba655d8196c97a39f24`
