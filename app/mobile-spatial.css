@@ -599,7 +599,7 @@
 @keyframes sheet-arrive {
   from {
     opacity: 0;
-    transform: translateY(16px) scale(0.99);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;

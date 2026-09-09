@@ -1,5 +1,26 @@
 # Codex 工程接續紀錄
 
+## 2026-09-09 — 空間工作區合併後的鍵盤與觸控相容性（UIUX 分工）
+
+- 延續 `codex/mobile-keyboard-inset`／草稿 PR #74；本輪基準 main：`0168545976d917ed60d3805529da90348c7abce4`，已由其他操作者合併 #72 的 mobile spatial workspace。同步前核對 AGENTS、README、package/lock、CI、前端、未結 PR 與本紀錄；Grok #73/#71 仍處理 uncertain retry，本輪不修改其資料或後端契約。
+- 以 merge commit `f172a621f90384d9e7fae203fbc58f723c1f4c48` 把最新空間介面整合進 #74。手機導覽由四鍵改為含 Hermes 核心的五鍵浮動 dock；既有 `visualViewport` 鍵盤判斷仍只在輸入框聚焦且高度明顯減少時收起 dock，無需複製 #72 的元件。
+- 合併後 CI `34303364838` 重現 main CI `34303050648` 的真實 UI 回歸：任務用量「查看明細」在抽屜進場動畫期間不足 44px。根因是 #72 的 `sheet-arrive` 使用 `scale(0.99)`，將任何精確 44px 觸控目標暫時縮小；不是等待時間或放寬測試即可解決的假警報。
+- 修復為用量 summary 明確採 44px inline-flex 觸控盒，並將抽屜進場改成只做 16px 位移與透明度，不再縮放實際可點區域。保留空間層次、380ms 轉場與既有 reduced-motion 停用規則；無 WebGL、新依賴、API、假狀態或後端改動。功能 SHA：`cf28cccb8383f977af87569c4f6f54a40b6277b3`。
+- 本地 lint、build、secrets、audit 通過；`node --import tsx --test --test-concurrency=1 tests/*.test.ts` 共 262 項，259 通過、3 項條件跳過、零失敗。typecheck 與 build 平行執行時 `.next/types` 被 build 重建而短暫報缺檔，等待 build 完成後單獨重跑 `npm run typecheck` 通過；此屬本地命令競態，不計為產品通過證據。
+- 最終 CI `34304168376` 全通過，包含原始 npm test、lint、typecheck、build、secrets、audit、Chrome UI、chat、workbench、gateway 與 artifact。下載 artifact `10086124935` 後親自檢視 `composer-keyboard-390x420.png` 與 `task-usage-partial-390x420.png`：新版五鍵 dock 在鍵盤開啟時完全退出、送出鍵位於 420px 可視範圍；用量明細入口可讀可點。14 個 Axe 畫面零 violations；fixture LCP 72ms、CLS 0.0000803 只代表單次 CI。
+- fixture 與 visual viewport 模擬不是 iOS／Android 實體裝置，也未驗證正式 Hermes／MCP。下一輪優先檢查空間 radial sheet 在小螢幕、放大文字與安全區的可達性；Grok 可續修 uncertain retry／memory provenance，不需修改本輪樣式。
+- 不合併、不部署、不呼叫正式外部服務。
+
+## 2026-09-09 — 手機軟鍵盤開啟時收起底部導覽（UIUX 分工）
+
+- 基準 main：`b626733e780b90ed5af28bbb6fb99861da04f75c`；分支 `codex/mobile-keyboard-inset`，草稿 PR #74。開始前已同步並核對 AGENTS、README、package/lock、CI、現有前端、未結 PR 與本紀錄；main 新提交只涉及研究文件與淡江資料。#72 是另一位開發者的大型空間視覺分支，Grok 的重試工作也在獨立 PR，本輪不覆蓋兩者。
+- 問題：手機軟鍵盤縮小 `visualViewport` 時，固定四鍵底部導覽仍占據約 58px；在短可視區會壓縮聊天輸入區。既有短視窗測試只調整 layout viewport，沒有重現 layout viewport 與 visual viewport 分離的手機鍵盤情境。
+- 實作：沿用既有 `visualViewport` 高度同步，在輸入框確實聚焦、寬度未明顯改變、可視高度減少至少 96px 且頁面未縮放時，於根節點標記鍵盤狀態；手機版只在該狀態收起底部導覽並移除其保留空間。鍵盤關閉、焦點離開或元件卸載會復原。監聽 `resize`、`scroll`、視窗尺寸及焦點事件，以 animation frame 合併更新。
+- 驗收：新增 390×844 layout viewport／390×420 visual viewport 的真實 Chrome 旅程；確認狀態標記、底部導覽隱藏、送出鍵位於 420px 可視範圍，以及還原後導覽重新出現。已下載並親自檢視 `composer-keyboard-390x420.png`：輸入區與送出鍵完整可見，導覽沒有遮擋。
+- 本地 `npm run lint`、`npm run typecheck`、`npm run build`、`npm run check:secrets`、`npm audit --omit=dev` 通過；`node --import tsx --test --test-concurrency=1 tests/*.test.ts` 共 252 項，250 通過、2 項因缺少 Postgres 外部條件跳過，零失敗。本機缺 Chrome，browser gate 由 GitHub Actions 真實 Chrome 執行。
+- 最終程式 SHA：`cef473997c741e9d5d850c11ea9d8fc66ced5259`；CI `34299787581` 全通過，包含 lint、typecheck、252 項測試、build、secrets、audit、UI、chat、workbench 與 gateway。11 個 Axe 受測畫面零 violations；fixture 單次 LCP 100ms、CLS 0.0000803，不作真機效能承諾。
+- 本輪是功能性響應式 UI 修復，未加入 3D、依賴、動畫、API 或後端變更。`visualViewport` 由瀏覽器模擬，仍需 iOS／Android 實體鍵盤與安全區驗證；沒有正式 Hermes／MCP 外部整合證據。下一輪優先檢查 PR #72 解衝後的手機輸入區相容性，再處理離線／錯誤恢復的可見操作。
+
 ## 2026-09-09 — 長任務需求摘要與詳情回頂（UIUX 分工）
 
 - 延續 `codex/compact-task-usage`／草稿 PR #69；本輪基準 main：`c937a7cb5951f162132194e9d33f791bc409267a`，基準 CI `34279144820` 通過。用 merge commit `da53675bd108aa859716c2aae644c070ded3ceee` 同步最新 main；新增內容僅為淡江知識資料。本輪核對 AGENTS、README、package/lock、CI、前端、未結 PR 與本紀錄，避開 Grok #70/#68/#65 的 uncertain retry 與記憶資料工作。

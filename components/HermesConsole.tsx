@@ -384,17 +384,60 @@ export default function HermesConsole() {
   }, [text, auth, nav]);
   useEffect(() => {
     const viewport = window.visualViewport;
-    const update = () =>
+    let baseline = {
+      width: viewport?.width || window.innerWidth,
+      height: viewport?.height || window.innerHeight,
+    };
+    let previousWidth = baseline.width;
+    let frame = 0;
+    const update = () => {
+      const current = {
+        width: viewport?.width || window.innerWidth,
+        height: viewport?.height || window.innerHeight,
+      };
+      const composerFocused = document.activeElement === input.current;
+      const widthChanged = Math.abs(current.width - previousWidth) > 16;
+      if (
+        !composerFocused ||
+        widthChanged ||
+        current.height > baseline.height
+      ) {
+        baseline = current;
+      }
+      previousWidth = current.width;
       document.documentElement.style.setProperty(
         "--app-height",
-        (viewport?.height || window.innerHeight) + "px",
+        current.height + "px",
       );
+      const keyboardOpen =
+        composerFocused &&
+        !widthChanged &&
+        Math.max(baseline.height, window.innerHeight) - current.height >= 96 &&
+        (viewport?.scale || 1) <= 1.01;
+      if (keyboardOpen) {
+        document.documentElement.dataset.composerKeyboard = "open";
+      } else {
+        delete document.documentElement.dataset.composerKeyboard;
+      }
+    };
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    };
     update();
-    viewport?.addEventListener("resize", update);
-    window.addEventListener("resize", update);
+    viewport?.addEventListener("resize", schedule);
+    viewport?.addEventListener("scroll", schedule);
+    window.addEventListener("resize", schedule);
+    document.addEventListener("focusin", schedule);
+    document.addEventListener("focusout", schedule);
     return () => {
-      viewport?.removeEventListener("resize", update);
-      window.removeEventListener("resize", update);
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener("resize", schedule);
+      viewport?.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      document.removeEventListener("focusin", schedule);
+      document.removeEventListener("focusout", schedule);
+      delete document.documentElement.dataset.composerKeyboard;
     };
   }, []);
   useEffect(() => {
