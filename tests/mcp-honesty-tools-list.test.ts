@@ -78,6 +78,8 @@ test("past bug: tools/list done must not stay awaiting_authorization", () => {
   assert.match(live.detail, /已列出工具/);
   assert.doesNotMatch(live.detail, /尚未完成 initialize/);
   assert.equal(live.mapping.tku_courses, "getCourses");
+  assert.equal(live.mapping.tku_news, "getBulletins");
+  assert.equal(live.mapping.tku_student_life, "getToDo");
   assert.notEqual(live.state, "available");
 });
 
@@ -87,11 +89,17 @@ test("past bug: researchBundle and integrations read registry tools/list", () =>
     state: string;
     detail: string;
   };
-  const mapping = bundle.mapping as { tku_courses: string | null };
+  const mapping = bundle.mapping as {
+    tku_courses: string | null;
+    tku_news: string | null;
+    tku_student_life: string | null;
+  };
   assert.equal(tamkang.state, "partial");
   assert.match(tamkang.detail, /已列出工具/);
   assert.doesNotMatch(tamkang.detail, /尚未完成 initialize／tools\/list/);
   assert.equal(mapping.tku_courses, "getCourses");
+  assert.equal(mapping.tku_news, "getBulletins");
+  assert.equal(mapping.tku_student_life, "getToDo");
   assert.equal(bundle.executed, false);
 
   const snapshot = integrationsSnapshot("workspace", health);

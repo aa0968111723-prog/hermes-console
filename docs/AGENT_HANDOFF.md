@@ -2,6 +2,15 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-10 07:25 TST）Grok · REAL-TEST L3
+
+- LIVE 344 曾 `/api/ready` timeout、`/api/workspace` 502，隨後 ready 恢復 200。#99 store 仍未部署，P1 OPEN。
+- Funnel 報名表 `https://forms.gle/Xs4PXyWKQW5ob29z6` LIVE 200（forms `wired_ok` 對 public_url 成立）。
+- 續 #100：live tools/list 的 `getBulletins`／`getToDo` 原本對不上 HINTS，researchBundle mapping 幾乎全 null。補 `/bulletin/` `/todo/`。
+- Zeabur MCP list-projects 此輪 `ERROR_INVALID_TOKEN`，無法看部署；未部署、未改正式環境。
+
+---
+
 ## 進行中（2026-09-10 07:10 TST）Grok · REAL-TEST L2 MCP honesty
 
 - 基準 SHA：`049b360fc9ddd3642db5586d5a4bd668271ce9b3`（origin/main）

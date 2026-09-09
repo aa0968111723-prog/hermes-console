@@ -22,7 +22,7 @@ export type TamkangCapability = (typeof TAMKANG_CAPABILITIES)[number];
 
 const HINTS: Record<TamkangCapability, RegExp[]> = {
   tku_search: [/search/i, /query/i, /find/i],
-  tku_news: [/news/i, /announcement/i],
+  tku_news: [/news/i, /announcement/i, /bulletin/i],
   tku_calendar: [/calendar/i],
   tku_events: [/event/i],
   tku_clubs: [/club/i, /society/i],
@@ -31,7 +31,7 @@ const HINTS: Record<TamkangCapability, RegExp[]> = {
   tku_map: [/map/i],
   tku_transport: [/transport/i, /bus/i, /mrt/i, /traffic/i],
   tku_facilities: [/facilit/i, /building/i, /venue/i],
-  tku_student_life: [/student.?life/i, /campus.?life/i],
+  tku_student_life: [/student.?life/i, /campus.?life/i, /todo/i],
   tamsui_places: [/tamsui.*place/i, /danshui/i, /place/i],
   tamsui_food: [/food/i, /restaurant/i, /eat/i],
   tamsui_events: [/tamsui.*event/i, /festival/i],
