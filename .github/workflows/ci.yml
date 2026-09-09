@@ -25,8 +25,13 @@ jobs:
       - run: npm audit --omit=dev
       - name: Install Playwright browsers (chromium + webkit, retry)
         run: |
+          # Disable Google Chrome apt source — its Packages.gz Hash Sum
+          # mismatch breaks --with-deps even when installing chromium only.
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list \
+            /etc/apt/sources.list.d/google-chrome.list.save \
+            /etc/apt/sources.list.d/google.list 2>/dev/null || true
           for i in 1 2 3; do
-            npx playwright install chromium webkit && exit 0
+            npx playwright install --with-deps chromium webkit && exit 0
             echo "playwright install failed (attempt $i); sleeping 15s"
             sleep 15
           done
