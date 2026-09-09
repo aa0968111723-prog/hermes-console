@@ -1,5 +1,16 @@
 # Codex 工程接續紀錄
 
+## 2026-09-09 — 空間工作區合併後的鍵盤與觸控相容性（UIUX 分工）
+
+- 延續 `codex/mobile-keyboard-inset`／草稿 PR #74；本輪基準 main：`0168545976d917ed60d3805529da90348c7abce4`，已由其他操作者合併 #72 的 mobile spatial workspace。同步前核對 AGENTS、README、package/lock、CI、前端、未結 PR 與本紀錄；Grok #73/#71 仍處理 uncertain retry，本輪不修改其資料或後端契約。
+- 以 merge commit `f172a621f90384d9e7fae203fbc58f723c1f4c48` 把最新空間介面整合進 #74。手機導覽由四鍵改為含 Hermes 核心的五鍵浮動 dock；既有 `visualViewport` 鍵盤判斷仍只在輸入框聚焦且高度明顯減少時收起 dock，無需複製 #72 的元件。
+- 合併後 CI `34303364838` 重現 main CI `34303050648` 的真實 UI 回歸：任務用量「查看明細」在抽屜進場動畫期間不足 44px。根因是 #72 的 `sheet-arrive` 使用 `scale(0.99)`，將任何精確 44px 觸控目標暫時縮小；不是等待時間或放寬測試即可解決的假警報。
+- 修復為用量 summary 明確採 44px inline-flex 觸控盒，並將抽屜進場改成只做 16px 位移與透明度，不再縮放實際可點區域。保留空間層次、380ms 轉場與既有 reduced-motion 停用規則；無 WebGL、新依賴、API、假狀態或後端改動。功能 SHA：`cf28cccb8383f977af87569c4f6f54a40b6277b3`。
+- 本地 lint、build、secrets、audit 通過；`node --import tsx --test --test-concurrency=1 tests/*.test.ts` 共 262 項，259 通過、3 項條件跳過、零失敗。typecheck 與 build 平行執行時 `.next/types` 被 build 重建而短暫報缺檔，等待 build 完成後單獨重跑 `npm run typecheck` 通過；此屬本地命令競態，不計為產品通過證據。
+- 最終 CI `34304168376` 全通過，包含原始 npm test、lint、typecheck、build、secrets、audit、Chrome UI、chat、workbench、gateway 與 artifact。下載 artifact `10086124935` 後親自檢視 `composer-keyboard-390x420.png` 與 `task-usage-partial-390x420.png`：新版五鍵 dock 在鍵盤開啟時完全退出、送出鍵位於 420px 可視範圍；用量明細入口可讀可點。14 個 Axe 畫面零 violations；fixture LCP 72ms、CLS 0.0000803 只代表單次 CI。
+- fixture 與 visual viewport 模擬不是 iOS／Android 實體裝置，也未驗證正式 Hermes／MCP。下一輪優先檢查空間 radial sheet 在小螢幕、放大文字與安全區的可達性；Grok 可續修 uncertain retry／memory provenance，不需修改本輪樣式。
+- 不合併、不部署、不呼叫正式外部服務。
+
 ## 2026-09-09 — 手機軟鍵盤開啟時收起底部導覽（UIUX 分工）
 
 - 基準 main：`b626733e780b90ed5af28bbb6fb99861da04f75c`；分支 `codex/mobile-keyboard-inset`，草稿 PR #74。開始前已同步並核對 AGENTS、README、package/lock、CI、現有前端、未結 PR 與本紀錄；main 新提交只涉及研究文件與淡江資料。#72 是另一位開發者的大型空間視覺分支，Grok 的重試工作也在獨立 PR，本輪不覆蓋兩者。
