@@ -189,6 +189,35 @@ test("top view numbers walking-flow stops and shows a metre scale from real boun
   assert.equal(iso.marks.filter((mark) => mark.id.startsWith("entry-stop-")).length, 3);
 });
 
+test("tabletop props keep parentId and zone names stay on the plan", () => {
+  const layout = parsePlanformLayout({
+    ...fixture,
+    objects: [
+      ...fixture.objects,
+      {
+        id: "qr-1",
+        kind: "qr",
+        label: "報名 QR",
+        parentId: "table-1",
+        surface: "tabletop",
+        x: 1.2,
+        z: 1,
+        width: 0.12,
+        depth: 0.12,
+        height: 0.02,
+        rotationDeg: 0,
+      },
+    ],
+  });
+  const qr = layout?.objects.find((item) => item.id === "qr-1");
+  assert.equal(qr?.parentId, "table-1");
+  assert.equal(planformKindLabel("qr"), "QR");
+  const frame = planformFrame(layout!, "top");
+  const ids = frame.marks.filter((mark) => mark.kind === "object").map((mark) => mark.id);
+  assert.ok(ids.indexOf("table-1") < ids.indexOf("qr-1"), "桌上小物畫在桌子上面");
+  assert.ok(frame.marks.some((mark) => mark.id === "checkin-label" && mark.text === "報到"));
+});
+
 test("layoutFromTask keeps latest geometry and later confirm status", () => {
   const event = (id: string, name: string, result: unknown): TaskEvent =>
     ({

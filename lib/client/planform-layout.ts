@@ -22,6 +22,8 @@ export type PlanformObject = {
   depth: number;
   height: number;
   rotationDeg: number;
+  parentId: string | null;
+  surface: string | null;
 };
 
 export type PlanformZone = {
@@ -235,6 +237,8 @@ function parseObject(
     depth,
     height: Math.max(0, finite(value.height) ?? 0),
     rotationDeg: finite(value.rotationDeg, 360) ?? 0,
+    parentId: text(value.parentId, 120),
+    surface: text(value.surface, 20),
   };
 }
 
@@ -273,6 +277,8 @@ function parseGroup(value: unknown, index: number): PlanformObject | null {
     depth,
     height: Math.max(0, finite(value.itemHeight) ?? 0),
     rotationDeg: finite(value.rotationDeg, 360) ?? 0,
+    parentId: null,
+    surface: "floor",
   };
 }
 
@@ -753,8 +759,20 @@ export function planformFrame(
         d: "",
         points: poly(rectPoints(zone.x, zone.z, zone.width, zone.depth, 0)),
       });
+      marks.push({
+        id: zone.id + "-label",
+        kind: "label",
+        label: zone.name,
+        fill: "#356b45",
+        d: "",
+        x: zone.x,
+        z: zone.z - zone.depth / 2 + 0.22,
+        text: zone.name.slice(0, 6),
+      });
     }
-    for (const object of layout.objects) {
+    const floorObjects = layout.objects.filter((item) => !item.parentId);
+    const tabletopObjects = layout.objects.filter((item) => item.parentId);
+    for (const object of [...floorObjects, ...tabletopObjects]) {
       marks.push({
         id: object.id,
         kind: "object",
