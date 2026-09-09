@@ -2,6 +2,44 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 完成（2026-09-09 23:55 TST）Grok · uncertain 重試分支實作（相對 main 5e245e7）
+
+- 基準 SHA：`5e245e79668390deef4ccfb012cee889588cb719`
+- 分支：`grok/uncertain-retry-apply-5e245e7-2026-09-09`
+- 目標：把 #65 只留下的 patch／skip 測試真正套進 `HermesConsole.tsx`，uncertain 與 failed/cancelled 對齊。
+- 使用者影響：串流中斷後可「確認並可重試」（同對話）或「建立重試分支（保留原紀錄）」；找不到對應訊息時顯示錯誤，不宣稱遠端已停止。
+- 本輪不碰：`app/mobile-spatial.css`、`tests/mobile-spatial.ts`、PR #76、#10 / #30、`data/tamkang/`、靈感板、Drive 知識、正式部署。
+
+### 讀到的現況
+
+- main tip：`5e245e7`。#65 已合併，但 `retryBranchFromTask` 不在 UI；契約測試會 skip。
+- Codex #76 草稿處理手機安全區；Grok 02 靈感語言進行中，明確不碰 `HermesConsole.tsx`。
+- 過時重試 PR：#73 / #71 / #70 / #68。過時記憶 PR：#62 / #60 / #56 / #55 / #42。應關閉，勿重做。
+
+### 本輪變更
+
+- `retryBranchFromTask` + 訊息列／composer／任務面板三處入口。
+- composer 兩顆 44px 按鈕；`branch()` 可指定來源對話，避免跨對話誤用 `activeConv`。
+- `tests/uncertain-retry-branch-ui.test.ts` 改為硬契約，缺實作即失敗。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`。`node --import tsx --test tests/uncertain-retry-branch-ui.test.ts` 通過。
+- 非 `LIVE_EXTERNAL`。未跑 Playwright；CI 瀏覽器旅程為準。
+- 本機 `pg` 套件不完整，acknowledge／stream 測試無法在此環境當 LIVE 證據。
+
+### 下一輪建議
+
+- 關閉過時 #73/#71/#70/#68/#62/#60/#56/#55/#42。
+- 接續禪學社 Drive 知識快照（`lib/server/zenclub` 未進 main）或 visual concepts MCP。
+- 不要合併 #10。不要改 Codex 安全區 CSS。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰 → 不得宣稱 LIVE 整合通過。
+
+---
+
 ## 完成（2026-09-09 20:45 TST）Codex · 手機底部安全區
 
 - 基準 SHA：`4003f482d6ee8961e635fba655d8196c97a39f24`
@@ -16,7 +54,7 @@
 
 ---
 
-## 進行中（2026-09-09 02:15 TST）Grok 團隊 · uncertain 重試分支 UI
+## 已由後續輪次完成（2026-09-09 02:15 TST）Grok 團隊 · uncertain 重試分支 UI（當時僅 patch）
 
 - 基準 SHA：`f819b48fbb9a5d107fd96c640abc29e503021919`
 - 分支：`grok/uncertain-retry-branch-v2-2026-09-09`
