@@ -1,7 +1,21 @@
 import type { DiscoveryItem, Health } from "../contracts";
-import { WORKSPACE_OWNER } from "./security";
+import { ApiError, WORKSPACE_OWNER } from "./security";
 import { list, put } from "./store";
 import { runtimeEnv } from "./credentials";
+
+const STORE_UNAVAILABLE = {
+  code: "store_unavailable" as const,
+  message: "儲存庫無法使用。",
+};
+
+function storeOp<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(503, STORE_UNAVAILABLE.code, STORE_UNAVAILABLE.message);
+  }
+}
 
 export type AgentRole =
   | "general"
@@ -187,19 +201,46 @@ export function publicProfile(profile: AgentProfile): AgentProfile {
 }
 
 export function listAgents(): AgentProfile[] {
-  const stored = list<AgentProfile>("agent_profile", WORKSPACE_OWNER);
+  const stored = storeOp(() =>
+    list<AgentProfile>("agent_profile", WORKSPACE_OWNER),
+  );
   const defaults = defaultProfiles();
   return defaults.map((profile) => {
     const existing = stored.find((item) => item.id === profile.id);
-    return existing ? { ...profile, ...existing, credentialReference: profile.credentialReference } : profile;
+    return existing
+      ? { ...profile, ...existing, credentialReference: profile.credentialReference }
+      : profile;
   });
+}
+
+export function listAgentsBestEffort(): {
+  agents: AgentProfile[];
+  degraded: boolean;
+  error?: { code: "store_unavailable"; message: string };
+} {
+  try {
+    return { agents: listAgents(), degraded: false };
+  } catch (error) {
+    if (error instanceof ApiError && error.code !== "store_unavailable")
+      throw error;
+    return {
+      agents: defaultProfiles(),
+      degraded: true,
+      error: STORE_UNAVAILABLE,
+    };
+  }
 }
 
 export function saveAgentDiscovery(id: string, patch: Partial<AgentProfile>) {
   const current = listAgents().find((item) => item.id === id);
   if (!current) return null;
-  const next = { ...current, ...patch, id, credentialReference: current.credentialReference };
-  return put("agent_profile", WORKSPACE_OWNER, next);
+  const next = {
+    ...current,
+    ...patch,
+    id,
+    credentialReference: current.credentialReference,
+  };
+  return storeOp(() => put("agent_profile", WORKSPACE_OWNER, next));
 }
 
 export function brainVisible(profile: AgentProfile) {
