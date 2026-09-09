@@ -257,3 +257,35 @@ export const EMPTY_USAGE: Usage = {
   providerCost: null,
   toolCost: null,
 };
+
+/** Recruitment funnel read model (pure derivation; zero PII / no headcounts). */
+export type FunnelStageId = "forms" | "sheets" | "roster" | "funnel" | "attendance";
+export type FunnelStageStatus =
+  | "wired_ok"
+  | "wired_redacted"
+  | "missing"
+  | "degraded"
+  | "unknown";
+export type FunnelLane = "FACT" | "INSPIRATION" | "redacted" | "none";
+export type RecruitmentFunnelStage = {
+  id: FunnelStageId;
+  status: FunnelStageStatus;
+  lane: FunnelLane;
+  pathKeys?: string[];
+  notes?: string;
+};
+export type RecruitmentFunnelRead = {
+  contractVersion: 1;
+  asOf: string;
+  degraded?: boolean;
+  stages: RecruitmentFunnelStage[];
+  inspirationSheets?: {
+    registryCount: number;
+    lastSync?: { read: number; failed: number; skipped: number; at?: string };
+  };
+  redaction: {
+    rosterRows: "omitted";
+    formReplies: "omitted";
+    attendanceRows: "omitted";
+  };
+};
