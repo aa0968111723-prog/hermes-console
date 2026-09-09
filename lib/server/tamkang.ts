@@ -1,4 +1,5 @@
 import { runtimeEnv } from "./credentials";
+import { getMcp } from "./mcp-registry";
 
 export const TAMKANG_CAPABILITIES = [
   "tku_search",
@@ -118,6 +119,20 @@ export function tamkangStatus(input?: {
     mapping: mapTamkangTools([]),
     fallback: "web_research",
   };
+}
+
+/** Prefer MCP registry tools/list over the unprobed env-only default. */
+export function liveTamkangStatus() {
+  const entry = getMcp("tku");
+  if (!entry)
+    return tamkangStatus({
+      reachable: runtimeEnv("TKU_MCP_URL") ? false : undefined,
+    });
+  return tamkangStatus({
+    reachable: entry.status === "failed" ? false : undefined,
+    tools: entry.tools,
+    verifiedRead: entry.status === "verified",
+  });
 }
 
 export function unknownMark(value: string | null | undefined) {

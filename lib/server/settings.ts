@@ -16,7 +16,7 @@ import {
   type CredentialValues,
 } from "./credentials";
 import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
-import { tamkangStatus } from "./tamkang";
+import { liveTamkangStatus } from "./tamkang";
 import { liveGalleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
 import { planformStatus } from "./planform";
@@ -262,19 +262,6 @@ export function saveCredentials(input: z.infer<typeof credentialsInput>) {
   const patch = validatePatch(raw);
   saveVaultCredentials(patch, clear as CredentialKey[] | undefined);
   return publicSettings();
-}
-
-function liveTamkangStatus() {
-  const entry = getMcp("tku");
-  if (!entry)
-    return tamkangStatus({
-      reachable: runtimeEnv("TKU_MCP_URL") ? false : undefined,
-    });
-  return tamkangStatus({
-    reachable: entry.status === "failed" ? false : undefined,
-    tools: entry.tools,
-    verifiedRead: entry.status === "verified",
-  });
 }
 
 export async function testXunheConnection() {

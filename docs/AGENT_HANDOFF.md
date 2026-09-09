@@ -2,6 +2,19 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-10 07:10 TST）Grok · REAL-TEST L2 MCP honesty
+
+- 基準 SHA：`049b360fc9ddd3642db5586d5a4bd668271ce9b3`（origin/main）
+- 分支：`grok/fix-tku-mcp-honesty-2026-09-10`
+- LIVE 344：`/api/ready` 200 postgres；POST `/api/conversations` 201 立刻 GET 200（P1 store 症狀目前未復現，#99 未合併仍 OPEN）；`/api/inspiration` 523 筆 0 個 null；漏斗 `wired_ok` 為 catalog 聲明（forms notes=`public_form_url_claims_only`）；手機 composer `data-composer-keyboard` CSS 已在正式包。
+- 115-1 期初活動 chat：POST `/api/chat` 202 → task completed，回官方行事曆 + 知識庫摘錄；**未**走 TKU MCP tools/call。
+- P1 LIVE：`GET /api/mcp-registry` Tamkang `partial` tools=`getToDo,getBulletins,getCourses`（initialize+tools/list 已成功），但 `/api/integrations` 與 researchBundle 仍 `awaiting_authorization`／「尚未完成 initialize／tools/list」。
+- 修復：`liveTamkangStatus()` 讀 registry；integrations／researchBundle 共用。Regression：`tests/mcp-honesty-tools-list.test.ts`。
+- 不碰：#10／#30／#4、正式部署、#99 store 分支。
+- 下一輪：合併部署 #99 後再壓測 201/404；本 PR 部署後重測 integrations／chat bundle 應為 `partial`。
+
+---
+
 ## 完成（2026-09-09 20:45 TST）Codex · 手機底部安全區
 
 - 基準 SHA：`4003f482d6ee8961e635fba655d8196c97a39f24`

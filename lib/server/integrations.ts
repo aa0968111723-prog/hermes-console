@@ -3,8 +3,8 @@ import { list } from "./store";
 import { canvaStatus } from "./canva";
 import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
-import { tamkangStatus } from "./tamkang";
-import { galleyStatus } from "./galley";
+import { liveTamkangStatus } from "./tamkang";
+import { galleyStatus, liveGalleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
 import { planformStatus } from "./planform";
 import { lumenStatus } from "./lumen";
@@ -61,7 +61,7 @@ export function integrationsSnapshot(
       id: "tku",
       name: "淡江 MCP",
       pattern: /tku|tamkang|tronclass|campus|tamsui/i,
-      detail: tamkangStatus().detail,
+      detail: liveTamkangStatus().detail,
       requirements: ["連線設定或 TKU_MCP_URL／TKU_MCP_TOKEN", "實際 tools/list 驗證"],
     },
     {
@@ -216,8 +216,8 @@ export function integrationsSnapshot(
       requirements: d.requirements,
     } satisfies Integration;
   });
-  const tku = tamkangStatus();
-  const galley = galleyStatus();
+  const tku = liveTamkangStatus();
+  const galley = liveGalleyStatus();
   const ig = instagramPublishStatus();
   const canva = bestEffort(
     () => canvaStatus(owner),
@@ -234,6 +234,11 @@ export function integrationsSnapshot(
     if (item.id === "tku") {
       item.state = tku.state as IntegrationState;
       item.detail = tku.detail;
+      const listed = (registry.find((entry) => entry.id === "tku")?.tools || [])
+        .map((tool) => tool.name)
+        .filter(Boolean);
+      if (listed.length)
+        item.tools = [...new Set([...item.tools, ...listed])];
     }
     if (item.id === "galley") {
       item.state = galley.state as IntegrationState;
