@@ -8,6 +8,7 @@ import {
 } from "@/lib/server/inspiration/visual-language";
 import { Ban, ExternalLink, Image, Link2, Sparkles } from "lucide-react";
 import RecruitmentTruthNotice from "@/components/help/RecruitmentTruthNotice";
+import { RecruitmentFunnelFold } from "@/components/help/RecruitmentFunnelCard";
 
 const KIND_LABEL: Record<VisualPattern["kind"], string> = {
   design: "畫面",
@@ -53,6 +54,7 @@ export default function InspirationBoard({
       </div>
 
       <RecruitmentTruthNotice />
+      <RecruitmentFunnelFold />
 
       <article className="language-problem">
         <p className="eyebrow">目前最大問題</p>

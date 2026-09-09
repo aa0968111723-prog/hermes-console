@@ -2707,3 +2707,166 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
     animation: none !important;
   }
 }
+
+/* P0′ funnel readonly UI — Help card + Inspiration fold (≤430 stack; no headcounts) */
+.funnel-readonly-card {
+  max-width: 430px;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid #d5e6cf;
+  border-radius: 14px;
+  background: #f7faf5;
+  color: var(--color-primary, #356b45);
+}
+.funnel-readonly-card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.funnel-readonly-hint {
+  margin: 0 0 10px;
+  max-width: 430px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.funnel-readonly-fold {
+  max-width: 430px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 1px solid #d5e6cf;
+  border-radius: 12px;
+  background: #f3f8ef;
+  color: var(--color-primary, #356b45);
+  font-size: 12px;
+}
+.funnel-readonly-fold-summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+}
+.funnel-readonly-fold-summary::-webkit-details-marker { display: none; }
+.funnel-readonly-fold[open] .funnel-readonly-fold-summary {
+  border-bottom: 1px solid #d5e6cf;
+}
+.funnel-readonly-fold .funnel-stages-block {
+  padding: 8px 12px 12px;
+}
+.funnel-unavailable {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #f3eee6;
+  color: #7a5a28;
+  font-size: 12px;
+  font-weight: 600;
+}
+.funnel-stages-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 430px;
+}
+.funnel-stages-list--skeleton .funnel-stage-row {
+  opacity: 0.72;
+}
+.funnel-stage-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "dot id status lane"
+    ". notes notes notes";
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: center;
+  max-width: 430px;
+}
+.funnel-status-dot {
+  grid-area: dot;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #97a39a;
+}
+.funnel-status-dot--ok { background: #3f8c55; }
+.funnel-status-dot--redacted { background: #6f8f7a; }
+.funnel-status-dot--degraded { background: #d29a35; }
+.funnel-status-dot--missing,
+.funnel-status-dot--unknown { background: #97a39a; }
+.funnel-stage-id {
+  grid-area: id;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+.funnel-stage-id strong { font-size: 13px; }
+.funnel-stage-id small {
+  color: var(--muted, #6b7a70);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+}
+.funnel-status-label {
+  grid-area: status;
+  font-size: 11px;
+  color: #4d5c53;
+  white-space: nowrap;
+}
+.funnel-lane-chip {
+  grid-area: lane;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  background: #eef4ea;
+  color: #356b45;
+  white-space: nowrap;
+}
+.funnel-lane-chip--fact { background: #e5f0e8; color: #2f6b40; }
+.funnel-lane-chip--inspiration { background: #eef2f8; color: #3d5a80; }
+.funnel-lane-chip--redacted { background: #ececec; color: #5c5c5c; }
+.funnel-lane-chip--none { background: #f0f2f0; color: #6b7a70; }
+.funnel-stage-notes {
+  grid-area: notes;
+  font-size: 10px;
+  color: var(--muted, #6b7a70);
+  overflow-wrap: anywhere;
+}
+@media (min-width: 720px) {
+  .funnel-stages-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .funnel-stage-row {
+    flex: 1 1 180px;
+  }
+}
+@media (max-width: 430px) {
+  .funnel-readonly-card,
+  .funnel-readonly-fold,
+  .funnel-stages-list,
+  .funnel-stage-row,
+  .funnel-readonly-hint {
+    max-width: 100%;
+  }
+  .funnel-stages-list {
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .funnel-readonly-card,
+  .funnel-readonly-fold,
+  .funnel-readonly-card *,
+  .funnel-readonly-fold * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
