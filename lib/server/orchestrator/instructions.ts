@@ -15,7 +15,9 @@ import {
   PLANFORM_INSTRUCTION_PACK,
   TAMKANG_INSTRUCTION_PACK,
   WORKSPACE_INSTRUCTION_PACK,
+  ZENCLUB_INSTRUCTION_PACK,
 } from "../hermes";
+import { needsZenclubKnowledge } from "../zenclub";
 import { isFastTier, type IntentTier } from "./intent";
 
 export type InstructionPackId =
@@ -23,6 +25,7 @@ export type InstructionPackId =
   | "base"
   | "workspace"
   | "tamkang"
+  | "zenclub"
   | "galley"
   | "inspiration"
   | "audience"
@@ -60,6 +63,10 @@ export function composeTaskInstructions(input: {
 
   const packs: InstructionPackId[] = ["base", "workspace"];
   const parts = [BASE_CREATIVE_INSTRUCTIONS, WORKSPACE_INSTRUCTION_PACK];
+  if (needsZenclubKnowledge(input.text) || needsZenclubKnowledge(input.goal.goal)) {
+    parts.push(ZENCLUB_INSTRUCTION_PACK);
+    packs.push("zenclub");
+  }
   if (input.goal.requiresTamkang) {
     parts.push(TAMKANG_INSTRUCTION_PACK);
     packs.push("tamkang");

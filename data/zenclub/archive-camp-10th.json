@@ -1,0 +1,151 @@
+{
+  "snapshotAt": "2026-09-10T00:20:00+08:00",
+  "live": false,
+  "source": {
+    "folderId": "1Vs9EuL78VD-jbVeAIF9CBdpy6R8-6H_8",
+    "title": "2026暑假_10th_禪行破浪挑戰營",
+    "url": "https://drive.google.com/drive/folders/1Vs9EuL78VD-jbVeAIF9CBdpy6R8-6H_8",
+    "method": "mcp_read_plan_doc",
+    "note": "Dates and place from 攀越心峰-皇帝殿企劃書. Participant lists not indexed."
+  },
+  "entities": [
+    {
+      "id": "activity:2026-huangdidian",
+      "kind": "activity",
+      "title": "2026 暑期挑戰營【攀越心峰-皇帝殿】",
+      "aliases": ["攀越心峰", "皇帝殿", "禪行破浪", "挑戰營"],
+      "year": "115",
+      "semester": null,
+      "claims": [
+        {
+          "id": "c-hdd-name",
+          "entityId": "activity:2026-huangdidian",
+          "field": "name",
+          "value": "攀越心峰-皇帝殿",
+          "status": "VERIFIED",
+          "note": null,
+          "sources": [
+            {
+              "fileId": "1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0",
+              "title": "2026 暑期挑戰營【攀越心峰-皇帝殿】企劃書",
+              "url": "https://docs.google.com/document/d/1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0/edit",
+              "mime": "document",
+              "modifiedAt": "2026-07-13T05:32:40.765Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-hdd-dates",
+          "entityId": "activity:2026-huangdidian",
+          "field": "dates",
+          "value": "2026-07-18, 2026-07-19",
+          "status": "VERIFIED",
+          "note": "企劃書寫 7/18 7/19；撰寫日期 2026/07/08，資料夾為 2026 暑假。",
+          "sources": [
+            {
+              "fileId": "1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0",
+              "title": "2026 暑期挑戰營【攀越心峰-皇帝殿】企劃書",
+              "url": "https://docs.google.com/document/d/1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0/edit",
+              "mime": "document",
+              "modifiedAt": "2026-07-13T05:32:40.765Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-hdd-place",
+          "entityId": "activity:2026-huangdidian",
+          "field": "place",
+          "value": "皇帝殿東峰+天王峰",
+          "status": "VERIFIED",
+          "note": "登山口：小粗坑。集合：淡水捷運站。",
+          "sources": [
+            {
+              "fileId": "1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0",
+              "title": "2026 暑期挑戰營【攀越心峰-皇帝殿】企劃書",
+              "url": "https://docs.google.com/document/d/1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0/edit",
+              "mime": "document",
+              "modifiedAt": "2026-07-13T05:32:40.765Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-hdd-meet",
+          "entityId": "activity:2026-huangdidian",
+          "field": "meet",
+          "value": "淡水捷運站 13:30（第一天）",
+          "status": "VERIFIED",
+          "note": null,
+          "sources": [
+            {
+              "fileId": "1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0",
+              "title": "2026 暑期挑戰營【攀越心峰-皇帝殿】企劃書",
+              "url": "https://docs.google.com/document/d/1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0/edit",
+              "mime": "document",
+              "modifiedAt": "2026-07-13T05:32:40.765Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-hdd-stay",
+          "entityId": "activity:2026-huangdidian",
+          "field": "stay",
+          "value": "三才靈芝生態農場民宿",
+          "status": "VERIFIED",
+          "note": null,
+          "sources": [
+            {
+              "fileId": "1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0",
+              "title": "2026 暑期挑戰營【攀越心峰-皇帝殿】企劃書",
+              "url": "https://docs.google.com/document/d/1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0/edit",
+              "mime": "document",
+              "modifiedAt": "2026-07-13T05:32:40.765Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-hdd-fee",
+          "entityId": "activity:2026-huangdidian",
+          "field": "fee",
+          "value": "1850（交通250+物資200+住宿900，餐費另建議500）",
+          "status": "VERIFIED",
+          "note": "企劃書預估，不是已核銷數字。",
+          "sources": [
+            {
+              "fileId": "1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0",
+              "title": "2026 暑期挑戰營【攀越心峰-皇帝殿】企劃書",
+              "url": "https://docs.google.com/document/d/1Jwxo1UcojD2UqVQk2_ga3J-Bxnp8Y76lTLZIoI7z1N0/edit",
+              "mime": "document",
+              "modifiedAt": "2026-07-13T05:32:40.765Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "conflicts": [],
+  "edges": [
+    {
+      "from": "camp:10th",
+      "to": "activity:2026-huangdidian",
+      "relation": "includes"
+    }
+  ]
+}

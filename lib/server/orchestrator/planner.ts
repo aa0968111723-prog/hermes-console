@@ -50,11 +50,22 @@ export function buildPlan(
   }
   const campus = routes.find((item) => item.id === "campus");
   const research = routes.find((item) => item.id === "research");
+  const club = routes.find((item) => item.id === "club_knowledge");
   const sourceRoute = campus || research;
   const steps: PlanStep[] = [
     step("讀取專案上下文", "確認目前專案、素材與近期對話。", "context_engine", null),
     step("讀取共用記憶", "只帶入相關、近期、已確認的記憶，不把整庫塞進提示。", "shared_memory", null),
   ];
+  if (club) {
+    steps.push(
+      step(
+        "查禪學社 Drive 知識",
+        "先讀已索引的活動、文案與來源；缺資料標 UNKNOWN，不讀通訊錄。",
+        club.tool,
+        club.fallback,
+      ),
+    );
+  }
   if (goal.requiresTamkang || goal.requiresResearch) {
     steps.push(
       step(

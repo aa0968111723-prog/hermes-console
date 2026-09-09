@@ -34,6 +34,7 @@ import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
 import RuntimeInspector from "./RuntimeInspector";
 import InspirationBoard from "./inspiration/InspirationBoard";
+import KnowledgeArchive from "./knowledge/KnowledgeArchive";
 import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
@@ -1586,25 +1587,28 @@ export default function HermesConsole() {
             )}
           </section>
         ) : nav === "inspiration" ? (
-          <InspirationBoard
-            items={inspiration}
-            syncStatus={sheetsSync}
-            onSync={async () => {
-              const result = await api<{ sheetsSync: SheetSyncResult }>(
-                "inspiration",
-                "POST",
-                { action: "sync_sheets" },
-              );
-              setSheetsSync(result.sheetsSync);
-              const [updated, workspace] = await Promise.all([
-                api<{ items: InspirationItem[] }>("inspiration"),
-                api<Workspace>("workspace"),
-              ]);
-              setInspiration(updated.items);
-              setData(workspace);
-            }}
-            notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
-          />
+          <>
+            <InspirationBoard
+              items={inspiration}
+              syncStatus={sheetsSync}
+              onSync={async () => {
+                const result = await api<{ sheetsSync: SheetSyncResult }>(
+                  "inspiration",
+                  "POST",
+                  { action: "sync_sheets" },
+                );
+                setSheetsSync(result.sheetsSync);
+                const [updated, workspace] = await Promise.all([
+                  api<{ items: InspirationItem[] }>("inspiration"),
+                  api<Workspace>("workspace"),
+                ]);
+                setInspiration(updated.items);
+                setData(workspace);
+              }}
+              notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
+            />
+            <KnowledgeArchive />
+          </>
         ) : nav === "agents" ? (
           <section className="secondary-page">
             <div className="page-heading-row">
