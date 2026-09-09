@@ -469,6 +469,13 @@ try {
   // composer owns the keyboard.
   await page.setViewportSize({ width: 390, height: 844 });
   await textarea.focus();
+  await expect
+    .poll(() =>
+      page
+        .locator(".app-shell")
+        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
+    )
+    .toBe(844);
   await page.evaluate(() => {
     if (!window.visualViewport) throw new Error("visualViewport unavailable");
     Object.defineProperty(window.visualViewport, "height", {

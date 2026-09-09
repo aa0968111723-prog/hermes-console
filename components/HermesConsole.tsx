@@ -405,7 +405,8 @@ export default function HermesConsole() {
       const keyboardOpen =
         composerFocused &&
         !widthChanged &&
-        baseline.height - current.height >= 96;
+        Math.max(baseline.height, window.innerHeight) - current.height >= 96 &&
+        (viewport?.scale || 1) <= 1.01;
       if (keyboardOpen) {
         document.documentElement.dataset.composerKeyboard = "open";
       } else {
