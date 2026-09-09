@@ -17,6 +17,7 @@ const {
   reviewCopy,
   FRESHMAN_TWINS,
   COPY_CHANNELS,
+  scaffoldVariants,
 } = await import("../lib/server/copywriting");
 const { classifyIntent } = await import(
   "../lib/server/orchestrator/intent"
@@ -196,4 +197,45 @@ test("API and MCP review are rule_contract and never publish", async () => {
   assert.equal(result.publish, false);
   assert.equal(result.channel, "ig_caption");
   assert.ok(COPY_CHANNELS.includes("google_form"));
+});
+
+test("Drive 社博草稿用文館左側；茶會地點保持 UNKNOWN", () => {
+  const fair = scaffoldVariants({
+    kind: "fair",
+    channel: "story",
+    facts: {
+      date: "9/10、9/11、9/14–17",
+      location: "文館左側",
+    },
+  });
+  assert.equal(fair.method, "rule_scaffold");
+  assert.equal(fair.publish, false);
+  assert.equal(fair.facts.location.kind, "FACT");
+  assert.match(fair.variants.a, /文館左側|來坐一下/);
+  const fairReview = reviewCopy({
+    channel: "story",
+    variants: fair.variants,
+    facts: { date: "9/10", location: "文館左側" },
+  });
+  assert.deepEqual(fairReview.variants.missing, []);
+  assert.ok(fairReview.personas.filter((item) => item.wouldStop).length >= 4);
+
+  const tea = scaffoldVariants({
+    kind: "tea",
+    facts: {
+      name: "改變自己從靜定開始",
+      date: "2026/9/30",
+      time: "19:00~21:30",
+      location: "待定",
+    },
+  });
+  assert.equal(tea.facts.location.kind, "UNKNOWN");
+  assert.equal(/SG109|教室/.test(JSON.stringify(tea.variants)), false);
+  const teaReview = reviewCopy({
+    channel: "ig_caption",
+    variants: tea.variants,
+    facts: { date: "2026/9/30", time: "19:00", location: "待定" },
+  });
+  assert.ok(teaReview.structure.hook);
+  assert.ok(!teaReview.lint.some((item) => item.kind === "religious"));
 });

@@ -22,3 +22,4 @@ export {
   normalizeFacts,
 } from "./structure";
 export { factsFromActivityRecord, reviewCopy, reviewSavedCopy } from "./review";
+export { scaffoldVariants } from "./drafts";
