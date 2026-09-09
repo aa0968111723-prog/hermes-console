@@ -23,7 +23,14 @@ jobs:
       - run: npm run build
       - run: npm run check:secrets
       - run: npm audit --omit=dev
-      - run: npx playwright install --with-deps chrome webkit
+      - name: Install Playwright browsers (chromium + webkit, retry)
+        run: |
+          for i in 1 2 3; do
+            npx playwright install --with-deps chromium webkit && exit 0
+            echo "playwright install failed (attempt $i); sleeping 15s"
+            sleep 15
+          done
+          exit 1
       - run: npm run test:ui
       - run: npm run test:chat
       - run: npm run test:workbench
