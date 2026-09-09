@@ -10,6 +10,8 @@ import {
 import { fieldLabels } from "@/lib/activity-labels";
 import type { Material } from "@/lib/contracts";
 import type { Workflow } from "@/lib/server/workflows";
+import type { CopyReview } from "@/lib/server/copywriting";
+import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
 type Data = {
   activities: Activity[];
   copies: Array<CopyDocument & { check: CopyCheck }>;
@@ -70,6 +72,7 @@ export default function ProjectWorkbench({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  const [reviews, setReviews] = useState<Record<string, CopyReview>>({});
   const alive = useRef(true);
   const operation = useRef<{ signature: string; id: string } | null>(null);
   const refresh = useCallback(async () => {
@@ -168,6 +171,15 @@ export default function ProjectWorkbench({
           }
         >
           請 Hermes 接續創作
+        </button>
+        <button
+          onClick={() =>
+            onCompose(
+              "請先查回活動日期與地點；未確認標 UNKNOWN，不要捏造。產出 IG caption A 最自然、B 最有梗、C 最溫暖三版，順序 HOOK→生活場景→活動→為什麼來→時間地點→CTA。不要宗教宣傳。寫完用 workspace_review_copy 做新生視角審核，不要發佈。",
+            )
+          }
+        >
+          請 Hermes 寫 A／B／C
         </button>
       </div>
       {facts.length > 0 && (
@@ -580,6 +592,33 @@ export default function ProjectWorkbench({
               {issue}
             </p>
           ))}
+          <div className="workbench-actions">
+            <button
+              disabled={busy}
+              onClick={() =>
+                void act(async () => {
+                  const response = await fetch("/api/copywriting", {
+                    method: "POST",
+                    cache: "no-store",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      action: "review_saved",
+                      copyId: d.id,
+                    }),
+                    signal: AbortSignal.timeout(30_000),
+                  });
+                  const payload = await response.json();
+                  if (!response.ok)
+                    throw new Error(payload.error?.message || "無法審核文案。");
+                  setReviews((old) => ({ ...old, [d.id]: payload }));
+                  setNotice("已完成新生視角審核；不是發佈。");
+                })
+              }
+            >
+              新生視角審核
+            </button>
+          </div>
+          {reviews[d.id] && <CopyReviewCard review={reviews[d.id]} />}
           {d.revisions.map((r) => (
             <details key={r.revision}>
               <summary>

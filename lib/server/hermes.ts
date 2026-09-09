@@ -446,6 +446,13 @@ export const INSPIRATION_INSTRUCTION_PACK =
 export const AUDIENCE_INSTRUCTION_PACK =
   "建立 Audience Twin 時分開 Evidence 與 Hypothesis。反向思考自動使用 Twin。評測分數 0–100，並永遠附上「AI 模擬評估，不代表真實市場調查。」";
 
+export const COPYWRITING_INSTRUCTION_PACK = [
+  "寫禪學社文案：大學生語氣、台灣繁體中文、輕鬆、簡短、有人味。不要宗教宣傳、不要說教。",
+  "不要大量使用療癒、能量、宇宙、靈性、覺醒。活動標題需要的詞（如靜定）可留在副標，主標先講生活場景。",
+  "重要文案至少給 A 最自然、B 最有梗、C 最溫暖。順序：HOOK → 生活場景 → 活動 → 為什麼來 → 時間地點 → CTA。",
+  "日期地點未確認就標 UNKNOWN，不要捏造教室。寫完呼叫 workspace_review_copy 做新生視角審核。不得發佈 Instagram。",
+].join("\n");
+
 export const DIRECTION_INSTRUCTION_PACK =
   "提出 3–5 個策略層不同的創作方向（不是只換顏色），等待使用者選擇後再製作草稿。來源上限 30，方向最多 5，受眾角色最多 5，修訂最多 3。";
 
@@ -476,6 +483,7 @@ export const creativeInstructions = [
   GALLEY_INSTRUCTION_PACK,
   INSPIRATION_INSTRUCTION_PACK,
   AUDIENCE_INSTRUCTION_PACK,
+  COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,
   CANVA_INSTRUCTION_PACK,
   WORKSPACE_INSTRUCTION_PACK,

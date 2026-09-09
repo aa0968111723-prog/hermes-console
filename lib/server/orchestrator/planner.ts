@@ -106,6 +106,14 @@ export function buildPlan(
       step("提出創作方向", "給出策略層不同的方向並排序。", "creative_directions", null),
     );
     steps.push(
+      step(
+        "文案審核",
+        "A／B／C 三版與新生視角審核；未確認地點標 UNKNOWN，不發佈。",
+        "workspace_review_copy",
+        null,
+      ),
+    );
+    steps.push(
       step("Canva 接續", "有授權才製作；否則只交規格。", routes.find((item) => item.id === "design")?.tool || "canva_spec_only", "canva_spec_only"),
     );
   }

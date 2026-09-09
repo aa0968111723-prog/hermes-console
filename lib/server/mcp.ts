@@ -7,6 +7,12 @@ import { readFile } from "node:fs/promises";
 import { listInspiration } from "./inspiration";
 import { activityInput, copyInput } from "../creative";
 import {
+  COPY_CHANNELS,
+  factsFromActivityRecord,
+  reviewCopy,
+  reviewSavedCopy,
+} from "./copywriting";
+import {
   activity,
   copyDocument,
   publicActivity,
@@ -128,6 +134,34 @@ const schemas = {
     .object({ copyId: z.string().uuid(), ...context })
     .strict(),
   workspace_save_copy: copyInput.extend(context).strict(),
+  workspace_review_copy: z
+    .object({
+      channel: z.enum(COPY_CHANNELS).optional(),
+      title: z.string().max(200).optional(),
+      copy: z.string().max(8000).optional(),
+      variants: z
+        .object({
+          a: z.string().max(8000).optional(),
+          b: z.string().max(8000).optional(),
+          c: z.string().max(8000).optional(),
+        })
+        .strict()
+        .optional(),
+      facts: z
+        .object({
+          name: z.string().max(200).optional(),
+          date: z.string().max(80).optional(),
+          time: z.string().max(80).optional(),
+          location: z.string().max(200).optional(),
+          formUrl: z.string().max(500).optional(),
+        })
+        .strict()
+        .optional(),
+      allowSpiritual: z.boolean().optional(),
+      copyId: z.string().uuid().optional(),
+      ...context,
+    })
+    .strict(),
   workspace_read_material: z
     .object({ materialId: z.string().uuid(), ...context })
     .strict(),
@@ -216,6 +250,8 @@ const descriptions: Record<ToolName, string> = {
     "讀取同一文案的實際逐頁版本、選定版本及核對提醒；查明要改的版本和頁面再保存。",
   workspace_save_copy:
     "保存貼文、輪播、限動或短影音文字草稿。沿用 id 修改並保存歷史，不能包含私人活動資訊，不代表已發佈。引用 workflowId 時必須由使用者先選定方向。",
+  workspace_review_copy:
+    "規則式審核文案：A／B／C 是否齊、HOOK 結構、禁用詞、未確認地點、十個淡江新生視角。不是生成文案，不是發佈，也不是真實轉換率。",
   workspace_read_material:
     "讀取此任務專案已保存的真實 PNG 圖片（MCP image content）或 UTF-8 TXT；純連結和未解析 PDF 明確回報不可分析，不把檔名當內容。",
   workspace_list_references:
@@ -259,7 +295,7 @@ export function toolsList(owner: string) {
       description: descriptions[name as ToolName],
       inputSchema: z.toJSONSchema(schema),
       annotations: {
-        readOnlyHint: /list|search|get|dataset|read|context|capability/.test(name),
+        readOnlyHint: /list|search|get|dataset|read|context|capability|review/.test(name),
         destructiveHint: name.includes("delete_memory"),
         idempotentHint: true,
         openWorldHint: name.startsWith("canva_") || name.startsWith("galley_"),
@@ -404,6 +440,28 @@ async function execute(
         ...publicCopy(owner, document.id),
         check: checkCopy(owner, document),
       };
+    }
+    case "workspace_review_copy": {
+      const input = schemas[name].parse(args);
+      if (input.copyId) {
+        const document = publicCopy(owner, input.copyId);
+        const revision = document.revisions.at(-1);
+        return reviewSavedCopy({
+          format: revision?.format,
+          title: revision?.title,
+          pages: revision?.pages,
+          facts: factsFromActivityRecord(activity(owner, document.activityId)),
+          allowSpiritual: input.allowSpiritual,
+        });
+      }
+      return reviewCopy({
+        channel: input.channel,
+        title: input.title,
+        copy: input.copy,
+        variants: input.variants,
+        facts: input.facts,
+        allowSpiritual: input.allowSpiritual,
+      });
     }
     case "workspace_read_material": {
       const asset = material(owner, schemas[name].parse(args).materialId);
