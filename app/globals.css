@@ -949,6 +949,7 @@ nav button[aria-current="page"] {
 .composer-uncertain-actions button {
   flex: 0 0 auto;
   min-height: 44px;
+  min-width: 44px;
 }
 .composer {
   display: block;

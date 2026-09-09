@@ -67,6 +67,18 @@ const fixture = createServer(async (req, res) => {
     calls++;
     assert.ok(Array.isArray(JSON.parse(body).messages));
     res.setHeader("Content-Type", "text/event-stream");
+    if (mode === "partial_close") {
+      res.write(
+        "data: " +
+          JSON.stringify({
+            model: "contract-fixture",
+            choices: [{ delta: { content: "半段契約回覆，未完成。" } }],
+          }) +
+          "\n\n",
+      );
+      res.end();
+      return;
+    }
     let sent = 0;
     const timer = setInterval(() => {
       if (res.destroyed) {
@@ -266,6 +278,26 @@ try {
   assert.equal(cancelled, true);
   assert.equal(calls, 2);
   assert.equal(lastSessionKey, "workspace");
+  mode = "partial_close";
+  await context.request.post(base + "/api/health", {
+    headers: { Origin: base },
+    data: {},
+  });
+  await page.getByRole("button", { name: "開啟新對話", exact: true }).click();
+  await textarea.fill("隔離契約：串流中斷後待確認");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(page.getByText("結果待確認").first()).toBeVisible({
+    timeout: 15000,
+  });
+  await expect(
+    page.getByRole("button", { name: "確認並可重試" }).first(),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "建立重試分支（保留原紀錄）" }).first(),
+  ).toBeVisible();
+  await expect(page.locator(".composer-uncertain-hint")).toContainText(
+    "未宣稱遠端已停止",
+  );
   const integrations = await (
     await context.request.get(base + "/api/integrations")
   ).json();
@@ -277,7 +309,7 @@ try {
   assert.match(String(canva.detail), /Needs Canva Authorization|尚未/);
   assert.ok(!logs.includes(fixtureKey));
   console.log(
-    "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP. NOT live Zeabur validation.",
+    "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",
   );
 } finally {
   await browser.close();

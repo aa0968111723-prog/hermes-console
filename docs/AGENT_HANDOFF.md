@@ -2,6 +2,47 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-09 23:10 TST）Grok 10 · End-to-End Integration Test
+
+- 基準 SHA：`5e245e79668390deef4ccfb012cee889588cb719`
+- 分支：`grok/e2e-integration-2026-09-09`
+- 目標：補齊 LOCAL_CONTRACT 端到端旅程，並讓 #65 已合併但未套用的 uncertain 重試分支 UI 真正生效。
+- 使用者影響：串流中斷後可「確認並可重試」或「建立重試分支」；未設定的 IG／Canva／Hermes 不會顯示 Connected；CI 會跑免登入 `test:entry`。
+- 本輪不碰：PR #10 / #30 / #4、`data/tamkang/`、正式部署、Drive 寫入、IG 發佈。
+
+### 讀到的現況
+
+- main tip：`5e245e7`。#65 只進了可 skip 的 UI 契約與 `docs/patches/uncertain-retry-branch.patch`；`HermesConsole` 的 uncertain 仍只有 acknowledge。
+- `conversation_busy` 與 PATCH `acknowledge` 沒有 API 旅程測試。
+- CI 已跑 `test:ui` / `test:chat` / `test:workbench` / `test:gateway`，但沒跑 `test:entry`。
+- 開放：#76 draft 安全區、#30 ConsistencyLab、#21 藍圖、#10（禁止合併）、過時 memory／retry PR 應關閉。
+
+### 本輪變更
+
+- 套用 uncertain 重試分支 UI（`retryBranchFromTask`，composer 兩顆按鈕，任務面板對齊）。
+- `tests/e2e-recovery-journey.test.ts`：API 層 uncertain → busy → acknowledge／fork。
+- `tests/e2e-product-honesty.test.ts`：創作＋招生路徑誠實狀態（simulation、publish blocked、user_provided ≠ Drive FACT）。
+- `tests/verify-chat.ts`：LOCAL_BROWSER 看見兩顆按鈕。
+- CI 加上 `npm run test:entry`。契約測試不再 skip。
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT` + `LOCAL_BROWSER`（verify-chat／test:entry 依 CI）。
+- 非 `LIVE_EXTERNAL`。無 Hermes／Canva／IG 實機金鑰。
+
+### 下一輪建議
+
+- 若 CI 綠：關閉過時 #73／#70／#68／#71／#62／#60／#56／#55／#42。
+- 可補 Sheets／Drive 讀取的 LOCAL_CONTRACT fixture（不得當 LIVE）。
+- 不要合併 #10。不要重寫 HermesConsole。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰 → 不得宣稱 LIVE 整合通過
+- Drive／IG 授權未在此環境 → 招生名單與限動仍為 UNKNOWN
+
+---
+
 ## 完成（2026-09-09 20:45 TST）Codex · 手機底部安全區
 
 - 基準 SHA：`4003f482d6ee8961e635fba655d8196c97a39f24`

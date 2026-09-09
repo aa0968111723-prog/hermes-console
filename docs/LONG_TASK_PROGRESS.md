@@ -2,6 +2,10 @@
 
 ## Current Phase
 
+Grok 10 integration-test cycle on `5e245e7`. Uncertain retry-branch UI is now wired; API recovery + product-honesty contracts added. Next: Sheets/Drive LOCAL_CONTRACT fixtures, close stale PRs after CI.
+
+## Current Phase (historical)
+
 P2 research executor and P4-C Zeabur confirmation done locally. Next: P3 budget UI / P4 resume UX / P5 task pill.
 
 ## Completed
