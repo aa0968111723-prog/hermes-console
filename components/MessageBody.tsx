@@ -2,6 +2,8 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { memo } from "react";
+import { parseVisualConceptPack } from "@/lib/client/visual-pack";
+import VisualConceptCards from "./visual/VisualConceptCards";
 function safeURL(value: string) {
   if (value.startsWith("/api/materials?id=")) return value;
   try {
@@ -16,6 +18,8 @@ function safeURL(value: string) {
   }
 }
 export default memo(function MessageBody({ text }: { text: string }) {
+  const pack = parseVisualConceptPack(text);
+  if (pack) return <VisualConceptCards pack={pack} />;
   return (
     <div className="markdown">
       <ReactMarkdown
