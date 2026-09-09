@@ -48,6 +48,13 @@ export async function verifyMobileSpatial(
   await page.setViewportSize({ width: 360, height: 560 });
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
   await expect(radial).toBeVisible();
+  const radialBounds = await radial.boundingBox();
+  assert.ok(
+    radialBounds &&
+      radialBounds.y >= 0 &&
+      radialBounds.y + radialBounds.height <= 560,
+    "large-text radial sheet must remain inside the short viewport",
+  );
   await page.screenshot({
     path: join(output, "spatial-radial-large-text-360x560.png"),
   });
