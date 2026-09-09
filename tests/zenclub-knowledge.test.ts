@@ -126,6 +126,20 @@ test("knowledge routing is club-specific, not every tea party", () => {
   );
 });
 
+test("114-1 class archive is filename-likely and 生命靈數 is a series", () => {
+  const flower = searchZenclubKnowledge("浮花禪光");
+  assert.equal(
+    flower.hits[0]?.entity.claims.find((claim) => claim.field === "date")?.status,
+    "LIKELY",
+  );
+  const series = searchZenclubKnowledge("生命靈數");
+  const years = new Set(series.hits.map((hit) => hit.entity.semester));
+  assert.ok(years.has("115-1"));
+  assert.ok(years.has("114-1"));
+  const study = searchZenclubKnowledge("讀書不卡關");
+  assert.ok(study.hits.some((hit) => hit.entity.id.includes("class-2")));
+});
+
 test("knowledge API returns snapshot search LOCAL_CONTRACT", async () => {
   const response = await knowledgeRoute.GET(request("knowledge?q=茶會"));
   assert.equal(response.status, 200);

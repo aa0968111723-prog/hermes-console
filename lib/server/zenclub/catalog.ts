@@ -1,5 +1,6 @@
 import catalogJson from "../../../data/zenclub/catalog.json";
 import graphJson from "../../../data/zenclub/graph.json";
+import archive1141 from "../../../data/zenclub/archive-114-1.json";
 import type {
   DriveCatalog,
   DriveCatalogFile,
@@ -13,7 +14,17 @@ export function loadCatalog(): DriveCatalog {
 }
 
 export function loadGraph(): KnowledgeGraphSnapshot {
-  return graphJson as KnowledgeGraphSnapshot;
+  const base = graphJson as KnowledgeGraphSnapshot;
+  const archive = archive1141 as Pick<
+    KnowledgeGraphSnapshot,
+    "entities" | "conflicts" | "edges"
+  >;
+  return {
+    ...base,
+    entities: [...base.entities, ...archive.entities],
+    conflicts: [...base.conflicts, ...archive.conflicts],
+    edges: [...base.edges, ...archive.edges],
+  };
 }
 
 export function redactedFiles(): DriveCatalogFile[] {

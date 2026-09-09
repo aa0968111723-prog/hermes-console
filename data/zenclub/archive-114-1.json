@@ -1,0 +1,321 @@
+{
+  "snapshotAt": "2026-09-09T17:10:00+08:00",
+  "live": false,
+  "source": {
+    "folderId": "10ArBzF7bAY-9KmZPyEU5TWlQiK2vGFPW",
+    "title": "1141師資課程",
+    "url": "https://drive.google.com/drive/folders/10ArBzF7bAY-9KmZPyEU5TWlQiK2vGFPW",
+    "method": "filename_only",
+    "note": "Dates are LIKELY from MMDD in filenames. pptx bodies were not extracted."
+  },
+  "entities": [
+    {
+      "id": "activity:114-1-tea",
+      "kind": "activity",
+      "title": "114-1 期初茶會【浮花禪光】",
+      "aliases": ["浮花禪光"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-tea-date",
+          "entityId": "activity:114-1-tea",
+          "field": "date",
+          "value": "2025-09-24",
+          "status": "LIKELY",
+          "note": "檔名 0924。未讀 pptx。",
+          "sources": [
+            {
+              "fileId": "1uKQxCSQo5Pee7cBT1f_q6dPQFpZytoDs",
+              "title": "114-1期初茶會-0924浮花禪光.pptx",
+              "url": "https://docs.google.com/presentation/d/1uKQxCSQo5Pee7cBT1f_q6dPQFpZytoDs/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-09-23T16:21:39.000Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-lecture",
+      "kind": "activity",
+      "title": "114-1 生命靈數演講【靜心】",
+      "aliases": ["靜心", "生命靈數"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-lec-date",
+          "entityId": "activity:114-1-lecture",
+          "field": "date",
+          "value": "2025-10-01",
+          "status": "LIKELY",
+          "note": "檔名 1001。與 115-1 期初演講同主題系列，不是同一場。",
+          "sources": [
+            {
+              "fileId": "1aht4EDSCqAy97Vn1cv319pjZ3IzcwEL-",
+              "title": "114-1生命靈數演講-1001靜心.pptx",
+              "url": "https://docs.google.com/presentation/d/1aht4EDSCqAy97Vn1cv319pjZ3IzcwEL-/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-09-30T22:42:12.000Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-1",
+      "kind": "activity",
+      "title": "114-1 社課第一堂【靜定的力量】",
+      "aliases": ["靜定的力量"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c1",
+          "entityId": "activity:114-1-class-1",
+          "field": "date",
+          "value": "2025-10-08",
+          "status": "LIKELY",
+          "note": "檔名 1008。",
+          "sources": [
+            {
+              "fileId": "1xpqRRsPNn6fC0qidS3d8jraSp7WzfcnZ",
+              "title": "114-1社課第一堂-1008靜定的力量-2.pptx",
+              "url": "https://docs.google.com/presentation/d/1xpqRRsPNn6fC0qidS3d8jraSp7WzfcnZ/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-10-11T01:57:09.917Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-2",
+      "kind": "activity",
+      "title": "114-1 社課第二堂【讀書不卡關 禪定重啟大腦潛能】",
+      "aliases": ["讀書不卡關"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c2",
+          "entityId": "activity:114-1-class-2",
+          "field": "date",
+          "value": "2025-10-15",
+          "status": "LIKELY",
+          "note": "檔名 1015。",
+          "sources": [
+            {
+              "fileId": "186SgZh-DQntpbAWU1NlRj8RPeNzjaQk3",
+              "title": "114-1 社課第二堂-1015讀書不卡關 禪定重啟大腦潛能.pptx",
+              "url": "https://docs.google.com/presentation/d/186SgZh-DQntpbAWU1NlRj8RPeNzjaQk3/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-10-15T16:34:48.445Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-3",
+      "kind": "activity",
+      "title": "114-1 社課第三堂【生命的真相 誰在掌控我的人生】",
+      "aliases": ["生命的真相"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c3",
+          "entityId": "activity:114-1-class-3",
+          "field": "date",
+          "value": "2025-10-22",
+          "status": "LIKELY",
+          "note": "檔名 1022。",
+          "sources": [
+            {
+              "fileId": "1syLUgWtKCplQ3aqtd6ixL2FVFwZ6Rq4t",
+              "title": "114-1 社課第三堂-1022生命的真相 誰在掌控我的人生.pptx",
+              "url": "https://docs.google.com/presentation/d/1syLUgWtKCplQ3aqtd6ixL2FVFwZ6Rq4t/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-10-22T10:48:16.611Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-4",
+      "kind": "activity",
+      "title": "114-1 社課第四堂【考試大補帖 禪定x心腦合一的秘密武器】",
+      "aliases": ["考試大補帖"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c4",
+          "entityId": "activity:114-1-class-4",
+          "field": "date",
+          "value": "2025-10-29",
+          "status": "LIKELY",
+          "note": "檔名 1029。",
+          "sources": [
+            {
+              "fileId": "1dIHzI6I7weKLr2TWDRk8QdKJIb1emaTD",
+              "title": "114-1 社課第四堂-1029考試大補帖 禪定x心腦合一的秘密武器.pptx",
+              "url": "https://docs.google.com/presentation/d/1dIHzI6I7weKLr2TWDRk8QdKJIb1emaTD/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-10-28T16:20:27.000Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-5",
+      "kind": "activity",
+      "title": "114-1 社課第五堂【天下第一禪 感恩與懺悔】",
+      "aliases": ["天下第一禪", "感恩與懺悔"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c5",
+          "entityId": "activity:114-1-class-5",
+          "field": "date",
+          "value": "2025-11-19",
+          "status": "LIKELY",
+          "note": "檔名 1119。",
+          "sources": [
+            {
+              "fileId": "1AIs2EQDrKsEhl87zHr2qwt8GUiLWSwnA",
+              "title": "114-1 社課第五堂-1119天下第一禪 感恩與懺悔.pptx",
+              "url": "https://docs.google.com/presentation/d/1AIs2EQDrKsEhl87zHr2qwt8GUiLWSwnA/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-11-18T16:12:49.000Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-6",
+      "kind": "activity",
+      "title": "114-1 社課第六堂【自我提升的秘密】",
+      "aliases": ["自我提升的秘密"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c6",
+          "entityId": "activity:114-1-class-6",
+          "field": "date",
+          "value": "2025-12-03",
+          "status": "LIKELY",
+          "note": "檔名 1203。",
+          "sources": [
+            {
+              "fileId": "1JFtOwtPLtuY_6xv6FJyneekuCy0czRDJ",
+              "title": "114-1 社課第六堂-1203自我提升的秘密 --V2.pptx",
+              "url": "https://docs.google.com/presentation/d/1JFtOwtPLtuY_6xv6FJyneekuCy0czRDJ/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-12-02T16:09:30.000Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-7",
+      "kind": "activity",
+      "title": "114-1 社課第七堂【兩千五百年的智慧傳承】",
+      "aliases": ["兩千五百年的智慧傳承"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c7",
+          "entityId": "activity:114-1-class-7",
+          "field": "date",
+          "value": "2025-12-10",
+          "status": "LIKELY",
+          "note": "檔名 1210。",
+          "sources": [
+            {
+              "fileId": "1OPmxDJ-hrqZSASwDQd6BRAF4TMil6PEY",
+              "title": "114-1 社課第七堂-1210兩千五百年的智慧傳承.pptx",
+              "url": "https://docs.google.com/presentation/d/1OPmxDJ-hrqZSASwDQd6BRAF4TMil6PEY/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-12-09T15:58:42.000Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-1-class-8",
+      "kind": "activity",
+      "title": "114-1 社課第八堂【成為他人的北極星】",
+      "aliases": ["成為他人的北極星"],
+      "year": "114",
+      "semester": "114-1",
+      "claims": [
+        {
+          "id": "c-1141-c8",
+          "entityId": "activity:114-1-class-8",
+          "field": "date",
+          "value": "2025-12-17",
+          "status": "LIKELY",
+          "note": "檔名 1217。",
+          "sources": [
+            {
+              "fileId": "1NLWk7gvy9YjASqvB-X2nAsYGbLI9O2mH",
+              "title": "114-1 社課第八堂-1217成為他人的北極星.pptx",
+              "url": "https://docs.google.com/presentation/d/1NLWk7gvy9YjASqvB-X2nAsYGbLI9O2mH/edit",
+              "mime": "pptx",
+              "modifiedAt": "2025-12-18T02:34:22.668Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "conflicts": [],
+  "edges": [
+    {
+      "from": "activity:114-1-lecture",
+      "to": "activity:115-1-lecture",
+      "relation": "same_series"
+    }
+  ]
+}
