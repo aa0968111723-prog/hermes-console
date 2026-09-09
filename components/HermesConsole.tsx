@@ -34,6 +34,7 @@ import Turtle from "./Turtle";
 import AgentPanel from "./agents/AgentPanel";
 import RuntimeInspector from "./RuntimeInspector";
 import InspirationBoard from "./inspiration/InspirationBoard";
+import HelpPage from "./help/HelpPage";
 import KnowledgeArchive from "./knowledge/KnowledgeArchive";
 import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
@@ -1878,7 +1879,7 @@ export default function HermesConsole() {
                   tabs[next]?.click();
                 }}
               >
-                {["外觀", "連線", "記憶", "使用量", "專案"].map((tab) => (
+                {["外觀", "連線", "記憶", "使用量", "說明", "專案"].map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -2209,6 +2210,8 @@ export default function HermesConsole() {
                       <p className="muted">尚無任務使用量資料。</p>
                     )}
                   </div>
+                ) : settingsTab === "說明" ? (
+                  <HelpPage />
                 ) : (
                   <div className="settings-stack">
                     <p>

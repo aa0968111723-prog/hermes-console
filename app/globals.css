@@ -2636,3 +2636,73 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   .project-cover:hover { transform: none; }
   .hermes-core { transform: none !important; }
 }
+
+/* P2 Help · recruitment truth soft info (Inspiration top; no extra motion) */
+.soft-info-notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border: 1px solid #d5e6cf;
+  border-radius: 12px;
+  background: #f3f8ef;
+  color: var(--color-primary, #356b45);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.soft-info-notice-fold {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+}
+.soft-info-notice-fold > summary {
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+.soft-info-notice-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.soft-info-notice-line {
+  margin: 6px 0 0;
+  max-width: 430px;
+  overflow-wrap: anywhere;
+}
+.soft-info-notice-dismiss {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.soft-info-notice-dismiss:hover,
+.soft-info-notice-dismiss:focus-visible {
+  background: rgba(53, 107, 69, 0.08);
+}
+.help-page .help-recruitment-truth {
+  max-width: 430px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #d5e6cf;
+  background: #f3f8ef;
+  color: var(--color-primary, #356b45);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+@media (prefers-reduced-motion: reduce) {
+  .soft-info-notice,
+  .soft-info-notice * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
