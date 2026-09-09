@@ -212,6 +212,15 @@ function storeFields() {
   } as const;
 }
 
+/** Overlay Console store write capability onto Hermes feature map (gap: memory_write_api). */
+function withConsoleMemoryWriteFeature(
+  features: Record<string, boolean>,
+  storeReady: boolean,
+): Record<string, boolean> {
+  return { ...features, memory_write_api: storeReady };
+}
+
+
 export async function health(owner: string, refresh = false): Promise<Health> {
   const store = storeFields();
   let cached: (Health & { id: string; targetHash: string }) | null = null;
@@ -233,7 +242,11 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     const { id, targetHash, ...publicState } = cached;
     void id;
     void targetHash;
-    return { ...publicState, ...store };
+    return {
+      ...publicState,
+      ...store,
+      features: withConsoleMemoryWriteFeature(publicState.features || {}, store.storeReady),
+    };
   }
   const state: Health = {
     checkedAt: new Date().toISOString(),
@@ -368,7 +381,12 @@ export async function health(owner: string, refresh = false): Promise<Health> {
   } catch {
     /* storeReady already recorded by probe */
   }
-  return { ...state, ...storeFields() };
+  const latest = storeFields();
+  return {
+    ...state,
+    ...latest,
+    features: withConsoleMemoryWriteFeature(state.features || {}, latest.storeReady),
+  };
 }
 import { hash } from "./security";
 export function serviceIdentity() {

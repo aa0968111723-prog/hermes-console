@@ -4,9 +4,12 @@ import { health } from "@/lib/server/hermes";
 import {
   deleteMemory,
   listMemories,
+  memoryEvidenceKind,
   memoryInput,
   memoryShareStatus,
-  saveMemory,
+  memoryStoreId,
+  memoryWriteApiEnabled,
+  writeMemoryWithReadBack,
 } from "@/lib/server/memory";
 
 export const runtime = "nodejs";
@@ -16,9 +19,16 @@ export const GET = route(async (req) => {
   const scope = new URL(req.url).searchParams.get("scope") || "all";
   try {
     const connection = await health(owner);
+    const share = memoryShareStatus(owner, connection);
     return respond({
       memories: listMemories(owner, scope),
-      share: memoryShareStatus(owner, connection),
+      share,
+      evidence: {
+        kind: memoryEvidenceKind(),
+        store: memoryStoreId(),
+        operation: "read" as const,
+        memory_write_api: memoryWriteApiEnabled(),
+      },
     });
   } catch (error) {
     if (error instanceof ApiError && error.code !== "store_unavailable")
@@ -39,8 +49,17 @@ export const GET = route(async (req) => {
 export const POST = route(async (req) => {
   const owner = authenticate(req, true);
   try {
+    const proof = writeMemoryWithReadBack(
+      owner,
+      memoryInput.parse(await jsonBody(req, 12_000)),
+    );
     return respond(
-      { memory: saveMemory(owner, memoryInput.parse(await jsonBody(req, 12_000))) },
+      {
+        memory: proof.memory,
+        readBack: proof.readBack,
+        evidence: proof.evidence,
+        memory_write_api: memoryWriteApiEnabled(),
+      },
       201,
     );
   } catch (error) {
