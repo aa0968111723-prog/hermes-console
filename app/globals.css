@@ -1417,8 +1417,11 @@ dialog::backdrop {
   border: 0;
 }
 .usage-details summary {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   width: max-content;
-  padding: 7px 0 0;
+  padding: 7px 0;
   color: #356b45;
 }
 .usage-details dl {
