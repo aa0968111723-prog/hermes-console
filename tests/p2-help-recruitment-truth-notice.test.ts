@@ -42,4 +42,8 @@ test("recruitment truth notice copy is exact and wired to Inspiration + Help", a
   assert.match(consoleUi, /"說明"/);
   assert.ok(css.includes(".soft-info-notice"));
   assert.ok(css.includes("max-width: 430px"));
+  // dismiss hit target >=44x44 (was 32)
+  assert.match(css, /\.soft-info-notice-dismiss\s*\{[\s\S]*?min-width:\s*44px/);
+  assert.match(css, /\.soft-info-notice-dismiss\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.doesNotMatch(css, /\.soft-info-notice-dismiss\s*\{[\s\S]*?\b(?:width|height|min-height):\s*32px/);
 });
