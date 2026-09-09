@@ -82,6 +82,7 @@ export interface ArtifactSignals {
   forcedShare: boolean;
   stage: boolean;
   walkUp: boolean;
+  unknownPlace: boolean;
 }
 
 export function isArtifactKind(value: string): value is ArtifactKind {
@@ -109,13 +110,13 @@ export function extractSignals(input: {
   const activityCue =
     /茶會|迎新|社課|體驗|靜坐|散步|攤位|博覽|工作坊|電影|野餐|共修/.test(text);
   return {
-    local: /淡江|淡水|克難坡|驚聲|宮燈|學餐|覺生/.test(text),
+    local: /淡江|淡水|克難坡|驚聲|宮燈|學餐|覺生|文館/.test(text),
     life: /朋友|社團|大一|迎新|茶會|生活|校園|宿舍|捷運/.test(text),
     jargon: /靜定|禪修|開示|法會|共修|般若|正念禪|止觀/.test(text),
     cta: /來參加|報名|填表|掃QR|掃 QR|時間|地點|週[一二三四五六日]|[0-9]點/.test(
       text,
     ),
-    timePlace: /時間|地點|週[一二三四五六日]|[0-9]{1,2}\s*[:：點]|教室|活動中心/.test(
+    timePlace: /週[一二三四五六日]|[0-9]{1,2}\s*[:：點]|教室|活動中心|[0-9]+\/[0-9]+/.test(
       text,
     ),
     socialLowBarrier: /來坐|不用準備|認識朋友|可以只聽|低門檻|路過|自由參加/.test(
@@ -138,10 +139,11 @@ export function extractSignals(input: {
     ),
     unclearActivity: !activityCue,
     peerInvite: /同學|一起|揪|帶朋友|轉傳/.test(text),
-    food: /茶|點心|喝一杯|免費吃|麵包/.test(text),
+    food: /茶|點心|喝一杯|免費吃|麵包|手搖飲/.test(text),
     forcedShare: /自我介紹|輪流分享|麥克風|被點名|必須發言/.test(text),
     stage: /講台|面向講者|不可離座|中央座位/.test(text),
     walkUp: /自由走動|可以先看|路過|不攔人|自行取閱/.test(text),
+    unknownPlace: /地點\s*[：:]\s*(待定|待確認|OOOO|TBD)/.test(text),
   };
 }
 
@@ -203,9 +205,10 @@ function applyPersona(
     if (signals.longCommitment) bump("stopRate", -10);
   }
   if (id === "commute") {
-    bump("relevance", signals.commuteCue || signals.timePlace ? 10 : -8);
-    bump("ctaClarity", signals.timePlace ? 6 : -10);
+    bump("relevance", signals.commuteCue || (signals.timePlace && !signals.unknownPlace) ? 10 : -8);
+    bump("ctaClarity", signals.timePlace && !signals.unknownPlace ? 6 : -10);
     bump("stopRate", signals.timePlace ? 6 : -8);
+    if (signals.unknownPlace) bump("trust", -8);
     if (signals.longCommitment) bump("stopRate", -12);
   }
   if (id === "introvert") {
@@ -290,6 +293,7 @@ function unknownsFor(
     items.push("沒有視覺描述，無法假裝已看圖");
   if (!signals.timePlace && (kind === "event" || kind === "poster" || kind === "ig"))
     items.push("時間或地點不清楚");
+  if (signals.unknownPlace) items.push("地點尚未確認");
   if (signals.unclearActivity) items.push("看不出實際會做什麼");
   if (id === "commute" && !signals.commuteCue && !signals.timePlace)
     items.push("不知道會不會趕車");
@@ -347,6 +351,11 @@ function reactionCopy(
     return {
       firstReaction: "看起來很長，我怕期中會被吃掉，先收藏再說。",
       why: ["時長或過夜承諾太重。", "沒先寫短時長，課業壓力型不會當場答應。"],
+    };
+  if (id === "commute" && signals.unknownPlace)
+    return {
+      firstReaction: "時間有了但地點還待定，我不敢先排車。",
+      why: ["Drive 文案若寫地點待定，通勤新生無法判斷走線。", "這是缺資料，不是已經好找。"],
     };
   if (id === "commute" && !signals.timePlace)
     return {
