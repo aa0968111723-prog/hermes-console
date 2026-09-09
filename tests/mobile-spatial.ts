@@ -81,11 +81,28 @@ export async function verifyMobileSpatial(
   await audit("spatial-radial-large-text");
   await page.keyboard.press("Escape");
   // On a zoom-equivalent narrow and short viewport, the action grid scrolls
-  // inside the dialog; touch users must not lose the only visible close action.
+  // inside the dialog. Simulate a notched phone's bottom inset because desktop
+  // Playwright does not expose env(safe-area-inset-bottom); the sheet must keep
+  // that reserved area clear and retain the only visible close action.
   await page.setViewportSize({ width: 320, height: 360 });
+  const safeAreaBottom = 34;
+  await page.evaluate((inset) => {
+    document.documentElement.style.setProperty(
+      "--safe-area-bottom",
+      `${inset}px`,
+    );
+  }, safeAreaBottom);
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
   await expect(radial).toBeVisible();
   await expect(radial).toHaveCSS("transform", "none");
+  const safeAreaSheetBounds = await radial.boundingBox();
+  assert.ok(
+    safeAreaSheetBounds &&
+      safeAreaSheetBounds.y >= 0 &&
+      safeAreaSheetBounds.y + safeAreaSheetBounds.height <=
+        360 - 90 - safeAreaBottom,
+    "large-text radial sheet must remain above the bottom safe area",
+  );
   assert.equal(
     await radial.evaluate(
       (element) => element.scrollHeight > element.clientHeight,
@@ -116,6 +133,9 @@ export async function verifyMobileSpatial(
     path: join(output, "spatial-radial-large-text-scrolled-320x360.png"),
   });
   await page.keyboard.press("Escape");
+  await page.evaluate(() => {
+    document.documentElement.style.removeProperty("--safe-area-bottom");
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
