@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { projectKey } from "../creative";
 import { ApiError, redact } from "./security";
-import { get, list, put, remove, storeBackend } from "./store";
+import { get, list, put, remove, storeBackend, probeStore } from "./store";
 import type { Health } from "../contracts";
 
 export const memoryKinds = {
@@ -177,6 +177,54 @@ export function touchMemories(owner: string, ids: string[]) {
   }
 }
 
+
+export type MemoryEvidenceKind = "LOCAL" | "LIVE_EXTERNAL";
+
+/** Console store evidence: sqlite = LOCAL, postgres = LIVE_EXTERNAL (same store, no second DB). */
+export function memoryEvidenceKind(): MemoryEvidenceKind {
+  return storeBackend() === "postgres" ? "LIVE_EXTERNAL" : "LOCAL";
+}
+
+export function memoryWriteApiEnabled() {
+  return probeStore().ok;
+}
+
+export type MemoryWriteProof = {
+  memory: SharedMemory;
+  readBack: SharedMemory;
+  evidence: {
+    kind: MemoryEvidenceKind;
+    store: ReturnType<typeof memoryStoreId>;
+    readBackOk: true;
+    operation: "write";
+  };
+};
+
+/** Persist then read the same row back from the same store (LIVE proof). */
+export function writeMemoryWithReadBack(
+  owner: string,
+  raw: z.input<typeof memoryInput>,
+): MemoryWriteProof {
+  const memory = saveMemory(owner, raw);
+  const readBack = getMemory(owner, memory.id);
+  if (readBack.id !== memory.id || readBack.revision !== memory.revision)
+    throw new ApiError(
+      500,
+      "memory_readback_mismatch",
+      "寫入後讀回不一致，不當作成功。",
+    );
+  return {
+    memory,
+    readBack,
+    evidence: {
+      kind: memoryEvidenceKind(),
+      store: memoryStoreId(),
+      readBackOk: true,
+      operation: "write",
+    },
+  };
+}
+
 export function memoryStoreId() {
   return storeBackend() === "postgres"
     ? ("console-postgres" as const)
@@ -224,6 +272,7 @@ export function memoryShareStatus(owner: string, connection?: Health) {
         ? "unsupported"
         : "unknown";
   const label = memoryStoreLabel();
+  const writeApi = memoryWriteApiEnabled();
   return {
     store: memoryStoreId(),
     sharedVia: ["workspace-mcp", "task-instructions"] as const,
@@ -231,6 +280,12 @@ export function memoryShareStatus(owner: string, connection?: Health) {
     scopeVerified,
     count: listMemories(owner).length,
     synced: false,
+    memory_write_api: writeApi,
+    evidence: {
+      kind: memoryEvidenceKind(),
+      store: memoryStoreId(),
+      operation: "status" as const,
+    },
     provenanceFields: [
       "source",
       "createdBy",

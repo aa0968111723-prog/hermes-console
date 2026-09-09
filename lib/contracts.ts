@@ -234,6 +234,8 @@ export interface ReadyStatus {
   ready: boolean;
   backend: "sqlite" | "postgres";
   dataDir: string;
+  /** Console shared-memory write API available when store probe is ok. */
+  memory_write_api: boolean;
   error?: {
     code: "store_unavailable";
     message: string;

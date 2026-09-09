@@ -10,6 +10,7 @@ export const GET = route(async () => {
     ready: probe.ok,
     backend: probe.backend,
     dataDir: probe.dataDir,
+    memory_write_api: probe.ok,
   };
   if (!probe.ok) {
     body.error = {
