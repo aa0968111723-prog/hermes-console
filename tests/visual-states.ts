@@ -474,13 +474,17 @@ export async function verifyVisualStates(
   await expect(page.getByRole("dialog", { name: "任務詳情" })).toContainText(task.error);
   await page.keyboard.press("Escape");
   await page.screenshot({ path: join(output, "error-fixture.png") });
-  await page.context().setOffline(true);
+    await page.context().setOffline(true);
   await expect(page.locator(".turtle")).toHaveAttribute(
     "aria-label",
     /連線待確認/,
   );
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator(".composer-task-status")).toContainText("離線 · 顯示上次資料");
+  // Wait until offline pill replaces prior failed state (avoid flake on 「失敗」).
+  await expect(page.locator(".composer-task-status")).toContainText(
+    "離線 · 顯示上次資料",
+    { timeout: 15_000 },
+  );
   await page.screenshot({ path: join(output, "offline-mobile.png") });
   await page.context().setOffline(false);
   await page.unrouteAll({ behavior: "wait" });
