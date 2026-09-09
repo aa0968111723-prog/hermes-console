@@ -8,6 +8,7 @@ import {
   CANVA_INSTRUCTION_PACK,
   COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,
+  VISUAL_INSTRUCTION_PACK,
   FAST_TASK_INSTRUCTIONS,
   FRAMELAB_INSTRUCTION_PACK,
   GALLEY_INSTRUCTION_PACK,
@@ -30,6 +31,7 @@ export type InstructionPackId =
   | "galley"
   | "inspiration"
   | "audience"
+  | "visual"
   | "copywriting"
   | "canva"
   | "lumen"
@@ -92,8 +94,12 @@ export function composeTaskInstructions(input: {
     packs.push("copywriting");
   }
   if (input.goal.requiresDesign || input.goal.output) {
-    parts.push(DIRECTION_INSTRUCTION_PACK, CANVA_INSTRUCTION_PACK);
-    packs.push("canva");
+    parts.push(
+      VISUAL_INSTRUCTION_PACK,
+      DIRECTION_INSTRUCTION_PACK,
+      CANVA_INSTRUCTION_PACK,
+    );
+    packs.push("visual", "canva");
   }
   const includeLumenManual = isLumenIntent(input.text);
   const includeFramelabManual = isFramelabIntent(input.text);

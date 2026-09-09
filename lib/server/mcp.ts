@@ -22,7 +22,9 @@ import {
   saveActivity,
   saveCopy,
   checkCopy,
+  visualConceptsFor,
 } from "./creative";
+import { VISUAL_FORMAT_IDS } from "./creative/formats";
 import { z } from "zod";
 import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
 import { runtimeEnv } from "./credentials";
@@ -129,6 +131,13 @@ const schemas = {
   workspace_project_context: z.object({ projectId: id, ...context }).strict(),
   workspace_get_activity: z
     .object({ activityId: z.string().uuid(), ...context })
+    .strict(),
+  workspace_get_visual_concepts: z
+    .object({
+      activityId: z.string().uuid(),
+      format: z.enum(VISUAL_FORMAT_IDS).default("ig_feed_4x5"),
+      ...context,
+    })
     .strict(),
   workspace_save_activity: activityInput.extend(context).strict(),
   workspace_get_copy: z
@@ -259,6 +268,8 @@ const descriptions: Record<ToolName, string> = {
     "查回目前專案活動、文案版本、素材與任務索引；不是長期記憶。先查回再接續，不要重建無關作品。",
   workspace_get_activity:
     "讀取公開活動資訊、來源與核對狀態；私人資料與歷史不提供給網宣工具。",
+  workspace_get_visual_concepts:
+    "依已確認公開活動事實編譯 Instagram 4:5（1080×1350）、Story／Reels 封面（1080×1920）、Carousel 4:5、海報 A4／A3 的三個視覺概念（A 攝影／B 物件敘事／C 空間）。缺日期地點報名標 UNKNOWN，不補造、不出圖、不發佈。",
   workspace_save_activity:
     "保存活動候選資訊或修訂同一活動。Hermes 新資訊必定待核對，不能自行確認；用同一 operationId 重試，expectedRevision 防止覆寫。",
   workspace_get_copy:
@@ -442,6 +453,10 @@ async function execute(
       return publicActivity(
         activity(owner, schemas[name].parse(args).activityId),
       );
+    case "workspace_get_visual_concepts": {
+      const input = schemas[name].parse(args);
+      return visualConceptsFor(owner, input.activityId, input.format);
+    }
     case "workspace_save_activity": {
       const { taskId, toolCallId, ...input } = schemas[name].parse(args);
       return publicActivity(saveActivity(owner, input, "hermes"));

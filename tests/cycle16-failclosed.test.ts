@@ -28,6 +28,10 @@ function mcpRequest(headers: Record<string, string>) {
 
 test("unknown tools default to write and require confirmation", () => {
   assert.equal(permissions.permissionClass("workspace_list_references"), "read");
+  assert.equal(
+    permissions.permissionClass("workspace_get_visual_concepts"),
+    "read",
+  );
   assert.equal(permissions.permissionClass("web_search"), "read");
   assert.equal(permissions.autoAllowed("web_search"), true);
   assert.equal(permissions.permissionClass("workspace_save_directions"), "draft");
