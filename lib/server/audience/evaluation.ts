@@ -1,4 +1,5 @@
 import { hasLocalCue, heuristicScores } from "./scoring";
+import { simulateFreshmanReactions } from "./personas";
 import {
   AUDIENCE_ROLES,
   SIMULATION,
@@ -6,6 +7,8 @@ import {
   type AudienceRole,
   type RoleEvaluation,
 } from "./types";
+
+export { simulateFreshmanReactions } from "./personas";
 
 export function evaluateArtifact(input: {
   profile: AudienceProfile;
@@ -60,5 +63,30 @@ export function evaluationEnvelope(roles: RoleEvaluation[]) {
     ...SIMULATION,
     roles,
     note: "分數是 AI heuristic simulation，不是 conversionRate／CTR／actualStopRate。",
+  };
+}
+
+export function evaluateWithTwins(input: {
+  profile: AudienceProfile;
+  copy: string;
+  title?: string;
+  kind?: string;
+  visualNotes?: string;
+}) {
+  const roles = evaluateArtifact({
+    profile: input.profile,
+    copy: input.copy,
+    title: input.title,
+  });
+  return {
+    ...evaluationEnvelope(roles),
+    twinPanel: simulateFreshmanReactions({
+      kind: input.kind,
+      title: input.title,
+      copy: input.copy,
+      visualNotes: input.visualNotes,
+      institution: input.profile.institution,
+      location: input.profile.location,
+    }),
   };
 }

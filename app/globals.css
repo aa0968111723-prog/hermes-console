@@ -40,6 +40,7 @@
 .inspiration-board li,
 .audience-card,
 .knowledge-card,
+.first-reaction-board,
 .integration-health li {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -173,6 +174,101 @@
   .knowledge-search button {
     width: 100%;
     justify-content: center;
+  }
+}
+.first-reaction-board {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+.first-reaction-board h2,
+.twin-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.twin-compare,
+.twin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.twin-unknowns {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #8a5a1b;
+}
+.twin-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 82vw);
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 8px;
+}
+.twin-card {
+  scroll-snap-align: start;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(38, 51, 43, 0.06);
+}
+.twin-card[data-pressure="high"] {
+  border-color: #e4c4b4;
+}
+.twin-card blockquote {
+  margin: 10px 0;
+  font-size: 1rem;
+}
+.twin-why {
+  margin: 0 0 12px;
+  padding-left: 1.1rem;
+}
+.twin-metrics {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.twin-metrics > div {
+  display: grid;
+  gap: 4px;
+}
+.twin-metrics dt {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.twin-metrics dd {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.twin-bar {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: #7da57b;
+}
+.twin-metrics [data-risk="true"] .twin-bar {
+  background: #c57a55;
+}
+.twin-score {
+  margin-left: 6px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 720px) {
+  .twin-rail {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: unset;
+    overflow: visible;
   }
 }
 .invite-entry { min-height: 100dvh; display: grid; place-items: center; padding: 20px; }

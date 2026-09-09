@@ -112,3 +112,81 @@ export interface RoleEvaluation {
   confidence: number;
   sources: string[];
 }
+
+export const TWIN_METRICS = [
+  "stopRate",
+  "understandability",
+  "relevance",
+  "trust",
+  "peerShareability",
+  "ctaClarity",
+  "religiousPressure",
+  "aiSlop",
+  "visualAttraction",
+] as const;
+
+export type TwinMetric = (typeof TWIN_METRICS)[number];
+
+export const ARTIFACT_KINDS = [
+  "poster",
+  "ig",
+  "form",
+  "event",
+  "booth",
+  "layout",
+  "copy",
+] as const;
+
+export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
+
+export const FRESHMAN_PERSONA_IDS = [
+  "dorm",
+  "commute",
+  "introvert",
+  "extrovert",
+  "academic",
+  "social",
+  "religion_wary",
+  "zen_curious",
+  "uninterested",
+  "design_eye",
+] as const;
+
+export type FreshmanPersonaId = (typeof FRESHMAN_PERSONA_IDS)[number];
+
+export interface TwinScores {
+  simulation: true;
+  method: "rule_heuristic";
+  scoreUse: "comparative";
+  disclaimer: string;
+  scores: Record<TwinMetric, number>;
+}
+
+export interface PersonaReaction {
+  personaId: FreshmanPersonaId;
+  label: string;
+  firstReaction: string;
+  why: string[];
+  wouldStop: boolean;
+  wouldShare: boolean;
+  wouldFillForm: boolean;
+  wouldWalkIn: boolean;
+  pressure: "low" | "medium" | "high";
+  scores: TwinScores;
+  unknowns: string[];
+}
+
+export interface TwinPanel {
+  simulation: true;
+  method: "rule_heuristic";
+  truth: "SIMULATION";
+  scoreUse: "comparative";
+  disclaimer: string;
+  kind: ArtifactKind;
+  kindLabel: string;
+  unknowns: string[];
+  personas: PersonaReaction[];
+  mostLikelyToStop: FreshmanPersonaId;
+  mostLikelyToDrop: FreshmanPersonaId;
+  highestPressure: FreshmanPersonaId;
+}
