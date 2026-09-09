@@ -454,8 +454,8 @@ export default function HermesConsole() {
   useEffect(() => {
     const was = previousPanel.current;
     previousPanel.current = panel;
-    if (was && !panel) {
-      // Chat-first: closing any sheet returns focus to composer.
+    if (was === "task" && !panel) {
+      // Chat-first: closing task sheet returns focus to composer.
       const frame = requestAnimationFrame(() => input.current?.focus());
       return () => cancelAnimationFrame(frame);
     }
