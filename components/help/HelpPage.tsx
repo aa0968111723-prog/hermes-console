@@ -1,8 +1,9 @@
 "use client";
 
 import { RECRUITMENT_TRUTH_NOTICE } from "@/lib/client/recruitment-truth";
+import RecruitmentFunnelCard from "@/components/help/RecruitmentFunnelCard";
 
-/** Secondary Help surface — same recruitment-truth sentence; not the primary Inspiration notice. */
+/** Secondary Help surface — recruitment-truth + P0′ funnel readonly card. */
 export default function HelpPage() {
   return (
     <div className="settings-stack help-page">
@@ -12,6 +13,7 @@ export default function HelpPage() {
       <p className="muted">
         漏斗契約與 Drive FACT 才是人數／名單真相來源；靈感板與 Sheets sync 僅作文宣參考。
       </p>
+      <RecruitmentFunnelCard />
     </div>
   );
 }
