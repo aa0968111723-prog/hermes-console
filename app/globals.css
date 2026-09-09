@@ -39,6 +39,7 @@
 .agent-detail,
 .inspiration-board li,
 .audience-card,
+.knowledge-card,
 .integration-health li {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -82,6 +83,97 @@
 .disclaimer {
   font-size: 13px;
   color: var(--muted);
+}
+.knowledge-archive {
+  margin: 18px 0 28px;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
+}
+.knowledge-search {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.knowledge-search input,
+.knowledge-search button {
+  min-height: 44px;
+}
+.knowledge-search input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 14px;
+  background: var(--surface);
+}
+.knowledge-search button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 0;
+  background: var(--green);
+  color: #fff;
+}
+.knowledge-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.knowledge-card h3 {
+  margin: 4px 0 10px;
+  font-size: 1.05rem;
+}
+.knowledge-card dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.knowledge-card dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.knowledge-card em {
+  font-style: normal;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.78rem;
+  background: #e5f2df;
+  color: #23623a;
+}
+.knowledge-card em[data-status="UNKNOWN"],
+.knowledge-card em[data-status="UNVERIFIED"] {
+  background: #eef1ec;
+  color: var(--muted);
+}
+.knowledge-card em[data-status="CONFLICTING"] {
+  background: #fff0e5;
+  color: #9a441d;
+}
+.knowledge-conflict {
+  border: 1px solid #f0d3b8;
+  background: #fff8f1;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+.knowledge-conflict p {
+  margin: 0 0 6px;
+}
+@media (max-width: 600px) {
+  .knowledge-search {
+    flex-direction: column;
+  }
+  .knowledge-search button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 .invite-entry { min-height: 100dvh; display: grid; place-items: center; padding: 20px; }
 .invite-entry section { max-width: 440px; width: 100%; }

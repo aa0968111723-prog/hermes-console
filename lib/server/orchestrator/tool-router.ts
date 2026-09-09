@@ -1,5 +1,6 @@
 import type { IntegrationCertification } from "../certification/types";
 import type { StructuredGoal } from "../../contracts";
+import { needsZenclubKnowledge } from "../zenclub";
 
 export type RoutedTool = {
   id: string;
@@ -23,6 +24,16 @@ export function routeTools(
   const hermesChat =
     capStatus(hermes, "hermes.chat") === "verified" ||
     capStatus(hermes, "hermes.api") === "reachable";
+
+  if (needsZenclubKnowledge(goal.goal)) {
+    routes.push({
+      id: "club_knowledge",
+      tool: "zenclub_drive_index",
+      reason:
+        "社團內部事實優先查禪學社 Drive 知識索引，不得用 IG 或合理推測補日期地點。",
+      fallback: null,
+    });
+  }
 
   if (goal.requiresTamkang) {
     const reachable =

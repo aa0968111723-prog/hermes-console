@@ -1,0 +1,642 @@
+{
+  "snapshotAt": "2026-09-09T16:30:00+08:00",
+  "live": false,
+  "entities": [
+    {
+      "id": "activity:115-1-fair",
+      "kind": "activity",
+      "title": "115-1 社團博覽會攤位",
+      "aliases": ["社博", "擺攤", "淡大社博"],
+      "year": "115",
+      "semester": "115-1",
+      "claims": [
+        {
+          "id": "c-fair-dates",
+          "entityId": "activity:115-1-fair",
+          "field": "dates",
+          "value": "2026-09-10, 2026-09-11, 2026-09-14, 2026-09-15, 2026-09-16, 2026-09-17",
+          "status": "VERIFIED",
+          "note": "期初宣傳區寫 9/10（四）、9/11（五）、9/14（一）～9/17（四）。週末 9/12–13 未列出。",
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-fair-place",
+          "entityId": "activity:115-1-fair",
+          "field": "place",
+          "value": "文館左側",
+          "status": "VERIFIED",
+          "note": null,
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-fair-hook",
+          "entityId": "activity:115-1-fair",
+          "field": "hook",
+          "value": "專注力遊戲；來攤位有機會把手搖飲帶回家",
+          "status": "VERIFIED",
+          "note": "文案庫，不是現場已核對的獎品庫存。",
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-fair-story-date",
+          "entityId": "activity:115-1-fair",
+          "field": "story_publish_date",
+          "value": "2026-09-10",
+          "status": "VERIFIED",
+          "note": "網宣表「社博限動」張貼日期 2026/9/10，狀態為新增。",
+          "sources": [
+            {
+              "fileId": "1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM",
+              "title": "1151滾動式調整網宣",
+              "url": "https://docs.google.com/spreadsheets/d/1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM/edit",
+              "mime": "spreadsheet",
+              "modifiedAt": "2026-08-29T04:06:50.805Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:115-1-tea",
+      "kind": "activity",
+      "title": "禪學社期初茶會【改變自己從靜定開始】",
+      "aliases": ["期初茶會", "改變自己從靜定開始", "改變自己-從靜定開始"],
+      "year": "115",
+      "semester": "115-1",
+      "claims": [
+        {
+          "id": "c-tea-date",
+          "entityId": "activity:115-1-tea",
+          "field": "date",
+          "value": "2026-09-30",
+          "status": "VERIFIED",
+          "note": "期初宣傳區寫 2026/9/30（三）。",
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-tea-time",
+          "entityId": "activity:115-1-tea",
+          "field": "time",
+          "value": "19:00-21:30（18:50 開放報到）",
+          "status": "VERIFIED",
+          "note": null,
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-tea-place",
+          "entityId": "activity:115-1-tea",
+          "field": "place",
+          "value": null,
+          "status": "UNKNOWN",
+          "note": "文案寫待定／OOOOOO。docx 企劃書此輪無法抽取正文。",
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-tea-form",
+          "entityId": "activity:115-1-tea",
+          "field": "registration",
+          "value": "https://forms.gle/Xs4PXyWKQW5ob29z6",
+          "status": "VERIFIED",
+          "note": "公開報名連結。回覆內容不索引。",
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-tea-plan-unread",
+          "entityId": "activity:115-1-tea",
+          "field": "plan_body",
+          "value": null,
+          "status": "UNKNOWN",
+          "note": "企劃書副本為 docx，此環境無法抽取正文。檔名與文案庫標題一致。",
+          "sources": [
+            {
+              "fileId": "1hH3xlvZw4YwlaF32ISQB14bO1dXAP3RP",
+              "title": "禪學社期初茶會 改變自己-從靜定開始 企劃書.docx 的副本.docx",
+              "url": "https://docs.google.com/document/d/1hH3xlvZw4YwlaF32ISQB14bO1dXAP3RP/edit",
+              "mime": "docx",
+              "modifiedAt": "2026-09-07T16:50:39.103Z",
+              "year": "115",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:115-1-lecture",
+      "kind": "activity",
+      "title": "禪學社期初演講【由數字探索自己-生命靈數開啟你的蛻變之路】",
+      "aliases": ["期初演講", "生命靈數", "由數字探索自己"],
+      "year": "115",
+      "semester": "115-1",
+      "claims": [
+        {
+          "id": "c-lec-date",
+          "entityId": "activity:115-1-lecture",
+          "field": "date",
+          "value": "2026-10-07",
+          "status": "VERIFIED",
+          "note": "企畫書與期初宣傳區皆為 2026/10/7（三）。",
+          "sources": [
+            {
+              "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+              "title": "115-1禪學社期初演講企畫書",
+              "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+              "mime": "document",
+              "modifiedAt": "2026-08-19T13:16:06.745Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            },
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-lec-time",
+          "entityId": "activity:115-1-lecture",
+          "field": "time",
+          "value": "19:00-21:30（18:50 開放報到）",
+          "status": "VERIFIED",
+          "note": "企畫書活動時段 19:00-21:30；報到開放時間來自期初宣傳區。",
+          "sources": [
+            {
+              "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+              "title": "115-1禪學社期初演講企畫書",
+              "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+              "mime": "document",
+              "modifiedAt": "2026-08-19T13:16:06.745Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            },
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-lec-place",
+          "entityId": "activity:115-1-lecture",
+          "field": "place",
+          "value": null,
+          "status": "UNKNOWN",
+          "note": "企畫書寫待確認；文案庫寫待定。",
+          "sources": [
+            {
+              "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+              "title": "115-1禪學社期初演講企畫書",
+              "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+              "mime": "document",
+              "modifiedAt": "2026-08-19T13:16:06.745Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-lec-speaker",
+          "entityId": "activity:115-1-lecture",
+          "field": "speaker",
+          "value": "盧玫竹老師",
+          "status": "VERIFIED",
+          "note": "來自 115-1 期初演講企畫書。講師資訊資料夾沒有對應簡歷。",
+          "sources": [
+            {
+              "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+              "title": "115-1禪學社期初演講企畫書",
+              "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+              "mime": "document",
+              "modifiedAt": "2026-08-19T13:16:06.745Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-lec-office",
+          "entityId": "activity:115-1-lecture",
+          "field": "prep_place",
+          "value": "社辦 SG109",
+          "status": "VERIFIED",
+          "note": "細流：工作人員集合／禪定／賦歸在社辦 SG109。活動場地仍 UNKNOWN。",
+          "sources": [
+            {
+              "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+              "title": "115-1禪學社期初演講企畫書",
+              "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+              "mime": "document",
+              "modifiedAt": "2026-08-19T13:16:06.745Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-lec-form",
+          "entityId": "activity:115-1-lecture",
+          "field": "registration",
+          "value": "https://forms.gle/Xs4PXyWKQW5ob29z6",
+          "status": "VERIFIED",
+          "note": "與茶會共用公開報名表。",
+          "sources": [
+            {
+              "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+              "title": "期初宣傳區",
+              "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+              "mime": "document",
+              "modifiedAt": "2026-09-09T03:38:41.528Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "activity:114-2-tea",
+      "kind": "activity",
+      "title": "114-2 期初茶會【教授沒教的大腦休息法】",
+      "aliases": ["教授沒教的大腦休息法"],
+      "year": "114",
+      "semester": "114-2",
+      "claims": [
+        {
+          "id": "c-114-tea-date",
+          "entityId": "activity:114-2-tea",
+          "field": "date",
+          "value": "2026-03-04",
+          "status": "LIKELY",
+          "note": "僅來自檔名 0304；未讀 pptx 正文。",
+          "sources": [
+            {
+              "fileId": "154XKbHtR-3f82xfxunZlAaGeMYOPEKFz",
+              "title": "114-2 期初茶會-0304教授沒教的大腦休息法 v3.pptx",
+              "url": "https://docs.google.com/presentation/d/154XKbHtR-3f82xfxunZlAaGeMYOPEKFz/edit",
+              "mime": "pptx",
+              "modifiedAt": "2026-03-04T03:54:49.119Z",
+              "year": "114",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "person:speaker-lu-meizhu",
+      "kind": "person",
+      "title": "盧玫竹老師",
+      "aliases": ["盧玫竹"],
+      "year": "115",
+      "semester": "115-1",
+      "claims": [
+        {
+          "id": "c-speaker-role",
+          "entityId": "person:speaker-lu-meizhu",
+          "field": "role",
+          "value": "115-1 期初演講講師",
+          "status": "VERIFIED",
+          "note": "講師資訊資料夾沒有簡歷；不得補經歷。",
+          "sources": [
+            {
+              "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+              "title": "115-1禪學社期初演講企畫書",
+              "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+              "mime": "document",
+              "modifiedAt": "2026-08-19T13:16:06.745Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place:sg109",
+      "kind": "place",
+      "title": "社辦 SG109",
+      "aliases": ["SG109", "社辦"],
+      "year": null,
+      "semester": null,
+      "claims": [
+        {
+          "id": "c-sg109",
+          "entityId": "place:sg109",
+          "field": "use",
+          "value": "115-1 期初演講工作人員集合、禪定、賦歸與凝聚",
+          "status": "VERIFIED",
+          "note": "不是活動場地。活動場地仍 UNKNOWN。",
+          "sources": [
+            {
+              "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+              "title": "115-1禪學社期初演講企畫書",
+              "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+              "mime": "document",
+              "modifiedAt": "2026-08-19T13:16:06.745Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "form:115-1-events",
+      "kind": "form",
+      "title": "淡江大學禪學社 115-1活動報名表",
+      "aliases": ["報名表", "forms.gle/Xs4PXyWKQW5ob29z6"],
+      "year": "115",
+      "semester": "115-1",
+      "claims": [
+        {
+          "id": "c-form-url",
+          "entityId": "form:115-1-events",
+          "field": "public_url",
+          "value": "https://forms.gle/Xs4PXyWKQW5ob29z6",
+          "status": "VERIFIED",
+          "note": "茶會與演講共用。回覆不索引。",
+          "sources": [
+            {
+              "fileId": "1LojrAUbx8sHODNMj4jRE0ov6Q5kb1vgnlzmDOQ15dzk",
+              "title": "淡江大學禪學社 115-1活動報名表",
+              "url": "https://forms.gle/Xs4PXyWKQW5ob29z6",
+              "mime": "form",
+              "modifiedAt": "2026-09-09T03:44:13.410Z",
+              "year": "115",
+              "readable": false,
+              "piiRestricted": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "promo:115-1-calendar",
+      "kind": "promo",
+      "title": "115-1 滾動式網宣",
+      "aliases": ["網宣", "FAQ貼文", "期初禮包"],
+      "year": "115",
+      "semester": "115-1",
+      "claims": [
+        {
+          "id": "c-promo-faq",
+          "entityId": "promo:115-1-calendar",
+          "field": "faq_post",
+          "value": "FAQ貼文 預定 2026-08-31 狀態：準備完畢",
+          "status": "VERIFIED",
+          "note": null,
+          "sources": [
+            {
+              "fileId": "1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM",
+              "title": "1151滾動式調整網宣",
+              "url": "https://docs.google.com/spreadsheets/d/1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM/edit",
+              "mime": "spreadsheet",
+              "modifiedAt": "2026-08-29T04:06:50.805Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-promo-tea",
+          "entityId": "promo:115-1-calendar",
+          "field": "tea_post",
+          "value": "期初茶會貼文 預定 2026-09-06 狀態：新增",
+          "status": "VERIFIED",
+          "note": "狀態為新增，不代表已發佈。",
+          "sources": [
+            {
+              "fileId": "1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM",
+              "title": "1151滾動式調整網宣",
+              "url": "https://docs.google.com/spreadsheets/d/1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM/edit",
+              "mime": "spreadsheet",
+              "modifiedAt": "2026-08-29T04:06:50.805Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        },
+        {
+          "id": "c-promo-pack",
+          "entityId": "promo:115-1-calendar",
+          "field": "fair_pack",
+          "value": "期初禮包 預定 2026-09-09 狀態：新增（北區文宣+社博攤位）",
+          "status": "VERIFIED",
+          "note": null,
+          "sources": [
+            {
+              "fileId": "1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM",
+              "title": "1151滾動式調整網宣",
+              "url": "https://docs.google.com/spreadsheets/d/1w65iJmHTDySxXn5rbxE_jn8FSMCf0JgGMJ4Vi5Z0sCM/edit",
+              "mime": "spreadsheet",
+              "modifiedAt": "2026-08-29T04:06:50.805Z",
+              "year": "115",
+              "readable": true,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "camp:10th",
+      "kind": "camp",
+      "title": "2026暑假_10th_禪行破浪挑戰營",
+      "aliases": ["禪行破浪", "挑戰營10th"],
+      "year": "115",
+      "semester": null,
+      "claims": [
+        {
+          "id": "c-camp-10-name",
+          "entityId": "camp:10th",
+          "field": "name",
+          "value": "禪行破浪挑戰營",
+          "status": "LIKELY",
+          "note": "僅來自資料夾名。日期、地點、講師 UNKNOWN。",
+          "sources": [
+            {
+              "fileId": "1Vs9EuL78VD-jbVeAIF9CBdpy6R8-6H_8",
+              "title": "2026暑假_10th_禪行破浪挑戰營",
+              "url": "https://drive.google.com/drive/folders/1Vs9EuL78VD-jbVeAIF9CBdpy6R8-6H_8",
+              "mime": "folder",
+              "modifiedAt": "2026-08-13T01:26:58.578Z",
+              "year": "115",
+              "readable": false,
+              "piiRestricted": false
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "conflict-tea-title-stale-copy",
+      "field": "tea_title",
+      "entityIds": ["activity:115-1-tea", "activity:114-2-tea"],
+      "values": ["改變自己從靜定開始", "教授沒教的大腦休息法"],
+      "status": "CONFLICTING",
+      "note": "115-1《期初宣傳區》同時留有 114-2 舊茶會文案「教授沒教的大腦休息法」。115-1 對外標題應為「改變自己從靜定開始」。不得把舊標題當成這一學期活動。",
+      "sources": [
+        {
+          "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+          "title": "期初宣傳區",
+          "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+          "mime": "document",
+          "modifiedAt": "2026-09-09T03:38:41.528Z",
+          "year": "115",
+          "readable": true,
+          "piiRestricted": false
+        }
+      ]
+    },
+    {
+      "id": "conflict-lecture-title-word-order",
+      "field": "lecture_title",
+      "entityIds": ["activity:115-1-lecture"],
+      "values": [
+        "由數字探索自己-生命靈數開啟你的蛻變之路",
+        "數字探索自己—由生命靈數開啟你的蛻變之路"
+      ],
+      "status": "CONFLICTING",
+      "note": "企畫書與文案庫標題用字順序不同。活動是同一場。對外需人工選定一句，系統不自動選。",
+      "sources": [
+        {
+          "fileId": "10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8",
+          "title": "115-1禪學社期初演講企畫書",
+          "url": "https://docs.google.com/document/d/10zP9Ll26i6TZ3yWUxxkb5T3R9zFC0zgQ7ApQA274ph8/edit",
+          "mime": "document",
+          "modifiedAt": "2026-08-19T13:16:06.745Z",
+          "year": "115",
+          "readable": true,
+          "piiRestricted": false
+        },
+        {
+          "fileId": "1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw",
+          "title": "期初宣傳區",
+          "url": "https://docs.google.com/document/d/1XjaU_aCX4cVX3bO9JhSRUt2MElK1Qmr4pLhn4CoRCQw/edit",
+          "mime": "document",
+          "modifiedAt": "2026-09-09T03:38:41.528Z",
+          "year": "115",
+          "readable": true,
+          "piiRestricted": false
+        }
+      ]
+    }
+  ],
+  "edges": [
+    { "from": "activity:115-1-lecture", "to": "person:speaker-lu-meizhu", "relation": "speaker" },
+    { "from": "activity:115-1-lecture", "to": "place:sg109", "relation": "prep_place" },
+    { "from": "activity:115-1-lecture", "to": "form:115-1-events", "relation": "registration" },
+    { "from": "activity:115-1-tea", "to": "form:115-1-events", "relation": "registration" },
+    { "from": "activity:115-1-fair", "to": "activity:115-1-tea", "relation": "promotes" },
+    { "from": "activity:115-1-fair", "to": "activity:115-1-lecture", "relation": "promotes" },
+    { "from": "promo:115-1-calendar", "to": "activity:115-1-tea", "relation": "schedules" },
+    { "from": "promo:115-1-calendar", "to": "activity:115-1-lecture", "relation": "schedules" },
+    { "from": "promo:115-1-calendar", "to": "activity:115-1-fair", "relation": "schedules" }
+  ]
+}

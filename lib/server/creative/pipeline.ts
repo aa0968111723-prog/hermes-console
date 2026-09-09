@@ -5,6 +5,7 @@ import { get, put, transaction } from "../store";
 import { submit, conversation } from "../tasks";
 import { listInspiration } from "../inspiration";
 import { wrapUntrusted } from "../untrusted";
+import { knowledgeContextForPrompt } from "../zenclub";
 import type { Conversation } from "../../contracts";
 
 export const intelligenceInput = z
@@ -84,10 +85,18 @@ export async function runCreativeIntelligence(
         sourceType: item.sourceType,
         notice: "保存的參考，不代表已擷取網頁或讀取圖片",
       }));
+    const knowledge = knowledgeContextForPrompt(input.prompt);
     const content =
       input.prompt +
       "\n\n" +
-      wrapUntrusted("saved_project_references", JSON.stringify(references));
+      wrapUntrusted("saved_project_references", JSON.stringify(references)) +
+      (knowledge
+        ? "\n\n" +
+          wrapUntrusted(
+            "zenclub_drive_knowledge",
+            JSON.stringify(knowledge.forHermes),
+          )
+        : "");
     return put("intelligence_request", owner, {
       id: input.requestKey,
       signature,

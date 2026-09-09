@@ -2,6 +2,74 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## LOOP 2（2026-09-10 00:30 TST）Grok 01 · Drive Knowledge · CONTINUING
+
+- AGENT_ID：Grok 01 Drive Knowledge
+- LOOP_ID：2
+- 基準 SHA：`ac5a7a4140911e2496962c78ff583619ad5470dd`
+- 分支：`grok/zenclub-drive-knowledge-2026-09-09`
+- PR：#79
+- STATE：RUNNING
+- 本輪不碰：HermesConsole（#77）、靈感視覺（#78/#80）、場佈 3D（#81）、`data/tamkang/`、Drive 原檔
+
+### DONE_THIS_LOOP
+
+- 時間軸：`happeningOn` / `今天社博` 會打到 115-1 社博（文館左側，2026-09-10）
+- detect：社博／期初茶會／挑戰營不必再寫「淡江」才會查 Drive
+- 2026 皇帝殿挑戰營：7/18–19、皇帝殿東峰+天王峰、淡水捷運站 13:30；名冊不進索引
+- API：`GET /api/knowledge?when=today`
+
+### NEXT_TASK
+
+- 茶會 docx 仍 unread_binary
+- 索引 114-2、始業式／結業式、挑戰營 6–9th
+- 不要重開 PR，接續 #79
+
+---
+
+## 進行中（2026-09-09 16:40 TST）Grok 01 · Drive Knowledge
+
+- 基準 SHA：`5e245e79668390deef4ccfb012cee889588cb719`
+- 分支：`grok/zenclub-drive-knowledge-2026-09-09`
+- 目標：把禪學社 Drive 轉成 Hermes 可搜尋、可追溯的知識層（索引／圖譜／API／工具路由／UI）。
+- 使用者影響：問期初茶會／社博／演講時，Hermes 會先看到 Drive 快照證據；地點未寫就標 UNKNOWN。靈感頁多一塊 Drive 知識卡。
+- 本輪不碰：PR #10 / #30、`data/tamkang/`、記憶 store、正式部署、Drive 原檔。
+
+### 讀到的現況
+
+- main tip：`5e245e7`。`data/tamkang/` 是全校社團生態，禁止把禪學社 Drive 名冊當第二源。本輪另開 `data/zenclub/`。
+- 115 即戰力：茶會 2026-09-30、演講 2026-10-07 盧玫竹老師、社博 9/10–11＋9/14–17 文館左側。場地仍待定。
+- 《期初宣傳區》留有 114-2「教授沒教的大腦休息法」舊文案 → CONFLICTING。
+- 講師資訊資料夾幾乎空；通訊錄／報名回覆 redacted。
+
+### 本輪變更
+
+- `data/zenclub/{catalog,graph}.json` + `lib/server/zenclub/*`
+- `GET/POST /api/knowledge`
+- intelligence prompt 注入 `zenclub_drive_knowledge`（untrusted）
+- planner / tool-router：`zenclub_drive_index`
+- `components/knowledge/KnowledgeArchive.tsx` 掛在靈感頁
+- `tests/zenclub-knowledge.test.ts` LOCAL_CONTRACT
+
+### 驗證
+
+- 標籤：`LOCAL_CONTRACT`
+- 非 `LIVE_EXTERNAL`。Drive 讀取本輪已做，執行期用快照。
+
+### 下一輪建議
+
+- 轉寫茶會 docx 企劃書正文（目前 unread_binary）。
+- 索引 114 師資課程／招生組，補講師庫。
+- 挑戰營 6–10th 資料夾深挖日期場地。
+- 不要合併 #10。
+
+### 阻塞
+
+- 無 Hermes 實機金鑰 → 不得宣稱 LIVE 整合通過
+- 茶會企劃書為 docx，MCP 無法抽正文
+
+---
+
 ## 完成（2026-09-09 20:45 TST）Codex · 手機底部安全區
 
 - 基準 SHA：`4003f482d6ee8961e635fba655d8196c97a39f24`
