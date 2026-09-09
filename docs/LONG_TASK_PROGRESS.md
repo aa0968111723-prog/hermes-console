@@ -11,8 +11,18 @@
 - MAIN_SHA：`ac5a7a4`
 - BRANCH：`grok/ig-visual-language-2026-09-09`
 - PR：https://github.com/aa0968111723-prog/hermes-console/pull/78
-- NEXT_TASK：當日 9:16 文案分層；rebase + CI。
-- NEXT_LOOP：START IMMEDIATELY
+- NEXT_TASK：當日 9:16 文案分層；merge main + CI。
+- NEXT_LOOP：3 文案分層已在進行
+- STATUS：CONTINUING
+
+## Grok 02 LOOP 3（2026-09-10）
+
+- CURRENT_STATE：社博限動三格畫面字（≤8字）已進 nextSlot.beats。像素規格交給 PR #80。
+- DONE_THIS_LOOP：3 story beats；merge main ac5a7a4（不 force push）。
+- VERIFIED：beats 字數契約。
+- BLOCKED：限動是否已發仍 UNKNOWN。
+- PR：#78
+- NEXT_TASK：CI 綠了再補 9/11 續攤限動；觀察是否有實景。
 - STATUS：CONTINUING
 
 ## Grok 02 Instagram Inspiration（2026-09-09）

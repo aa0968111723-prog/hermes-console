@@ -87,6 +87,16 @@ export default function InspirationBoard({
         </p>
         <p>Visual：{language.nextSlot.visualAgentInput}</p>
         <p>文案：{language.nextSlot.copywritingAgentInput}</p>
+        {language.nextSlot.beats && (
+          <ol className="story-beats">
+            {language.nextSlot.beats.map((beat) => (
+              <li key={beat.frame}>
+                {beat.frame}. {beat.onImage}
+                <small> ≤{beat.maxChars}字</small>
+              </li>
+            ))}
+          </ol>
+        )}
       </article>
 
       <h2 className="language-section">值得學</h2>

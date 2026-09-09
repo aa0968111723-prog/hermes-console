@@ -60,6 +60,11 @@ test("tku visual language is provenance-labelled and not a fake IG connection", 
   assert.equal(brief.live.instagramConnected, false);
   const onPostingDay = tkuVisualLanguage("2026-09-08");
   assert.equal(onPostingDay.live.feed.stale, false);
+  assert.equal(brief.nextSlot.beats?.length, 3);
+  assert.ok(
+    brief.nextSlot.beats?.every((beat) => [...beat.onImage].length <= beat.maxChars),
+  );
+  assert.equal(brief.nextSlot.beats?.[1].onImage, "文館左側");
 });
 
 test("caption rules match keep patterns without claiming image read", () => {

@@ -29,6 +29,13 @@ export interface VisualPattern {
   copywritingAgentInput: string;
 }
 
+export interface StoryBeat {
+  frame: number;
+  onImage: string;
+  caption: string;
+  maxChars: number;
+}
+
 export interface CampaignSlot {
   id: string;
   title: string;
@@ -39,6 +46,7 @@ export interface CampaignSlot {
   location: { value: string; provenance: Provenance };
   visualAgentInput: string;
   copywritingAgentInput: string;
+  beats?: StoryBeat[];
 }
 
 export interface LiveWatch {
@@ -403,6 +411,26 @@ const SLOTS: CampaignSlot[] = [
       "今日社博。9:16 限動：上「我們在這裡呦」下「來玩就有機會拿手搖飲」。像素安全區見 Visual Agent PR #80，不要重做通用規格。能拍文館左側就用實景；沒有實景就 2D 龜龜＋手搖飲，標 UNKNOWN。不要再用 9/8「明天開始」封面。",
     copywritingAgentInput:
       "9/8 貼文「社博明天就要開始」在 9/10 已過期。改成「社博開始啦／我們在文館左側」。日期 9/10、11、9/14–17。不要捏造教室。限動是否已發 = UNKNOWN。",
+    beats: [
+      {
+        frame: 1,
+        onImage: "我們在這裡呦",
+        caption: "社博開始啦。不知道加什麼社也可以來晃晃。",
+        maxChars: 8,
+      },
+      {
+        frame: 2,
+        onImage: "文館左側",
+        caption: "9/10、9/11、9/14–17。來攤位玩專注力遊戲。",
+        maxChars: 8,
+      },
+      {
+        frame: 3,
+        onImage: "來玩拿手搖飲",
+        caption: "靜下來，也能玩起來。",
+        maxChars: 8,
+      },
+    ],
   },
   {
     id: "tea-feed-2026-09-06",
