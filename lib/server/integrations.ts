@@ -3,7 +3,7 @@ import { list } from "./store";
 import { canvaStatus } from "./canva";
 import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
-import { liveTamkangStatus } from "./tamkang";
+import { liveTamkangStatus, tamkangStatus } from "./tamkang";
 import { galleyStatus, liveGalleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
 import { planformStatus } from "./planform";
@@ -61,7 +61,7 @@ export function integrationsSnapshot(
       id: "tku",
       name: "淡江 MCP",
       pattern: /tku|tamkang|tronclass|campus|tamsui/i,
-      detail: liveTamkangStatus().detail,
+      detail: tamkangStatus().detail,
       requirements: ["連線設定或 TKU_MCP_URL／TKU_MCP_TOKEN", "實際 tools/list 驗證"],
     },
     {
@@ -216,8 +216,8 @@ export function integrationsSnapshot(
       requirements: d.requirements,
     } satisfies Integration;
   });
-  const tku = liveTamkangStatus();
-  const galley = liveGalleyStatus();
+  const tku = bestEffort(() => liveTamkangStatus(), tamkangStatus(), failed);
+  const galley = bestEffort(() => liveGalleyStatus(), galleyStatus(), failed);
   const ig = instagramPublishStatus();
   const canva = bestEffort(
     () => canvaStatus(owner),
