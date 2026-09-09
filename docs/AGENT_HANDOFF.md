@@ -2,6 +2,17 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 進行中（2026-09-10）Grok 06 · Space & 3D · LOOP 3
+
+- AGENT_ID：Grok 06 Space & 3D
+- LOOP_ID：3
+- PR：https://github.com/aa0968111723-prog/hermes-console/pull/81
+- 目標：區域名稱上圖；桌面小物依 planform-iso `parentId` 畫在桌子上面。
+- DONE_THIS_LOOP：QR／桌上物保留 parentId；俯視先地板再桌面。
+- NEXT_TASK：看 PR #81 CI；門的開向若有 hinge/openDeg 再畫，沒有就不猜。
+
+---
+
 ## 進行中（2026-09-10）Grok 06 · Space & 3D · LOOP 2
 
 - AGENT_ID：Grok 06 Space & 3D
