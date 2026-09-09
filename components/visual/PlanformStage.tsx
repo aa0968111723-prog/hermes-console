@@ -60,6 +60,52 @@ function PlanformCanvas({
               markerEnd={`url(#${arrowId})`}
             />
           );
+        if (mark.kind === "scale")
+          return (
+            <g key={mark.id}>
+              <path
+                d={mark.d}
+                fill="none"
+                stroke={mark.fill}
+                strokeWidth={0.06}
+                strokeLinecap="square"
+              />
+              <text
+                x={mark.x}
+                y={mark.z}
+                fill={mark.fill}
+                fontSize={0.28}
+                textAnchor="middle"
+              >
+                {mark.text}
+              </text>
+            </g>
+          );
+        if (mark.kind === "label" && mark.text)
+          return (
+            <g key={mark.id}>
+              {/^\d+$/.test(mark.text) && (
+                <circle
+                  cx={mark.x}
+                  cy={mark.z}
+                  r={0.18}
+                  fill="#fff"
+                  stroke={mark.fill}
+                  strokeWidth={0.04}
+                />
+              )}
+              <text
+                x={mark.x}
+                y={mark.z}
+                dy={0.08}
+                fill={/^\d+$/.test(mark.text) ? mark.fill : "#26332b"}
+                fontSize={/^\d+$/.test(mark.text) ? 0.22 : 0.26}
+                textAnchor="middle"
+              >
+                {mark.text}
+              </text>
+            </g>
+          );
         if (mark.polygons?.length) {
           const faces = mark.polygons;
           return (
