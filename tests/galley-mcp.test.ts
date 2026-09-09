@@ -201,4 +201,86 @@ test("GALLEY MCP auto-seed and workspace proxy", async (t) => {
       process.env.GALLEY_MCP_URL = previous;
     }
   });
+
+  await t.test("SSE progress then result succeeds; last result/error wins; ids increment", async () => {
+    const rpcIds: number[] = [];
+    const sse = createServer((req, res) => {
+      const chunks: Buffer[] = [];
+      req.on("data", (part) => chunks.push(part));
+      req.on("end", () => {
+        let parsed: {
+          id?: unknown;
+          method?: string;
+          params?: { name?: string };
+        } = {};
+        try {
+          parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")) as typeof parsed;
+        } catch {
+          parsed = {};
+        }
+        if (typeof parsed.id === "number") rpcIds.push(parsed.id);
+        const auth = String(req.headers.authorization || "");
+        if (auth !== "Bearer " + galleyToken) {
+          res.writeHead(401).end(JSON.stringify({ error: "unauthorized" }));
+          return;
+        }
+        const frame = (body: Record<string, unknown>) =>
+          "data: " + JSON.stringify(body) + "\n\n";
+        const progress = frame({
+          jsonrpc: "2.0",
+          method: "notifications/progress",
+          params: { progress: 50, progressToken: "p1" },
+        });
+        const toolResult = (which: string) => ({
+          name: "GALLEY",
+          protocol: "2025-06-18",
+          tool: parsed.params?.name || "galley_capability",
+          which,
+        });
+        const resultFrame = (which: string) =>
+          frame({
+            jsonrpc: "2.0",
+            id: parsed.id,
+            result: {
+              content: [
+                { type: "text", text: JSON.stringify(toolResult(which)) },
+              ],
+              structuredContent: { result: toolResult(which) },
+              isError: false,
+            },
+          });
+        res.writeHead(200, { "Content-Type": "text/event-stream" });
+        if (parsed.params?.name === "galley_intel") {
+          res.end(progress);
+          return;
+        }
+        res.end(progress + resultFrame("first") + resultFrame("last"));
+      });
+    });
+    await new Promise<void>((resolve) => sse.listen(0, "127.0.0.1", resolve));
+    const sseUrl = "http://127.0.0.1:" + (sse.address() as { port: number }).port;
+    const previous = process.env.GALLEY_MCP_URL;
+    process.env.GALLEY_MCP_URL = sseUrl;
+    process.env.GALLEY_MCP_TOKEN = galleyToken;
+    try {
+      const first = await callGalleyTool("galley_research", {});
+      assert.equal(first.name, "GALLEY");
+      assert.equal(first.which, "last");
+      const second = await callGalleyTool("galley_research", {});
+      assert.equal(second.which, "last");
+      assert.equal(rpcIds.length, 2);
+      assert.equal(typeof rpcIds[0], "number");
+      assert.equal(rpcIds[1], rpcIds[0] + 1);
+      await assert.rejects(
+        () => callGalleyTool("galley_intel", {}),
+        (error: unknown) =>
+          error instanceof ApiError && error.code === "galley_invalid",
+      );
+    } finally {
+      process.env.GALLEY_MCP_URL = previous;
+      await new Promise<void>((resolve, reject) =>
+        sse.close((err) => (err ? reject(err) : resolve())),
+      );
+    }
+  });
 });

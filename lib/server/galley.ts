@@ -91,23 +91,36 @@ function endpoint() {
   };
 }
 
+let galleySeq = 0;
+
 async function readJsonRpc(response: Response) {
   const type = response.headers.get("content-type") || "";
   const raw = await response.text();
   if (!raw)
     throw new ApiError(502, "galley_empty", "GALLEY MCP 沒有回傳內容。");
   if (type.includes("text/event-stream")) {
-    const line = raw
+    const payload = raw
       .split("\n")
       .map((item) => item.trim())
-      .find((item) => item.startsWith("data:"));
-    if (!line)
-      throw new ApiError(502, "galley_invalid", "GALLEY MCP SSE 沒有 data。");
-    try {
-      return JSON.parse(line.slice(5).trim()) as Record<string, unknown>;
-    } catch {
-      throw new ApiError(502, "galley_invalid", "GALLEY MCP 回應不是有效 JSON。");
-    }
+      .filter((item) => item.startsWith("data:"))
+      .map((item) => {
+        try {
+          return JSON.parse(item.slice(5).trim()) as Record<string, unknown>;
+        } catch {
+          return null;
+        }
+      })
+      .findLast(
+        (item): item is Record<string, unknown> =>
+          !!item && ("result" in item || "error" in item),
+      );
+    if (!payload)
+      throw new ApiError(
+        502,
+        "galley_invalid",
+        "GALLEY MCP SSE 沒有 result 或 error。",
+      );
+    return payload;
   }
   try {
     return JSON.parse(raw) as Record<string, unknown>;
@@ -138,7 +151,7 @@ export async function callGalleyTool(
       },
       body: JSON.stringify({
         jsonrpc: "2.0",
-        id: 1,
+        id: ++galleySeq,
         method: "tools/call",
         params: { name, arguments: forward },
       }),
