@@ -3,8 +3,8 @@ import { list } from "./store";
 import { canvaStatus } from "./canva";
 import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
-import { tamkangStatus } from "./tamkang";
-import { galleyStatus } from "./galley";
+import { liveTamkangStatus, tamkangStatus } from "./tamkang";
+import { galleyStatus, liveGalleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
 import { planformStatus } from "./planform";
 import { lumenStatus } from "./lumen";
@@ -216,8 +216,8 @@ export function integrationsSnapshot(
       requirements: d.requirements,
     } satisfies Integration;
   });
-  const tku = tamkangStatus();
-  const galley = galleyStatus();
+  const tku = bestEffort(() => liveTamkangStatus(), tamkangStatus(), failed);
+  const galley = bestEffort(() => liveGalleyStatus(), galleyStatus(), failed);
   const ig = instagramPublishStatus();
   const canva = bestEffort(
     () => canvaStatus(owner),
@@ -234,6 +234,11 @@ export function integrationsSnapshot(
     if (item.id === "tku") {
       item.state = tku.state as IntegrationState;
       item.detail = tku.detail;
+      const listed = (registry.find((entry) => entry.id === "tku")?.tools || [])
+        .map((tool) => tool.name)
+        .filter(Boolean);
+      if (listed.length)
+        item.tools = [...new Set([...item.tools, ...listed])];
     }
     if (item.id === "galley") {
       item.state = galley.state as IntegrationState;

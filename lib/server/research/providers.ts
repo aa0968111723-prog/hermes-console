@@ -1,5 +1,5 @@
 import type { ResearchBundle, ResearchSourceRecord } from "../../contracts";
-import { mapTamkangTools, tamkangStatus } from "../tamkang";
+import { mapTamkangTools, liveTamkangStatus } from "../tamkang";
 
 export type SourceRecord = ResearchSourceRecord;
 export const FRESHMAN_GATE = /淡江|新生|淡水/;
@@ -117,15 +117,18 @@ export function researchBundle(input: {
     ...(freshman || eduPsych ? officialWebSources() : []),
     ...(eduPsych ? officialEduPsychSources() : []),
   ]);
+  const tamkang = liveTamkangStatus();
   return {
     queries,
-    tamkang: tamkangStatus(),
+    tamkang,
     fallback: null,
     suggestedFallback: "ask_hermes_authorized_web_tool",
     executed: false,
     message:
       "尚未執行研究；需由 Hermes 呼叫已授權來源，再保存實際結果與查詢時間。",
-    mapping: classifyResearchTools(input.tools || []),
+    mapping: input.tools?.length
+      ? classifyResearchTools(input.tools)
+      : tamkang.mapping,
     sources: [],
     claims: [],
     sourceDirectory,
