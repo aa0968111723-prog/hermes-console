@@ -1,0 +1,105 @@
+.stage {
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line, #dfe7da);
+  border-radius: 16px;
+  background: linear-gradient(165deg, #fff, #f3f8ef);
+  box-shadow: 0 10px 24px rgba(38, 51, 43, 0.06);
+}
+.stage > header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+.stage > header strong {
+  font-size: 15px;
+  color: var(--ink, #26332b);
+}
+.stage > header small,
+.empty,
+.warn {
+  color: var(--muted, #59675e);
+  font-size: 12px;
+}
+.warn {
+  margin: 8px 0 0;
+}
+.tabs,
+.schemes,
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+.tabs button,
+.schemes button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line, #dfe7da);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink, #26332b);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.tabs button.isOn,
+.schemes button.isOn {
+  background: #356b45;
+  border-color: #356b45;
+  color: #fff;
+}
+.canvas {
+  display: block;
+  width: 100%;
+  height: min(42dvh, 320px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent),
+    repeating-linear-gradient(0deg, transparent, transparent 11px, rgba(53, 107, 69, 0.06) 12px),
+    repeating-linear-gradient(90deg, transparent, transparent 11px, rgba(53, 107, 69, 0.06) 12px),
+    #f7fbf4;
+  border-radius: 12px;
+  border: 1px solid #d9e8d4;
+}
+.list,
+.flow {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.list li,
+.flow li {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--line, #dfe7da);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.list small,
+.flow small {
+  color: var(--muted, #59675e);
+}
+.chips li {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e5efd9;
+  font-size: 12px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .tabs button,
+  .canvas {
+    transition: none;
+  }
+}
