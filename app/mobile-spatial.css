@@ -566,6 +566,13 @@
   .preview-sheet .panel-content {
     height: calc(100% - var(--safe-area-top));
   }
+  .preview-sheet .settings-stack,
+  .preview-sheet .settings-stack > h3 {
+    min-width: 0;
+  }
+  .preview-sheet .settings-stack > h3 {
+    overflow-wrap: anywhere;
+  }
   .artifact-preview {
     margin: 0;
     padding: max(12px, var(--safe-area-top)) 12px
