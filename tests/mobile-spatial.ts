@@ -12,9 +12,7 @@ export async function verifyMobileSpatial(
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
-  await page
-    .getByRole("combobox", { name: /文字大小/ })
-    .selectOption("20");
+  await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "開啟 Hermes 空間", exact: true }),
@@ -44,9 +42,7 @@ export async function verifyMobileSpatial(
   // The primary mobile action sheet must honor the real appearance preference,
   // including on a short viewport where larger labels need flexible rows.
   await page.getByRole("button", { name: "外觀設定" }).click();
-  await page
-    .getByRole("combobox", { name: /文字大小/ })
-    .selectOption("20");
+  await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 360, height: 560 });
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
@@ -167,10 +163,7 @@ export async function verifyMobileSpatial(
   await page.setViewportSize({ width: 320, height: 360 });
   const safeAreaTop = 47;
   await page.evaluate((inset) => {
-    document.documentElement.style.setProperty(
-      "--safe-area-top",
-      `${inset}px`,
-    );
+    document.documentElement.style.setProperty("--safe-area-top", `${inset}px`);
   }, safeAreaTop);
   const previewTrigger = page.getByRole("button", {
     name: `預覽附件：${materialName}`,
@@ -277,9 +270,18 @@ export async function verifyMobileSpatial(
     });
     assert.ok(response.ok(), "real memory fixture save");
   }
-  await page
-    .getByRole("button", { name: "開啟 Hermes 空間", exact: true })
-    .click();
+  // At 200%-zoom-equivalent dimensions, switching from the scrolled spatial
+  // sheet to settings must start the new context at its own title. Reopening
+  // the sheet must do the same and preserve the original trigger's focus.
+  const spaceTrigger = page.getByRole("button", {
+    name: "開啟 Hermes 空間",
+    exact: true,
+  });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 320, height: 360 });
+  await spaceTrigger.click();
   const space = page.getByRole("dialog", { name: "Hermes 空間", exact: true });
   await expect(space.getByText("空間測試偏好", { exact: true })).toBeVisible();
   await expect(
@@ -293,13 +295,47 @@ export async function verifyMobileSpatial(
     "只使用已確認",
   );
   await audit("spatial-memory");
-  await page.screenshot({ path: join(output, "spatial-memory-390.png") });
+  const detailContent = page.locator(".detail-dialog .panel-content");
+  await detailContent.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() => detailContent.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
   await space.getByRole("button", { name: "管理記憶", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "工作區設定" })).toBeVisible();
+  const settings = page.getByRole("dialog", { name: "工作區設定" });
+  await expect(settings).toBeVisible();
   await expect(
     page.getByRole("tab", { name: "記憶", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  await expect
+    .poll(() => detailContent.evaluate((element) => element.scrollTop))
+    .toBe(0);
+  const settingsClose = settings.getByRole("button", { name: "關閉面板" });
+  const settingsCloseBounds = await settingsClose.boundingBox();
+  assert.ok(
+    settingsCloseBounds &&
+      settingsCloseBounds.x >= 0 &&
+      settingsCloseBounds.x + settingsCloseBounds.width <= 320 &&
+      settingsCloseBounds.y >= 0 &&
+      settingsCloseBounds.y + settingsCloseBounds.height <= 360 &&
+      settingsCloseBounds.width >= 44 &&
+      settingsCloseBounds.height >= 44,
+    `settings close action must stay visible after a scrolled panel transition: ${JSON.stringify(settingsCloseBounds)}`,
+  );
+  await audit("spatial-settings-transition-large-text");
+  await page.screenshot({
+    path: join(output, "spatial-settings-transition-320x360.png"),
+  });
   await page.keyboard.press("Escape");
+  await expect(spaceTrigger).toBeFocused();
+  await spaceTrigger.click();
+  await expect(space).toBeVisible();
+  await expect
+    .poll(() => detailContent.evaluate((element) => element.scrollTop))
+    .toBe(0);
+  await page.keyboard.press("Escape");
+  await expect(spaceTrigger).toBeFocused();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator(".app-shell")).toHaveAttribute(
     "data-spatial",
