@@ -301,12 +301,38 @@ export async function verifyMobileSpatial(
   );
   await audit("spatial-memory");
   const detailContent = page.locator(".detail-dialog .panel-content");
+  const detailDialog = page.locator(".detail-dialog");
   await detailContent.evaluate((element) => {
-    element.scrollTop = element.scrollHeight;
+    const dialog = element.closest("dialog");
+    const scroller = [element, dialog].find(
+      (candidate) =>
+        candidate && candidate.scrollHeight > candidate.clientHeight,
+    );
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
   });
   await expect
-    .poll(() => detailContent.evaluate((element) => element.scrollTop))
+    .poll(
+      async () =>
+        (await detailContent.evaluate((element) => element.scrollTop)) +
+        (await detailDialog.evaluate((element) => element.scrollTop)),
+    )
     .toBeGreaterThan(0);
+  await page.screenshot({
+    path: join(output, "spatial-memory-scrolled-320x360.png"),
+  });
+  const spaceCloseBounds = await space
+    .getByRole("button", { name: "關閉面板" })
+    .boundingBox();
+  assert.ok(
+    spaceCloseBounds &&
+      spaceCloseBounds.x >= 0 &&
+      spaceCloseBounds.x + spaceCloseBounds.width <= 320 &&
+      spaceCloseBounds.y >= 0 &&
+      spaceCloseBounds.y + spaceCloseBounds.height <= 360 &&
+      spaceCloseBounds.width >= 44 &&
+      spaceCloseBounds.height >= 44,
+    `spatial close action must remain visible while scrolling: ${JSON.stringify(spaceCloseBounds)}`,
+  );
   await space.getByRole("button", { name: "管理記憶", exact: true }).click();
   const settings = page.getByRole("dialog", { name: "工作區設定" });
   await expect(settings).toBeVisible();
@@ -314,7 +340,11 @@ export async function verifyMobileSpatial(
     page.getByRole("tab", { name: "記憶", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await expect
-    .poll(() => detailContent.evaluate((element) => element.scrollTop))
+    .poll(
+      async () =>
+        (await detailContent.evaluate((element) => element.scrollTop)) +
+        (await detailDialog.evaluate((element) => element.scrollTop)),
+    )
     .toBe(0);
   const settingsClose = settings.getByRole("button", { name: "關閉面板" });
   const settingsCloseBounds = await settingsClose.boundingBox();
@@ -337,7 +367,11 @@ export async function verifyMobileSpatial(
   await spaceTrigger.click();
   await expect(space).toBeVisible();
   await expect
-    .poll(() => detailContent.evaluate((element) => element.scrollTop))
+    .poll(
+      async () =>
+        (await detailContent.evaluate((element) => element.scrollTop)) +
+        (await detailDialog.evaluate((element) => element.scrollTop)),
+    )
     .toBe(0);
   await page.keyboard.press("Escape");
   await expect(spaceTrigger).toBeFocused();
