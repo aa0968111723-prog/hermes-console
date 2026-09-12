@@ -532,12 +532,20 @@
     overscroll-behavior: contain;
     box-shadow: var(--depth-overlay);
   }
+  .detail-dialog:not(.preview-sheet) {
+    overflow: hidden;
+  }
   .detail-dialog[open],
   .radial-sheet[open] {
     animation: sheet-arrive var(--motion-spatial) var(--ease-spatial);
   }
   .detail-dialog .panel-content {
     padding: 0 18px max(22px, var(--safe-area-bottom));
+  }
+  .detail-dialog:not(.preview-sheet) .panel-content {
+    height: auto;
+    max-height: calc(min(100dvh, var(--app-height)) - 12px);
+    overflow-y: auto;
   }
   .detail-dialog .panel-header {
     position: sticky;
