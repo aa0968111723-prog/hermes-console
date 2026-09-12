@@ -184,6 +184,14 @@ export async function verifyMobileSpatial(
     name: materialName,
     level: 3,
   });
+  const previewContent = preview.locator(".panel-content");
+  const previewTitleBounds = await previewTitle.boundingBox();
+  assert.ok(
+    previewTitleBounds &&
+      previewTitleBounds.x >= 0 &&
+      previewTitleBounds.x + previewTitleBounds.width <= 320,
+    `long material filename must stay inside the viewport: ${JSON.stringify(previewTitleBounds)}`,
+  );
   assert.equal(
     await previewTitle.evaluate(
       (element) => element.scrollWidth <= element.clientWidth,
@@ -192,7 +200,7 @@ export async function verifyMobileSpatial(
     "long material filename must wrap without horizontal overflow",
   );
   assert.equal(
-    await preview.evaluate(
+    await previewContent.evaluate(
       (element) => element.scrollWidth <= element.clientWidth,
     ),
     true,
@@ -223,7 +231,6 @@ export async function verifyMobileSpatial(
       previewImageBounds.y + previewImageBounds.height > safeAreaTop,
     `full-height preview image must remain in the safe viewport: ${JSON.stringify(previewImageBounds)}`,
   );
-  const previewContent = preview.locator(".panel-content");
   await previewContent.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
