@@ -2,6 +2,20 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 完成（2026-09-12 TST）Codex · 手機全螢幕預覽頂部安全區
+
+- 基準 SHA：`7b8add880efd1474e3836d2f60ee462fdbd9bf56`
+- 分支／草稿 PR：`codex/mobile-preview-safe-area`／#104
+- 產出 SHA：`4942301283c08f76f66f90fa192443508edf5e65`（程式）；`fc5573953c090a8baf23f458d4c41f476c7efe6a`（最終瀏覽器驗收）
+- 完成：新增共用 `--safe-area-top`，全螢幕素材與成果預覽會避開瀏海／動態島；預覽內容高度同步扣除 inset，不影響桌面，也未新增 WebGL 或依賴。
+- 測試先行：CI `34683667141` 只有 UI 旅程失敗，精確重現關閉鍵侵入 47px 頂部安全區；修復後最終 CI `34684445244` 全通過。
+- 驗證：366/368 測試通過、2 項 Postgres 條件跳過；lint、typecheck、build、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程通過；Chrome／WebKit 手機旅程與 16 個 Axe 畫面零違規。人工檢視 320×360、20px 最終 artifact，標題、圖片與 44px 關閉鍵均在安全視窗內；Escape 焦點回到預覽入口。
+- 限制：本地 Playwright 下載因 CDN 逾時，瀏覽器驗證採 GitHub CI；正式 Hermes／MCP、正式部署及 iOS／Android 實機瀏海仍未驗證。
+- 下一輪（Codex）：檢查全螢幕成果預覽在橫向短視窗的內容捲動，以及 200% 縮放下長檔名截斷。
+- 適合 Grok 接手：處理 #30 ConsistencyLab 的 dirty rebase 與外部 contract；避免修改 `app/mobile-spatial.css`、`tests/mobile-spatial.ts`。
+
+---
+
 ## 完成（2026-09-11 TST）長期開發循環員 · PR102 planform-iso 接續合併
 
 - 基準 SHA：`1d77c11`（PR102 squash 合併點；main 當前 tip `4eb841a` 為後續 docs-only research 提交）
