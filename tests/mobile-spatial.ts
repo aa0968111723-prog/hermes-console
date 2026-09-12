@@ -12,6 +12,9 @@ export async function verifyMobileSpatial(
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: /文字大小/ })
+    .selectOption("20");
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "開啟 Hermes 空間", exact: true }),
@@ -156,15 +159,46 @@ export async function verifyMobileSpatial(
     buffer: await readFile("public/mascot/turtle.png"),
   });
   await expect(page.locator(".context-card")).toContainText("已保存");
+  // Full-height preview must keep its close action below a notched phone's
+  // top inset, including at the largest supported text size. Desktop
+  // Playwright needs a custom property to simulate env(safe-area-inset-top).
+  await page.setViewportSize({ width: 320, height: 360 });
+  const safeAreaTop = 47;
+  await page.evaluate((inset) => {
+    document.documentElement.style.setProperty(
+      "--safe-area-top",
+      `${inset}px`,
+    );
+  }, safeAreaTop);
+  const previewTrigger = page.getByRole("button", {
+    name: "預覽附件：spatial-reference.png",
+  });
   await page
     .getByRole("button", { name: "預覽附件：spatial-reference.png" })
     .click();
-  await expect(
-    page.getByRole("dialog", { name: "素材預覽" }).locator("img"),
-  ).toBeVisible();
+  const preview = page.getByRole("dialog", { name: "素材預覽" });
+  await expect(preview.locator("img")).toBeVisible();
   await page.screenshot({
-    path: join(output, "spatial-upload-preview-390.png"),
+    path: join(output, "spatial-upload-preview-safe-area-320x360.png"),
   });
+  const previewCloseBounds = await preview
+    .getByRole("button", { name: "關閉面板" })
+    .boundingBox();
+  assert.ok(
+    previewCloseBounds &&
+      previewCloseBounds.y >= safeAreaTop &&
+      previewCloseBounds.width >= 44 &&
+      previewCloseBounds.height >= 44,
+    "full-height preview close action must remain below the top safe area",
+  );
+  await page.keyboard.press("Escape");
+  await expect(previewTrigger).toBeFocused();
+  await page.evaluate(() => {
+    document.documentElement.style.removeProperty("--safe-area-top");
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "移除附件" }).click();
   const workspace = await (
