@@ -178,6 +178,8 @@ export async function verifyMobileSpatial(
     .click();
   const preview = page.getByRole("dialog", { name: "素材預覽" });
   await expect(preview.locator("img")).toBeVisible();
+  await expect(preview).toHaveCSS("transform", "none");
+  await expect(preview).toHaveCSS("opacity", "1");
   await page.screenshot({
     path: join(output, "spatial-upload-preview-safe-area-320x360.png"),
   });
