@@ -25,7 +25,11 @@ export async function verifyVisualStates(
     mimeType: "image/png",
     buffer: image,
   });
-  await expect(page.locator(".context-card")).toContainText("已保存");
+  // 上傳走 XHR＋SQLite 落檔，CI 高負載下 5s 預設逾時偶發不足（main 4eb841a
+  // docs-only 仍在「上傳 0%」卡住）。只放寬此斷言，不改產品行為。
+  await expect(page.locator(".context-card")).toContainText("已保存", {
+    timeout: 30_000,
+  });
   await page.getByRole("button", { name: "預覽附件：龜龜參考.png" }).click();
   const preview = page.getByRole("dialog", { name: "素材預覽" });
   await expect(preview.locator("img")).toBeVisible();
