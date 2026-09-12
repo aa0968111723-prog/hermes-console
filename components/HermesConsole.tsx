@@ -462,14 +462,14 @@ export default function HermesConsole() {
     }
   }, [panel]);
   useEffect(() => {
-    if (panel !== "task") return;
+    if (panel !== "task" && panel !== "preview") return;
     const frame = requestAnimationFrame(() => {
       dialog.current
         ?.querySelector<HTMLElement>(".panel-content")
         ?.scrollTo({ top: 0, behavior: "auto" });
     });
     return () => cancelAnimationFrame(frame);
-  }, [panel, selectedTask]);
+  }, [panel, preview, selectedTask]);
   useEffect(() => {
     if (drawer) mobileNav.current?.showModal();
     else mobileNav.current?.close();
