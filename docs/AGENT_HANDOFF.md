@@ -2,6 +2,14 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 完成（2026-09-11 TST）長期開發循環員 · PR102 planform-iso 接續合併
+
+- 基準 SHA：`1d77c11`（PR102 squash 合併點；main 當前 tip `4eb841a` 為後續 docs-only research 提交）
+- 前情：PR100 早已於 09-10 合併（squash `4997c3e`）；PR81 原分支基準落後約 26 提交、diff 帶 HANDOFF 且與 #83 VisualMessage 文字衝突
+- 做法：cherry-pick 3 commits 到新分支 `cubelv-cli-pr81-planform-rebase`（VisualMessage 雙面板並存、HANDOFF 取 ours 剝離），開 PR102，CI 綠＋mergeable clean 後 squash 合併，舊 PR81 留言標記取代後關閉
+- open PR：#30（ConsistencyLab clab_*，mergeable_state=dirty 待接續）／#21（draft）／#10（禁合）／#4（擱置）
+- 標籤：`LOCAL_CONTRACT`＋CI；教訓：接續他人 PR 一律新分支 cherry-pick＋剝離 HANDOFF，合併後在舊 PR 留言交代取代關係再關閉
+
 ## 完成（2026-09-09 20:45 TST）Codex · 手機底部安全區
 
 - 基準 SHA：`4003f482d6ee8961e635fba655d8196c97a39f24`
