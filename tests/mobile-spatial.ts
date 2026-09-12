@@ -184,12 +184,24 @@ export async function verifyMobileSpatial(
   const previewCloseBounds = await preview
     .getByRole("button", { name: "關閉面板" })
     .boundingBox();
+  const previewImageBounds = await preview.locator("img").boundingBox();
   assert.ok(
     previewCloseBounds &&
       previewCloseBounds.y >= safeAreaTop &&
+      previewCloseBounds.x >= 0 &&
+      previewCloseBounds.x + previewCloseBounds.width <= 320 &&
+      previewCloseBounds.y + previewCloseBounds.height <= 360 &&
       previewCloseBounds.width >= 44 &&
       previewCloseBounds.height >= 44,
-    "full-height preview close action must remain below the top safe area",
+    `full-height preview close action must remain in the safe viewport: ${JSON.stringify(previewCloseBounds)}`,
+  );
+  assert.ok(
+    previewImageBounds &&
+      previewImageBounds.x < 320 &&
+      previewImageBounds.x + previewImageBounds.width > 0 &&
+      previewImageBounds.y < 360 &&
+      previewImageBounds.y + previewImageBounds.height > safeAreaTop,
+    `full-height preview image must remain in the safe viewport: ${JSON.stringify(previewImageBounds)}`,
   );
   await page.keyboard.press("Escape");
   await expect(previewTrigger).toBeFocused();
