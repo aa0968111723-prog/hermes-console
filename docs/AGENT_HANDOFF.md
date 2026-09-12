@@ -2,6 +2,19 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 完成（2026-09-13 TST）Codex · 素材預覽重開定位與長檔名
+
+- 最新 main 基準 SHA：`cebd0719aaa5e06ae0d5240b19e39f4856461f54`（本輪新增內容皆為研究文件，無前端衝突）；續修 `codex/mobile-preview-safe-area`／草稿 PR #104。
+- 產出 SHA：`244fdb5c126056d29dfb22dd60d708c43e700852`（程式；本紀錄另有文件提交）。
+- 完成：手機素材預覽捲到底、關閉再開後會回到標題與圖片頂端；320×360、20px 大字下的無空白長檔名可分行，不再向右裁切。沿用既有 CSS 2.5D 與安全區，未新增 WebGL、動畫或依賴。
+- 測試先行：CI `34714091308` 精確重現重新開啟仍停在 `scrollTop=266`；人工檢視其 artifact 發現長檔名仍被裁切，再以邊界測試於 CI `34715952475` 重現標題寬 `726.28125px` 超出 320px 視窗。
+- 驗證：最終 CI `34716116318` 全通過；366/368 測試通過、2 項 Postgres 條件跳過，lint、typecheck、build（52 routes）、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程均通過；Chrome／WebKit 與 16 個 Axe 畫面零違規。已人工檢視最終 320×360 artifact：標題三行完整、圖片從頂部可見、無水平裁切；Escape 關閉後焦點回到預覽入口。
+- 限制：上傳與預覽是 Console 本機 fixture，不是正式 Hermes／MCP 或外部素材服務；本地 Playwright 瀏覽器不可用，畫面證據來自 GitHub CI；iOS／Android 實機仍未驗證。
+- 下一輪（Codex）：檢查設定與空間面板在 200% 等效窄畫面下，跨頁籤後的 sticky 標題、捲動起點與焦點回復。
+- 適合 Grok 接手：處理 #30 ConsistencyLab dirty rebase 與 live contract；避免修改本 PR 的預覽 CSS／瀏覽器旅程。
+
+---
+
 ## 完成（2026-09-12 TST）Codex · 橫向成果預覽與長標題
 
 - 最新 main 基準 SHA：`8baf8a7400b3a73af7a261b2ca1b48c0229df60b`（相較 PR 基準只新增研究文件，無前端衝突）；續修 `codex/mobile-preview-safe-area`／草稿 PR #104。
