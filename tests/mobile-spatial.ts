@@ -256,6 +256,11 @@ export async function verifyMobileSpatial(
   const foreign = workspace.projects[0]?.id;
   for (const [scope, title] of [
     ["workspace", "空間測試偏好"],
+    ["workspace", "活動地點待確認"],
+    ["workspace", "視覺使用低飽和綠"],
+    ["workspace", "成果發布前需確認"],
+    ["workspace", "手機版優先檢查"],
+    ["workspace", "保留來源與更新日期"],
     ...(foreign ? [[foreign, "其他專案的隱藏資料"]] : []),
   ]) {
     const response = await page.request.post(base + "/api/memory", {
