@@ -2,6 +2,19 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 完成（2026-09-12 TST）Codex · 橫向成果預覽與長標題
+
+- 最新 main 基準 SHA：`8baf8a7400b3a73af7a261b2ca1b48c0229df60b`（相較 PR 基準只新增研究文件，無前端衝突）；續修 `codex/mobile-preview-safe-area`／草稿 PR #104。
+- 產出 SHA：`402ab3f96b2d13e0316adba59540faa964820445`（程式；本紀錄另有文件提交）
+- 完成：Canva／成果預覽的無空白長標題可在窄畫面任意斷行，不再撐出水平捲動；沿用前輪頂／底安全區與 sticky 關閉控制。
+- 測試先行：CI `34686022420` 在 568×320、20px 大字、32px top／21px bottom inset 精確失敗於長標題水平溢出；修復後 CI `34686287104` 全通過。
+- 驗證：366/368 測試通過、2 項 Postgres 條件跳過；lint、typecheck、build、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程通過；Chrome／WebKit 與 16 個 Axe 畫面零違規。人工檢視橫向短視窗 artifact：捲動後關閉鍵仍在 top inset 下、44px 觸控區完整，長標題分行且無水平溢出。
+- 限制：測試使用明確標示的 UI fixture 與 CI 瀏覽器，不是正式 Canva 回傳；正式 Hermes／MCP、Canva 連線及 iOS／Android 實機未驗證。
+- 下一輪（Codex）：檢查素材預覽的超長檔名與 200% 縮放，以及橫向短視窗關閉後捲動位置恢復。
+- 適合 Grok 接手：處理 #30 ConsistencyLab dirty rebase 與 live contract；避免修改本 PR 的預覽 CSS／瀏覽器旅程。
+
+---
+
 ## 完成（2026-09-12 TST）Codex · 手機全螢幕預覽頂部安全區
 
 - 基準 SHA：`7b8add880efd1474e3836d2f60ee462fdbd9bf56`
