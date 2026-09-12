@@ -574,6 +574,10 @@
   .artifact-preview .canva-result img {
     max-height: 62dvh;
   }
+  .artifact-preview .canva-result h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
   .artifact-stage .canva-result > img,
   .artifact-preview-trigger img {
     max-height: 32dvh;
