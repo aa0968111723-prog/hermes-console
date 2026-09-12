@@ -151,10 +151,12 @@ export async function verifyMobileSpatial(
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
   const choosing = page.waitForEvent("filechooser");
   await radial.getByRole("button", { name: "圖片", exact: true }).click();
+  const materialName =
+    "2026FreshmanWelcomeCampaignReferenceVersionFinalWithoutSpaces.png";
   await (
     await choosing
   ).setFiles({
-    name: "spatial-reference.png",
+    name: materialName,
     mimeType: "image/png",
     buffer: await readFile("public/mascot/turtle.png"),
   });
@@ -171,15 +173,31 @@ export async function verifyMobileSpatial(
     );
   }, safeAreaTop);
   const previewTrigger = page.getByRole("button", {
-    name: "預覽附件：spatial-reference.png",
+    name: `預覽附件：${materialName}`,
   });
-  await page
-    .getByRole("button", { name: "預覽附件：spatial-reference.png" })
-    .click();
+  await previewTrigger.click();
   const preview = page.getByRole("dialog", { name: "素材預覽" });
   await expect(preview.locator("img")).toBeVisible();
   await expect(preview).toHaveCSS("transform", "none");
   await expect(preview).toHaveCSS("opacity", "1");
+  const previewTitle = preview.getByRole("heading", {
+    name: materialName,
+    level: 3,
+  });
+  assert.equal(
+    await previewTitle.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "long material filename must wrap without horizontal overflow",
+  );
+  assert.equal(
+    await preview.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "material preview must not overflow horizontally",
+  );
   await page.screenshot({
     path: join(output, "spatial-upload-preview-safe-area-320x360.png"),
   });
@@ -205,6 +223,23 @@ export async function verifyMobileSpatial(
       previewImageBounds.y + previewImageBounds.height > safeAreaTop,
     `full-height preview image must remain in the safe viewport: ${JSON.stringify(previewImageBounds)}`,
   );
+  const previewContent = preview.locator(".panel-content");
+  await previewContent.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() => previewContent.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  await page.keyboard.press("Escape");
+  await expect(previewTrigger).toBeFocused();
+  await previewTrigger.click();
+  await expect(preview).toBeVisible();
+  await expect
+    .poll(() => previewContent.evaluate((element) => element.scrollTop))
+    .toBe(0);
+  await page.screenshot({
+    path: join(output, "spatial-upload-preview-long-name-320x360.png"),
+  });
   await page.keyboard.press("Escape");
   await expect(previewTrigger).toBeFocused();
   await page.evaluate(() => {
