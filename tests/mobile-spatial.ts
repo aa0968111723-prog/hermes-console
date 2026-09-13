@@ -12,6 +12,7 @@ export async function verifyMobileSpatial(
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
+  await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "開啟 Hermes 空間", exact: true }),
@@ -41,9 +42,7 @@ export async function verifyMobileSpatial(
   // The primary mobile action sheet must honor the real appearance preference,
   // including on a short viewport where larger labels need flexible rows.
   await page.getByRole("button", { name: "外觀設定" }).click();
-  await page
-    .getByRole("combobox", { name: /文字大小/ })
-    .selectOption("20");
+  await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 360, height: 560 });
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
@@ -148,23 +147,107 @@ export async function verifyMobileSpatial(
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
   const choosing = page.waitForEvent("filechooser");
   await radial.getByRole("button", { name: "圖片", exact: true }).click();
+  const materialName =
+    "2026FreshmanWelcomeCampaignReferenceVersionFinalWithoutSpaces.png";
   await (
     await choosing
   ).setFiles({
-    name: "spatial-reference.png",
+    name: materialName,
     mimeType: "image/png",
     buffer: await readFile("public/mascot/turtle.png"),
   });
   await expect(page.locator(".context-card")).toContainText("已保存");
-  await page
-    .getByRole("button", { name: "預覽附件：spatial-reference.png" })
-    .click();
-  await expect(
-    page.getByRole("dialog", { name: "素材預覽" }).locator("img"),
-  ).toBeVisible();
-  await page.screenshot({
-    path: join(output, "spatial-upload-preview-390.png"),
+  // Full-height preview must keep its close action below a notched phone's
+  // top inset, including at the largest supported text size. Desktop
+  // Playwright needs a custom property to simulate env(safe-area-inset-top).
+  await page.setViewportSize({ width: 320, height: 360 });
+  const safeAreaTop = 47;
+  await page.evaluate((inset) => {
+    document.documentElement.style.setProperty("--safe-area-top", `${inset}px`);
+  }, safeAreaTop);
+  const previewTrigger = page.getByRole("button", {
+    name: `預覽附件：${materialName}`,
   });
+  await previewTrigger.click();
+  const preview = page.getByRole("dialog", { name: "素材預覽" });
+  await expect(preview.locator("img")).toBeVisible();
+  await expect(preview).toHaveCSS("transform", "none");
+  await expect(preview).toHaveCSS("opacity", "1");
+  const previewTitle = preview.getByRole("heading", {
+    name: materialName,
+    level: 3,
+  });
+  const previewContent = preview.locator(".panel-content");
+  const previewTitleBounds = await previewTitle.boundingBox();
+  assert.ok(
+    previewTitleBounds &&
+      previewTitleBounds.x >= 0 &&
+      previewTitleBounds.x + previewTitleBounds.width <= 320,
+    `long material filename must stay inside the viewport: ${JSON.stringify(previewTitleBounds)}`,
+  );
+  assert.equal(
+    await previewTitle.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "long material filename must wrap without horizontal overflow",
+  );
+  assert.equal(
+    await previewContent.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "material preview must not overflow horizontally",
+  );
+  await page.screenshot({
+    path: join(output, "spatial-upload-preview-safe-area-320x360.png"),
+  });
+  const previewCloseBounds = await preview
+    .getByRole("button", { name: "關閉面板" })
+    .boundingBox();
+  const previewImageBounds = await preview.locator("img").boundingBox();
+  assert.ok(
+    previewCloseBounds &&
+      previewCloseBounds.y >= safeAreaTop &&
+      previewCloseBounds.x >= 0 &&
+      previewCloseBounds.x + previewCloseBounds.width <= 320 &&
+      previewCloseBounds.y + previewCloseBounds.height <= 360 &&
+      previewCloseBounds.width >= 44 &&
+      previewCloseBounds.height >= 44,
+    `full-height preview close action must remain in the safe viewport: ${JSON.stringify(previewCloseBounds)}`,
+  );
+  assert.ok(
+    previewImageBounds &&
+      previewImageBounds.x < 320 &&
+      previewImageBounds.x + previewImageBounds.width > 0 &&
+      previewImageBounds.y < 360 &&
+      previewImageBounds.y + previewImageBounds.height > safeAreaTop,
+    `full-height preview image must remain in the safe viewport: ${JSON.stringify(previewImageBounds)}`,
+  );
+  await previewContent.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() => previewContent.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  await page.keyboard.press("Escape");
+  await expect(previewTrigger).toBeFocused();
+  await previewTrigger.click();
+  await expect(preview).toBeVisible();
+  await expect
+    .poll(() => previewContent.evaluate((element) => element.scrollTop))
+    .toBe(0);
+  await page.screenshot({
+    path: join(output, "spatial-upload-preview-long-name-320x360.png"),
+  });
+  await page.keyboard.press("Escape");
+  await expect(previewTrigger).toBeFocused();
+  await page.evaluate(() => {
+    document.documentElement.style.removeProperty("--safe-area-top");
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "移除附件" }).click();
   const workspace = await (
@@ -173,6 +256,11 @@ export async function verifyMobileSpatial(
   const foreign = workspace.projects[0]?.id;
   for (const [scope, title] of [
     ["workspace", "空間測試偏好"],
+    ["workspace", "活動地點待確認"],
+    ["workspace", "視覺使用低飽和綠"],
+    ["workspace", "成果發布前需確認"],
+    ["workspace", "手機版優先檢查"],
+    ["workspace", "保留來源與更新日期"],
     ...(foreign ? [[foreign, "其他專案的隱藏資料"]] : []),
   ]) {
     const response = await page.request.post(base + "/api/memory", {
@@ -187,9 +275,18 @@ export async function verifyMobileSpatial(
     });
     assert.ok(response.ok(), "real memory fixture save");
   }
-  await page
-    .getByRole("button", { name: "開啟 Hermes 空間", exact: true })
-    .click();
+  // At 200%-zoom-equivalent dimensions, switching from the scrolled spatial
+  // sheet to settings must start the new context at its own title. Reopening
+  // the sheet must do the same and preserve the original trigger's focus.
+  const spaceTrigger = page.getByRole("button", {
+    name: "開啟 Hermes 空間",
+    exact: true,
+  });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 320, height: 360 });
+  await spaceTrigger.click();
   const space = page.getByRole("dialog", { name: "Hermes 空間", exact: true });
   await expect(space.getByText("空間測試偏好", { exact: true })).toBeVisible();
   await expect(
@@ -203,13 +300,81 @@ export async function verifyMobileSpatial(
     "只使用已確認",
   );
   await audit("spatial-memory");
-  await page.screenshot({ path: join(output, "spatial-memory-390.png") });
+  const detailContent = page.locator(".detail-dialog .panel-content");
+  const detailDialog = page.locator(".detail-dialog");
+  await detailContent.evaluate((element) => {
+    const dialog = element.closest("dialog");
+    const scroller = [element, dialog].find(
+      (candidate) =>
+        candidate && candidate.scrollHeight > candidate.clientHeight,
+    );
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  });
+  await expect
+    .poll(
+      async () =>
+        (await detailContent.evaluate((element) => element.scrollTop)) +
+        (await detailDialog.evaluate((element) => element.scrollTop)),
+    )
+    .toBeGreaterThan(0);
+  await page.screenshot({
+    path: join(output, "spatial-memory-scrolled-320x360.png"),
+  });
+  const spaceCloseBounds = await space
+    .getByRole("button", { name: "關閉面板" })
+    .boundingBox();
+  assert.ok(
+    spaceCloseBounds &&
+      spaceCloseBounds.x >= 0 &&
+      spaceCloseBounds.x + spaceCloseBounds.width <= 320 &&
+      spaceCloseBounds.y >= 0 &&
+      spaceCloseBounds.y + spaceCloseBounds.height <= 360 &&
+      spaceCloseBounds.width >= 44 &&
+      spaceCloseBounds.height >= 44,
+    `spatial close action must remain visible while scrolling: ${JSON.stringify(spaceCloseBounds)}`,
+  );
   await space.getByRole("button", { name: "管理記憶", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "工作區設定" })).toBeVisible();
+  const settings = page.getByRole("dialog", { name: "工作區設定" });
+  await expect(settings).toBeVisible();
   await expect(
     page.getByRole("tab", { name: "記憶", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  await expect
+    .poll(
+      async () =>
+        (await detailContent.evaluate((element) => element.scrollTop)) +
+        (await detailDialog.evaluate((element) => element.scrollTop)),
+    )
+    .toBe(0);
+  const settingsClose = settings.getByRole("button", { name: "關閉面板" });
+  const settingsCloseBounds = await settingsClose.boundingBox();
+  assert.ok(
+    settingsCloseBounds &&
+      settingsCloseBounds.x >= 0 &&
+      settingsCloseBounds.x + settingsCloseBounds.width <= 320 &&
+      settingsCloseBounds.y >= 0 &&
+      settingsCloseBounds.y + settingsCloseBounds.height <= 360 &&
+      settingsCloseBounds.width >= 44 &&
+      settingsCloseBounds.height >= 44,
+    `settings close action must stay visible after a scrolled panel transition: ${JSON.stringify(settingsCloseBounds)}`,
+  );
+  await audit("spatial-settings-transition-large-text");
+  await page.screenshot({
+    path: join(output, "spatial-settings-transition-320x360.png"),
+  });
   await page.keyboard.press("Escape");
+  await expect(spaceTrigger).toBeFocused();
+  await spaceTrigger.click();
+  await expect(space).toBeVisible();
+  await expect
+    .poll(
+      async () =>
+        (await detailContent.evaluate((element) => element.scrollTop)) +
+        (await detailDialog.evaluate((element) => element.scrollTop)),
+    )
+    .toBe(0);
+  await page.keyboard.press("Escape");
+  await expect(spaceTrigger).toBeFocused();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(page.locator(".app-shell")).toHaveAttribute(
     "data-spatial",

@@ -200,7 +200,8 @@ export async function verifyVisualStates(
             error: null,
             design: {
               id: "ui-fixture-design",
-              title: "[介面測試] 成果 B",
+              title:
+                "[介面測試] 2026FreshmanWelcomeCampaignContinuityReviewVersionBFinal",
               thumbnail: {
                 url: "https://www.canva.com/ui-fixture-preview.png",
               },
@@ -456,15 +457,75 @@ export async function verifyVisualStates(
   await expect(page.locator(".artifact-stage img")).toBeVisible();
   await page.screenshot({ path: join(output, "artifact-fixture.png") });
   await audit("artifact-fixture");
-  await page.setViewportSize({width:390,height:844});
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page
+    .getByRole("combobox", { name: /文字大小/ })
+    .selectOption("20");
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 568, height: 320 });
+  const artifactSafeAreaTop = 32;
+  const artifactSafeAreaBottom = 21;
+  await page.evaluate(
+    ([top, bottom]) => {
+      document.documentElement.style.setProperty("--safe-area-top", `${top}px`);
+      document.documentElement.style.setProperty(
+        "--safe-area-bottom",
+        `${bottom}px`,
+      );
+    },
+    [artifactSafeAreaTop, artifactSafeAreaBottom],
+  );
   await page.getByRole("button",{name:"放大設計預覽",exact:true}).click();
   const artifactPreview=page.getByRole("dialog",{name:"作品全螢幕預覽",exact:true});
   await expect(artifactPreview).toBeVisible();
   await expect.poll(()=>artifactPreview.locator("img").evaluate((img:HTMLImageElement)=>img.complete && img.naturalWidth>0)).toBe(true);
+  await expect(artifactPreview).toHaveCSS("transform", "none");
+  await artifactPreview.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() => artifactPreview.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  const artifactCloseBounds = await artifactPreview
+    .getByRole("button", { name: "關閉作品預覽" })
+    .boundingBox();
+  assert.ok(
+    artifactCloseBounds &&
+      artifactCloseBounds.y >= artifactSafeAreaTop &&
+      artifactCloseBounds.y + artifactCloseBounds.height <= 320 &&
+      artifactCloseBounds.width >= 44 &&
+      artifactCloseBounds.height >= 44,
+    `scrolled artifact close action must remain in the safe viewport: ${JSON.stringify(artifactCloseBounds)}`,
+  );
+  const artifactTitle = artifactPreview.locator(".canva-result h3");
+  assert.equal(
+    await artifactTitle.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "long artifact title must wrap without horizontal overflow",
+  );
+  assert.equal(
+    await artifactPreview.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "landscape artifact preview must not overflow horizontally",
+  );
   await audit("artifact-fullscreen-mobile-fixture");
-  await page.screenshot({path:join(output,"spatial-artifact-390-fixture.png")});
+  await page.screenshot({
+    path: join(output, "spatial-artifact-safe-area-568x320-fixture.png"),
+  });
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button",{name:"放大設計預覽",exact:true})).toBeFocused();
+  await page.evaluate(() => {
+    document.documentElement.style.removeProperty("--safe-area-top");
+    document.documentElement.style.removeProperty("--safe-area-bottom");
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("button", { name: "重設外觀", exact: true }).click();
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
