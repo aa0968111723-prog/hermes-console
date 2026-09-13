@@ -2,6 +2,21 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 完成（2026-09-13 TST）Codex · 短視窗面板固定控制與捲動歸零
+
+- 本輪開始基準 SHA：`cebd0719aaa5e06ae0d5240b19e39f4856461f54`；結束前同步 latest main `e4b921fa2a88330ee731ad5cc4678ab341873efa`，新增差異仍全是 `data/ai-agent-research/` 研究文件，沒有前端衝突。續修 `codex/mobile-preview-safe-area`／草稿 PR #104，未覆寫其他開發者分支。
+- 產出 SHA：`04d85efec408eb8a07e3d5905624cd77ad1265bf`（程式；本紀錄另有文件提交）。
+- 完成：一般手機底部面板改由內層內容負責捲動，Hermes 空間捲到底時 sticky 標題與 44×44px 關閉鍵不再滑出視窗；空間切到設定、設定切換頁籤或重新開啟面板時，內容會從各自頂端開始；Escape 關閉後焦點回到原本的 Hermes 空間入口。
+- 測試先行：CI `34717647584` 在 320×360、20px 大字與 6 筆真實 Console 記憶 fixture 下，精確重現捲動後關閉鍵位於 `y=-652`、完全離開視窗。
+- 驗證：同一功能 SHA 的 CI `34718012286` 第二次執行全通過；第一次只在既有圖片上傳旅程停於「上傳 0%」，原 SHA 重跑後排除暫時性波動。366/368 測試通過、2 項 Postgres 條件跳過；lint、typecheck、build（52 routes）、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程均通過；Chrome／WebKit 與 17 個 Axe 畫面零違規。
+- 畫面：已人工檢視最終 artifact `10305087940` 的 320×360 捲動後 Hermes 空間與跨面板設定畫面；兩者標題／關閉控制皆在視窗內，設定從頂端開始，沒有以裝飾動畫冒充狀態。
+- 3D／效能：沿用既有 CSS 2.5D 卡片光影；沒有新增 WebGL、持續動畫或依賴，reduced-motion 行為未變。
+- 限制：記憶內容由測試走真實 Console API 建立，但不是正式 Hermes／MCP 遠端同步；本地 Playwright 瀏覽器不可用，瀏覽器證據來自 GitHub CI；iOS／Android 實機仍未驗證。
+- 下一輪（Codex）：處理 320px、20px 大字下設定分類列最後頁籤的可達性與可見提示，並補鍵盤橫向導覽證據。
+- 適合 Grok 接手：#30 ConsistencyLab dirty rebase 與 live contract；避免修改本 PR 的面板 CSS／瀏覽器旅程。
+
+---
+
 ## 完成（2026-09-13 TST）Codex · 素材預覽重開定位與長檔名
 
 - 最新 main 基準 SHA：`cebd0719aaa5e06ae0d5240b19e39f4856461f54`（本輪新增內容皆為研究文件，無前端衝突）；續修 `codex/mobile-preview-safe-area`／草稿 PR #104。
