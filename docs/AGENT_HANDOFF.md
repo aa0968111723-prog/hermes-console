@@ -2,6 +2,61 @@
 
 單一交接檔。每輪只在頂部新增一則，不另開 Cycle 文件。
 
+## 完成（2026-09-13 TST）Codex · 短視窗面板固定控制與捲動歸零
+
+- 本輪開始基準 SHA：`cebd0719aaa5e06ae0d5240b19e39f4856461f54`；結束前同步 latest main `e4b921fa2a88330ee731ad5cc4678ab341873efa`，新增差異仍全是 `data/ai-agent-research/` 研究文件，沒有前端衝突。續修 `codex/mobile-preview-safe-area`／草稿 PR #104，未覆寫其他開發者分支。
+- 產出 SHA：`04d85efec408eb8a07e3d5905624cd77ad1265bf`（程式；本紀錄另有文件提交）。
+- 完成：一般手機底部面板改由內層內容負責捲動，Hermes 空間捲到底時 sticky 標題與 44×44px 關閉鍵不再滑出視窗；空間切到設定、設定切換頁籤或重新開啟面板時，內容會從各自頂端開始；Escape 關閉後焦點回到原本的 Hermes 空間入口。
+- 測試先行：CI `34717647584` 在 320×360、20px 大字與 6 筆真實 Console 記憶 fixture 下，精確重現捲動後關閉鍵位於 `y=-652`、完全離開視窗。
+- 驗證：同一功能 SHA 的 CI `34718012286` 第二次執行全通過；第一次只在既有圖片上傳旅程停於「上傳 0%」，原 SHA 重跑後排除暫時性波動。366/368 測試通過、2 項 Postgres 條件跳過；lint、typecheck、build（52 routes）、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程均通過；Chrome／WebKit 與 17 個 Axe 畫面零違規。
+- 畫面：已人工檢視最終 artifact `10305087940` 的 320×360 捲動後 Hermes 空間與跨面板設定畫面；兩者標題／關閉控制皆在視窗內，設定從頂端開始，沒有以裝飾動畫冒充狀態。
+- 3D／效能：沿用既有 CSS 2.5D 卡片光影；沒有新增 WebGL、持續動畫或依賴，reduced-motion 行為未變。
+- 限制：記憶內容由測試走真實 Console API 建立，但不是正式 Hermes／MCP 遠端同步；本地 Playwright 瀏覽器不可用，瀏覽器證據來自 GitHub CI；iOS／Android 實機仍未驗證。
+- 下一輪（Codex）：處理 320px、20px 大字下設定分類列最後頁籤的可達性與可見提示，並補鍵盤橫向導覽證據。
+- 適合 Grok 接手：#30 ConsistencyLab dirty rebase 與 live contract；避免修改本 PR 的面板 CSS／瀏覽器旅程。
+
+---
+
+## 完成（2026-09-13 TST）Codex · 素材預覽重開定位與長檔名
+
+- 最新 main 基準 SHA：`cebd0719aaa5e06ae0d5240b19e39f4856461f54`（本輪新增內容皆為研究文件，無前端衝突）；續修 `codex/mobile-preview-safe-area`／草稿 PR #104。
+- 產出 SHA：`244fdb5c126056d29dfb22dd60d708c43e700852`（程式；本紀錄另有文件提交）。
+- 完成：手機素材預覽捲到底、關閉再開後會回到標題與圖片頂端；320×360、20px 大字下的無空白長檔名可分行，不再向右裁切。沿用既有 CSS 2.5D 與安全區，未新增 WebGL、動畫或依賴。
+- 測試先行：CI `34714091308` 精確重現重新開啟仍停在 `scrollTop=266`；人工檢視其 artifact 發現長檔名仍被裁切，再以邊界測試於 CI `34715952475` 重現標題寬 `726.28125px` 超出 320px 視窗。
+- 驗證：最終 CI `34716116318` 全通過；366/368 測試通過、2 項 Postgres 條件跳過，lint、typecheck、build（52 routes）、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程均通過；Chrome／WebKit 與 16 個 Axe 畫面零違規。已人工檢視最終 320×360 artifact：標題三行完整、圖片從頂部可見、無水平裁切；Escape 關閉後焦點回到預覽入口。
+- 限制：上傳與預覽是 Console 本機 fixture，不是正式 Hermes／MCP 或外部素材服務；本地 Playwright 瀏覽器不可用，畫面證據來自 GitHub CI；iOS／Android 實機仍未驗證。
+- 下一輪（Codex）：檢查設定與空間面板在 200% 等效窄畫面下，跨頁籤後的 sticky 標題、捲動起點與焦點回復。
+- 適合 Grok 接手：處理 #30 ConsistencyLab dirty rebase 與 live contract；避免修改本 PR 的預覽 CSS／瀏覽器旅程。
+
+---
+
+## 完成（2026-09-12 TST）Codex · 橫向成果預覽與長標題
+
+- 最新 main 基準 SHA：`8baf8a7400b3a73af7a261b2ca1b48c0229df60b`（相較 PR 基準只新增研究文件，無前端衝突）；續修 `codex/mobile-preview-safe-area`／草稿 PR #104。
+- 產出 SHA：`402ab3f96b2d13e0316adba59540faa964820445`（程式；本紀錄另有文件提交）
+- 完成：Canva／成果預覽的無空白長標題可在窄畫面任意斷行，不再撐出水平捲動；沿用前輪頂／底安全區與 sticky 關閉控制。
+- 測試先行：CI `34686022420` 在 568×320、20px 大字、32px top／21px bottom inset 精確失敗於長標題水平溢出；修復後 CI `34686287104` 全通過。
+- 驗證：366/368 測試通過、2 項 Postgres 條件跳過；lint、typecheck、build、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程通過；Chrome／WebKit 與 16 個 Axe 畫面零違規。人工檢視橫向短視窗 artifact：捲動後關閉鍵仍在 top inset 下、44px 觸控區完整，長標題分行且無水平溢出。
+- 限制：測試使用明確標示的 UI fixture 與 CI 瀏覽器，不是正式 Canva 回傳；正式 Hermes／MCP、Canva 連線及 iOS／Android 實機未驗證。
+- 下一輪（Codex）：檢查素材預覽的超長檔名與 200% 縮放，以及橫向短視窗關閉後捲動位置恢復。
+- 適合 Grok 接手：處理 #30 ConsistencyLab dirty rebase 與 live contract；避免修改本 PR 的預覽 CSS／瀏覽器旅程。
+
+---
+
+## 完成（2026-09-12 TST）Codex · 手機全螢幕預覽頂部安全區
+
+- 基準 SHA：`7b8add880efd1474e3836d2f60ee462fdbd9bf56`
+- 分支／草稿 PR：`codex/mobile-preview-safe-area`／#104
+- 產出 SHA：`4942301283c08f76f66f90fa192443508edf5e65`（程式）；`fc5573953c090a8baf23f458d4c41f476c7efe6a`（最終瀏覽器驗收）
+- 完成：新增共用 `--safe-area-top`，全螢幕素材與成果預覽會避開瀏海／動態島；預覽內容高度同步扣除 inset，不影響桌面，也未新增 WebGL 或依賴。
+- 測試先行：CI `34683667141` 只有 UI 旅程失敗，精確重現關閉鍵侵入 47px 頂部安全區；修復後最終 CI `34684445244` 全通過。
+- 驗證：366/368 測試通過、2 項 Postgres 條件跳過；lint、typecheck、build、密鑰掃描、audit、UI／聊天／工作台／Gateway／入口旅程通過；Chrome／WebKit 手機旅程與 16 個 Axe 畫面零違規。人工檢視 320×360、20px 最終 artifact，標題、圖片與 44px 關閉鍵均在安全視窗內；Escape 焦點回到預覽入口。
+- 限制：本地 Playwright 下載因 CDN 逾時，瀏覽器驗證採 GitHub CI；正式 Hermes／MCP、正式部署及 iOS／Android 實機瀏海仍未驗證。
+- 下一輪（Codex）：檢查全螢幕成果預覽在橫向短視窗的內容捲動，以及 200% 縮放下長檔名截斷。
+- 適合 Grok 接手：處理 #30 ConsistencyLab 的 dirty rebase 與外部 contract；避免修改 `app/mobile-spatial.css`、`tests/mobile-spatial.ts`。
+
+---
+
 ## 完成（2026-09-11 TST）長期開發循環員 · PR102 planform-iso 接續合併
 
 - 基準 SHA：`1d77c11`（PR102 squash 合併點；main 當前 tip `4eb841a` 為後續 docs-only research 提交）

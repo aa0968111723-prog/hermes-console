@@ -5,6 +5,7 @@
   --ease-spatial: cubic-bezier(0.2, 0.75, 0.25, 1);
   --glass-toolbar: rgba(255, 255, 255, 0.95);
   --glass-sheet: #fafcf8;
+  --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --spatial-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --layer-content: 1;
@@ -531,12 +532,20 @@
     overscroll-behavior: contain;
     box-shadow: var(--depth-overlay);
   }
+  .detail-dialog:not(.preview-sheet) {
+    overflow: hidden;
+  }
   .detail-dialog[open],
   .radial-sheet[open] {
     animation: sheet-arrive var(--motion-spatial) var(--ease-spatial);
   }
   .detail-dialog .panel-content {
     padding: 0 18px max(22px, var(--safe-area-bottom));
+  }
+  .detail-dialog:not(.preview-sheet) .panel-content {
+    height: auto;
+    max-height: calc(min(100dvh, var(--app-height)) - 12px);
+    overflow-y: auto;
   }
   .detail-dialog .panel-header {
     position: sticky;
@@ -559,12 +568,30 @@
     max-height: min(100dvh, var(--app-height));
     border-radius: 0;
   }
+  .preview-sheet {
+    padding-top: var(--safe-area-top);
+  }
+  .preview-sheet .panel-content {
+    height: calc(100% - var(--safe-area-top));
+  }
+  .preview-sheet .settings-stack,
+  .preview-sheet .settings-stack > h3 {
+    min-width: 0;
+  }
+  .preview-sheet .settings-stack > h3 {
+    overflow-wrap: anywhere;
+  }
   .artifact-preview {
     margin: 0;
-    padding: 12px;
+    padding: max(12px, var(--safe-area-top)) 12px
+      max(12px, var(--safe-area-bottom));
   }
   .artifact-preview .canva-result img {
     max-height: 62dvh;
+  }
+  .artifact-preview .canva-result h3 {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .artifact-stage .canva-result > img,
   .artifact-preview-trigger img {
