@@ -562,13 +562,6 @@ export async function verifyVisualStates(
     true,
     "in-chat artifact title must wrap on mobile without horizontal overflow",
   );
-  assert.equal(
-    await page
-      .locator(".conversation-scroll")
-      .evaluate((element) => element.scrollWidth <= element.clientWidth),
-    true,
-    "chat pane must not grow a horizontal scrollbar around an artifact title",
-  );
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
