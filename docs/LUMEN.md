@@ -39,4 +39,4 @@ Runtime 名稱是 `mcp.lumen.lumen_utter`。兩個都指向同一創作台。選
 
 ## 意圖路由
 
-`routeToolsets` 在使用者提到 Lumen、創作台、海報、文宣、招新、茶會、畫板、三個方向、Style DNA 時會選 `lumen`（攤位仍走 planform，動畫仍走 FrameLab，一般剪輯仍走 cutos）。Hermes 任務指示在 `LUMEN_MCP_URL`＋至少 32 字元 `TOKEN` 已設定時會注入 `lumenTaskInstructions()`，要求 Agent 真的呼叫 `lumen_*`，不得用文字假裝已開畫板。選定方向留給使用者，不要呼叫 `choose_direction`。
+`routeToolsets` 在使用者提到 Lumen、創作台、海報、文宣、招新、茶會、畫板、三個方向、Style DNA 時會選 `lumen`（攤位仍走 planform，動畫仍走 FrameLab，一般剪輯仍走 cutos）。Planner 只在 MCP Registry 狀態為 `partial`／`verified`／`connected` 時才加入 `lumen_utter` 步驟；未設定或 failed 不會假裝畫板已開啟。Hermes 任務指示在 `LUMEN_MCP_URL`＋至少 32 字元 `TOKEN` 已設定時會注入 `lumenTaskInstructions()`，要求 Agent 真的呼叫 `lumen_*`，不得用文字假裝已開畫板。選定方向留給使用者，不要呼叫 `choose_direction`。

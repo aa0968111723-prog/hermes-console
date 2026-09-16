@@ -31,6 +31,10 @@
 | 次要畫面載入 | live | 專案／靈感／Runtime／設定等 `next/dynamic`，對話路徑維持靜態。 |
 | Production auth | live 契約 | 正式環境禁止 `CONSOLE_AUTH_MODE=workspace`。 |
 | GALLEY 路由 | live 契約 | 僅 registry 為 partial／verified／connected 才走 `galley_research`；未設定不假裝。 |
+| Lumen 路由 | live 契約 | 僅 registry 可用才走 `lumen_utter`；未設定／failed 不假裝已開畫板。 |
+| 圖片評論 | live 契約 | 「這張哪裡可以改？」不走 fast path；有圖才 `workspace_read_material` 並標受眾模擬。 |
+| 第 N 版 | live 契約 | 「第二版字放大」鎖定 `v2`，不得另開無關作品。 |
+| Email 找回 | live 契約 | 登入頁一律顯示 Magic Link／忘記密碼；寄信未設標「寄信尚未完成設定」。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
 
 ## 仍為 Partial（禁止打綠勾）
