@@ -1308,12 +1308,14 @@ export default function HermesConsole() {
                           {currentTask.output && (
                             <MessageBody text={currentTask.output} />
                           )}
-                          {currentTask.error && (
-                            <p className="error">{currentTask.error}</p>
-                          )}
-                          {currentTask.observationError && (
+                          {shortTaskError(currentTask.error) && (
                             <p className="error">
-                              {currentTask.observationError}
+                              {shortTaskError(currentTask.error)}
+                            </p>
+                          )}
+                          {shortTaskError(currentTask.observationError) && (
+                            <p className="error">
+                              {shortTaskError(currentTask.observationError)}
                             </p>
                           )}
                           <button

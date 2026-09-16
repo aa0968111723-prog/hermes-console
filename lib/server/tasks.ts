@@ -3,6 +3,8 @@ import { z } from "zod";
 import { Conversation, EMPTY_USAGE, Task, TaskEvent } from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
+import { studentHermesError } from "./errors";
+import { studentConnectionMessage } from "./hermes/health-view";
 import {
   deadline,
   ensureHermesReady,
@@ -230,7 +232,11 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   limited("tasks:" + owner, 20, 60_000);
   const connection = await ensureHermesReady(owner);
   if (connection.credential !== "valid")
-    throw new ApiError(503, "hermes_not_ready", connection.message);
+    throw new ApiError(
+      503,
+      "hermes_not_ready",
+      studentConnectionMessage(connection),
+    );
   const native =
     connection.features.run_submission &&
     connection.features.run_status &&
@@ -636,10 +642,12 @@ async function execute(
       throw new ApiError(502, "empty_output", "Hermes 未產生可顯示的回應。");
     finish(owner, task, "completed");
   } catch (error) {
-    const message =
+    const message = studentHermesError(
       error instanceof ApiError
         ? error.message
-        : "Hermes 回應格式異常，請查回任務後再決定是否重試。";
+        : "Hermes 回應格式異常，請查回任務後再決定是否重試。",
+      error instanceof ApiError ? error.code : undefined,
+    );
     const definite =
       error instanceof ApiError &&
       /^(upstream_|session_invalid|client_tools_unsupported|agent_error|empty_output|empty_stream|invalid_stream|frame_too_large|output_limit|token_budget_exceeded)$/.test(
@@ -832,10 +840,12 @@ export async function reconcile(owner: string, id: string) {
     }
     void observe(owner, id);
   } catch (error) {
-    task.observationError =
+    task.observationError = studentHermesError(
       error instanceof ApiError
         ? error.message
-        : "查回任務失敗，保留上次已知狀態。";
+        : "查回任務失敗，保留上次已知狀態。",
+      error instanceof ApiError ? error.code : undefined,
+    );
   }
   return save(owner, task);
 }

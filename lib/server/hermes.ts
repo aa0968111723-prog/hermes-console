@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
 import { ApiError, assertSafeServiceUrl, redact } from "./security";
+import { studentHermesError } from "./errors";
 import { get, probeStore, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
 import {
@@ -471,15 +472,11 @@ export async function health(
     if (state.reachable === null && state.credential !== "missing")
       state.reachable = false;
     const code = error instanceof ApiError ? error.code : "";
-    state.message =
-      !catalog &&
-      ["interrupted", "connect_timeout", "network_error", "idle_timeout"].includes(
-        code,
-      )
-        ? "現在沒辦法連到 Hermes。"
-        : error instanceof ApiError
-          ? error.message
-          : "現在沒辦法連到 Hermes。";
+    const detailed =
+      error instanceof ApiError ? error.message : "現在沒辦法連到 Hermes。";
+    state.message = catalog
+      ? detailed
+      : studentHermesError(detailed, code || undefined);
   }
   try {
     put("health", owner, {

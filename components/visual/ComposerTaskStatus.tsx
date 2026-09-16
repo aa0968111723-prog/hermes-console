@@ -26,7 +26,7 @@ export function recoveryOnReconnectAction(): "refresh_only" {
   return "refresh_only";
 }
 
-/** Short user-facing error; strip stack frames and hard-cap length. */
+/** Short user-facing error; strip stacks, env-var wording, and hard-cap length. */
 export function shortTaskError(text: string | null | undefined, max = 240): string | null {
   if (!text) return null;
   const cutStack = text
@@ -34,6 +34,10 @@ export function shortTaskError(text: string | null | undefined, max = 240): stri
     .replace(/\s+/g, " ")
     .trim();
   if (!cutStack) return null;
+  if (
+    /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key/i.test(cutStack)
+  )
+    return "現在沒辦法連到 Hermes。";
   return cutStack.length > max ? cutStack.slice(0, max - 1) + "…" : cutStack;
 }
 
