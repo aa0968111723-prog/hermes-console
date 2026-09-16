@@ -2,7 +2,22 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
+import { applyStickyReveal } from "@/lib/client/viewport";
 import IntegrationGrid from "../visual/IntegrationGrid";
+
+function revealBelowStickyHeader(node: HTMLElement) {
+  const scroller = node.closest(".panel-content");
+  if (!(scroller instanceof HTMLElement)) {
+    node.scrollIntoView({ block: "nearest", inline: "nearest" });
+    return;
+  }
+  const header = scroller.querySelector(":scope > .panel-header");
+  applyStickyReveal(
+    node,
+    scroller,
+    header instanceof HTMLElement ? header : null,
+  );
+}
 
 type FieldStatus = {
   configured: boolean;
@@ -177,7 +192,8 @@ export default function ConnectionSettings({
     if (!focusId || selected !== focusId) return;
     const node = document.getElementById("connection-" + focusId);
     if (!node || node.hidden) return;
-    node.scrollIntoView({ block: "start", behavior: "auto" });
+    const frame = requestAnimationFrame(() => revealBelowStickyHeader(node));
+    return () => cancelAnimationFrame(frame);
   }, [focusId, selected, data]);
 
   const apply = useCallback((next: SettingsPayload) => {
@@ -294,10 +310,8 @@ export default function ConnectionSettings({
     setClearKeys([]);
     setNotice(message);
     await onChanged?.();
-    document.querySelector(".credential-warning")?.scrollIntoView({
-      block: "start",
-      behavior: "auto",
-    });
+    const warning = document.querySelector(".credential-warning");
+    if (warning instanceof HTMLElement) revealBelowStickyHeader(warning);
   }
 
   return (

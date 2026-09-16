@@ -478,9 +478,22 @@ try {
     "aria-pressed",
     "true",
   );
-  await expect(page.getByRole("heading", { name: "Hermes 憑證" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Hermes 憑證" })).toBeInViewport();
-  await expect(page.getByLabel("Hermes API 網址")).toBeInViewport();
+  const credHeading = page.getByRole("heading", { name: "Hermes 憑證" });
+  const urlField = page.getByLabel("Hermes API 網址");
+  await expect(credHeading).toBeVisible();
+  await expect(credHeading).toBeInViewport();
+  await expect(urlField).toBeInViewport();
+  const headerBox = await page.locator(".detail-dialog .panel-header").boundingBox();
+  const headingBox = await credHeading.boundingBox();
+  const urlBox = await urlField.boundingBox();
+  assert.ok(
+    headerBox && headingBox && headingBox.y + 1 >= headerBox.y + headerBox.height,
+    "Hermes 憑證 must sit below the sticky settings header",
+  );
+  assert.ok(
+    headerBox && urlBox && urlBox.y + 1 >= headerBox.y + headerBox.height,
+    "Hermes API 網址 must sit below the sticky settings header",
+  );
   await page.screenshot({
     path: join(output, "unconfigured-send-hermes-editor-mobile.png"),
   });

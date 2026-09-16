@@ -2,9 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   applyShellMetrics,
+  applyStickyReveal,
   detectComposerKeyboard,
   readViewportFrame,
   shellMetrics,
+  stickyRevealDelta,
   widthChanged,
 } from "../lib/client/viewport";
 
@@ -67,6 +69,50 @@ test("keyboard closed restores CSS 100dvh instead of a stuck short height", () =
   assert.equal(properties["--app-height"], undefined);
   assert.equal(properties["--app-offset-top"], "0px");
   assert.equal(dataset.composerKeyboard, undefined);
+});
+
+test("sticky reveal leaves content already below the header in place", () => {
+  assert.equal(
+    stickyRevealDelta({
+      nodeTop: 120,
+      headerBottom: 68,
+      scrollerBottom: 700,
+    }),
+    null,
+  );
+});
+
+test("sticky reveal pulls a heading out from under the settings header", () => {
+  assert.equal(
+    stickyRevealDelta({
+      nodeTop: 10,
+      headerBottom: 68,
+      scrollerBottom: 700,
+    }),
+    10 - 76,
+  );
+  const scroller = {
+    scrollTop: 140,
+    getBoundingClientRect: () => ({ top: 0, bottom: 700 }),
+  };
+  assert.equal(
+    applyStickyReveal(
+      { getBoundingClientRect: () => ({ top: 10 }) },
+      scroller,
+      { getBoundingClientRect: () => ({ bottom: 68 }) },
+    ),
+    true,
+  );
+  assert.equal(scroller.scrollTop, 140 + (10 - 76));
+});
+
+test("sticky reveal brings a below-the-fold editor just under the header", () => {
+  const delta = stickyRevealDelta({
+    nodeTop: 820,
+    headerBottom: 68,
+    scrollerBottom: 700,
+  });
+  assert.equal(delta, 820 - 76);
 });
 
 test("rotation is not treated as a keyboard", () => {

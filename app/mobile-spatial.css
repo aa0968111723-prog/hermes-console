@@ -556,6 +556,10 @@
     background: var(--glass-sheet);
     z-index: 2;
   }
+  .detail-dialog .credential-warning,
+  .detail-dialog .connection-editor section {
+    scroll-margin-top: 80px;
+  }
   .panel-header h2 {
     font-size: 21px;
   }

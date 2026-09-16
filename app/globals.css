@@ -1587,6 +1587,7 @@ dialog::backdrop {
   border-radius: 12px;
   padding: 12px 14px;
   margin: 0;
+  scroll-margin-top: 88px;
 }
 .credential-actions {
   display: flex;
@@ -2416,6 +2417,10 @@ summary .badge {
   .panel-header {
     min-height: 68px;
   }
+  .credential-warning,
+  .connection-editor section {
+    scroll-margin-top: 80px;
+  }
   .notice-bar {
     padding-left: 14px;
     font-size: 11px;
@@ -2612,6 +2617,7 @@ body::before {
 @media (min-width: 640px) { .artifact-compare { grid-template-columns:1fr 1fr; } }
 .inspiration-heading { display:flex; align-items:center; justify-content:space-between; color:var(--color-primary); }.inspiration-heading h1 { margin: 0 0 8px; }.inspiration-board > ul { display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:20px; padding:0; list-style:none; }.inspiration-card { padding:14px; border:1px solid #dce9d8; border-radius:20px; background:#fff; box-shadow:var(--depth-card); }.inspiration-card > a { display:flex; align-items:center; gap:10px; color:var(--ink); text-decoration:none; }.inspiration-card > a > span:nth-child(2) { min-width:0; flex:1; }.inspiration-card > a strong, .inspiration-card > a small { display:block; }.inspiration-card > a small { margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:10px; }.inspiration-thumb { width:38px; height:38px; display:grid; place-items:center; flex:none; border-radius:12px; background:#e8f2e1; color:var(--color-primary); }.inspiration-card details { margin-top:11px; border-top:1px solid #edf2eb; padding-top:9px; }.inspiration-card details summary { color:var(--muted); font-size:11px; cursor:pointer; }.inspiration-card details p { font-size:12px; }
 .connection-editor { margin-top: 18px; border-top: 1px solid #e0e9dd; padding-top: 12px; }.connection-editor > summary { display: inline-flex; min-height: 36px; align-items: center; color: var(--color-primary); font-size: 12px; font-weight: 650; cursor: pointer; }.connection-editor > form { margin-top: 13px; }
+.connection-editor section { scroll-margin-top: 88px; }
 .inspiration-board > button { min-height: 44px; min-width: 44px; margin-top: 16px; }
 .inspiration-research { margin-top: 28px; border-top: 1px solid var(--color-border); padding-top: 8px; }
 .inspiration-research > summary { min-height: 44px; display: flex; align-items: center; color: var(--muted); cursor: pointer; }

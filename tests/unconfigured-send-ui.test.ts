@@ -34,7 +34,14 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
       connections.indexOf("<IntegrationGrid"),
     "Hermes fields must appear before the connection grid",
   );
-  assert.match(connections, /scrollIntoView/);
+  assert.match(connections, /revealBelowStickyHeader/);
+  assert.match(connections, /applyStickyReveal/);
+  assert.doesNotMatch(connections, /scrollIntoView\(\{ block: "start"/);
+  const css = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(css, /scroll-margin-top: 88px/);
   assert.ok(
     consoleUi.indexOf("health.credential !== \"valid\"") <
       consoleUi.indexOf("createConversation(text.trim())"),

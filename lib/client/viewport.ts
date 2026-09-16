@@ -72,6 +72,47 @@ export function widthChanged(previous: number, current: number) {
   return Math.abs(current - previous) > WIDTH_CHANGE_PX;
 }
 
+const STICKY_REVEAL_GAP = 8;
+const STICKY_REVEAL_BOTTOM_PAD = 24;
+
+export function stickyRevealDelta(input: {
+  nodeTop: number;
+  headerBottom: number;
+  scrollerBottom: number;
+  gap?: number;
+}): number | null {
+  const floor = input.headerBottom + (input.gap ?? STICKY_REVEAL_GAP);
+  if (
+    input.nodeTop >= floor &&
+    input.nodeTop <= input.scrollerBottom - STICKY_REVEAL_BOTTOM_PAD
+  ) {
+    return null;
+  }
+  return input.nodeTop - floor;
+}
+
+export function applyStickyReveal(
+  node: { getBoundingClientRect: () => { top: number } },
+  scroller: {
+    getBoundingClientRect: () => { top: number; bottom: number };
+    scrollTop: number;
+  },
+  header: { getBoundingClientRect: () => { bottom: number } } | null,
+): boolean {
+  const nodeBox = node.getBoundingClientRect();
+  const scrollerBox = scroller.getBoundingClientRect();
+  const delta = stickyRevealDelta({
+    nodeTop: nodeBox.top,
+    headerBottom: header
+      ? header.getBoundingClientRect().bottom
+      : scrollerBox.top,
+    scrollerBottom: scrollerBox.bottom,
+  });
+  if (delta == null) return false;
+  scroller.scrollTop += delta;
+  return true;
+}
+
 export function applyShellMetrics(
   root: {
     style: {
