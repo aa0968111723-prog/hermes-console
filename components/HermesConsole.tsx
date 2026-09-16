@@ -81,6 +81,10 @@ import {
   removeLegacyPreference,
 } from "@/lib/client/storage";
 import { workspacePollDelay } from "@/lib/client/poll";
+import {
+  liveTaskCovered,
+  visibleChatMessages,
+} from "@/lib/client/chat-thread";
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -250,7 +254,10 @@ export default function HermesConsole() {
   tasksRef.current = tasks;
   const activeConv = data.conversations.find((c) => c.id === activeId);
   const currentTasks = tasks.filter((t) => t.conversationId === activeId);
-  const currentTask = currentTasks[0];
+  const currentTask =
+    currentTasks.find(isActive) ||
+    currentTasks.find((t) => t.state === "uncertain") ||
+    currentTasks[0];
   const pending = currentTasks.find(isActive);
   const uncertain = currentTasks.find((t) => t.state === "uncertain");
   const chosenTask = tasks.find((t) => t.id === selectedTask) || currentTask;
@@ -1120,7 +1127,7 @@ export default function HermesConsole() {
                         onInspect={() => openTask(currentTask)}
                       />
                     )}
-                    {activeConv.messages.map((message) => (
+                    {visibleChatMessages(activeConv.messages).map((message) => (
                       <article
                         key={message.id}
                         className={"message " + message.role}
@@ -1204,9 +1211,9 @@ export default function HermesConsole() {
                       </article>
                     ))}
                     {currentTask &&
-                      !activeConv.messages.some(
-                        (m) =>
-                          m.taskId === currentTask.id && m.role === "assistant",
+                      !liveTaskCovered(
+                        visibleChatMessages(activeConv.messages),
+                        currentTask,
                       ) && (
                         <article className="message assistant">
                           <div className="message-byline">

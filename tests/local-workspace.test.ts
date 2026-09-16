@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { seedSession } from "./session-fixture";
+import type { Conversation } from "../lib/contracts";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-local-ws-"));
 process.env.CONSOLE_ORIGIN = "http://localhost:3344";
@@ -16,7 +17,7 @@ delete process.env.HERMES_API_KEY;
 seedSession();
 
 const { localWorkspaceReply } = await import("../lib/server/local-workspace");
-const { put } = await import("../lib/server/store");
+const { get, put } = await import("../lib/server/store");
 const { submit } = await import("../lib/server/tasks");
 const { ApiError } = await import("../lib/server/security");
 
@@ -56,6 +57,12 @@ test("unconfigured Hermes still answers club questions from local index", async 
   assert.match(task.output, /尚未連線/);
   assert.equal(task.stopSupported, false);
   assert.ok(task.events.some((event) => event.toolName === "zenclub_drive_index"));
+  const stored = get<Conversation>("conversation", "workspace", conv.id);
+  assert.ok(stored);
+  const assistants = stored.messages.filter((m) => m.role === "assistant");
+  assert.equal(assistants.length, 1);
+  assert.equal(assistants[0].taskId, task.id);
+  assert.equal(assistants[0].content, task.output);
 });
 
 test("unconfigured Hermes rejects unrelated prompts", async () => {

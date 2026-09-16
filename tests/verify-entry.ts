@@ -90,8 +90,9 @@ try {
     "幫我找淡大禪學社茶會宣傳靈感",
   );
   await page.getByRole("button", { name: "送出訊息" }).click();
-  await expect(page.getByText("Hermes Agent 尚未連線").first()).toBeVisible();
-  await expect(page.getByText("本地索引", { exact: true }).first()).toBeVisible();
+  await expect(page.locator("article.message.assistant")).toHaveCount(1);
+  await expect(page.getByText("Hermes Agent 尚未連線")).toHaveCount(1);
+  await expect(page.getByText("本地索引", { exact: true })).toHaveCount(1);
   await expect(page.getByText(/Drive 快照/).first()).toBeVisible();
   const chat = await page.locator("body").innerText();
   assert.equal(chat.includes("已搜尋整個 Instagram"), false);
