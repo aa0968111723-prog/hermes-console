@@ -108,7 +108,7 @@ export async function verifyMobileEngines(base: string, output: string) {
       for (const [name, shot] of [
         ["專案", "projects"],
         ["靈感", "inspiration"],
-        ["任務", "tasks"],
+        ["Agent", "agents"],
         ["對話", "chat"],
       ]) {
         await page

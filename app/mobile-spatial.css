@@ -140,9 +140,9 @@
   padding: 18px;
   width: min(380px, calc(100% - 24px));
   max-height: calc(
-    min(100dvh, var(--app-height)) - 100px - var(--safe-area-bottom)
+    min(100dvh, var(--app-height)) - var(--dock-offset, 72px) - 28px
   );
-  inset: auto 0 calc(90px + var(--safe-area-bottom));
+  inset: auto 0 var(--dock-offset, calc(72px + var(--safe-area-bottom)));
   margin: 0 auto;
   box-shadow: var(--depth-overlay);
   overflow-y: auto;
@@ -327,7 +327,7 @@
 @media (max-width: 760px) {
   .app-shell,
   .app-shell.sidebar-closed {
-    padding-bottom: calc(90px + var(--safe-area-bottom));
+    padding-bottom: var(--dock-offset);
   }
   .topbar {
     padding: 8px 12px;
@@ -394,14 +394,15 @@
     display: none;
   }
   .spatial-dock {
-    position: absolute;
+    position: fixed;
+    z-index: var(--z-dock, 20);
     left: 12px;
     right: 12px;
     bottom: calc(8px + var(--safe-area-bottom));
     height: 64px;
     padding: 5px 7px;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 3px;
     border: 0;
     border-radius: 25px;
@@ -665,5 +666,106 @@
   }
   .app-shell[data-sheet-open="true"] > main {
     transform: none;
+  }
+}
+
+/* P0 mobile scroll ownership.
+   Root cause was not a missing overflow-y:auto. The shell used
+   height:min(100dvh, var(--app-height)) with overflow:hidden while JS copied
+   visualViewport.height into --app-height even after the keyboard closed.
+   Combined with conflicting dock padding and a transform on main, secondary
+   pages and long chats could not scroll. */
+:root {
+  --dock-offset: 0px;
+}
+html:has(.app-shell),
+body:has(.app-shell) {
+  height: 100%;
+  overflow: hidden;
+}
+.app-shell {
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
+  min-height: 0;
+}
+.app-shell > main.workspace-main {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.app-shell[data-sheet-open="true"] > main {
+  transform: none;
+}
+.app-shell[data-scroll-mode="chat"] .conversation-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.app-shell[data-scroll-mode="page"] > main.workspace-main {
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.app-shell[data-scroll-mode="page"] .secondary-page {
+  flex: none;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+.hermes-actions-trigger {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --dock-offset: calc(72px + var(--safe-area-bottom));
+  }
+  .app-shell,
+  .app-shell.sidebar-closed {
+    padding-bottom: var(--dock-offset);
+  }
+  .app-shell[data-scroll-mode="page"] .secondary-page {
+    padding-bottom: 24px;
+  }
+  html[data-composer-keyboard="open"] .app-shell,
+  html[data-composer-keyboard="open"] .app-shell.sidebar-closed {
+    padding-bottom: 0;
+  }
+  html[data-composer-keyboard="open"] .mobile-bottom-dock {
+    display: none;
+  }
+  .hermes-actions-trigger {
+    position: fixed;
+    z-index: var(--z-dock, 20);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    top: calc(8px + var(--safe-area-top));
+    left: 52px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0;
+    border: 0;
+    border-radius: 14px;
+    color: var(--color-primary, #356b45);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--depth-1);
+  }
+  .composer-area {
+    padding-bottom: 8px;
+  }
+  html[data-composer-keyboard="open"] .composer-area {
+    padding-bottom: max(8px, var(--safe-area-bottom));
   }
 }

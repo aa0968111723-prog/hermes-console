@@ -5,7 +5,6 @@ import {
   Images,
   MessageSquare,
   Sparkles,
-  ListTodo,
   ImagePlus,
   FileText,
   Palette,
@@ -34,7 +33,7 @@ export default function AppDock({
     input = useRef<HTMLInputElement>(null);
   const close = () => {
     sheet.current?.close();
-    trigger.current?.focus({preventScroll:true});
+    trigger.current?.focus({ preventScroll: true });
     onOpenChange(false);
   };
   const action = (next: "spatial" | "memory" | "canva") => {
@@ -50,6 +49,11 @@ export default function AppDock({
       input.current.click();
     }
   };
+  const openSheet = () => {
+    trigger.current?.focus({ preventScroll: true });
+    sheet.current?.showModal();
+    onOpenChange(true);
+  };
   return (
     <>
       <nav className="mobile-bottom-dock spatial-dock" aria-label="快速導覽">
@@ -62,30 +66,6 @@ export default function AppDock({
           <span>對話</span>
         </button>
         <button
-          aria-label="靈感"
-          aria-current={nav === "inspiration" ? "page" : undefined}
-          onClick={() => onNavigate("inspiration")}
-        >
-          <Sparkles size={21} />
-          <span>靈感</span>
-        </button>
-        <button
-        className="dock-core"
-        ref={trigger}
-          aria-label="Hermes 操作"
-          aria-haspopup="dialog"
-        onClick={() => {
-          trigger.current?.focus({preventScroll:true});
-            sheet.current?.showModal();
-            onOpenChange(true);
-          }}
-        >
-          <span>
-            <Leaf size={25} />
-          </span>
-          <span className="sr-only">Hermes</span>
-        </button>
-        <button
           aria-label="專案"
           aria-current={nav === "projects" ? "page" : undefined}
           onClick={() => onNavigate("projects")}
@@ -94,14 +74,31 @@ export default function AppDock({
           <span>專案</span>
         </button>
         <button
-          aria-label="任務"
-          aria-current={nav === "tasks" ? "page" : undefined}
-          onClick={() => onNavigate("tasks")}
+          aria-label="靈感"
+          aria-current={nav === "inspiration" ? "page" : undefined}
+          onClick={() => onNavigate("inspiration")}
         >
-          <ListTodo size={21} />
-          <span>任務</span>
+          <Sparkles size={21} />
+          <span>靈感</span>
+        </button>
+        <button
+          aria-label="Agent"
+          aria-current={nav === "agents" ? "page" : undefined}
+          onClick={() => onNavigate("agents")}
+        >
+          <Bot size={21} />
+          <span>Agent</span>
         </button>
       </nav>
+      <button
+        className="hermes-actions-trigger"
+        ref={trigger}
+        aria-label="Hermes 操作"
+        aria-haspopup="dialog"
+        onClick={openSheet}
+      >
+        <Leaf size={20} />
+      </button>
       <input
         ref={input}
         type="file"
