@@ -8,7 +8,7 @@ export function classifyResume(task: Task, workerAlive: boolean): ResumeState {
   if (task.state === "uncertain") return "unknown";
   if (task.transport === "runs" && task.remoteId) return "running";
   if (task.transport === "chat" && workerAlive) return "running";
-  if (["queued", "running", "waiting_user", "stopping"].includes(task.state) && !workerAlive)
+  if (["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state) && !workerAlive)
     return "unknown";
   return "unknown";
 }
