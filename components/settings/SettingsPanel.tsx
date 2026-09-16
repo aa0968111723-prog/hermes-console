@@ -275,52 +275,6 @@ export default function SettingsPanel({
           </div>
         ) : settingsTab === "連線" ? (
           <div className="settings-stack">
-            <details className="connection-storage">
-              <summary>Hermes · 健康與驗證</summary>
-              <p>{health?.message || "尚未取得狀態。"}</p>
-              <dl className="facts">
-                <dt>服務可達</dt>
-                <dd>
-                  {health?.reachable === null || !health
-                    ? "未知"
-                    : health.reachable
-                      ? "是"
-                      : "否"}
-                </dd>
-                <dt>憑證驗證</dt>
-                <dd>
-                  {health?.credential === "valid"
-                    ? "有效"
-                    : health?.credential === "invalid"
-                      ? "無效"
-                      : "尚未確認"}
-                </dd>
-                <dt>Agent 執行</dt>
-                <dd>
-                  {health?.agent === "verified" ? "已有成功任務" : "未驗證"}
-                </dd>
-                <dt>最後連線檢查</dt>
-                <dd>
-                  {health ? formatWorkspaceTime(health.checkedAt) : "未知"}
-                </dd>
-              </dl>
-              <button
-                onClick={async () => {
-                  onBusy(true);
-                  try {
-                    await refreshConnections();
-                  } catch (e) {
-                    onError((e as Error).message);
-                  } finally {
-                    onBusy(false);
-                  }
-                }}
-                disabled={busy}
-              >
-                <RefreshCw size={16} />
-                {busy ? "驗證中…" : "重新驗證連線"}
-              </button>
-            </details>
             <ConnectionSettings
               focusId={focusConnection}
               canvaState={
@@ -365,6 +319,52 @@ export default function SettingsPanel({
 
             <details className="connection-advanced">
               <summary>進階 · 工具、技能與驗證證據</summary>
+              <details className="connection-storage">
+                <summary>Hermes · 健康與驗證</summary>
+                <p>{health?.message || "尚未取得狀態。"}</p>
+                <dl className="facts">
+                  <dt>服務可達</dt>
+                  <dd>
+                    {health?.reachable === null || !health
+                      ? "未知"
+                      : health.reachable
+                        ? "是"
+                        : "否"}
+                  </dd>
+                  <dt>憑證驗證</dt>
+                  <dd>
+                    {health?.credential === "valid"
+                      ? "有效"
+                      : health?.credential === "invalid"
+                        ? "無效"
+                        : "尚未確認"}
+                  </dd>
+                  <dt>Agent 執行</dt>
+                  <dd>
+                    {health?.agent === "verified" ? "已有成功任務" : "未驗證"}
+                  </dd>
+                  <dt>最後連線檢查</dt>
+                  <dd>
+                    {health ? formatWorkspaceTime(health.checkedAt) : "未知"}
+                  </dd>
+                </dl>
+                <button
+                  onClick={async () => {
+                    onBusy(true);
+                    try {
+                      await refreshConnections();
+                    } catch (e) {
+                      onError((e as Error).message);
+                    } finally {
+                      onBusy(false);
+                    }
+                  }}
+                  disabled={busy}
+                >
+                  <RefreshCw size={16} />
+                  {busy ? "驗證中…" : "重新驗證連線"}
+                </button>
+              </details>
               <IntegrationHealth items={integrations} />
               <CapabilityCertification />
               <label>

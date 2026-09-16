@@ -5,6 +5,15 @@ import { RefreshCw } from "lucide-react";
 import { applyStickyReveal } from "@/lib/client/viewport";
 import IntegrationGrid from "../visual/IntegrationGrid";
 
+function ConnectionHelp({ children }: { children: ReactNode }) {
+  return (
+    <details className="connection-help">
+      <summary>說明</summary>
+      {children}
+    </details>
+  );
+}
+
 function revealBelowStickyHeader(node: HTMLElement) {
   const scroller = node.closest(".panel-content");
   if (!(scroller instanceof HTMLElement)) {
@@ -461,11 +470,13 @@ export default function ConnectionSettings({
                 spellCheck={false}
               />
             </label>
-            <p className="muted">
-              JSON
-              只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江、訊核與
-              GALLEY 可用下方專用欄位。
-            </p>
+            <ConnectionHelp>
+              <p>
+                JSON
+                只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江、訊核與
+                GALLEY 可用下方專用欄位。
+              </p>
+            </ConnectionHelp>
           </section>
           <section
             hidden={selected !== "galley"}
@@ -505,19 +516,16 @@ export default function ConnectionSettings({
               />
               清除已存 GALLEY 權杖
             </label>
-            <p className="muted">
-              Hermes 經工作區工具 galley_research 呼叫 GALLEY。填入部署後的
-              HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端
-              GALLEY_MCP_TOKEN 相同。
-            </p>
+            <ConnectionHelp>
+              <p>
+                Hermes 經工作區工具 galley_research 呼叫 GALLEY。填入部署後的
+                HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端
+                GALLEY_MCP_TOKEN 相同。
+              </p>
+            </ConnectionHelp>
           </section>
           <section hidden={selected !== "atlas"} aria-label="場圖 Atlas MCP">
             <h3>場圖 Atlas MCP</h3>
-            <p className="muted">
-              端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 localhost 或 GitHub
-              網址。 權杖與場圖後端 ATLAS_MCP_TOKEN
-              相同。儲存後按「測試場圖連線」，Hermes 即可呼叫 mcp.atlas.*。
-            </p>
             <label>
               場圖 MCP 網址
               <input
@@ -551,18 +559,19 @@ export default function ConnectionSettings({
               />
               清除已存場圖權杖
             </label>
+            <ConnectionHelp>
+              <p>
+                端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 localhost 或 GitHub
+                網址。 權杖與場圖後端 ATLAS_MCP_TOKEN
+                相同。儲存後按「測試場圖連線」，Hermes 即可呼叫 mcp.atlas.*。
+              </p>
+            </ConnectionHelp>
           </section>
           <section
             hidden={selected !== "framelab"}
             aria-label="FrameLab 動畫 MCP"
           >
             <h3>FrameLab 動畫 MCP</h3>
-            <p className="muted">
-              端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
-              權杖從 FrameLab 首頁「產生連線權杖」複製，開頭為
-              fl_。儲存後按「測試 FrameLab 連線」，Hermes 即可呼叫
-              mcp.framelab.* 與 framelab_*。
-            </p>
             <label>
               FrameLab MCP 網址
               <input
@@ -596,16 +605,17 @@ export default function ConnectionSettings({
               />
               清除已存 FrameLab 權杖
             </label>
+            <ConnectionHelp>
+              <p>
+                端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
+                權杖從 FrameLab 首頁「產生連線權杖」複製，開頭為
+                fl_。儲存後按「測試 FrameLab 連線」，Hermes 即可呼叫
+                mcp.framelab.* 與 framelab_*。
+              </p>
+            </ConnectionHelp>
           </section>
           <section hidden={selected !== "lumen"} aria-label="Lumen 創作台">
             <h3>Lumen 創作台</h3>
-            <p className="muted">
-              填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub
-              倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN
-              相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫
-              lumen_utter；按「測試 Lumen 連線」確認
-              initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
-            </p>
             <label>
               Lumen MCP 網址
               <input
@@ -639,14 +649,18 @@ export default function ConnectionSettings({
               />
               清除已存 Lumen 權杖
             </label>
+            <ConnectionHelp>
+              <p>
+                填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub
+                倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN
+                相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫
+                lumen_utter；按「測試 Lumen 連線」確認
+                initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
+              </p>
+            </ConnectionHelp>
           </section>
           <section hidden={selected !== "xunhe"} aria-label="訊核即時情報 MCP">
             <h3>訊核即時情報 MCP</h3>
-            <p className="muted">
-              填訊核的 Streamable HTTP 端點（路徑 /mcp 或 /api/mcp）。不能填
-              GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表 Hermes
-              能呼叫 xunhe_research。
-            </p>
             <label>
               訊核 MCP 網址
               <input
@@ -680,14 +694,16 @@ export default function ConnectionSettings({
               />
               清除已存訊核權杖
             </label>
+            <ConnectionHelp>
+              <p>
+                填訊核的 Streamable HTTP 端點（路徑 /mcp 或 /api/mcp）。不能填
+                GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表 Hermes
+                能呼叫 xunhe_research。
+              </p>
+            </ConnectionHelp>
           </section>
           <section hidden={selected !== "planform"} aria-label="Planform 場佈 MCP">
             <h3>Planform 場佈 MCP</h3>
-            <p className="muted">
-              填 Planform 的 Streamable HTTP 端點（路徑必須是 /mcp）。不能填 GitHub
-              倉庫網址。儲存後按「測試 Planform 連線」，成功後 Hermes 經工作區 MCP 呼叫
-              planform_run_agent。
-            </p>
             <label>
               Planform MCP 網址
               <input
@@ -721,15 +737,17 @@ export default function ConnectionSettings({
               />
               清除已存 Planform 權杖
             </label>
+            <ConnectionHelp>
+              <p>
+                填 Planform 的 Streamable HTTP 端點（路徑必須是 /mcp）。不能填 GitHub
+                倉庫網址。儲存後按「測試 Planform 連線」，成功後 Hermes 經工作區 MCP 呼叫
+                planform_run_agent。
+              </p>
+            </ConnectionHelp>
           </section>
 
           <section hidden={selected !== "duigao"} aria-label="對稿工作室 MCP">
             <h3>對稿工作室 MCP</h3>
-            <p className="muted">
-              端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
-              權杖從對稿「MCP」頁複製，開頭為 dg_。儲存後按「測試對稿連線」，Hermes
-              即可呼叫 mcp.duigao.* 與 duigao_*。
-            </p>
             <label>
               對稿 MCP 網址
               <input
@@ -763,6 +781,13 @@ export default function ConnectionSettings({
               />
               清除已存對稿權杖
             </label>
+            <ConnectionHelp>
+              <p>
+                端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
+                權杖從對稿「MCP」頁複製，開頭為 dg_。儲存後按「測試對稿連線」，Hermes
+                即可呼叫 mcp.duigao.* 與 duigao_*。
+              </p>
+            </ConnectionHelp>
           </section>
           <section hidden={selected !== "tamkang"} aria-label="淡江 MCP">
             <h3>淡江 MCP</h3>
@@ -797,16 +822,20 @@ export default function ConnectionSettings({
               />
               清除已存淡江權杖
             </label>
-            <p className="muted">
-              淡江 MCP 只接受已存的 Bearer 權杖。Hermes 不收集校園帳號或密碼。登入 Hermes 的淡江 SSO 在登入頁，需校方 OIDC。
-            </p>
+            <ConnectionHelp>
+              <p>
+                淡江 MCP 只接受已存的 Bearer 權杖。Hermes 不收集校園帳號或密碼。登入 Hermes 的淡江 SSO 在登入頁，需校方 OIDC。
+              </p>
+            </ConnectionHelp>
           </section>
           <section hidden={selected !== "zeabur"} aria-label="Zeabur 部署">
             <h3>Zeabur 部署</h3>
-            <p className="muted">
-              {data?.zeabur?.notice ||
-                "在 Zeabur 控制台 Settings → API Keys 建立權杖。"}
-            </p>
+            <ConnectionHelp>
+              <p>
+                {data?.zeabur?.notice ||
+                  "在 Zeabur 控制台 Settings → API Keys 建立權杖。"}
+              </p>
+            </ConnectionHelp>
             <label>
               Zeabur API 權杖
               <span className="secret-hint">

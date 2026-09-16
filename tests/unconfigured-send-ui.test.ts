@@ -36,6 +36,7 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
   );
   assert.match(connections, /revealBelowStickyHeader/);
   assert.match(connections, /applyStickyReveal/);
+  assert.match(connections, /ConnectionHelp/);
   assert.doesNotMatch(connections, /scrollIntoView\(\{ block: "start"/);
   const css = await readFile(
     new URL("../app/globals.css", import.meta.url),

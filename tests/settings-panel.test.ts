@@ -22,4 +22,9 @@ test("settings shell is extracted and still hosts Help plus five tabs", async ()
   assert.match(panel, /進階 · Drive 知識/);
   assert.match(panel, /進階 · 工具、技能與驗證證據/);
   assert.doesNotMatch(panel, /Advanced ·/);
+  assert.match(panel, /健康與驗證/);
+  assert.ok(
+    panel.indexOf("<ConnectionSettings") < panel.indexOf("健康與驗證"),
+    "credential fields must appear before health internals",
+  );
 });

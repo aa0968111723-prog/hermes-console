@@ -2846,6 +2846,21 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .connection-editor section { min-width: 0; }
 .connection-editor section h3 { font-size: 1rem; }
 .connection-storage > summary { font-size: var(--type-caption); color: var(--color-muted); }
+.connection-help { margin: 4px 0 0; }
+.connection-help > summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.connection-help p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
 .inspiration-result { margin-top: 12px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: #fff; box-shadow: var(--depth-card, 0 8px 20px rgba(40,70,40,.08)); }
