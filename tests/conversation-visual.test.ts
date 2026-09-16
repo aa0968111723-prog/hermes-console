@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  AUDIENCE_VISUAL_SELECTOR,
+  FOLLOWUP_VISUAL_SELECTOR,
   RESULT_VISUAL_SELECTOR,
   conversationVisualInView,
   lastMatchingVisual,
+  preferredPinnedVisual,
 } from "../lib/client/conversation-visual";
 
 test("jump chip hides when a later spec card is in view even if inspiration is above", () => {
@@ -33,4 +36,52 @@ test("later image review wins over an earlier knowledge card", () => {
     lastMatchingVisual({ querySelectorAll: () => [] }, RESULT_VISUAL_SELECTOR),
     null,
   );
+});
+
+test("club facts after a spec win over the trailing direction brief", () => {
+  const inspiration = { id: "inspiration" } as unknown as HTMLElement;
+  const knowledge = { id: "knowledge" } as unknown as HTMLElement;
+  const review = { id: "review" } as unknown as HTMLElement;
+  const brief = { id: "brief" } as unknown as HTMLElement;
+  const twin = { id: "twin" } as unknown as HTMLElement;
+  const withClubFacts = {
+    querySelectorAll: (selector: string) => {
+      if (selector === FOLLOWUP_VISUAL_SELECTOR) return [knowledge];
+      if (selector === ".direction-brief") return [brief];
+      if (selector === RESULT_VISUAL_SELECTOR) return [inspiration, knowledge];
+      if (selector === AUDIENCE_VISUAL_SELECTOR) return [twin];
+      return [];
+    },
+  };
+  const withPosterReview = {
+    querySelectorAll: (selector: string) => {
+      if (selector === FOLLOWUP_VISUAL_SELECTOR) return [knowledge, review];
+      if (selector === ".direction-brief") return [brief];
+      if (selector === RESULT_VISUAL_SELECTOR)
+        return [inspiration, knowledge, review];
+      if (selector === AUDIENCE_VISUAL_SELECTOR) return [twin];
+      return [];
+    },
+  };
+  const specOnly = {
+    querySelectorAll: (selector: string) => {
+      if (selector === FOLLOWUP_VISUAL_SELECTOR) return [];
+      if (selector === ".direction-brief") return [brief];
+      if (selector === RESULT_VISUAL_SELECTOR) return [inspiration];
+      return [];
+    },
+  };
+  const inspirationOnly = {
+    querySelectorAll: (selector: string) => {
+      if (selector === FOLLOWUP_VISUAL_SELECTOR) return [];
+      if (selector === RESULT_VISUAL_SELECTOR) return [inspiration];
+      if (selector === AUDIENCE_VISUAL_SELECTOR) return [twin];
+      return [];
+    },
+  };
+  assert.equal(preferredPinnedVisual(withClubFacts, true), knowledge);
+  assert.equal(preferredPinnedVisual(withPosterReview, true), review);
+  assert.equal(preferredPinnedVisual(specOnly, true), brief);
+  assert.equal(preferredPinnedVisual(inspirationOnly, false), inspiration);
+  assert.notEqual(preferredPinnedVisual(inspirationOnly, false), twin);
 });

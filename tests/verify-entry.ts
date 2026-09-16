@@ -187,6 +187,7 @@ try {
   await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible({
     timeout: 15_000,
   });
+  await expect(page.getByRole("region", { name: "已選方向規格" })).toBeInViewport();
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
   await expect(page.locator(".conversation-scroll")).not.toContainText("210:297");

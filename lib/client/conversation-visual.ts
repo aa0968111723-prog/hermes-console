@@ -5,6 +5,9 @@ export const CONVERSATION_VISUAL_SELECTOR =
 export const RESULT_VISUAL_SELECTOR =
   ".inspiration-result, .image-review, .knowledge-result";
 
+/** Club facts / poster review after a spec must win over the trailing 規格草稿. */
+export const FOLLOWUP_VISUAL_SELECTOR = ".knowledge-result, .image-review";
+
 export const AUDIENCE_VISUAL_SELECTOR = ".first-reaction-board";
 
 export function lastMatchingVisual(
@@ -14,6 +17,19 @@ export function lastMatchingVisual(
   const nodes = root.querySelectorAll(selector);
   if (!nodes.length) return null;
   return nodes[nodes.length - 1] as HTMLElement;
+}
+
+/** Club facts / poster review, then the trailing spec, then inspiration, then twin. */
+export function preferredPinnedVisual(
+  root: { querySelectorAll: (selector: string) => ArrayLike<Element> },
+  pinBrief: boolean,
+): HTMLElement | null {
+  return (
+    lastMatchingVisual(root, FOLLOWUP_VISUAL_SELECTOR) ||
+    (pinBrief ? lastMatchingVisual(root, ".direction-brief") : null) ||
+    lastMatchingVisual(root, RESULT_VISUAL_SELECTOR) ||
+    lastMatchingVisual(root, AUDIENCE_VISUAL_SELECTOR)
+  );
 }
 
 export function visualIntersectsScrollport(

@@ -97,11 +97,9 @@ import {
   removeLegacyPreference,
 } from "@/lib/client/storage";
 import {
-  AUDIENCE_VISUAL_SELECTOR,
   CONVERSATION_VISUAL_SELECTOR,
-  RESULT_VISUAL_SELECTOR,
   conversationVisualInView,
-  lastMatchingVisual,
+  preferredPinnedVisual,
 } from "@/lib/client/conversation-visual";
 
 type Project = { id: string; name: string };
@@ -290,7 +288,6 @@ export default function HermesConsole() {
   const input = useRef<HTMLTextAreaElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
-  const pinBriefAfterPick = useRef(false);
   const pinnedScrollTop = useRef<number | null>(null);
   const composing = useRef(false);
   const sending = useRef(false);
@@ -580,16 +577,7 @@ export default function HermesConsole() {
       return true;
     };
     const frame = requestAnimationFrame(() => {
-      if (pinBriefAfterPick.current && chatDirectionBrief) {
-        if (pin(lastMatchingVisual(el, ".direction-brief"))) {
-          pinBriefAfterPick.current = false;
-          return;
-        }
-      }
-      if (chatDirectionBrief && pin(lastMatchingVisual(el, ".direction-brief")))
-        return;
-      if (pin(lastMatchingVisual(el, RESULT_VISUAL_SELECTOR))) return;
-      if (pin(lastMatchingVisual(el, AUDIENCE_VISUAL_SELECTOR))) return;
+      if (pin(preferredPinnedVisual(el, Boolean(chatDirectionBrief)))) return;
       if (!nearBottom.current) return;
       el.scrollTop = el.scrollHeight;
     });
@@ -735,7 +723,6 @@ export default function HermesConsole() {
           source === "chat" ? activeId || undefined : undefined,
       });
       setPickedDirection(id);
-      if (source === "chat") pinBriefAfterPick.current = true;
       await refresh();
       if (source === "chat" && activeId) {
         setNav("chat");
@@ -1773,7 +1760,6 @@ export default function HermesConsole() {
                     setActiveId(conv.id);
                     setProject(conv.projectId);
                     writePreference("hermes.active.v2", conv.id);
-                    pinBriefAfterPick.current = true;
                     setNav("chat");
                     replaceDraft("conversation:" + conv.id, {
                       ...emptyDraft(),
@@ -1964,7 +1950,6 @@ export default function HermesConsole() {
                   setActiveId(conv.id);
                   setProject(conv.projectId);
                   writePreference("hermes.active.v2", conv.id);
-                  pinBriefAfterPick.current = true;
                 }
                 setNav("chat");
                 replaceDraft(
@@ -2057,7 +2042,6 @@ export default function HermesConsole() {
                                 setActiveId(conv.id);
                                 setProject(conv.projectId);
                                 writePreference("hermes.active.v2", conv.id);
-                                pinBriefAfterPick.current = true;
                                 setNav("chat");
                                 replaceDraft("conversation:" + conv.id, {
                                   ...emptyDraft(),

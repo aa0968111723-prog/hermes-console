@@ -339,4 +339,26 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   const entry = await readFile(new URL("./verify-entry.ts", import.meta.url), "utf8");
   assert.match(entry, /今天社博在哪/);
   assert.match(entry, /社團資料/);
+  assert.match(entry, /clubFacts\)\.toBeInViewport/);
+});
+
+test("spoken lookup pins club facts above the trailing spec", async () => {
+  const visual = await readFile(
+    new URL("../lib/client/conversation-visual.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    visual,
+    /FOLLOWUP_VISUAL_SELECTOR = "\.knowledge-result, \.image-review"/,
+  );
+  assert.match(visual, /preferredPinnedVisual/);
+  const consoleSource = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    consoleSource,
+    /preferredPinnedVisual\(el, Boolean\(chatDirectionBrief\)\)/,
+  );
+  assert.doesNotMatch(consoleSource, /pinBriefAfterPick/);
 });
