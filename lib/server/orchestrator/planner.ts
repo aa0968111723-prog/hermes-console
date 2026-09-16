@@ -75,7 +75,10 @@ export function buildPlan(
     steps.push(
       step(
         "讀取上傳素材",
-        "先用 workspace_read_material 讀真實圖片或文字，不能只看檔名。",
+        "先用 workspace_read_material 讀真實圖片或文字，不能只看檔名。" +
+          (goal.constraints.find((item) => item.startsWith("素材 ID："))
+            ? " " + goal.constraints.find((item) => item.startsWith("素材 ID："))
+            : ""),
         image?.tool || "workspace_read_material",
         image?.fallback || null,
       ),

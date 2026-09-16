@@ -382,31 +382,37 @@ export async function attachmentParts(owner: string, ids: string[]) {
       });
       continue;
     }
-    const content = await readFile(filePath(owner, id));
     if (asset.kind === "image") {
-      if (process.env.HERMES_IMAGE_INPUT !== "true")
-        throw new ApiError(
-          409,
-          "images_unverified",
-          "圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。",
-        );
-      parts.push({
-        type: "image_url",
-        image_url: {
-          url: "data:image/png;base64," + content.toString("base64"),
-        },
-      });
-    } else
-      parts.push({
-        type: "text",
-        text:
-          asset.mime === "application/pdf"
-            ? wrapUntrusted(
-                "pdf",
-                `PDF 附件「${asset.title}」已保存；此部署不保證全文解析，不得把檔名當內容。`,
-              )
-            : wrapUntrusted("attachment", content.toString("utf8")),
-      });
+      if (process.env.HERMES_IMAGE_INPUT === "true") {
+        const content = await readFile(filePath(owner, id));
+        parts.push({
+          type: "image_url",
+          image_url: {
+            url: "data:image/png;base64," + content.toString("base64"),
+          },
+        });
+      } else {
+        parts.push({
+          type: "text",
+          text: wrapUntrusted(
+            "attachment",
+            `圖片「${asset.title}」已保存（materialId=${asset.id}）。此部署尚未驗證 Hermes 原生圖片輸入。必須呼叫 workspace_read_material 讀取真實畫面；檔名不是已讀圖。`,
+          ),
+        });
+      }
+      continue;
+    }
+    const content = await readFile(filePath(owner, id));
+    parts.push({
+      type: "text",
+      text:
+        asset.mime === "application/pdf"
+          ? wrapUntrusted(
+              "pdf",
+              `PDF 附件「${asset.title}」已保存；此部署不保證全文解析，不得把檔名當內容。`,
+            )
+          : wrapUntrusted("attachment", content.toString("utf8")),
+    });
   }
   return parts;
 }

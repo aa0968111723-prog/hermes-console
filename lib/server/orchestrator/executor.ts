@@ -22,6 +22,7 @@ export function prepareOrchestration(
   const goal = interpretGoal(task.input, {
     attachmentCount: task.attachments.length,
     imageAttachmentCount: countImageAttachments(owner, task.attachments),
+    attachmentIds: task.attachments,
   });
   const fast = isFastTier(goal.intentTier);
   const effectiveBudget: BudgetMode = fast ? "fast" : budgetMode;

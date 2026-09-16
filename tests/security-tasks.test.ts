@@ -384,14 +384,6 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         bytes,
       );
       await assert.rejects(
-        () => attachmentParts("owner", [asset.id]),
-        /圖片輸入/,
-      );
-      process.env.HERMES_IMAGE_INPUT = "true";
-      const parts = await attachmentParts("owner", [asset.id]);
-      assert.equal(parts[0].type, "image_url");
-      assert.match(JSON.stringify(parts), /data:image\/png;base64,/);
-      await assert.rejects(
         () =>
           saveUpload(
             "owner",
@@ -402,6 +394,17 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
           ),
         /圖片無法/,
       );
+      delete process.env.HERMES_IMAGE_INPUT;
+      const honest = await attachmentParts("owner", [asset.id]);
+      assert.equal(honest[0].type, "text");
+      assert.match(String(honest[0].text), /workspace_read_material/);
+      assert.match(String(honest[0].text), /materialId=/);
+      assert.doesNotMatch(JSON.stringify(honest), /data:image\/png;base64,/);
+      process.env.HERMES_IMAGE_INPUT = "true";
+      const parts = await attachmentParts("owner", [asset.id]);
+      assert.equal(parts[0].type, "image_url");
+      assert.match(JSON.stringify(parts), /data:image\/png;base64,/);
+      delete process.env.HERMES_IMAGE_INPUT;
     },
   );
   await t.test("short continue windows history and skips Lumen manuals", async () => {

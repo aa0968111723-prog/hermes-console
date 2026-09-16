@@ -29,6 +29,7 @@ const CN: Record<string, number> = {
 export type GoalExtras = {
   attachmentCount?: number;
   imageAttachmentCount?: number;
+  attachmentIds?: string[];
 };
 
 function chineseToInt(raw: string): number | null {
@@ -97,8 +98,12 @@ export function interpretGoal(
   if (requiresResearch)
     constraints.push("沒有外部 evidence 不得宣稱研究已完成。");
   if (requiresDesign) constraints.push("Canva 未授權時不得假裝設計成功。");
-  if (requiresImageRead)
+  if (requiresImageRead) {
     constraints.push("必須先讀已上傳素材，不得只依檔名評論。");
+    const ids = (extras.attachmentIds || []).filter(Boolean).slice(0, 4);
+    if (ids.length)
+      constraints.push("素材 ID：" + ids.join("、"));
+  }
   if (targetRevision)
     constraints.push(
       "必須針對 " + targetRevision + " 修改，不得重新生成不相關作品。",

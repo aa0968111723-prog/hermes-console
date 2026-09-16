@@ -48,4 +48,24 @@ test("completion notice is user-facing and hides tool internals", () => {
   );
   assert.equal(notice, "有工具沒有完成，沒有用猜測補上結果。");
   assert.doesNotMatch(notice || "", /tamkang_mcp|timeout|endpoint/);
+  const unread = task([]);
+  unread.goal = {
+    goal: "這張哪裡可以改？",
+    audience: null,
+    output: null,
+    constraints: [],
+    requiresResearch: false,
+    requiresDesign: false,
+    requiresAudienceEvaluation: false,
+    requiresTamkang: false,
+    requiresInspiration: false,
+    requiresImageRead: true,
+    requiresLumen: false,
+    targetRevision: null,
+    intentTier: "create",
+  };
+  assert.equal(
+    completionNotice(unread),
+    "尚未讀取上傳素材，沒有把檔名當成已看過的圖。",
+  );
 });

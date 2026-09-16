@@ -101,14 +101,17 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
   });
 
   await t.test("uploaded image critique leaves the fast path and reads the material", () => {
+    const materialId = "11111111-1111-1111-1111-111111111111";
     const goal = interpretGoal("這張哪裡可以改？", {
       attachmentCount: 1,
       imageAttachmentCount: 1,
+      attachmentIds: [materialId],
     });
     assert.equal(goal.requiresImageRead, true);
     assert.equal(goal.requiresAudienceEvaluation, true);
     assert.notEqual(goal.intentTier, "continue");
     assert.ok(goal.constraints.some((item) => /已上傳素材/.test(item)));
+    assert.ok(goal.constraints.some((item) => item.includes("素材 ID：" + materialId)));
     const routes = routeTools(goal, [emptyIntegration("hermes")]);
     assert.equal(
       routes.find((item) => item.id === "image_read")?.tool,
