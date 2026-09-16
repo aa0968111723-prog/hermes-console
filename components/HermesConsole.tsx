@@ -1662,10 +1662,7 @@ export default function HermesConsole() {
                       disabled={busy || blocked}
                       isComposing={() => composing.current}
                       value={text}
-                      onChange={(next) => {
-                        setText(next);
-                        input.current?.focus();
-                      }}
+                      onChange={setText}
                       onReady={() => setVoiceReady(true)}
                       onDenied={(message) => setError(message)}
                     />

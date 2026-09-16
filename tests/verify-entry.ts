@@ -173,6 +173,15 @@ try {
   await expect(page.getByText("說完了，請按送出")).toBeVisible();
   await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
   await page.screenshot({ path: join(output, "voice-ready-hint.png") });
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(page.getByRole("button", { name: /選方向 A/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
+  await expect(page.getByText("不是 Hermes", { exact: true })).toBeVisible();
+  await expect(page.getByText("連線頁")).toHaveCount(0);
+  await expect(page.getByText("環境變數")).toHaveCount(0);
+  await page.screenshot({ path: join(output, "spoken-goal-results.png") });
   await voice.click();
   await page.evaluate(() => {
     const current = (
@@ -202,6 +211,7 @@ try {
     .getByRole("navigation", { name: "快速導覽" })
     .getByRole("button", { name: "對話", exact: true })
     .click();
+  await page.getByRole("button", { name: "開啟新對話" }).click();
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("今天好嗎");
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();

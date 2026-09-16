@@ -175,6 +175,10 @@ test("spoken create tea asks still return workspace inspiration", async () => {
   assert.equal(spokenCreate.intentTier, "create");
   assert.equal(wantsWorkspaceInspiration(spokenCreate), true);
   assert.equal(
+    wantsWorkspaceInspiration(interpretGoal("我想辦茶會 再幫我看場佈")),
+    true,
+  );
+  assert.equal(
     wantsWorkspaceInspiration(interpretGoal("幫我查淡大禪學社茶會")),
     false,
   );

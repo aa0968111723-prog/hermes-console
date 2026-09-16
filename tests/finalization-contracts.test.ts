@@ -241,6 +241,11 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, /顯示維運檢視/);
   assert.match(consoleUi, /說完了，請按送出/);
   assert.match(consoleUi, /composer-voice-hint/);
+  assert.match(consoleUi, /onChange=\{setText\}/);
+  assert.doesNotMatch(
+    consoleUi,
+    /onChange=\{\(next\) => \{\s*setText\(next\);\s*input\.current\?\.focus/,
+  );
   assert.match(consoleUi, /studentTaskCaption\(currentTask\)/);
   assert.match(consoleUi, /progressSteps\(chosenTask\)/);
   assert.match(consoleUi, /onCancel=\{\(\) => closePanel\(\)\}/);
