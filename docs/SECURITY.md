@@ -20,7 +20,7 @@ Anything previously pasted into chat, issues, README, or logs is **compromised**
 - Google: OAuth 2.0 authorization code + PKCE. State is a single-use hashed token.
 - Tamkang: `TamkangAuthProvider` (OIDC / OAuth / SAML / CAS). Unconfigured returns 503 and the Chinese notice. No campus password collection for SSO. Owner-only Tamkang MCP token exchange is collapsed under 連線 → 淡江 and is not SSO.
 - Email: Argon2id (`m=19456,t=2,p=1`). Magic link, verification, and password reset tokens are single-use and expire in 15 minutes.
-- Identities do **not** auto-merge because emails match. Linking is explicit.
+- Identities do **not** auto-merge because emails match. Linking is explicit. Linking email sends a verification message when mail is configured; without mail the UI must not offer a form that would create an unverified password login. Password login checks the email identity verification flag.
 
 Login ≠ authorization. APIs check `hermes_session` and workspace membership (`owner` / `admin` / `member`). Hiding a button is not access control.
 

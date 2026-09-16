@@ -12,7 +12,7 @@
 | Bottom dock | 可用 | 對話 / 專案 / 靈感 / Agent；設定在齒輪。 |
 | 手機頂欄 | 可用（契約） | Hermes 操作葉片不再蓋住標題殘字。Playwright 斷言 trigger 在選單右側。 |
 | AuthGate | 可用 | `/` 先登入。Google／淡江未設定顯示尚未完成設定。未設定寄件時不出現寄送表單，並顯示「尚未設定寄件，無法寄送登入或重設連結」。驗證按鈕為「完成驗證」。Magic／重設／驗證有 Playwright。 |
-| 身份模型 | 可用 | User / Identity / Session / Membership。禁止 email 自動合併。 |
+| 身份模型 | 可用 | User / Identity / Session / Membership。禁止 email 自動合併。連結電子信箱要驗證；未設定寄件時不出現連結表單。密碼登入看 email identity 驗證旗標，不是 Google 的 user.emailVerified。 |
 | API 授權 | 可用 | `authenticate()` 要 session + membership。Health/ready 仍公開且不含秘密。 |
 | MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。 |
 | 設定分頁 | 可用 | 帳號 / 外觀 / 連線 / 工作區 / 進階。 |
@@ -34,10 +34,10 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`test:entry` 通過。`test:ui` 未在本輪重跑（先前同分支已通過）。
-- `npm test`：394 tests, 392 pass, 2 skipped, 0 fail。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`test:entry` 通過。
+- `npm test`：395 tests, 393 pass, 2 skipped, 0 fail。
 - `/` First Load JS 239 kB（shared 103 kB）。
-- `test:entry`：未設定 Google／淡江／寄件；無效 magic token 顯示「連結已使用、已過期或不存在」且留在登入頁；第一位擁有者註冊；magic redeem；密碼重設；第二位成員 email 驗證進工作區。
+- `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊；magic redeem；密碼重設；email 驗證；Google-only 帳號頁不提供未驗證的信箱連結表單。
 - 本輪未重跑：`test:ui`、`test:chat`、`test:workbench`、`test:gateway`、`test:runtime`、`check:secrets`。
 
 ## 仍是 Partial（禁止標綠）
