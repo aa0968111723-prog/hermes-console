@@ -253,7 +253,10 @@ export function publicSettings() {
     },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
-      "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證與 Zeabur 部署。",
+      process.env.CONSOLE_REQUIRE_GATEWAY === "true" &&
+      (process.env.CONSOLE_GATEWAY_SECRET || "").length >= 32
+        ? "連線與部署設定僅限工作區管理員。部署層閘道已啟用。"
+        : "連線與部署設定僅限工作區管理員。正式環境請啟用 CONSOLE_REQUIRE_GATEWAY 與閘道密鑰。",
   };
 }
 

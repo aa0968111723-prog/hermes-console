@@ -2983,6 +2983,7 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 .auth-gate h1 { margin: 0; font-size: 28px; }
+.auth-gate .turtle span { display: none; }
 .auth-lead, .auth-hint { margin: 0; color: var(--muted); font-size: 14px; max-width: 36ch; }
 .auth-notice { color: #9a392e; max-width: 36ch; }
 .auth-provider,

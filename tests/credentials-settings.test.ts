@@ -183,7 +183,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     tku.close();
   });
 
-  await t.test("GET credentials is open like the no-login workspace", async () => {
+  await t.test("GET credentials requires session and warns about gateway, not missing login", async () => {
     const response = await credentials.GET(request("settings/credentials"));
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -191,7 +191,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
     assert.equal(body.galley.state, "unconfigured");
-    assert.match(body.openSettingsWarning, /沒有邀請登入或閘道保護/);
+    assert.match(body.openSettingsWarning, /工作區管理員/);
+    assert.equal(/能開啟網站的人都可以覆寫/.test(body.openSettingsWarning), false);
     assert.equal(body.zeabur.token.configured, false);
     assert.match(body.zeabur.notice, /覆寫權杖/);
   });
