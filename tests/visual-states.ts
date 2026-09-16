@@ -141,6 +141,19 @@ export async function verifyVisualStates(
         usage: null,
       },
     ],
+    goal: {
+      goal: "[介面測試資料] 研究春日活動參考",
+      audience: null,
+      output: "海報",
+      constraints: [] as string[],
+      requiresResearch: true,
+      requiresDesign: true,
+      requiresAudienceEvaluation: false,
+      requiresTamkang: false,
+      requiresInspiration: false,
+      requiresImageAnalysis: false,
+      intentTier: "create" as const,
+    },
   };
   await page.route("**/api/tasks", (route) =>
     route.fulfill({ json: { tasks: [task] } }),
@@ -396,7 +409,13 @@ export async function verifyVisualStates(
     "[介面測試回覆] 已接收一個工具結果。\n\n| 方向 | 用途 |\n| --- | --- |\n| 春日共創 | 活動宣傳 |";
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("完成");
-  await expect(page.locator(".visual-message")).toContainText("1 / 1");
+  await expect(page.locator(".visual-message")).toContainText("過程完成");
+  await expect(page.locator(".visual-message .source-cards")).toContainText(
+    "1 個來源",
+  );
+  await expect(
+    page.locator(".visual-message").getByRole("region", { name: "設計成果預覽" }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 420 });
   await page.locator(".composer-task-status").click();
   let taskUsage = page.getByRole("dialog", { name: "任務詳情" })

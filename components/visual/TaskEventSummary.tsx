@@ -14,8 +14,10 @@ import {
   activityKind,
   eventState,
   eventStateLabel,
+  eventUserResult,
   toolDisplayLabel,
 } from "@/lib/client/activity";
+import MessageBody from "../MessageBody";
 
 const icons = {
   request: Circle,
@@ -49,5 +51,22 @@ export default function TaskEventSummary({ event }: { event: TaskEvent }) {
       </span>
       <span className="event-description">{event.summary}</span>
     </summary>
+  );
+}
+
+/** User-facing text only. Tool JSON stays behind 原始結果. */
+export function EventResult({ result }: { result: unknown }) {
+  const shown = eventUserResult(result);
+  if (!shown.text && !shown.technical) return null;
+  return (
+    <>
+      {shown.text && <MessageBody text={shown.text} />}
+      {shown.technical && (
+        <details className="event-result-raw">
+          <summary>原始結果</summary>
+          <pre>{shown.technical}</pre>
+        </details>
+      )}
+    </>
   );
 }

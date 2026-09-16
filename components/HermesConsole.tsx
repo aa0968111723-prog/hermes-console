@@ -62,7 +62,7 @@ import ComposerTaskStatus, {
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
-import TaskEventSummary from "./visual/TaskEventSummary";
+import TaskEventSummary, { EventResult } from "./visual/TaskEventSummary";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -1156,6 +1156,15 @@ export default function HermesConsole() {
                                   tasks.find((t) => t.id === message.taskId),
                                 )
                               }
+                              workflows={workflows}
+                              projectId={activeConv.projectId}
+                              onContinue={(id) => {
+                                setText(
+                                  "請查回創作流程 " +
+                                    id +
+                                    " 的現有設計，接續修改同一作品。",
+                                );
+                              }}
                             />
                           )}
                           {!!message.attachments?.length && (
@@ -2478,15 +2487,7 @@ export default function HermesConsole() {
                     {time(e.startedAt)}
                     {e.toolName && <code>{e.toolName}</code>}
                   </small>
-                  {e.result !== null && (
-                    <MessageBody
-                      text={
-                        typeof e.result === "string"
-                          ? e.result
-                          : JSON.stringify(e.result, null, 2)
-                      }
-                    />
-                  )}
+                  <EventResult result={e.result} />
                   {e.sources.map((source) => (
                     <a
                       key={source}
