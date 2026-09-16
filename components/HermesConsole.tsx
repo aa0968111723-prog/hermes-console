@@ -34,7 +34,7 @@ import {
   isComposerKeyboardOpen,
 } from "@/lib/client/composer-keyboard";
 import { materialImageSrc } from "@/lib/client/materials";
-import { studentTaskCaption, progressSteps, safeSource, studentSourceHost } from "@/lib/client/activity";
+import { studentTaskCaption, progressSteps, safeSource, studentSourceHost, taskEvents } from "@/lib/client/activity";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
 import MessageBody from "./MessageBody";
@@ -624,7 +624,7 @@ export default function HermesConsole() {
     else mobileNav.current?.close();
   }, [drawer]);
   const visualPinKey =
-    currentTask?.events
+    taskEvents(currentTask)
       .map((event) => event.toolName)
       .filter(isWorkspaceResultTool)
       .join(",") || "";
@@ -738,14 +738,12 @@ export default function HermesConsole() {
       dataRef.current = next;
       return next;
     });
-    try {
-      await loadWorkspace();
-    } catch (error) {
+    void loadWorkspace().catch((error) => {
       if (!isAbortLike(error)) {
         setOffline(true);
         setError(WORKSPACE_LOAD_NOTICE);
       }
-    }
+    });
     return result.conversation;
   }
   async function sendPrompt(prompt: string, attachmentIds?: string[]) {
@@ -2948,7 +2946,7 @@ export default function HermesConsole() {
                 </>
               ) : null}
               <h3>進行狀況</h3>
-              {chosenTask.events.map((e) => (
+              {taskEvents(chosenTask).map((e) => (
                 <details className="event" key={e.id}>
                   <TaskEventSummary event={e} />
                   <small className="event-meta">
@@ -2970,7 +2968,7 @@ export default function HermesConsole() {
                       />
                     </details>
                   )}
-                  {e.sources.map((source) => {
+                  {(e.sources || []).map((source) => {
                     const href = safeSource(source);
                     if (!href) return null;
                     const label = inspectDeveloper

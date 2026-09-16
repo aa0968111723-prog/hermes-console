@@ -166,7 +166,7 @@ test("speech stays continuous across pauses until the session ends", () => {
   assert.equal(ends, 1);
 });
 
-test("speech restarts after a thinking pause instead of ending the goal", () => {
+test("speech restarts after engine onend so a mid-goal phrase can continue", () => {
   let starts = 0;
   let ends = 0;
   let denied = "";
@@ -184,7 +184,6 @@ test("speech restarts after a thinking pause instead of ending the goal", () => 
         this.onresult?.({
           results: [{ isFinal: true, 0: { transcript: "我想辦茶會" } }],
         });
-        this.onerror?.({ error: "no-speech" });
         this.onend?.();
       }
     }
@@ -209,6 +208,46 @@ test("speech restarts after a thinking pause instead of ending the goal", () => 
   assert.equal(denied, "");
   assert.equal(ends, 0);
   session!.stop();
+  assert.equal(ends, 1);
+});
+
+test("speech no-speech after hearing the goal ends ready to send", () => {
+  let starts = 0;
+  let ends = 0;
+  let denied = "";
+  const finals: string[] = [];
+  class Done implements SpeechRecognitionLike {
+    lang = "";
+    interimResults = true;
+    continuous = false;
+    onresult: ((event: SpeechResultEvent) => void) | null = null;
+    onerror: ((event?: { error?: string }) => void) | null = null;
+    onend: (() => void) | null = null;
+    start() {
+      starts += 1;
+      this.onresult?.({
+        results: [{ isFinal: true, 0: { transcript: "我想辦茶會" } }],
+      });
+      this.onerror?.({ error: "no-speech" });
+      this.onend?.();
+    }
+    stop() {}
+  }
+  const session = createSpeechSession({
+    ctor: Done,
+    onFinal: (text) => finals.push(text),
+    onError: (code) => {
+      denied = studentSpeechError(code) || "";
+    },
+    onEnd: () => {
+      ends += 1;
+    },
+  });
+  assert.ok(session);
+  session!.start();
+  assert.equal(starts, 1);
+  assert.deepEqual(finals, ["我想辦茶會"]);
+  assert.equal(denied, "");
   assert.equal(ends, 1);
 });
 

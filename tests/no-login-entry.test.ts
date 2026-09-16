@@ -143,6 +143,7 @@ test("no-login entry contracts", async (t) => {
     assert.match(speech, /沒聽到語音。請靠近再試一次。/);
     assert.match(speech, /if \(!heard\)/);
     assert.match(speech, /listen\(\)/);
+    assert.match(speech, /if \(heard\) \{[\s\S]*?finish\(\)/);
     const config = await readFile(
       new URL("../next.config.ts", import.meta.url),
       "utf8",

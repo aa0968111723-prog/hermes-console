@@ -109,7 +109,13 @@ export function createSpeechSession(options: {
     const code = event?.error;
     if (code === "aborted") return;
     if (code === "no-speech") {
-      if (heard) return;
+      if (heard) {
+        // Android Chrome ends a restarted session with no-speech after the
+        // student stops talking. End quietly so the composer can ask them to
+        // send — do not keep the mic open forever, and do not show 沒聽到語音.
+        finish();
+        return;
+      }
       options.onError?.(code);
       finish();
       return;

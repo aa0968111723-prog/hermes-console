@@ -370,6 +370,8 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   assert.match(entry, /clubFacts\)\.toBeInViewport/);
   assert.match(entry, /幫我出圖/);
   assert.match(entry, /未出圖/);
+  assert.match(entry, /onerror\?\.\(\{ error: "no-speech" \}\)/);
+  assert.match(entry, /getByText\("說完了，請按送出"\)\)\.toBeVisible/);
 });
 
 test("spoken lookup pins club facts above the trailing spec", async () => {
@@ -391,6 +393,14 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
     consoleSource,
     /preferredPinnedVisual\([\s\S]*visualPinKey/,
   );
+  assert.match(consoleSource, /taskEvents\(currentTask\)/);
+  assert.doesNotMatch(consoleSource, /currentTask\?\.events/);
+  const createConversation = consoleSource.slice(
+    consoleSource.indexOf("async function createConversation"),
+    consoleSource.indexOf("async function sendPrompt"),
+  );
+  assert.match(createConversation, /void loadWorkspace\(\)\.catch/);
+  assert.doesNotMatch(createConversation, /await loadWorkspace\(\)/);
   assert.doesNotMatch(consoleSource, /pinBriefAfterPick/);
   const revise = await readFile(
     new URL("../lib/server/inspiration/revise.ts", import.meta.url),
