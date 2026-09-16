@@ -359,7 +359,9 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
   background: var(--background);
   color: var(--ink);
 }
@@ -511,10 +513,15 @@ small {
   color: #60764f;
   font-weight: 600;
 }
+/* Scroll ownership: document and .app-shell never scroll. Chat uses
+   .conversation-scroll; other pages use .secondary-page. Do not unlock
+   body overflow or add overflow-y: auto !important on the shell. */
 .app-shell {
-  height: min(100dvh, var(--app-height));
+  height: var(--app-height);
+  max-height: var(--app-height);
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
 }
 .app-shell.sidebar-closed {
@@ -673,6 +680,8 @@ nav button[aria-current="page"] {
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 .topbar {
   display: flex;
@@ -709,10 +718,12 @@ nav button[aria-current="page"] {
   display: none;
 }
 .conversation-scroll {
-  flex: 1;
+  flex: 1 1 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   min-height: 0;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
   scrollbar-gutter: stable;
 }
 .conversation {
@@ -1277,8 +1288,11 @@ nav button[aria-current="page"] {
 .secondary-page {
   padding: 38px clamp(20px, 5vw, 70px);
   overflow-y: auto;
-  flex: 1;
+  overscroll-behavior: contain;
+  flex: 1 1 0;
   min-height: 0;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 .secondary-page > h1 {
   margin-bottom: 9px;
@@ -2596,7 +2610,7 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
     display: none;
   }
   html[data-composer-keyboard="open"] .composer-area {
-    padding-bottom: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom, 0px), var(--safe-area-bottom, 0px));
   }
 }
 
@@ -2869,4 +2883,102 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
     transition: none !important;
     animation: none !important;
   }
+}
+
+.auth-gate {
+  min-height: var(--app-height);
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+}
+.auth-card {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 12px;
+  padding: 28px 22px;
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--depth-card, 0 12px 40px rgba(40, 70, 40, 0.08));
+  text-align: center;
+}
+.auth-turtle {
+  margin: 0 auto;
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+.auth-card h1 {
+  font-size: 24px;
+  margin: 0;
+}
+.auth-notice {
+  margin: 0;
+  padding: 10px;
+  border-radius: 12px;
+  background: #f4f8ee;
+}
+.auth-provider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.auth-provider small,
+.auth-card .quiet {
+  color: var(--muted);
+}
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.account-menu {
+  position: relative;
+}
+.account-avatar {
+  overflow: hidden;
+  border-radius: 50%;
+}
+.account-avatar img,
+.account-avatar span {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: #e7f0df;
+}
+.account-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 40;
+  width: min(280px, 80vw);
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--depth-overlay, 0 16px 40px rgba(40, 70, 40, 0.12));
+  text-align: left;
+}
+.account-panel p {
+  margin: 0 0 10px;
+}
+.account-panel small {
+  display: block;
+}
+.identity-list {
+  margin: 0 0 12px;
+  padding-left: 1.1em;
+  font-size: 13px;
+}
+.account-panel button {
+  width: 100%;
+  margin-top: 8px;
 }

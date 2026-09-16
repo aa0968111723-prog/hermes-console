@@ -16,11 +16,8 @@
   position: relative;
 }
 .app-shell > main {
-  transform-origin: center 20%;
-  transition: transform var(--motion-standard) var(--ease-spatial);
-}
-.app-shell[data-sheet-open="true"] > main {
-  transform: translateY(-3px) scale(0.985);
+  min-height: 0;
+  height: 100%;
 }
 .spatial-panel {
   min-width: 0;
@@ -309,9 +306,6 @@
 [data-spatial="static"] .hermes-core {
   transform: none !important;
 }
-[data-spatial="static"][data-sheet-open="true"] > main {
-  transform: none;
-}
 [data-spatial="reduced"] .topbar,
 [data-spatial="reduced"] .mobile-bottom-dock {
   backdrop-filter: none;
@@ -394,7 +388,8 @@
     display: none;
   }
   .spatial-dock {
-    position: absolute;
+    position: fixed;
+    z-index: var(--z-dock);
     left: 12px;
     right: 12px;
     bottom: calc(8px + var(--safe-area-bottom));
@@ -437,7 +432,7 @@
     background: var(--color-primary-soft);
   }
   .composer-area {
-    padding: 6px 12px 4px;
+    padding: 6px 12px max(4px, var(--safe-area-bottom));
     background: transparent;
   }
   .composer {
@@ -662,8 +657,5 @@
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
-  }
-  .app-shell[data-sheet-open="true"] > main {
-    transform: none;
   }
 }

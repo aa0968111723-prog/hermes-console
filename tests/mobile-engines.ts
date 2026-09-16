@@ -2,6 +2,7 @@ import { chromium, webkit, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
+import { verifyScrollOwnership } from "./mobile-scroll";
 
 // Browser emulation only. WebKit on CI is not a physical iPhone Safari run.
 export async function verifyMobileEngines(base: string, output: string) {
@@ -59,6 +60,9 @@ export async function verifyMobileEngines(base: string, output: string) {
         await page.screenshot({
           path: join(output, `spatial-${engine}-${width}.png`),
         });
+        if (width === 360 || width === 390 || width === 412 || width === 430) {
+          await verifyScrollOwnership(page, `${engine}-chat-${width}x${height}`);
+        }
         results.push({
           engine,
           width,
@@ -108,7 +112,7 @@ export async function verifyMobileEngines(base: string, output: string) {
       for (const [name, shot] of [
         ["專案", "projects"],
         ["靈感", "inspiration"],
-        ["任務", "tasks"],
+        ["Agent", "agents"],
         ["對話", "chat"],
       ]) {
         await page
@@ -120,6 +124,7 @@ export async function verifyMobileEngines(base: string, output: string) {
             () => document.documentElement.scrollWidth <= innerWidth,
           ),
         );
+        await verifyScrollOwnership(page, `${engine}-nav-${shot}`);
         await page.screenshot({
           path: join(output, `spatial-${engine}-${shot}.png`),
         });

@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { verifyVisualStates } from "./visual-states";
 import { verifyMobileSpatial } from "./mobile-spatial";
 import { verifyMobileEngines } from "./mobile-engines";
+import { verifyScrollOwnership } from "./mobile-scroll";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
@@ -243,6 +244,15 @@ try {
         path: join(output, "home-mobile.png"),
         fullPage: true,
       });
+    if (
+      name === "mobile-360" ||
+      name === "mobile-390" ||
+      name === "mobile-412" ||
+      name === "mobile-430" ||
+      name === "tablet"
+    ) {
+      await verifyScrollOwnership(page, name);
+    }
   }
   await page.getByRole("button", { name: "開啟導覽" }).click();
   const mobileNavigation = page
