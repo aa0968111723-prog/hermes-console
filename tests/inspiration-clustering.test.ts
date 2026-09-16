@@ -19,6 +19,9 @@ const { buildPlan } = await import("../lib/server/orchestrator/planner");
 const { emptyIntegration } = await import("../lib/server/certification/registry");
 const { searchInspiration, resolveInspirationUrl, selectInspirationDirection } =
   await import("../lib/server/inspiration/engine");
+const { copyDocument, activity: loadActivity } = await import(
+  "../lib/server/creative"
+);
 const { directionPickFollowUp, isInspirationSearchPack } = await import(
   "../lib/inspiration-pack"
 );
@@ -159,10 +162,17 @@ test("selecting a direction saves a workflow and is visible in project context",
   assert.equal(result.isError, false);
   const text = String((result.content as Array<{ text?: string }>)[0].text);
   const context = JSON.parse(text) as {
-    workflows?: Array<{ selected: number | null; selectedTitle: string | null }>;
+    workflows?: Array<{
+      selected: number | null;
+      selectedTitle: string | null;
+      copyId?: string | null;
+      activityId?: string | null;
+    }>;
   };
   assert.ok(context.workflows?.some((item) => item.selected === 1));
   assert.ok(context.workflows?.some((item) => item.selectedTitle));
+  assert.ok(context.workflows?.some((item) => item.copyId));
+  assert.ok(context.workflows?.some((item) => item.activityId));
   assert.equal(first.workflow.directionBrief?.kind, "direction_brief");
   assert.equal(first.workflow.directionBrief?.hermesGenerated, false);
   assert.equal(first.workflow.directionBrief?.rendered, false);
@@ -174,7 +184,22 @@ test("selecting a direction saves a workflow and is visible in project context",
   assert.ok(first.workflow.directionBrief?.copy.c);
   assert.match(first.workflow.directionBrief?.notice || "", /不是 Hermes 生成/);
   assert.match(first.workflow.directionBrief?.notice || "", /不是已出圖/);
+  assert.ok(first.workflow.activityId);
+  assert.ok(first.workflow.copyId);
+  assert.equal(first.workflow.directionBrief?.copyId, first.workflow.copyId);
+  assert.equal(first.workflow.directionBrief?.activityId, first.workflow.activityId);
+  const stored = copyDocument("workspace", first.workflow.copyId!);
+  assert.equal(stored.revisions[0].pages.length, 3);
+  assert.equal(stored.revisions[0].pages[0].title, "A 最自然");
+  assert.equal(loadActivity("workspace", first.workflow.activityId!).facts.length, 0);
+  assert.equal(first.workflow.directionBrief?.revision, 1);
+  assert.equal(again.workflow.copyId, first.workflow.copyId);
+  assert.equal(again.workflow.activityId, first.workflow.activityId);
+  assert.equal(again.workflow.directionBrief?.revision, 1);
   assert.equal(switched.workflow.directionBrief?.selected, "B");
+  assert.equal(switched.workflow.copyId, first.workflow.copyId);
+  assert.equal(switched.workflow.directionBrief?.revision, 2);
+  assert.equal(copyDocument("workspace", switched.workflow.copyId!).revisions.length, 2);
   assert.match(JSON.stringify(first.workflow.directionBrief), /UNKNOWN/);
   assert.doesNotMatch(
     JSON.stringify(first.workflow.directionBrief),
@@ -236,6 +261,7 @@ test("picking a direction locks copy and visual without re-searching inspiration
   assert.equal(composed.packs.includes("lumen"), false);
   assert.match(composed.instructions, /禁止再呼叫 workspace_search_inspiration/);
   assert.match(composed.instructions, /禁止再呼叫 workspace_save_directions/);
+  assert.match(composed.instructions, /copyId/);
   assert.doesNotMatch(
     composed.instructions,
     /找靈感時必須呼叫 workspace_search_inspiration/,

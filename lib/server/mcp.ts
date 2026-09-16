@@ -500,6 +500,8 @@ async function execute(
               item.selected === null
                 ? null
                 : item.directions[item.selected]?.title || null,
+            activityId: item.activityId || null,
+            copyId: item.copyId || null,
             brief: item.brief.slice(0, 160),
           })),
       };

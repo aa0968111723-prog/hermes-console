@@ -17,6 +17,7 @@ import type {
 import { ApiError } from "../security";
 import { saveDirections, chooseDirection, attachDirectionBrief, type Workflow } from "../workflows";
 import { compileDirectionBrief } from "./brief";
+import { persistSelectedDirectionDraft } from "./persist";
 
 export function analyzeReference(input: {
   caption?: string;
@@ -364,13 +365,16 @@ export function selectInspirationDirection(input: {
     saved.selected === index
       ? saved
       : chooseDirection(input.owner, saved.id, index);
-  const workflow = attachDirectionBrief(
+  const workflow = persistSelectedDirectionDraft(
     input.owner,
-    chosen.id,
-    compileDirectionBrief({
-      pack,
-      selected: input.selected,
-    }),
+    attachDirectionBrief(
+      input.owner,
+      chosen.id,
+      compileDirectionBrief({
+        pack,
+        selected: input.selected,
+      }),
+    ),
   );
   return { workflow, pack };
 }

@@ -62,6 +62,7 @@ export interface Workflow {
   revisionId?: string | null;
   error: string | null;
   directionBrief?: DirectionBriefPack | null;
+  copyId?: string | null;
 }
 export function saveDirections(
   owner: string,
@@ -133,11 +134,22 @@ export function attachDirectionBrief(
   id: string,
   directionBrief: DirectionBriefPack,
 ) {
+  return bindWorkflowDraft(owner, id, { directionBrief });
+}
+export function bindWorkflowDraft(
+  owner: string,
+  id: string,
+  patch: {
+    activityId?: string;
+    copyId?: string | null;
+    directionBrief?: DirectionBriefPack | null;
+  },
+) {
   return transaction(() => {
     const record = workflow(owner, id);
     return put("workflow", owner, {
       ...record,
-      directionBrief,
+      ...patch,
       updatedAt: new Date().toISOString(),
     } satisfies Workflow);
   });

@@ -2623,6 +2623,12 @@ button.inspiration-direction-card.selected { border-color: var(--color-primary);
   font-weight: 700;
 }
 .direction-copy-grid p { margin: 0; font-size: 13px; line-height: 1.4; }
+.direction-review-fold > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 650;
+}
 .inspiration-cluster-rail, .inspiration-thumb-rail { display: flex; gap: 8px; overflow-x: auto; margin: 0; padding: 0 0 4px; list-style: none; }
 .inspiration-cluster-rail li, .inspiration-thumb-rail a { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 999px; background: #eef4ea; font-size: 12px; white-space: nowrap; }
 .inspiration-cluster-rail span { color: var(--muted); }

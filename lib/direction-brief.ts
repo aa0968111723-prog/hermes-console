@@ -22,6 +22,9 @@ export type DirectionBriefPack = {
   copy: { a: string; b: string; c: string };
   review: CopyReview;
   notice: string;
+  activityId?: string | null;
+  copyId?: string | null;
+  revision?: number | null;
 };
 
 export function isDirectionBriefPack(

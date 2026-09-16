@@ -16,7 +16,9 @@ export default function DirectionBrief({
   return (
     <section className="direction-brief" aria-label="已選方向規格">
       <p className="eyebrow">
-        方向 {brief.selected} · 規格草稿 · 未出圖
+        方向 {brief.selected}
+        {brief.revision ? " · V" + brief.revision : ""}
+        {" · 規格草稿 · 未出圖"}
       </p>
       <h2>{brief.title}</h2>
       <p>{brief.summary}</p>
@@ -49,7 +51,10 @@ export default function DirectionBrief({
           </li>
         ))}
       </ul>
-      <CopyReviewCard review={brief.review} />
+      <details className="direction-review-fold">
+        <summary>新生視角審核（模擬）</summary>
+        <CopyReviewCard review={brief.review} />
+      </details>
       <p className="quiet">{brief.notice}</p>
     </section>
   );
