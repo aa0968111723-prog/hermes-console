@@ -383,14 +383,15 @@ try {
   await expect(
     page.locator(".conversation-scroll").getByRole("region", { name: "已選方向規格" }),
   ).not.toContainText("V2");
-  await expect(page.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled({
-    timeout: 15_000,
-  });
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toHaveValue("");
   await page.screenshot({
     path: join(output, "chat-direction-continue-mobile.png"),
   });
   await dockNav.getByRole("button", { name: "對話", exact: true }).click();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("第二版字放大");
+  await expect(page.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled();
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();
   const revisedBrief = page.getByRole("region", { name: "已選方向規格" });
   await expect(revisedBrief).toContainText("V2", { timeout: 15_000 });
