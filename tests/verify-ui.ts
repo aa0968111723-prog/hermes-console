@@ -325,7 +325,10 @@ try {
     page.getByRole("region", { name: "新生第一眼模擬" }),
   ).toBeVisible();
   await expect(page.getByText(/個工具完成/)).toHaveCount(0);
-  await expect(page.getByText(/已看圖/)).toHaveCount(0);
+  await expect(page.getByText(/已讀取像素/)).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "畫面審查" })).toContainText(
+    "未讀像素",
+  );
   await page.screenshot({
     path: join(output, "chat-image-review-mobile.png"),
     fullPage: true,
