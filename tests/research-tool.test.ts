@@ -42,4 +42,16 @@ test("workspace_search_research is a read-only workspace tool", async () => {
   };
   assert.equal(miss.isError, false);
   assert.equal(miss.structuredContent?.result?.nodes?.length, 0);
+  const cacheIdentity = (await callTool("workspace", "workspace_search_research", {
+    query: "multimodal cache identity processor policy",
+  })) as {
+    structuredContent?: { result?: { nodes?: Array<{ id: string }> } };
+    isError?: boolean;
+  };
+  assert.equal(cacheIdentity.isError, false);
+  assert.ok(
+    (cacheIdentity.structuredContent?.result?.nodes || []).some((node) =>
+      node.id.includes("2026-09-16-multimodal-cache-identity"),
+    ),
+  );
 });

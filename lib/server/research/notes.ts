@@ -12,6 +12,22 @@ export type ResearchNode = {
 
 const DIR = join(process.cwd(), "data/ai-agent-research");
 let cached: ResearchNode[] | null = null;
+let cachedStamp = "";
+
+function indexStamp() {
+  if (!existsSync(DIR)) return "missing";
+  const names = readdirSync(DIR).filter((name) => name.endsWith(".md"));
+  let latest = 0;
+  for (const name of names) {
+    try {
+      const time = statSync(join(DIR, name)).mtimeMs;
+      if (time > latest) latest = time;
+    } catch {
+      /* unreadable notes stay out of the stamp */
+    }
+  }
+  return names.length + ":" + latest;
+}
 
 function excerpt(text: string) {
   const block =
@@ -38,9 +54,11 @@ function parseNote(filename: string, text: string): ResearchNode {
 }
 
 export function loadResearchIndex() {
-  if (cached) return cached;
+  const stamp = indexStamp();
+  if (cached && cachedStamp === stamp) return cached;
   if (!existsSync(DIR)) {
     cached = [];
+    cachedStamp = stamp;
     return cached;
   }
   cached = readdirSync(DIR)
@@ -55,6 +73,7 @@ export function loadResearchIndex() {
         return [];
       }
     });
+  cachedStamp = stamp;
   return cached;
 }
 
