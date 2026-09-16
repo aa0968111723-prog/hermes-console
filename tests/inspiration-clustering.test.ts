@@ -27,7 +27,7 @@ const { permissionClass, autoAllowed } = await import(
   "../lib/server/permissions"
 );
 const { INSPIRATION_INSTRUCTION_PACK } = await import("../lib/server/hermes");
-const { composeTaskInstructions } = await import(
+const { composeTaskInstructions, dropOptionalPacks } = await import(
   "../lib/server/orchestrator/instructions"
 );
 
@@ -223,4 +223,8 @@ test("picking a direction locks copy and visual without re-searching inspiration
     composed.instructions,
     /找靈感時必須呼叫 workspace_search_inspiration/,
   );
+  const trimmed = dropOptionalPacks(composed);
+  assert.ok(trimmed.packs.includes("locked"));
+  assert.match(trimmed.instructions, /禁止再呼叫 workspace_search_inspiration/);
+  assert.match(trimmed.instructions, /禁止再呼叫 workspace_save_directions/);
 });

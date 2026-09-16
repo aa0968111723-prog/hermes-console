@@ -164,11 +164,15 @@ export function composeTaskInstructions(input: {
 export function dropOptionalPacks(composed: ReturnType<typeof composeTaskInstructions>) {
   if (composed.packs.includes("fast") || composed.packs.includes("research") || composed.packs.includes("admin"))
     return composed;
+  const packs: InstructionPackId[] = ["base", "workspace"];
+  const parts = [BASE_CREATIVE_INSTRUCTIONS, WORKSPACE_INSTRUCTION_PACK];
+  if (composed.packs.includes("locked")) {
+    parts.push(LOCKED_DIRECTION_INSTRUCTION_PACK);
+    packs.push("locked");
+  }
   return {
-    instructions: [BASE_CREATIVE_INSTRUCTIONS, WORKSPACE_INSTRUCTION_PACK].join(
-      "\n",
-    ),
-    packs: ["base", "workspace"] as InstructionPackId[],
+    instructions: parts.join("\n"),
+    packs,
     includeLumenManual: false,
     includeFramelabManual: false,
   };
