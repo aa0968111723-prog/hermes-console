@@ -7,7 +7,7 @@ const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
 const STRONG_DESIGN =
   /海報|網宣|Canva|canva|視覺|設計|稿|文宣|做一張|視覺層級|構圖|配色/;
-const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會/;
+const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會|客群/;
 const INSPIRATION = /靈感|參考|IG|Pinterest|instagram/i;
 const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA|宣傳|文宣/;
 const IMAGE_REVIEW = /這張(圖|海報|稿|設計)?|哪裡可以改|視覺層級|分析這[張個]/;
@@ -120,4 +120,12 @@ export function wantsWorkspaceKnowledge(goal: StructuredGoal): boolean {
   if (goal.intentTier === "chitchat") return false;
   if (wantsWorkspaceInspiration(goal)) return false;
   return needsZenclubKnowledge(goal.goal);
+}
+
+/** Spoken audience asks still get the freshman twin without pretending to see a poster. */
+export function wantsWorkspaceAudience(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.requiresImageAnalysis) return false;
+  if (wantsWorkspaceInspiration(goal) || wantsWorkspaceKnowledge(goal)) return false;
+  return goal.requiresAudienceEvaluation;
 }

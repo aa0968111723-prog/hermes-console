@@ -1,8 +1,8 @@
 export const CONVERSATION_VISUAL_SELECTOR =
-  ".inspiration-result, .image-review, .direction-brief, .knowledge-result";
+  ".inspiration-result, .image-review, .direction-brief, .knowledge-result, .first-reaction-board";
 
 export const RESULT_VISUAL_SELECTOR =
-  ".inspiration-result, .image-review, .knowledge-result";
+  ".inspiration-result, .image-review, .knowledge-result, .first-reaction-board";
 
 export function lastMatchingVisual(
   root: { querySelectorAll: (selector: string) => ArrayLike<Element> },

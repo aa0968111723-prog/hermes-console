@@ -57,6 +57,7 @@ import {
   interpretGoal,
   userFacingGoalText,
   wantsNewVisual,
+  wantsWorkspaceAudience,
   wantsWorkspaceInspiration,
   wantsWorkspaceKnowledge,
 } from "./orchestrator/goal";
@@ -382,35 +383,51 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     hasImage: input.attachments.length > 0,
     focus: input.focus,
   });
-  const localInspiration = canFulfillLocalInspiration(
-    connection.credential,
-    goal,
-    input.attachments,
-  );
-  const localKnowledge = canFulfillLocalKnowledge(
-    connection.credential,
-    goal,
-    input.attachments,
-  );
-  const localImageReview = canFulfillLocalImageReview(
-    connection.credential,
-    goal,
-  );
-  const localSpecRevision = canFulfillLocalSpecRevision(
-    connection.credential,
-    input.input,
-    conv,
-    owner,
-  );
-  const localContinue = canFulfillLocalContinue(
-    connection.credential,
-    input.input,
-    conv,
-    owner,
-  );
+  const delegated = input.input.includes("BEGIN_UNTRUSTED_DATA");
+  const localInspiration =
+    !delegated &&
+    canFulfillLocalInspiration(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
+  const localKnowledge =
+    !delegated &&
+    canFulfillLocalKnowledge(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
+  const localImageReview =
+    !delegated &&
+    canFulfillLocalImageReview(connection.credential, goal);
+  const localSpecRevision =
+    !delegated &&
+    canFulfillLocalSpecRevision(
+      connection.credential,
+      input.input,
+      conv,
+      owner,
+    );
+  const localContinue =
+    !delegated &&
+    canFulfillLocalContinue(
+      connection.credential,
+      input.input,
+      conv,
+      owner,
+    );
+  const localAudience =
+    !delegated &&
+    canFulfillLocalAudience(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
   const localWorkspace =
     localInspiration ||
     localKnowledge ||
+    localAudience ||
     localImageReview ||
     localSpecRevision ||
     localContinue;
@@ -500,7 +517,9 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
         ? "已在後端保存任務，改由工作區社團索引；不是 Hermes。"
         : localInspiration
           ? "已在後端保存任務，改由工作區靈感搜尋；不是 Hermes。"
-          : localImageReview
+          : localAudience
+            ? "已在後端保存任務，改由工作區客群模擬；不是 Hermes，也沒有看圖。"
+            : localImageReview
             ? "已在後端保存任務，改由工作區畫面審查；不是 Hermes，也沒有讀像素。"
             : localSpecRevision
               ? "已在後端保存任務，改由工作區規格修訂；不是 Hermes，也沒有出圖。"
@@ -538,6 +557,12 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     );
   if (localImageReview)
     return fulfillImageReview(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localAudience)
+    return fulfillWorkspaceAudience(
       owner,
       reserved,
       conversation(owner, reserved.conversationId),
@@ -586,6 +611,17 @@ function canFulfillLocalKnowledge(
 }
 function canFulfillLocalImageReview(credential: string, goal: StructuredGoal) {
   return credential !== "valid" && goal.requiresImageReview;
+}
+function canFulfillLocalAudience(
+  credential: string,
+  goal: StructuredGoal,
+  attachments: string[],
+) {
+  return (
+    credential !== "valid" &&
+    wantsWorkspaceAudience(goal) &&
+    attachments.length === 0
+  );
 }
 function workflowForConversation(owner: string, conv: Conversation) {
   return listWorkflows(owner).find(
@@ -803,6 +839,63 @@ function fulfillImageReview(
   task.endedAt = now();
   task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
   event(task, "工作區已回傳畫面審查草稿（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillWorkspaceAudience(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const goal = interpretGoal(task.input);
+  task.goal = goal;
+  const prompt = userFacingGoalText(task.input);
+  const panel = simulateFreshmanReactions({
+    kind: "copy",
+    title: prompt,
+    copy: prompt,
+    visualNotes: "",
+  });
+  if (!panel.simulation || panel.truth !== "SIMULATION") {
+    task.state = "failed";
+    task.error = "工作區客群模擬沒有誠實標示模擬；沒有用假民調補上。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  event(task, "已做新生第一眼模擬；不是 Hermes 執行，也沒有看圖。", "plan");
+  event(
+    task,
+    panel.disclaimer,
+    "completed",
+    "workspace_simulate_audience",
+    panel,
+  );
+  task.output = [
+    "已用十個淡江新生人格做第一眼模擬。",
+    panel.disclaimer,
+    "這不是 Hermes Agent 執行，也沒有讀取海報像素。",
+    "客群反應是模擬，不是民調。",
+  ].join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳客群模擬（不是 Hermes 驗證）。");
   if (
     !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
   ) {

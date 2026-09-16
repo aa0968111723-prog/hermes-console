@@ -16,7 +16,7 @@ export default function FirstReactionBoard({ panel }: { panel: TwinPanel }) {
   return (
     <section className="first-reaction-board" aria-label="新生第一眼模擬">
       <header>
-        <p className="eyebrow">SIMULATION · {panel.kindLabel}</p>
+        <p className="eyebrow">模擬 · {panel.kindLabel}</p>
         <h2>十個新生怎麼看</h2>
         <p className="disclaimer">{panel.disclaimer}</p>
       </header>

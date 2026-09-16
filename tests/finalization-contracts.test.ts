@@ -309,6 +309,12 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   );
   assert.match(board, /PROVENANCE_LABEL/);
   assert.doesNotMatch(board, /\{language\.live\.story\.provenance\}/);
+  const twin = await readFile(
+    new URL("../components/audience/FirstReactionBoard.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(twin, /模擬 · /);
+  assert.doesNotMatch(twin, /SIMULATION ·/);
   const ui = await readFile(new URL("./verify-ui.ts", import.meta.url), "utf8");
   assert.match(ui, /幫我查淡大禪學社茶會/);
   assert.match(ui, /社團資料/);
