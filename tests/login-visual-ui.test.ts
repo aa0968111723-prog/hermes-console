@@ -35,4 +35,5 @@ test("login is turtle-first with honest unconfigured providers", async () => {
   assert.doesNotMatch(gate, /import HermesConsole from/);
   assert.match(css, /\.login-stage/);
   assert.match(css, /\.login-turtle[\s\S]*breathe/);
+  assert.match(css, /\.login-screen \{[\s\S]*flex-direction: column/);
 });
