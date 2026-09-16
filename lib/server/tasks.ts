@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { Conversation, EMPTY_USAGE, Task, TaskEvent } from "../contracts";
 import { get, list, put, transaction } from "./store";
-import { ApiError, hash, limited, redact } from "./security";
+import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
 import {
   deadline,
   health,
@@ -712,6 +712,19 @@ async function observe(owner: string, id: string) {
     clearTimeout(timer);
     observers.delete(id);
   }
+}
+export async function recoverInterruptedTasks() {
+  const remote: Array<{ owner: string; id: string }> = [];
+  for (const owner of [WORKSPACE_OWNER, "owner"]) {
+    for (const task of list<Task>("task", owner).filter(active)) {
+      if (task.transport === "runs" && task.remoteId) {
+        remote.push({ owner, id: task.id });
+        continue;
+      }
+      await reconcile(owner, task.id);
+    }
+  }
+  for (const item of remote) void reconcile(item.owner, item.id);
 }
 export async function reconcile(owner: string, id: string) {
   let task = taskFor(owner, id);

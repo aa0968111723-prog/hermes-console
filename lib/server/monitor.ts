@@ -1,12 +1,17 @@
-import { active, reconcile } from "./tasks";
+import { active, reconcile, recoverInterruptedTasks } from "./tasks";
 import { list } from "./store";
 import type { Task } from "../contracts";
 import { WORKSPACE_OWNER } from "./security";
 const globalMonitor = globalThis as typeof globalThis & {
   hermesMonitor?: ReturnType<typeof setInterval>;
+  hermesRecovered?: boolean;
 };
 export function startMonitor() {
   if (globalMonitor.hermesMonitor) return;
+  if (!globalMonitor.hermesRecovered) {
+    globalMonitor.hermesRecovered = true;
+    void recoverInterruptedTasks();
+  }
   let busy = false;
   globalMonitor.hermesMonitor = setInterval(async () => {
     if (busy) return;
