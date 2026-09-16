@@ -63,6 +63,7 @@ test("authentication entry contracts", async (t) => {
     );
     assert.ok(page.includes("AuthGate"));
     assert.ok(page.includes("HermesConsole"));
+    assert.match(page, /dynamic\(\(\) => import\("@\/components\/HermesConsole"\)/);
     assert.ok(!page.includes("InvitationGate"));
     assert.match(gate, /尚未設定寄件，無法寄送登入或重設連結/);
     assert.match(gate, /完成驗證/);

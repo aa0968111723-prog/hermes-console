@@ -36,7 +36,7 @@ Optional, honest unconfigured if blank:
 - `RESEND_API_KEY` / `CONSOLE_EMAIL_FROM` (needed for verification, magic link, and password reset mail). Without them the login screen must say **尚未設定寄件，無法寄送登入或重設連結** and must not show a send form.
 - Canva / Zeabur / Instagram / Pinterest
 
-`CONSOLE_ALLOW_LOCAL_ACCESS=true` is loopback-only.
+`CONSOLE_ALLOW_LOCAL_ACCESS=true` is loopback-only. Production startup throws if that flag is set on a public origin, if `CONSOLE_ORIGIN` is public `http://`, or if `CONSOLE_TEST_SESSION` / `NODE_TEST_CONTEXT` are present.
 
 ## Database
 

@@ -29,20 +29,9 @@ import {
 import type { Conversation, Health, Material, Task, TaskFocus } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
+import dynamic from "next/dynamic";
 import MessageBody from "./MessageBody";
 import Turtle from "./Turtle";
-import AgentPanel from "./agents/AgentPanel";
-import RuntimeInspector from "./RuntimeInspector";
-import InspirationBoard from "./inspiration/InspirationBoard";
-import HelpPage from "./help/HelpPage";
-import KnowledgeArchive from "./knowledge/KnowledgeArchive";
-import ProjectWorkbench from "./ProjectWorkbench";
-import LearningMap from "./LearningMap";
-import IntegrationHealth from "./settings/IntegrationHealth";
-import CapabilityCertification from "./settings/CapabilityCertification";
-import AccountSettings from "./settings/AccountSettings";
-import ConnectionSettings from "./settings/ConnectionSettings";
-import SharedMemory from "./settings/SharedMemory";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
 import AgentActivity from "./visual/AgentActivity";
@@ -82,6 +71,52 @@ import {
   writePreference,
   removeLegacyPreference,
 } from "@/lib/client/storage";
+
+const paneStatus = () => (
+  <p className="muted" role="status">
+    載入中
+  </p>
+);
+const AgentPanel = dynamic(() => import("./agents/AgentPanel"), {
+  loading: paneStatus,
+});
+const RuntimeInspector = dynamic(() => import("./RuntimeInspector"), {
+  loading: paneStatus,
+});
+const InspirationBoard = dynamic(
+  () => import("./inspiration/InspirationBoard"),
+  { loading: paneStatus },
+);
+const HelpPage = dynamic(() => import("./help/HelpPage"), {
+  loading: paneStatus,
+});
+const KnowledgeArchive = dynamic(() => import("./knowledge/KnowledgeArchive"), {
+  loading: paneStatus,
+});
+const ProjectWorkbench = dynamic(() => import("./ProjectWorkbench"), {
+  loading: paneStatus,
+});
+const LearningMap = dynamic(() => import("./LearningMap"), {
+  loading: paneStatus,
+});
+const IntegrationHealth = dynamic(
+  () => import("./settings/IntegrationHealth"),
+  { loading: paneStatus },
+);
+const CapabilityCertification = dynamic(
+  () => import("./settings/CapabilityCertification"),
+  { loading: paneStatus },
+);
+const AccountSettings = dynamic(() => import("./settings/AccountSettings"), {
+  loading: paneStatus,
+});
+const ConnectionSettings = dynamic(
+  () => import("./settings/ConnectionSettings"),
+  { loading: paneStatus },
+);
+const SharedMemory = dynamic(() => import("./settings/SharedMemory"), {
+  loading: paneStatus,
+});
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;

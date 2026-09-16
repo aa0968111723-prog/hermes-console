@@ -2075,6 +2075,15 @@ summary .badge {
     max(30px, env(safe-area-inset-bottom, 0px));
   background: var(--color-canvas);
 }
+.workspace-loading {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: max(24px, env(safe-area-inset-top, 0px)) 20px
+    max(24px, env(safe-area-inset-bottom, 0px));
+  color: var(--muted);
+  background: var(--color-canvas);
+}
 .login-card {
   width: min(390px, 100%);
   text-align: center;
