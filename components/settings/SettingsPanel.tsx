@@ -364,7 +364,7 @@ export default function SettingsPanel({
             />
 
             <details className="connection-advanced">
-              <summary>Advanced · 工具、技能與驗證證據</summary>
+              <summary>進階 · 工具、技能與驗證證據</summary>
               <IntegrationHealth items={integrations} />
               <CapabilityCertification />
               <label>

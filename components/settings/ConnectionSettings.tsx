@@ -309,137 +309,6 @@ export default function ConnectionSettings({
         </p>
       )}
       {notice && <p className="muted">{notice}</p>}
-      <details className="connection-storage">
-        <summary>儲存與驗證詳情</summary>
-        <p className="muted">
-          金鑰只送到後端加密保存，不會寫進前端程式。讀取時只顯示是否已設定與末四碼。
-          環境變數仍可作為後備；工作區儲存優先。
-        </p>
-        <dl className="facts">
-          <dt>秘密儲存</dt>
-          <dd>
-            {data ? SOURCE[data.vault.source] || data.vault.source : "讀取中"}
-          </dd>
-          <dt>Hermes</dt>
-          <dd>
-            {data?.hermes.configured
-              ? `已設定（網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}）`
-              : "尚未設定"}
-          </dd>
-          <dt>淡江 MCP</dt>
-          <dd>
-            {data
-              ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
-              : "讀取中"}
-          </dd>
-          <dt>GALLEY MCP</dt>
-          <dd>
-            {data
-              ? `${TAMKANG[data.galley?.state || ""] || data.galley?.state || "未設定"} · ${data.galley?.detail || "尚未回報"}`
-              : "讀取中"}
-          </dd>
-          <dt>訊核 MCP</dt>
-          <dd>
-            {data?.xunhe
-              ? `${TAMKANG[data.xunhe.state] || data.xunhe.state} · ${data.xunhe.detail}`
-              : "尚未設定"}
-          </dd>
-          <dt>Planform MCP</dt>
-          <dd>
-            {data?.planform
-              ? `${TAMKANG[data.planform.state] || data.planform.state} · ${data.planform.detail}`
-              : "尚未設定"}
-          </dd>
-          <dt>場圖 Atlas</dt>
-          <dd>
-            {data?.atlas?.configured
-              ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
-              : "尚未設定"}
-          </dd>
-          <dt>Lumen 創作台</dt>
-          <dd>
-            {data?.lumen
-              ? `${TAMKANG[data.lumen.state] || data.lumen.state} · ${data.lumen.detail}`
-              : "尚未設定"}
-          </dd>
-          <dt>FrameLab MCP</dt>
-          <dd>
-            {data?.framelab
-              ? `${TAMKANG[data.framelab.state] || data.framelab.state} · ${data.framelab.detail}`
-              : "尚未設定"}
-          </dd>
-          <dt>對稿 MCP</dt>
-          <dd>
-            {data?.duigao
-              ? `${TAMKANG[data.duigao.state] || data.duigao.state} · ${data.duigao.detail}`
-              : "尚未設定"}
-          </dd>
-        </dl>
-      </details>
-      <IntegrationGrid
-        selected={selected}
-        onSelect={setSelected}
-        items={[
-          ...(canva ? [{ id: "canva", name: "Canva", state: canvaState }] : []),
-          {
-            id: "hermes",
-            name: "Hermes",
-            state: data?.hermes.configured ? "configured" : "unconfigured",
-          },
-          {
-            id: "workspace",
-            name: "Workspace",
-            state: data?.mcpBridge.configured ? "configured" : "unconfigured",
-          },
-          {
-            id: "galley",
-            name: "GALLEY",
-            state: data?.galley?.state || "unconfigured",
-          },
-          {
-            id: "atlas",
-            name: "Atlas",
-            state: data?.atlas?.configured ? "configured" : "unconfigured",
-          },
-          {
-            id: "framelab",
-            name: "FrameLab",
-            state: data?.framelab?.state || "unconfigured",
-          },
-          {
-            id: "lumen",
-            name: "Lumen",
-            state: data?.lumen?.state || "unconfigured",
-          },
-          {
-            id: "xunhe",
-            name: "訊核",
-            state: data?.xunhe?.state || "unconfigured",
-          },
-          {
-            id: "planform",
-            name: "Planform",
-            state: data?.planform?.state || "unconfigured",
-          },
-          {
-            id: "duigao",
-            name: "對稿",
-            state: data?.duigao?.state || "unconfigured",
-          },
-          {
-            id: "tamkang",
-            name: "淡江",
-            state: data?.tamkang.state || "unconfigured",
-          },
-          {
-            id: "zeabur",
-            name: "Zeabur",
-            state: data?.zeabur?.token.configured
-              ? "configured"
-              : "unconfigured",
-          },
-        ]}
-      />
       {selected === "canva" && canva}
       <div
         className="connection-editor"
@@ -1322,6 +1191,137 @@ export default function ConnectionSettings({
           </div>
         </form>
       </div>
+      <IntegrationGrid
+        selected={selected}
+        onSelect={setSelected}
+        items={[
+          ...(canva ? [{ id: "canva", name: "Canva", state: canvaState }] : []),
+          {
+            id: "hermes",
+            name: "Hermes",
+            state: data?.hermes.configured ? "configured" : "unconfigured",
+          },
+          {
+            id: "workspace",
+            name: "Workspace",
+            state: data?.mcpBridge.configured ? "configured" : "unconfigured",
+          },
+          {
+            id: "galley",
+            name: "GALLEY",
+            state: data?.galley?.state || "unconfigured",
+          },
+          {
+            id: "atlas",
+            name: "Atlas",
+            state: data?.atlas?.configured ? "configured" : "unconfigured",
+          },
+          {
+            id: "framelab",
+            name: "FrameLab",
+            state: data?.framelab?.state || "unconfigured",
+          },
+          {
+            id: "lumen",
+            name: "Lumen",
+            state: data?.lumen?.state || "unconfigured",
+          },
+          {
+            id: "xunhe",
+            name: "訊核",
+            state: data?.xunhe?.state || "unconfigured",
+          },
+          {
+            id: "planform",
+            name: "Planform",
+            state: data?.planform?.state || "unconfigured",
+          },
+          {
+            id: "duigao",
+            name: "對稿",
+            state: data?.duigao?.state || "unconfigured",
+          },
+          {
+            id: "tamkang",
+            name: "淡江",
+            state: data?.tamkang.state || "unconfigured",
+          },
+          {
+            id: "zeabur",
+            name: "Zeabur",
+            state: data?.zeabur?.token.configured
+              ? "configured"
+              : "unconfigured",
+          },
+        ]}
+      />
+      <details className="connection-storage">
+        <summary>儲存與驗證詳情</summary>
+        <p className="muted">
+          金鑰只送到後端加密保存，不會寫進前端程式。讀取時只顯示是否已設定與末四碼。
+          環境變數仍可作為後備；工作區儲存優先。
+        </p>
+        <dl className="facts">
+          <dt>秘密儲存</dt>
+          <dd>
+            {data ? SOURCE[data.vault.source] || data.vault.source : "讀取中"}
+          </dd>
+          <dt>Hermes</dt>
+          <dd>
+            {data?.hermes.configured
+              ? `已設定（網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}）`
+              : "尚未設定"}
+          </dd>
+          <dt>淡江 MCP</dt>
+          <dd>
+            {data
+              ? `${TAMKANG[data.tamkang.state] || data.tamkang.state} · ${data.tamkang.detail}`
+              : "讀取中"}
+          </dd>
+          <dt>GALLEY MCP</dt>
+          <dd>
+            {data
+              ? `${TAMKANG[data.galley?.state || ""] || data.galley?.state || "未設定"} · ${data.galley?.detail || "尚未回報"}`
+              : "讀取中"}
+          </dd>
+          <dt>訊核 MCP</dt>
+          <dd>
+            {data?.xunhe
+              ? `${TAMKANG[data.xunhe.state] || data.xunhe.state} · ${data.xunhe.detail}`
+              : "尚未設定"}
+          </dd>
+          <dt>Planform MCP</dt>
+          <dd>
+            {data?.planform
+              ? `${TAMKANG[data.planform.state] || data.planform.state} · ${data.planform.detail}`
+              : "尚未設定"}
+          </dd>
+          <dt>場圖 Atlas</dt>
+          <dd>
+            {data?.atlas?.configured
+              ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
+              : "尚未設定"}
+          </dd>
+          <dt>Lumen 創作台</dt>
+          <dd>
+            {data?.lumen
+              ? `${TAMKANG[data.lumen.state] || data.lumen.state} · ${data.lumen.detail}`
+              : "尚未設定"}
+          </dd>
+          <dt>FrameLab MCP</dt>
+          <dd>
+            {data?.framelab
+              ? `${TAMKANG[data.framelab.state] || data.framelab.state} · ${data.framelab.detail}`
+              : "尚未設定"}
+          </dd>
+          <dt>對稿 MCP</dt>
+          <dd>
+            {data?.duigao
+              ? `${TAMKANG[data.duigao.state] || data.duigao.state} · ${data.duigao.detail}`
+              : "尚未設定"}
+          </dd>
+        </dl>
+      </details>
     </div>
   );
 }

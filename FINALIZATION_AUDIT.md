@@ -61,7 +61,7 @@
 | 匿名 Health | live 契約 | required 且未登入時 `/api/health` 不含 models／skills／toolsets。 |
 | 龜龜狀態 | live UI | Idle／Thinking／Planning／Searching／Researching／Creating／Tool／Waiting／Success／Error／Offline 各有姿勢與光。 |
 | 快速開始 | live UI | 研究／創作／分析／客群／靈感／設計六個都在手機首頁（3×2），不放長句。靈感提示只用可取得的公開來源。 |
-| 連線格 | live UI | 名稱 + 狀態點；完整說明在 aria-label。 |
+| 連線格 | live UI | 名稱 + 狀態點。前往連線時憑證欄在格上方。進階摺疊為「進階 · 工具、技能與驗證證據」。 |
 
 ## 仍為 Partial（禁止打綠勾）
 

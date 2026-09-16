@@ -29,6 +29,11 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
     "utf8",
   );
   assert.match(connections, /id="connection-hermes"/);
+  assert.ok(
+    connections.indexOf("className=\"connection-editor\"") <
+      connections.indexOf("<IntegrationGrid"),
+    "Hermes fields must appear before the connection grid",
+  );
   assert.match(connections, /scrollIntoView/);
   assert.ok(
     consoleUi.indexOf("health.credential !== \"valid\"") <

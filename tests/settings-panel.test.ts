@@ -20,4 +20,6 @@ test("settings shell is extracted and still hosts Help plus five tabs", async ()
   assert.match(panel, /conversations\?id=" \+ conversationId/);
   assert.match(panel, /knowledge\/KnowledgeArchive/);
   assert.match(panel, /進階 · Drive 知識/);
+  assert.match(panel, /進階 · 工具、技能與驗證證據/);
+  assert.doesNotMatch(panel, /Advanced ·/);
 });
