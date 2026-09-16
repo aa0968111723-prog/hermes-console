@@ -33,8 +33,7 @@ try {
   const body = await page.locator("body").innerText();
   for (const word of ["受邀電子信箱","寄送登入連結","歡迎回到 Hermes","正在驗證工作區存取"])
     assert.ok(!body.includes(word), "invitation UI visible: "+word);
-  await page.getByRole("button",{name:"開啟導覽"}).click();
-  await page.getByRole("dialog").filter({ has: page.getByRole("navigation") }).getByRole("button",{name:"專案",exact:true}).click();
+  await page.locator(".mobile-bottom-dock").getByRole("button",{name:"專案",exact:true}).click();
   await page.locator(".workbench-disclosure > summary").click();
   await page.getByRole("button",{name:"建立活動資料",exact:true}).click();
   await page.getByLabel("活動資料標題",{exact:true}).fill("驗證活動");

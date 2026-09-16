@@ -914,8 +914,10 @@ export default function HermesConsole() {
           offline={offline}
           health={health}
           account={account}
+          busy={busy}
           onToggleSidebar={() => setSidebar(!sidebar)}
           onOpenDrawer={() => setDrawer(true)}
+          onNewChat={fresh}
           onOpenTasks={() => navigate("tasks")}
           onOpenSettings={(tab) => {
             setConnectionFocus(null);

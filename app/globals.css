@@ -683,6 +683,8 @@ nav button[aria-current="page"] {
   display: flex;
   align-items: center;
   gap: 13px;
+  min-width: 0;
+  flex: 1;
 }
 .topbar-title span {
   color: var(--muted);
@@ -690,6 +692,9 @@ nav button[aria-current="page"] {
   font-weight: 400;
   border-left: 1px solid var(--line);
   padding-left: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .connection-pill {
   margin-left: auto;
@@ -2004,6 +2009,9 @@ summary .badge {
   align-items: center;
   min-height: 44px;
   width: fit-content;
+}
+.mobile-nav .visual-dock-nav {
+  display: none;
 }
 .mobile-nav {
   position: fixed;

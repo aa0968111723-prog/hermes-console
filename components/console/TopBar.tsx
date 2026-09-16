@@ -1,6 +1,6 @@
 "use client";
 
-import { ListTodo, Menu, PanelLeftClose, Settings } from "lucide-react";
+import { ListTodo, Menu, PanelLeftClose, Plus, Settings } from "lucide-react";
 import type { Health } from "@/lib/contracts";
 import { connectionLabels } from "@/lib/client/workspace-ui";
 
@@ -19,8 +19,10 @@ export default function TopBar({
   offline,
   health,
   account,
+  busy,
   onToggleSidebar,
   onOpenDrawer,
+  onNewChat,
   onOpenTasks,
   onOpenSettings,
 }: {
@@ -31,8 +33,10 @@ export default function TopBar({
   offline: boolean;
   health?: Health | null;
   account?: { user?: { name?: string; avatar?: string | null } | null } | null;
+  busy?: boolean;
   onToggleSidebar: () => void;
   onOpenDrawer: () => void;
+  onNewChat: () => void;
   onOpenTasks: () => void;
   onOpenSettings: (tab: "帳號" | "外觀" | "連線") => void;
 }) {
@@ -64,6 +68,15 @@ export default function TopBar({
         onClick={onOpenDrawer}
       >
         <Menu size={21} />
+      </button>
+      <button
+        className="icon-button mobile-toggle"
+        aria-label="開啟新對話"
+        title="開啟新對話"
+        onClick={onNewChat}
+        disabled={busy}
+      >
+        <Plus size={20} />
       </button>
       <div className="topbar-title">
         {title}

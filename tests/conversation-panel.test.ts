@@ -21,7 +21,14 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.doesNotMatch(consoleUi, /className="conversation-scroll"/);
   assert.match(topBar, /className="topbar"/);
   assert.match(topBar, /創作對話/);
+  assert.match(topBar, /aria-label="開啟新對話"/);
   assert.match(topBar, /aria-label="帳號設定"/);
+  assert.match(consoleUi, /onNewChat=\{fresh\}/);
+  const css = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(css, /\.mobile-nav \.visual-dock-nav \{\s*display: none;/);
   assert.match(conversation, /className="conversation-scroll"/);
   assert.match(conversation, /今天想做什麼？/);
   assert.match(conversation, /onPickDirection/);
@@ -30,10 +37,6 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.match(consoleUi, /onOpenMaterial=\{openMaterial\}/);
   assert.match(consoleUi, /directionFollowUp/);
   assert.match(consoleUi, /function pinConversation/);
-  const css = await readFile(
-    new URL("../app/globals.css", import.meta.url),
-    "utf8",
-  );
   assert.match(css, /\.jump-button \{[\s\S]*?position: relative/);
   assert.match(css, /\.jump-button \{[\s\S]*?min-height: 44px/);
   assert.doesNotMatch(css, /\.jump-button \{[\s\S]*?bottom: 100%/);

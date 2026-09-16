@@ -259,18 +259,24 @@ try {
       });
     }
   }
+  await expect(
+    page.locator(".topbar").getByRole("button", { name: "開啟新對話" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "開啟導覽" }).click();
-  const mobileNavigation = page
-    .getByRole("dialog")
-    .filter({ has: page.getByRole("navigation") });
+  const mobileNavigation = page.getByRole("dialog", { name: "工作區導覽" });
   await expect(mobileNavigation).toBeVisible();
+  await expect(
+    mobileNavigation.getByRole("button", { name: "開啟新對話" }),
+  ).toBeVisible();
+  await expect(
+    mobileNavigation.getByRole("navigation", { name: "主要導覽" }),
+  ).toBeHidden();
   await page.screenshot({
     path: join(output, "drawer-mobile.png"),
     fullPage: true,
   });
-  await mobileNavigation
-    .getByRole("button", { name: "Agent", exact: true })
-    .click();
+  await page.getByRole("button", { name: "關閉導覽" }).click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "狀態", exact: true }),
   ).toBeVisible();
@@ -306,20 +312,11 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "任務", exact: true })
-    .click();
+  await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await expect(
-    page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
-  ).toBeVisible();
-  await mobileNavigation
-    .getByRole("button", { name: "靈感", exact: true })
-    .click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "靈感", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
@@ -380,10 +377,7 @@ try {
   ).toContainText("測試來源暫時不可用");
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
   await page.locator(".reference-disclosure > summary").click();
@@ -398,10 +392,7 @@ try {
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "專案", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
@@ -502,10 +493,7 @@ try {
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "對話", exact: true })
-    .click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "對話", exact: true }).click();
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);

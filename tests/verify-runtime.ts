@@ -180,8 +180,7 @@ try {
       });
     }
   }
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "任務", exact: true }).click();
+  await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
