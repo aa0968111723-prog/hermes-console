@@ -6,7 +6,7 @@ import { verifyMobileEngines } from "./mobile-engines";
 import { signInEmail } from "./browser-login";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -75,6 +75,23 @@ try {
   `,
   });
   const page = await context.newPage();
+  const loadable = JSON.parse(
+    await readFile(resolve(".next/react-loadable-manifest.json"), "utf8"),
+  ) as Record<string, { files?: string[] }>;
+  const workspaceFiles = (
+    loadable["components/auth/AuthGate.tsx -> @/components/HermesConsole"]?.files || []
+  ).map((file) => file.split("/").pop() || file);
+  assert.ok(
+    workspaceFiles.length > 0,
+    "production build must emit an AuthGate → HermesConsole chunk",
+  );
+  const fetchedWorkspace = new Set<string>();
+  page.on("request", (request) => {
+    const url = request.url();
+    for (const file of workspaceFiles) {
+      if (file && url.includes(file)) fetchedWorkspace.add(file);
+    }
+  });
   const accessibility: { page: string; violations: unknown[] }[] = [];
   async function audit(name: string) {
     const result = await new AxeBuilder({ page })
@@ -129,10 +146,22 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toHaveCount(0);
+  assert.equal(
+    fetchedWorkspace.size,
+    0,
+    "login must not fetch HermesConsole: " + [...fetchedWorkspace].join(","),
+  );
   await signInEmail(page);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
+  assert.ok(
+    fetchedWorkspace.size > 0,
+    "signed-in session must load the HermesConsole chunk",
+  );
   await assertNoInvitation();
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
   assert.equal(
