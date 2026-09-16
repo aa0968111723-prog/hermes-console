@@ -549,6 +549,9 @@ export async function verifyVisualStates(
   const continueComposer = page.getByRole("textbox", { name: "訊息", exact: true });
   await expect(continueComposer).toHaveValue("請接續修改這個作品。");
   await expect(continueComposer).not.toHaveValue(/ui-fixture-artifact-B|workspace_/);
+  await page.screenshot({
+    path: join(output, "continue-artifact-composer.png"),
+  });
   task.state = "failed";
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();

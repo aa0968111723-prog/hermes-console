@@ -340,6 +340,11 @@
   border-radius: 8px;
   margin-bottom: 12px;
 }
+.canva-result h3,
+.copy-result h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 * {
   box-sizing: border-box;
 }

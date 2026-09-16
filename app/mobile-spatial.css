@@ -626,8 +626,11 @@
   .artifact-preview-trigger img {
     max-height: 32dvh;
   }
-  .artifact-stage .canva-result h3 {
+  .artifact-stage .canva-result h3,
+  .artifact-stage .copy-result h3 {
     font-size: 17px;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .artifact-rail {
     gap: 12px;

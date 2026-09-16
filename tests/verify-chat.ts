@@ -234,7 +234,7 @@ try {
     .click();
   await expect(textarea).toHaveValue("隔離契約：長任務穿越背景監測週期");
   await expect(
-    page.getByRole("button", { name: "預覽附件：branch-reference.txt" }),
+    page.getByRole("button", { name: "預覽參考：branch-reference.txt" }),
   ).toBeVisible();
   const branched = await (
     await context.request.get(base + "/api/workspace")
