@@ -17,4 +17,6 @@ test("composer dock is extracted from HermesConsole", async () => {
   assert.match(composer, /placeholder="想做什麼？"/);
   assert.match(composer, /ComposerMenu/);
   assert.match(composer, /composer-uncertain-hint/);
+  assert.match(composer, /!ready/);
+  assert.match(consoleUi, /ready=\{\!\!health\}/);
 });

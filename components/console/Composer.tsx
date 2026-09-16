@@ -28,6 +28,7 @@ export default function Composer({
   onRetryBranch,
   busy,
   blocked,
+  ready,
   pending,
   turtle,
   text,
@@ -57,6 +58,7 @@ export default function Composer({
   onRetryBranch: (task: Task) => void;
   busy: boolean;
   blocked: boolean;
+  ready: boolean;
   pending?: Task;
   turtle: {
     shown: boolean;
@@ -177,7 +179,7 @@ export default function Composer({
           className="composer"
           onSubmit={(e: FormEvent) => {
             e.preventDefault();
-            onSend();
+            if (ready) onSend();
           }}
         >
           <ContextTray
@@ -212,7 +214,8 @@ export default function Composer({
                 !e.shiftKey &&
                 !e.nativeEvent.isComposing &&
                 !composingRef.current &&
-                e.keyCode !== 229
+                e.keyCode !== 229 &&
+                ready
               ) {
                 e.preventDefault();
                 onSend();
@@ -265,6 +268,7 @@ export default function Composer({
                 disabled={
                   busy ||
                   blocked ||
+                  !ready ||
                   !text.trim() ||
                   uploads.some((u) => !u.material)
                 }

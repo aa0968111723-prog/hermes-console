@@ -18,6 +18,7 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
     new URL("../lib/server/health-public.ts", import.meta.url),
     "utf8",
   );
+  assert.match(consoleUi, /ready=\{\!\!health\}/);
   assert.match(consoleUi, /!health \|\| health\.credential !== "valid"/);
   assert.match(consoleUi, /HERMES_UNCONFIGURED_MESSAGE/);
   assert.ok(
