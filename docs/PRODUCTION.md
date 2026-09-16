@@ -53,6 +53,8 @@ Google uses Authorization Code + PKCE. Secrets stay on the server. Callback: `{C
 
 Until the school issues a real client id, issuer/metadata, and protocol (OIDC / OAuth / SAML / CAS), the UI must show **淡江 SSO 尚未完成設定**. Do not collect campus passwords. Do not crawl login pages. Do not mark SSO available.
 
+Tamkang MCP is a separate connection. Token paste is the primary path. Optional MCP credential exchange is collapsed under 設定 → 連線 → 淡江 → 「MCP 權杖交換（不是淡江 SSO）」 and is not school login.
+
 ## MCP
 
 Configure HTTPS endpoints only. GitHub URLs are rejected. Private networks and metadata IPs are rejected unless an explicit allowlist/loopback test flag is on.

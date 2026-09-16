@@ -18,7 +18,7 @@ Anything previously pasted into chat, issues, README, or logs is **compromised**
 ## Authentication
 
 - Google: OAuth 2.0 authorization code + PKCE. State is a single-use hashed token.
-- Tamkang: `TamkangAuthProvider` (OIDC / OAuth / SAML / CAS). Unconfigured returns 503 and the Chinese notice. No campus password collection.
+- Tamkang: `TamkangAuthProvider` (OIDC / OAuth / SAML / CAS). Unconfigured returns 503 and the Chinese notice. No campus password collection for SSO. Owner-only Tamkang MCP token exchange is collapsed under 連線 → 淡江 and is not SSO.
 - Email: Argon2id (`m=19456,t=2,p=1`). Magic link, verification, and password reset tokens are single-use and expire in 15 minutes.
 - Identities do **not** auto-merge because emails match. Linking is explicit.
 

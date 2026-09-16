@@ -28,7 +28,8 @@
 | 學生接續同一作品 | 可用（契約） | Composer 只放人話。copyId／workflowId／activityId 只走 `task.focus`。Canva 接續使用專案最新 workflow。 |
 | 回到最新訊息 | 可用（契約） | 右側 44px 圓鈕，不再蓋住作品標題中央。 |
 | 對話內長標題 | 可用（契約） | `.canva-result h3` wrap，並在手機預留右側 52px 給 jump 圓鈕。 |
-| 帳號工作階段 | 可用（契約） | 列出目前／其他裝置。結束其他登入需確認。目前這次只能登出。 |
+| 帳號工作階段 | 可用（契約） | 列出目前／其他裝置。結束其他登入需確認。目前這次只能登出。`test:ui` 帳號頁斷言「目前這台」、Google／淡江尚未完成設定、登出，且不洩漏 session hash。 |
+| 連線格 | 可用（契約） | 名稱 + 狀態點。狀態文字只在 aria-label。點卡片才開設定。工具名與 MCP 密碼交換收進「進階說明」。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 
 ## 本輪驗證（2026-09-16）

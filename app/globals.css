@@ -2654,17 +2654,18 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .workbench-disclosure, .reference-disclosure, .agent-profiles { margin: 16px 0; border-top: 1px solid var(--color-border); }
 .workbench-disclosure > summary, .reference-disclosure > summary, .agent-profiles > summary { font-weight: 600; color: var(--color-primary); }
 .integration-picker { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; margin: 18px 0; }
-.integration-picker button { display: flex; flex-direction: column; gap: 8px; padding: 16px 8px; min-width: 0; background: var(--surface-light); border: 1px solid var(--color-border); border-radius: var(--radius-card); box-shadow: var(--depth-1); }
+.integration-picker button { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 8px; min-width: 0; min-height: 88px; background: var(--surface-light); border: 1px solid var(--color-border); border-radius: var(--radius-card); box-shadow: var(--depth-1); }
 .integration-picker button[aria-pressed="true"] { border-color: var(--color-primary); box-shadow: var(--focus-ring); }
 .integration-picker strong { max-width: 100%; overflow-wrap: anywhere; font-size: .85rem; }
-.connection-state { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; color: var(--color-muted); }
-.connection-state i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral); }
-.connection-state[data-state="verified"] i, .connection-state[data-state="available"] i { background: var(--color-success); }
-.connection-state[data-state="partial"] i { background: var(--color-warning); }
-.connection-state[data-state="failed"] i { background: var(--color-error); }
+.connection-state { display: inline-flex; align-items: center; justify-content: center; gap: 0; }
+.connection-state i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 2px var(--color-neutral); }
+.connection-state[data-state="verified"] i, .connection-state[data-state="available"] i { background: var(--color-success); box-shadow: none; }
+.connection-state[data-state="partial"] i, .connection-state[data-state="awaiting_authorization"] i, .connection-state[data-state="configured"] i, .connection-state[data-state="connected"] i { background: var(--color-warning); box-shadow: none; }
+.connection-state[data-state="failed"] i { background: var(--color-error); box-shadow: none; }
 .connection-editor section { min-width: 0; }
 .connection-editor section h3 { font-size: 1rem; }
-.connection-storage > summary { font-size: var(--type-caption); color: var(--color-muted); }
+.connection-storage > summary, .connection-advanced > summary { min-height: 44px; display: flex; align-items: center; font-size: var(--type-caption); color: var(--color-muted); cursor: pointer; }
+.connection-advanced { margin: 8px 0 14px; }
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
 .visual-concept-deck { display: grid; gap: 12px; }
