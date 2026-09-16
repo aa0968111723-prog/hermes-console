@@ -120,6 +120,7 @@ try {
   await signInConsole(page);
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   const inspector = page.getByRole("region", { name: "Hermes Runtime 狀態" });
+  await inspector.getByText("Advanced · Runtime 詳情").click();
   await expect(
     inspector.getByText("fixture_tool_000", { exact: true }),
   ).toBeVisible();
