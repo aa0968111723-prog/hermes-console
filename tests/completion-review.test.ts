@@ -68,4 +68,61 @@ test("completion notice is user-facing and hides tool internals", () => {
     completionNotice(unread),
     "尚未讀取上傳素材，沒有把檔名當成已看過的圖。",
   );
+  const design = task([]);
+  design.goal = {
+    ...unread.goal!,
+    requiresImageRead: false,
+    requiresDesign: true,
+    requiresResearch: false,
+    requiresLumen: false,
+  };
+  assert.equal(
+    completionNotice(design),
+    "還沒有可預覽的作品，沒有把流程跑完當成設計完成。",
+  );
+  const researched = task([
+    {
+      id: "r",
+      taskId: "t",
+      kind: "tool",
+      toolName: "galley_research",
+      status: "completed",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      summary: "x",
+      result: { findings: ["公開來源"] },
+      sources: ["https://example.com"],
+      error: null,
+      usage: null,
+    },
+  ]);
+  researched.goal = {
+    ...unread.goal!,
+    requiresImageRead: false,
+    requiresDesign: false,
+    requiresResearch: true,
+    requiresLumen: false,
+  };
+  assert.equal(completionNotice(researched), null);
+  const emptyResearch = task([
+    {
+      id: "r",
+      taskId: "t",
+      kind: "tool",
+      toolName: "galley_research",
+      status: "completed",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      summary: "x",
+      result: {},
+      sources: [],
+      error: null,
+      usage: null,
+    },
+  ]);
+  emptyResearch.goal = researched.goal;
+  assert.equal(
+    completionNotice(emptyResearch),
+    "沒有外部資料，沒有把記憶或猜測當成研究結果。",
+  );
 });
