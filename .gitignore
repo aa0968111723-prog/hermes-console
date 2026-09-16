@@ -7,6 +7,7 @@ out
 .DS_Store
 *.log
 .data/
+backups/
 .playwright-cli/
 output/
 tmp-ig/
