@@ -22,7 +22,7 @@ export async function verifyMobileSpatial(
     "data-spatial",
     "reduced",
   );
-  assert.ok((await page.locator(".compact-orbit .orbit-node").count()) <= 4);
+  assert.equal(await page.locator(".welcome .compact-orbit").count(), 0);
   await page.screenshot({ path: join(output, "spatial-home-390.png") });
   await page.getByRole("button", { name: "加入內容", exact: true }).click();
   const radial = page.getByRole("dialog", { name: "加入內容選項", exact: true });

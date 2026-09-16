@@ -117,6 +117,12 @@ test("uploading the same PNG twice marks the second as duplicate and keeps both 
   assert.equal(first.duplicateOf, null);
   assert.ok(first.contentSha256);
   assert.equal(first.people, undefined);
+  await access(filePath("workspace", first.id) + ".thumb.webp", constants.F_OK);
+  const thumb = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + first.id + "&thumb=1"),
+  );
+  assert.equal(thumb.status, 200);
+  assert.equal(thumb.headers.get("content-type"), "image/webp");
   assert.equal(second.contentSha256, first.contentSha256);
   assert.equal(second.dedupeStatus, "duplicate");
   assert.equal(second.duplicateOf, first.id);
@@ -251,4 +257,38 @@ test("inspiration and Drive fact ingest write source types without member names"
   assert.equal(driveMaterials[0].source?.provider, "google_drive");
   assert.equal(driveMaterials[0].source?.locator, "abcDriveFactFile01");
   assert.equal(driveMaterials[0].people, undefined);
+});
+
+test("image covers use a webp thumbnail; PDF has no fake page cover", async () => {
+  const png = await sharp({
+    create: { width: 640, height: 480, channels: 3, background: "#88aa77" },
+  })
+    .png()
+    .toBuffer();
+  const image = await saveUpload(
+    "workspace",
+    "personal",
+    "cover.png",
+    "image/png",
+    png,
+  );
+  const original = await readFile(filePath("workspace", image.id));
+  const thumb = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + image.id + "&thumb=1"),
+  );
+  assert.equal(thumb.status, 200);
+  assert.equal(thumb.headers.get("content-type"), "image/webp");
+  const thumbBytes = Buffer.from(await thumb.arrayBuffer());
+  assert.ok(thumbBytes.length < original.length);
+  const pdf = await saveUpload(
+    "workspace",
+    "personal",
+    "brief.pdf",
+    "application/pdf",
+    Buffer.from("%PDF-1.4\n% cover-test"),
+  );
+  const pdfThumb = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + pdf.id + "&thumb=1"),
+  );
+  assert.equal(pdfThumb.status, 404);
 });

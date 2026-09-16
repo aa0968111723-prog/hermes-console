@@ -21,7 +21,7 @@ export default function AttachmentCover({
     return (
       <img
         className="attachment-cover is-image"
-        src={"/api/materials?id=" + material.id}
+        src={"/api/materials?id=" + material.id + "&thumb=1"}
         alt={alt || material.title}
       />
     );

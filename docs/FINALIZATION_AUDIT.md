@@ -65,7 +65,6 @@
 
 ## Dead code / Duplicate / Legacy
 
-- `components/chat/Welcome.tsx` 未使用。
 - `InvitationGate.tsx`／`MemberAccess.tsx` 休眠。
 - `login()`／`CONSOLE_PASSWORD_HASH` 舊閘道路徑仍在測試中，不是帳號登入。
 - `globals.css` 仍有多個 `@media (max-width: 760px)` 疊加。
@@ -107,3 +106,4 @@
 22. 手機頂欄可開新對話。「幫我做一張淡江新生茶會宣傳」走同一套視覺卡，不假裝 Canva。Agent 頁只顯示 Hermes／記憶／工具／MCP 點；工具清單在進階。
 23. 未設定 Hermes／MCP 顯示「未設定」，不再把從未連線標成記憶過期或 MCP 未知。連線圖收到進階。
 24. 研究／行政模式不再告訴模型這是免登入共用工作區。靈感頁 Drive 索引、招生漏斗與現場觀察收到進階。連線健康驗證也在進階。帳號工作階段不顯示 session id。
+25. 首頁只留龜龜與「今天想做什麼？」；MCP 軌道不在空對話。圖片封面走 WebP 縮圖，預覽仍用原檔。PDF 沒有假裝頁面封面。

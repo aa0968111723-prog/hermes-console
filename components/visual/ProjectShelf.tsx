@@ -34,11 +34,11 @@ export default function ProjectShelf({
           >
             <span className="project-thumbnail">
               {cover ? (
-                <img
-                  src={"/api/materials?id=" + cover.id}
-                  alt=""
-                  loading="lazy"
-                />
+                        <img
+                          src={"/api/materials?id=" + cover.id + "&thumb=1"}
+                          alt=""
+                          loading="lazy"
+                        />
               ) : (
                 <Folder size={40} strokeWidth={1} />
               )}

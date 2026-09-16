@@ -26,6 +26,45 @@ export function filePath(owner: string, id: string) {
   return join(dataDir(), "uploads", owner, id);
 }
 
+export function thumbPath(owner: string, id: string) {
+  return filePath(owner, id) + ".thumb.webp";
+}
+
+export async function materialThumb(owner: string, id: string) {
+  const asset = material(owner, id);
+  if (asset.kind !== "image")
+    throw new ApiError(404, "not_found", "沒有縮圖。");
+  const dest = thumbPath(owner, id);
+  try {
+    return await readFile(dest);
+  } catch {
+    const source = await readFile(filePath(owner, id));
+    const thumb = await sharp(source, {
+      limitInputPixels: 25_000_000,
+      animated: false,
+    })
+      .rotate()
+      .resize({
+        width: 480,
+        height: 480,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 72 })
+      .toBuffer();
+    try {
+      await writeFile(dest, thumb, { flag: "wx", mode: 0o600 });
+    } catch {
+      try {
+        return await readFile(dest);
+      } catch {
+        return thumb;
+      }
+    }
+    return thumb;
+  }
+}
+
 export function includeDuplicatesQuery(url: URL) {
   const value = url.searchParams.get("includeDuplicates");
   return value === "1" || value === "true";
@@ -340,6 +379,21 @@ export async function saveUpload(
     mode: 0o700,
   });
   await writeFile(filePath(owner, id), content, { flag: "wx", mode: 0o600 });
+  if (kind === "image") {
+    const thumb = await sharp(content, {
+      limitInputPixels: 25_000_000,
+      animated: false,
+    })
+      .resize({
+        width: 480,
+        height: 480,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 72 })
+      .toBuffer();
+    await writeFile(thumbPath(owner, id), thumb, { flag: "wx", mode: 0o600 });
+  }
   const fingerprint = fingerprintBytes(content);
   return put(
     "material",
@@ -356,7 +410,7 @@ export async function saveUpload(
       createdAt: new Date().toISOString(),
       rights: "user_provided",
       license: "user_provided",
-      notes: "使用者上傳；公開發佈前仍需确认權利。",
+      notes: "使用者上傳；公開發佈前仍需確認權利。",
       source: { type: "upload", provider: "hermes_upload" },
       format: outputMime,
     }),

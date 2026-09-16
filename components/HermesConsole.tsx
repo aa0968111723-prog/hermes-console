@@ -46,7 +46,6 @@ import TopBar from "./visual/TopBar";
 import type { ConsoleNav } from "./visual/TopBar";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
-import AgentOrbit from "./visual/AgentOrbit";
 import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
@@ -1156,15 +1155,6 @@ export default function HermesConsole() {
                           onClick={() => setPanel("spatial")}
                         />
                       )}
-                      {prefs.turtle && (
-                        <AgentOrbit
-                          compact
-                          task={currentTask}
-                          integrations={integrations}
-                          stale={offline}
-                          animation={prefs.animation}
-                        />
-                      )}
                     </div>
                     <h1 id="welcome-title">今天想做什麼？</h1>
                     <QuickActions
@@ -1718,7 +1708,11 @@ export default function HermesConsole() {
                       onClick={() => openPreview(m)}
                     >
                       {m.kind === "image" ? (
-                        <img src={"/api/materials?id=" + m.id} alt={m.title} />
+                        <img
+                          src={"/api/materials?id=" + m.id + "&thumb=1"}
+                          alt={m.title}
+                          loading="lazy"
+                        />
                       ) : (
                         <AttachmentCover material={m} />
                       )}

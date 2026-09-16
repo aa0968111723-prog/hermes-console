@@ -13,6 +13,7 @@ import {
   includeDuplicatesQuery,
   listMaterials,
   material,
+  materialThumb,
   saveReference,
   saveUpload,
 } from "@/lib/server/materials";
@@ -35,6 +36,16 @@ export const GET = route(async (req) => {
   const id = z.string().uuid().parse(rawId);
   const asset = material(owner, id);
   if (asset.kind === "reference") return respond({ material: asset });
+  if (url.searchParams.get("thumb") === "1") {
+    const thumb = await materialThumb(owner, id);
+    return new Response(new Uint8Array(thumb), {
+      headers: {
+        "Content-Type": "image/webp",
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
   return new Response(new Uint8Array(await readFile(filePath(owner, id))), {
     headers: {
       "Content-Type": asset.mime || "application/octet-stream",
