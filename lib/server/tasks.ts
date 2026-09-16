@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Conversation, EMPTY_USAGE, Task, TaskEvent } from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
-import { studentHermesError } from "./errors";
+import { isEmptyToolResult, studentHermesError } from "./errors";
 import { studentConnectionMessage } from "./hermes/health-view";
 import {
   deadline,
@@ -114,12 +114,18 @@ export function taskFor(owner: string, id: string) {
   if (!value) throw new ApiError(404, "not_found", "找不到任務。");
   return value;
 }
+function toolEventHasContent(result: unknown, summary = "") {
+  if (result != null) return !isEmptyToolResult(result);
+  const preview = summary.trim();
+  return preview.length > 0 && preview !== "Hermes 回報工具活動。";
+}
+
 export function hasCompletedToolEvents(task: Task) {
   return task.events.some((event) => {
     const isTool = event.kind === "tool" || Boolean(event.toolName);
     const done =
       event.status === "completed" || event.status === "tool.completed";
-    return isTool && done;
+    return isTool && done && toolEventHasContent(event.result, event.summary);
   });
 }
 function event(
@@ -673,20 +679,25 @@ function toolEvent(task: Task, data: Record<string, unknown>) {
       : typeof data.event === "string"
         ? data.event
         : "running";
-  const state = rawState.replace(/^tool[._]/, "");
+  let state = rawState.replace(/^tool[._]/, "");
   const result =
     typeof data.result === "string"
       ? redact(data.result).slice(0, 20_000)
       : typeof data.output === "string"
         ? redact(data.output).slice(0, 20_000)
-        : null;
-  event(
-    task,
-    typeof data.preview === "string" ? data.preview : "Hermes 回報工具活動。",
-    state,
-    name,
-    result,
-  );
+        : data.result && typeof data.result === "object"
+          ? data.result
+          : data.output && typeof data.output === "object"
+            ? data.output
+            : null;
+  const preview =
+    typeof data.preview === "string" ? data.preview : "Hermes 回報工具活動。";
+  if (
+    (state === "completed" || state === "tool.completed") &&
+    !toolEventHasContent(result, preview)
+  )
+    state = "failed";
+  event(task, preview, state, name, result);
   const last = task.events[task.events.length - 1];
   last.sources = Array.from(
     new Set(
