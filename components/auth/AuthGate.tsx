@@ -1,15 +1,50 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import HermesConsole from "@/components/HermesConsole";
 import { AuthProvider } from "./AuthProvider";
 import LoginScreen from "./LoginScreen";
 import type { PublicSession } from "@/lib/contracts";
 
+function subscribeHash(onStoreChange: () => void) {
+  window.addEventListener("hashchange", onStoreChange);
+  return () => window.removeEventListener("hashchange", onStoreChange);
+}
+
+function resetTokenFromLocation() {
+  const reset = new URLSearchParams(window.location.hash.slice(1)).get("reset");
+  if (reset && /^[a-f0-9]{64}$/.test(reset)) return reset;
+  try {
+    const stored = sessionStorage.getItem("hermes_reset_token");
+    if (stored && /^[a-f0-9]{64}$/.test(stored)) return stored;
+  } catch {
+    /* storage may be denied */
+  }
+  return null;
+}
+
+function noResetToken() {
+  return null;
+}
+
+function clearResetLocation() {
+  try {
+    sessionStorage.removeItem("hermes_reset_token");
+  } catch {
+    /* storage may be denied */
+  }
+  if (window.location.hash)
+    window.history.replaceState(null, "", window.location.pathname);
+}
+
 export default function AuthGate() {
   const [session, setSession] = useState<PublicSession | null>(null);
   const [notice, setNotice] = useState("");
   const [failed, setFailed] = useState("");
-  const [resetToken, setResetToken] = useState<string | null>(null);
+  const resetToken = useSyncExternalStore(
+    subscribeHash,
+    resetTokenFromLocation,
+    noResetToken,
+  );
   async function load() {
     const response = await fetch("/api/auth/session", {
       cache: "no-store",
@@ -19,36 +54,35 @@ export default function AuthGate() {
     setSession(await response.json());
   }
   useEffect(() => {
-    function takeHash() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("auth") === "failed") {
-        setNotice("登入未完成，沒有假裝成功。");
-        window.history.replaceState(null, "", window.location.pathname);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("auth") === "failed") {
+      setNotice("登入未完成，沒有假裝成功。");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    const hash = new URLSearchParams(window.location.hash.slice(1));
+    const login = hash.get("login");
+    const verify = hash.get("verify");
+    const reset = hash.get("reset");
+    if (reset && /^[a-f0-9]{64}$/.test(reset)) {
+      try {
+        sessionStorage.setItem("hermes_reset_token", reset);
+      } catch {
+        /* storage may be denied */
       }
-      const hash = new URLSearchParams(window.location.hash.slice(1));
-      const login = hash.get("login");
-      const verify = hash.get("verify");
-      const reset = hash.get("reset");
-      if (login || verify || reset)
-        window.history.replaceState(null, "", window.location.pathname);
-      return { login, verify, reset };
+    } else if (reset) {
+      setNotice("重設連結無效或已使用。");
     }
-    function applyReset(reset: string | null) {
-      if (!reset) return;
-      if (/^[a-f0-9]{64}$/.test(reset)) setResetToken(reset);
-      else setNotice("重設連結無效或已使用。");
-    }
-    const boot = takeHash();
-    applyReset(boot.reset);
+    if (login || verify)
+      window.history.replaceState(null, "", window.location.pathname);
     void (async () => {
       try {
-        if (boot.login || boot.verify) {
+        if (login || verify) {
           const response = await fetch("/api/auth/email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              action: boot.verify ? "verify" : "redeem",
-              token: boot.login || boot.verify,
+              action: verify ? "verify" : "redeem",
+              token: login || verify,
             }),
           });
           if (!response.ok) {
@@ -57,7 +91,7 @@ export default function AuthGate() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 action: "redeem",
-                token: boot.login || boot.verify,
+                token: login || verify,
               }),
             });
             if (!invite.ok) setNotice("登入連結無效或已使用。");
@@ -68,11 +102,6 @@ export default function AuthGate() {
         setFailed("無法確認登入狀態。");
       }
     })();
-    function onHashChange() {
-      applyReset(takeHash().reset);
-    }
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
   if (failed)
     return (
@@ -93,10 +122,12 @@ export default function AuthGate() {
         notice={notice}
         resetToken={resetToken}
         onSignedIn={() => {
-          setResetToken(null);
+          clearResetLocation();
           void load();
         }}
-        onAbandonReset={() => setResetToken(null)}
+        onAbandonReset={() => {
+          clearResetLocation();
+        }}
       />
     );
   if (session.required && !session.user)
