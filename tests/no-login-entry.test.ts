@@ -57,9 +57,15 @@ function request(
 test("authentication entry contracts", async (t) => {
   await t.test("homepage uses AuthGate, not InvitationGate", async () => {
     const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+    const gate = await readFile(
+      new URL("../components/AuthGate.tsx", import.meta.url),
+      "utf8",
+    );
     assert.ok(page.includes("AuthGate"));
     assert.ok(page.includes("HermesConsole"));
     assert.ok(!page.includes("InvitationGate"));
+    assert.match(gate, /尚未設定寄件，無法寄送登入或重設連結/);
+    assert.match(gate, /完成驗證/);
   });
 
   await t.test("Google and Tamkang stay unconfigured without secrets", async () => {
