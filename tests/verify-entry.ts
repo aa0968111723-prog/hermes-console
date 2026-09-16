@@ -179,7 +179,7 @@ try {
   });
   await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
   await expect(page.getByText("不是 Hermes", { exact: true })).toBeVisible();
-  await expect(page.getByText("沒有已收藏來源")).toBeVisible();
+  await expect(page.getByText("沒有已收藏來源 · 未搜全站")).toBeVisible();
   await expect(page.getByText("連線頁")).toHaveCount(0);
   await expect(page.getByText("環境變數")).toHaveCount(0);
   await page.screenshot({ path: join(output, "spoken-goal-results.png") });
