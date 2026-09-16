@@ -42,7 +42,11 @@ export async function verifyMobileSpatial(
   // The primary mobile action sheet must honor the real appearance preference,
   // including on a short viewport where larger labels need flexible rows.
   await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("tab", { name: "外觀", exact: true }).click();
   await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
+  await expect(page.getByRole("combobox", { name: /文字大小/ })).toHaveValue(
+    "20",
+  );
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 360, height: 560 });
   await page.getByRole("button", { name: "加入內容", exact: true }).click();
