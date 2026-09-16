@@ -7,7 +7,7 @@ import { wrapUntrusted, containsInjectionAttempt } from "../untrusted";
 import { parseInspirationQuery } from "./query";
 import { canonicalUrl, dedupeInspiration } from "./dedupe";
 import { PROVIDERS, providerHealth } from "./providers";
-import { matchCaptionPatterns } from "./visual-language";
+import { matchCaptionPatterns, tkuVisualLanguage, type VisualPattern } from "./visual-language";
 
 export function analyzeReference(input: {
   caption?: string;
@@ -126,5 +126,53 @@ export function boardFor(projectId: string) {
       })),
     ),
     providers: providerHealth(),
+  };
+}
+
+function compactPattern(pattern: VisualPattern) {
+  return {
+    id: pattern.id,
+    kind: pattern.kind,
+    suitability: pattern.suitability,
+    title: pattern.title,
+    summary: pattern.summary,
+  };
+}
+
+export function inspirationBriefForAgent(input: {
+  prompt: string;
+  projectId: string;
+}) {
+  const found = searchInspiration(input);
+  const language = tkuVisualLanguage();
+  return {
+    query: found.query.primary,
+    fullSiteSearch: false,
+    instagramConnected: false,
+    notice:
+      "已保存參考與社團視覺模式快照。不是 Instagram／Pinterest 全站搜尋，也不是已連線官方 API。",
+    providers: found.providers.map((item) => ({
+      id: item.id,
+      state: item.state,
+      detail: item.detail,
+    })),
+    references: found.items.slice(0, 8).map((item) => ({
+      platform: item.platform,
+      sourceUrl: item.sourceUrl,
+      account: item.account,
+      captionExcerpt: (item.captionExcerpt || "").slice(0, 120),
+      analysis: item.analysis.slice(0, 160),
+      sourceType: item.sourceType,
+    })),
+    visualLanguage: {
+      account: language.account,
+      imageReadCount: language.imageReadCount,
+      biggestProblem: language.biggestProblem,
+      improvements: language.improvements,
+      keep: language.keep.slice(0, 6).map(compactPattern),
+      avoid: language.avoid.slice(0, 4).map(compactPattern),
+      visualDo: language.visualAgent.do,
+      visualDont: language.visualAgent.dont,
+    },
   };
 }

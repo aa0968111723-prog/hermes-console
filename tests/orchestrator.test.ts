@@ -42,6 +42,15 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     const plan = buildPlan(goal, routes, "balanced");
     assert.ok(plan.steps.some((step) => step.title.includes("查資料")));
     assert.ok(plan.steps.some((step) => step.title.includes("靈感")));
+    assert.equal(
+      routes.find((item) => item.id === "inspiration")?.tool,
+      "workspace_search_inspiration",
+    );
+    assert.equal(
+      plan.steps.find((step) => step.title.includes("靈感"))?.tool,
+      "workspace_search_inspiration",
+    );
+    assert.doesNotMatch(JSON.stringify(plan), /project_inspiration_then_web/);
     assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
     assert.ok(plan.steps.some((step) => step.title.includes("Canva")));
     assert.ok(plan.fallbacks.some((item) => /淡江 MCP 暫時不可用/.test(item.userVisible)));

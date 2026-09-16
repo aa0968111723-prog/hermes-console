@@ -44,6 +44,11 @@ export function completionNotice(task: Task) {
   )
     return "沒有外部資料，沒有把記憶或猜測當成研究結果。";
   if (
+    task.goal?.requiresInspiration &&
+    !completedTool(task, /inspiration|list_references/i)
+  )
+    return "沒有查回已保存靈感或視覺模式，沒有把空清單當成已搜尋 Instagram。";
+  if (
     task.goal?.requiresDesign &&
     !completedTool(
       task,

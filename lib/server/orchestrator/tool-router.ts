@@ -105,8 +105,9 @@ export function routeTools(
   if (goal.requiresInspiration) {
     routes.push({
       id: "inspiration",
-      tool: "project_inspiration_then_web",
-      reason: "先讀專案已收藏靈感，再請 Hermes 使用已授權搜尋；不假裝 IG 全站搜尋。",
+      tool: "workspace_search_inspiration",
+      reason:
+        "先用 workspace_search_inspiration 讀已收藏參考與視覺模式；不假裝 IG 全站搜尋。",
       fallback: "ask_user",
     });
   }

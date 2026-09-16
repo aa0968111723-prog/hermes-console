@@ -131,8 +131,15 @@ export function buildPlan(
     );
   }
   if (goal.requiresInspiration) {
+    const inspiration = routes.find((item) => item.id === "inspiration");
     steps.push(
-      step("找靈感", "先讀已收藏靈感，再搜尋已授權來源。", "project_inspiration_then_web", "ask_user"),
+      step(
+        "找靈感",
+        inspiration?.reason ||
+          "先讀已收藏靈感與視覺模式，不假裝 Instagram 全站搜尋。",
+        inspiration?.tool || "workspace_search_inspiration",
+        inspiration?.fallback || "ask_user",
+      ),
     );
   }
   if (goal.requiresAudienceEvaluation) {

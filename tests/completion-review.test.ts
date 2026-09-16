@@ -125,4 +125,35 @@ test("completion notice is user-facing and hides tool internals", () => {
     completionNotice(emptyResearch),
     "沒有外部資料，沒有把記憶或猜測當成研究結果。",
   );
+  const inspiration = task([]);
+  inspiration.goal = {
+    ...unread.goal!,
+    requiresImageRead: false,
+    requiresDesign: false,
+    requiresResearch: false,
+    requiresInspiration: true,
+    requiresLumen: false,
+  };
+  assert.equal(
+    completionNotice(inspiration),
+    "沒有查回已保存靈感或視覺模式，沒有把空清單當成已搜尋 Instagram。",
+  );
+  const inspirationDone = task([
+    {
+      id: "i",
+      taskId: "t",
+      kind: "tool",
+      toolName: "workspace_search_inspiration",
+      status: "completed",
+      startedAt: new Date().toISOString(),
+      endedAt: new Date().toISOString(),
+      summary: "x",
+      result: { fullSiteSearch: false, references: [] },
+      sources: [],
+      error: null,
+      usage: null,
+    },
+  ]);
+  inspirationDone.goal = inspiration.goal;
+  assert.equal(completionNotice(inspirationDone), null);
 });

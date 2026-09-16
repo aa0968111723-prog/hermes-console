@@ -1,6 +1,7 @@
 import type { BudgetMode, Conversation } from "../../contracts";
 import { listMemories } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
+import { visualLanguageContextLine } from "../inspiration/visual-language";
 import { listMaterials } from "../materials";
 import {
   artifactContextLine,
@@ -161,6 +162,22 @@ export function assembleContext(input: {
         ),
         confidence: 0.5,
         truth: "USER_PROVIDED",
+      }),
+    );
+  }
+  if (/靈感|海報|網宣|設計|Canva|茶會|禪學社/i.test(query)) {
+    const line = visualLanguageContextLine();
+    items.push(
+      item({
+        id: "visual-language",
+        source: "creative_direction",
+        title: "社團視覺模式",
+        content: line.slice(0, 500),
+        recency: 0.8,
+        importance: 0.7,
+        relevance: relevanceTo(line, query),
+        confidence: 0.6,
+        truth: "INFERENCE",
       }),
     );
   }

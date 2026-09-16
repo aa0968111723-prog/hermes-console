@@ -600,3 +600,13 @@ export function matchCaptionPatterns(caption: string) {
     pattern.cues.some((cue) => cue && text.includes(cue)),
   ).map((pattern) => pattern.title);
 }
+
+export function visualLanguageContextLine() {
+  const language = tkuVisualLanguage();
+  return [
+    language.biggestProblem,
+    "可沿用：" + language.keep.slice(0, 6).map((item) => item.title).join("、"),
+    "避免：" + language.avoid.slice(0, 4).map((item) => item.title).join("、"),
+    "社團視覺語言快照，不是 Instagram 全站搜尋。",
+  ].join(" ");
+}

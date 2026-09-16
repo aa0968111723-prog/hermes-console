@@ -222,6 +222,13 @@ const schemas = {
       ...context,
     })
     .strict(),
+  workspace_search_inspiration: z
+    .object({
+      query: z.string().trim().min(2).max(200),
+      projectId: id.optional(),
+      ...context,
+    })
+    .strict(),
   canva_search_designs: z
     .object({ query: z.string().max(150).default(""), ...context })
     .strict(),
@@ -314,6 +321,8 @@ const descriptions: Record<ToolName, string> = {
   workspace_delete_memory: "刪除一筆共用記憶。只刪指定識別，不得批次清空。",
   workspace_search_research:
     "檢索工作區已保存的 AI Agent／Runtime 研究筆記快照。命中不是即時文獻，也不是網宣靈感；沒有命中就回空，不得編造。一般招新／茶會任務不要呼叫。",
+  workspace_search_inspiration:
+    "查回已保存參考、來源健康狀態，以及禪學社視覺模式（keep／adapt／avoid）。不是 Instagram／Pinterest 全站搜尋；沒有參考就回空清單，不得編造貼文。",
   canva_search_designs:
     "使用已授權 Canva Connect API 查找設計；權限不足時回傳錯誤，不模擬結果。",
   canva_get_design: "讀取 Canva 設計中繼資料、預览與編輯連結。",
@@ -608,6 +617,14 @@ async function execute(
     case "workspace_search_research": {
       const { searchResearch } = await import("./research/notes");
       return searchResearch(schemas[name].parse(args).query);
+    }
+    case "workspace_search_inspiration": {
+      const input = schemas[name].parse(args);
+      const { inspirationBriefForAgent } = await import("./inspiration/engine");
+      return inspirationBriefForAgent({
+        prompt: input.query,
+        projectId: input.projectId || "personal",
+      });
     }
     case "canva_search_designs":
       return canvaRequest(
