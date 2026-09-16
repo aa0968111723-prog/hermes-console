@@ -466,3 +466,41 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
     /今天想做什麼？/,
   );
 });
+
+test("finalization audit tracks HEAD spoken POST-spec path and keeps ops docs", async () => {
+  const audit = await readFile(
+    new URL("../FINALIZATION_AUDIT.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(audit, /cursor\/workspace-load-keep-chat-cf7e/);
+  assert.match(audit, /readSelectedDirectionWorkflow/);
+  assert.match(audit, /applyDirectionBriefFromTask/);
+  assert.match(audit, /說完了，請按送出/);
+  assert.match(audit, /實體 Android Chrome/);
+  assert.match(audit, /#106／#107 保持關閉/);
+  assert.doesNotMatch(audit, /cursor\/hermes-production-finalization-cf7e/);
+  for (const name of [
+    "PRODUCTION.md",
+    "SECURITY.md",
+    "ARCHITECTURE.md",
+    "RELEASE_CHECKLIST.md",
+  ]) {
+    const doc = await readFile(
+      new URL("../docs/" + name, import.meta.url),
+      "utf8",
+    );
+    assert.ok(doc.length > 80, name + " missing");
+  }
+  const architecture = await readFile(
+    new URL("../docs/ARCHITECTURE.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(architecture, /select POST/);
+  assert.match(architecture, /不自動送出/);
+  const checklist = await readFile(
+    new URL("../docs/RELEASE_CHECKLIST.md", import.meta.url),
+    "utf8",
+  );
+  assert.match(checklist, /說完了，請按送出/);
+  assert.match(checklist, /GET \/api\/workflows/);
+});

@@ -1,20 +1,21 @@
 # Hermes Console 正式產品化盤點
 
-基準：`cursor/hermes-production-finalization-cf7e`（接續 `origin/main`）。這不是新 App，也不是第二套 Dashboard。狀態以程式與測試為準，不以文件宣稱為準。
+基準：`cursor/workspace-load-keep-chat-cf7e`（已含 `origin/main`；產品接續已合併的 #108）。這不是新 App，也不是第二套 Dashboard。狀態以程式與測試為準，不以文件宣稱為準。#106／#107 保持關閉。in-repo 口語主路徑以 `tests/verify-entry.ts` 為契約證據；live Google／淡江 IdP／Zeabur／實體 Android Chrome 仍未證明。
 
 ## 總覽
 
 | 區域 | 判斷 | 說明 |
 | --- | --- | --- |
-| AuthGate / User / Identity | 可選／dormant | 預設免登入。session 讀取失敗仍進入工作區。`CONSOLE_AUTH_REQUIRED=true` 才開 Google／Email／淡江閘。InvitationGate 不得擋 `/` |
-| 手機捲動 | 部分可用 | App shell 鎖定；主捲動在 `.conversation-scroll`／`.secondary-page`；dock `fixed`。契約測試有 nested scrollport，非正式真機 |
+| AuthGate / User / Identity | 可選／dormant | 預設免登入。session 讀取失敗仍進入工作區。`CONSOLE_AUTH_REQUIRED=true` 才開 Google／Email／淡江閘。InvitationGate 不得擋 `/`。`CONSOLE_GATEWAY_SECRET` 不是帳號登入 |
+| 口語主路徑 | 契約可用 | speak→送出→選方向→規格→社團 lookup→出圖（誠實未出圖）／改暖。規格來自 select POST 與 task events，不依賴 `GET /api/workflows`。非正式真機 Android Chrome |
+| 手機捲動 | 部分可用 | App shell 鎖定；主捲動在 `.conversation-scroll`／`.secondary-page`；dock `fixed`。口語送出不把焦點搶回 composer。契約測試有 nested scrollport，非正式真機 |
 | Runtime Inspector | 部分可用 | 一般檢視只顯示 Hermes／記憶／工具／MCP。開發者檢視才露出 schema 與工具清單 |
 | MCP Registry | 部分可用 | GET 不回 endpoint／憑證名／schema。未探測的已設定 MCP 是 `awaiting_authorization`，不是 partial。tools/list 成功才是 partial；缺 token 是 unconfigured |
-| Artifacts / 版本 | 部分可用 | `artifactId`／`revisionId`、還原、fork、並排預覽（不是像素 diff）。Canva poll 成功會寫入 |
+| Artifacts / 版本 | 部分可用 | `artifactId`／`revisionId`、還原、fork、並排預覽（不是像素 diff）。Canva poll 成功會寫入。選定方向規格草稿不是 Canva 已出圖 |
 | Memory 分層 | 部分可用 | `listMemories` 依 scope 精確過濾；`memoriesForProject` 才把工作區偏好併入專案脈絡並保留 scope 標籤 |
 | 設定頁 | 部分可用 | 帳號／外觀／連線／工作區／進階 |
-| CI | 部分可用 | lint／typecheck／unit／Playwright／build／secrets |
-| 部署 | Partial | 文件齊；本輪不執行公開 Zeabur 佈署 |
+| CI | 部分可用 | lint／typecheck／unit／Playwright／build／secrets。本分支相對 `main` 的 GitHub `verify` 以 PR 為準，文件不預先打綠勾 |
+| 部署 | Partial | `docs/PRODUCTION.md`／`SECURITY.md`／`ARCHITECTURE.md`／`RELEASE_CHECKLIST.md` 仍在倉庫。本輪不執行公開 Zeabur 佈署 |
 
 ## 完全可用（契約層）
 
@@ -37,6 +38,8 @@
 - Tamkang MCP 權杖 ≠ 淡江 SSO
 - 曾暴露金鑰一律視為 compromised
 - 本輪沒有 live Zeabur／校方 IdP／Google 實機登入證據
+- 口語路徑只有 Playwright `FakeSpeechRecognition` 與契約測試，不是實體 Android Chrome
+- 「出圖」在 Hermes／Canva 未連線時是規格草稿接續，畫面必須寫未出圖，不得假裝已渲染
 
 ## 本次已修
 
@@ -108,3 +111,28 @@
 66. 工作區接續／修規格／出圖不在對話裡掛「過程完成」，龜龜也不說「完成了」；規格卡已佔畫面
 67. 休眠 `/#reset=` 表單按「密碼登入」關閉後回到開著的對話（composer 可見），不要求空白「今天想做什麼？」
 68. 選定規格後口說「顏色改暖一點」「語氣軟一點」走工作區規則修訂（V2／V3、未出圖），不 503、不重開靈感、不假裝 Canva。沒有已選方向時仍是 `hermes_not_ready`
+69. 送出後 `GET /api/workspace` 失敗時保留開著的對話、方向卡與規格，不退回空白「今天想做什麼？」。學生提示為「工作區讀取失敗…連線未確認時仍可使用此工作區」，不回金鑰或內部錯誤。空送出仍停用；失敗橫幅下仍可輸入並啟用送出
+70. 工作區失敗橫幅測的是 `.notice-bar` 的「工作區讀取失敗」，不是 Next 的 route announcer
+71. Android Chrome 在學生說完目標後常以 `no-speech` 結束辨識。已聽到內容時安靜結束並出現「說完了，請按送出」，不再無限重開麥克風，也不把「沒聽到語音」蓋上去。仍不自動送出
+72. 第一則任務 POST 不等待 workspace GET。缺 `events` 陣列不得把對話洗掉
+73. 口語送出後不把焦點搶回 composer，避免 Android 鍵盤蓋住方向卡。任務 POST 一落地就解除 `busy`，選方向不會在 refresh 期間被忽略
+74. 選方向規格來自 `POST /api/inspiration`（`readSelectedDirectionWorkflow` + 本地 `upsertWorkflow`），不等待、也不被空的或失敗的 `GET /api/workflows` 蓋掉（`mergeWorkflows` 保留已有 `directionBrief`）
+75. 出圖／改暖規格來自任務 POST 的 `workspace_continue_direction_spec`／`workspace_revise_direction_spec` 事件（`applyDirectionBriefFromTask`），立刻更新對話尾端規格。後續較舊的 GET 不得把較高 `revision` 蓋回 V1。規格已存在時，失敗 refresh 不得用「工作區讀取失敗」取代「Hermes 尚未連線，沒有出圖」
+
+## 口語主路徑（契約，非正式真機）
+
+`tests/verify-entry.ts`（390×844，FakeSpeechRecognition，Hermes 未設定）：
+
+1. `/` 免登入進入工作區，無登入閘
+2. 語音填入「我想辦茶會 再幫我看場佈」→ 停頓 `no-speech` →「說完了，請按送出」→ 按送出
+3. 方向卡可點；選方向 A 後「已選方向規格」來自 POST，即使 workflows GET 500 仍可見，且不出現「工作區讀取失敗」蓋掉「沒有出圖」
+4. 同一對話口說「今天社博在哪」→「社團資料」卡（不是即時）
+5. 「幫我出圖」接續同一件 V1，標未出圖，不重開靈感
+6. 「顏色改暖一點」同一件 V2（配色偏暖、未出圖），composer 不掛「過程完成」
+
+## 本輪不宣稱
+
+- 未部署、未公開 Zeabur 實機
+- 未做 Google OAuth／淡江校方 IdP 實機登入
+- 未在實體 Android Chrome 驗證語音與鍵盤
+- 未重開或改寫 #106／#107
