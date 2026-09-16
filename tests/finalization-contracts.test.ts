@@ -19,10 +19,13 @@ process.env.PLANFORM_MCP_URL = "https://planform.example/mcp";
 process.env.TKU_MCP_URL = "https://tku.example/mcp";
 process.env.TKU_MCP_TOKEN = "t".repeat(40);
 
+process.env.ATLAS_MCP_URL = "https://atlas.example/api/mcp";
+process.env.ATLAS_MCP_TOKEN = "a".repeat(32);
+
 const { xunheStatus } = await import("../lib/server/xunhe");
 const { lumenStatus } = await import("../lib/server/lumen");
 const { planformStatus } = await import("../lib/server/planform");
-const { publicMcpEntry, seedPublicRegistry } = await import(
+const { publicMcpEntry, seedPublicRegistry, atlasStatus } = await import(
   "../lib/server/mcp-registry"
 );
 const { saveMemory, listMemories, memoriesForProject } = await import(
@@ -48,6 +51,7 @@ test("config-only MCP is awaiting verification, not partial", () => {
   assert.equal(xunheStatus().state, "awaiting_authorization");
   assert.equal(lumenStatus().state, "awaiting_authorization");
   assert.equal(planformStatus().state, "awaiting_authorization");
+  assert.equal(atlasStatus().state, "awaiting_authorization");
   assert.doesNotMatch(xunheStatus().detail, /已列出工具/);
 });
 

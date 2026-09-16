@@ -1,7 +1,12 @@
 import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
-import { ApiError, assertSafeServiceUrl, redact } from "./security";
+import {
+  ApiError,
+  assertSafeServiceUrl,
+  redact,
+  WORKSPACE_OWNER,
+} from "./security";
 import { get, probeStore, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
 import {
@@ -391,6 +396,47 @@ export async function health(owner: string, refresh = false): Promise<Health> {
 import { hash } from "./security";
 export function serviceIdentity() {
   return hash(runtimeEnv("HERMES_API_URL") + "|" + runtimeEnv("HERMES_API_KEY"));
+}
+
+export function hermesConnectionStatus() {
+  const configured = !!(
+    runtimeEnv("HERMES_API_URL") && runtimeEnv("HERMES_API_KEY")
+  );
+  const urlSource = credentialPresence("HERMES_API_URL").source;
+  const keySource = credentialPresence("HERMES_API_KEY").source;
+  if (!configured)
+    return {
+      configured: false,
+      state: "unconfigured" as const,
+      detail: "尚未在連線設定或後端環境變數提供 Hermes 網域與金鑰。",
+      urlSource,
+      keySource,
+    };
+  try {
+    const cached = get<Health & { id: string; targetHash: string }>(
+      "health",
+      WORKSPACE_OWNER,
+      "current",
+    );
+    if (cached?.targetHash === serviceIdentity() && cached.status) {
+      return {
+        configured: true,
+        state: cached.status,
+        detail: cached.message,
+        urlSource,
+        keySource,
+      };
+    }
+  } catch {
+    /* store probe is independent of credential presence */
+  }
+  return {
+    configured: true,
+    state: "awaiting_authorization" as const,
+    detail: "已設定網址與金鑰，尚未完成健康檢查。模型清單成功才算部分可用。",
+    urlSource,
+    keySource,
+  };
 }
 export function usage(
   raw: unknown,

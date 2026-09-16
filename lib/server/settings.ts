@@ -15,7 +15,7 @@ import {
   type CredentialKey,
   type CredentialValues,
 } from "./credentials";
-import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
+import { getMcp, githubIsNotMcp, probeMcp, atlasStatus } from "./mcp-registry";
 import { liveTamkangStatus } from "./tamkang";
 import { liveGalleyStatus } from "./galley";
 import { xunheStatus } from "./xunhe";
@@ -24,6 +24,7 @@ import { lumenConfigured, lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
 import { duigaoStatus } from "./duigao";
 import { zeaburPublicStatus } from "./zeabur";
+import { hermesConnectionStatus } from "./hermes";
 
 const mcpDefinition = z
   .object({
@@ -200,12 +201,16 @@ export function publicSettings() {
   return {
     vault: vaultStatus(),
     fields: publicCredentialFields(),
-    hermes: {
-      configured: !!(runtimeEnv("HERMES_API_URL") && runtimeEnv("HERMES_API_KEY")),
-      urlSource: credentialPresence("HERMES_API_URL").source,
-      keySource: credentialPresence("HERMES_API_KEY").source,
+    hermes: hermesConnectionStatus(),
+    mcpBridge: {
+      ...credentialPresence("MCP_BRIDGE_TOKEN"),
+      state: credentialPresence("MCP_BRIDGE_TOKEN").configured
+        ? "awaiting_authorization"
+        : "unconfigured",
+      detail: credentialPresence("MCP_BRIDGE_TOKEN").configured
+        ? "已設定 Workspace MCP 權杖，尚未由 Hermes 完成連線驗證。"
+        : "尚未設定 MCP_BRIDGE_TOKEN。",
     },
-    mcpBridge: credentialPresence("MCP_BRIDGE_TOKEN"),
     xunhe: {
       ...xunheStatus(),
       configured: !!runtimeEnv("XUNHE_MCP_URL"),
@@ -235,6 +240,7 @@ export function publicSettings() {
       tokenSource: credentialPresence("GALLEY_MCP_TOKEN").source,
     },
     atlas: {
+      ...atlasStatus(),
       configured: !!(runtimeEnv("ATLAS_MCP_URL") && runtimeEnv("ATLAS_MCP_TOKEN")),
       urlSource: credentialPresence("ATLAS_MCP_URL").source,
       tokenSource: credentialPresence("ATLAS_MCP_TOKEN").source,

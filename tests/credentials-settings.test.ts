@@ -185,11 +185,15 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.equal(body.hermes.configured, false);
+    assert.equal(body.hermes.state, "unconfigured");
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
     assert.equal(body.galley.state, "unconfigured");
+    assert.equal(body.atlas.state, "unconfigured");
     assert.match(body.openSettingsWarning, /沒有邀請登入或閘道保護/);
     assert.equal(body.zeabur.token.configured, false);
+    assert.equal(body.zeabur.state, "unconfigured");
+    assert.equal(body.mcpBridge.state, "unconfigured");
     assert.match(body.zeabur.notice, /覆寫權杖/);
   });
 
@@ -220,6 +224,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(saved.status, 200);
     const published = await saved.json();
     assert.equal(published.hermes.configured, true);
+    assert.equal(published.hermes.state, "awaiting_authorization");
     assert.equal(published.hermes.keySource, "vault");
     assert.equal(published.fields.HERMES_API_KEY.last4, hermesKey.slice(-4));
     assert.equal(published.fields.HERMES_API_KEY.value, undefined);
@@ -236,6 +241,12 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(state.configSource.hermesUrl, "vault");
     assert.ok(!JSON.stringify(state).includes(hermesKey));
     assert.ok(captured.some((item) => item.auth === "Bearer " + hermesKey));
+
+    const afterHealth = await (
+      await credentials.GET(request("settings/credentials"))
+    ).json();
+    assert.equal(afterHealth.hermes.state, "partial");
+    assert.match(afterHealth.hermes.detail, /模型清單/);
 
     const runtime = await runtimeRoute.GET(request("runtime"));
     assert.equal(runtime.status, 200);

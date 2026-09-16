@@ -188,6 +188,36 @@ export function configuredMcp() {
     );
   return configs.map((c) => ({ ...c, endpoint: validateEndpoint(c.endpoint) }));
 }
+export function atlasStatus() {
+  const url = runtimeEnv("ATLAS_MCP_URL");
+  if (!url)
+    return {
+      id: "atlas",
+      name: "場圖 Atlas",
+      state: "unconfigured" as const,
+      detail: "尚未設定 ATLAS_MCP_URL 與 ATLAS_MCP_TOKEN。GitHub 倉庫網址不是 MCP。",
+    };
+  if (githubIsNotMcp(url))
+    return {
+      id: "atlas",
+      name: "場圖 Atlas",
+      state: "failed" as const,
+      detail: "GitHub 網址不是 MCP 端點。請改填場圖 /api/mcp。",
+    };
+  if (!runtimeEnv("ATLAS_MCP_TOKEN"))
+    return {
+      id: "atlas",
+      name: "場圖 Atlas",
+      state: "unconfigured" as const,
+      detail: "尚未提供 ATLAS_MCP_TOKEN，不能標成已連線。",
+    };
+  return honestConfiguredStatus("atlas", {
+    id: "atlas",
+    name: "場圖 Atlas",
+    state: "awaiting_authorization" as const,
+    detail: "已設定端點與權杖，尚未完成 initialize／tools/list。",
+  });
+}
 function controlled(id: string) {
   const config = configuredMcp().find((c) => c.id === id);
   if (!config)

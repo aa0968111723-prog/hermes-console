@@ -16,10 +16,12 @@ type SettingsPayload = {
   fields: Record<string, FieldStatus>;
   hermes: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     keySource: string;
   };
-  mcpBridge: FieldStatus;
+  mcpBridge: FieldStatus & { state?: string; detail?: string };
   tamkang: {
     state: string;
     detail: string;
@@ -53,6 +55,8 @@ type SettingsPayload = {
   };
   atlas?: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     tokenSource: string;
   };
@@ -89,6 +93,8 @@ type SettingsPayload = {
     serviceId: string;
     environmentId: string;
     notice: string;
+    state?: string;
+    detail?: string;
   };
   openSettingsWarning: string;
   probe?: { status: string; toolsCount: number; lastError: string | null };
@@ -313,9 +319,9 @@ export default function ConnectionSettings({
           </dd>
           <dt>Hermes</dt>
           <dd>
-            {data?.hermes.configured
-              ? `已設定（網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}）`
-              : "尚未設定"}
+            {data
+              ? `${TAMKANG[data.hermes.state || ""] || data.hermes.state || (data.hermes.configured ? "待驗證" : "未設定")} · ${data.hermes.detail || (data.hermes.configured ? `網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}` : "尚未設定")}`
+              : "讀取中"}
           </dd>
           <dt>淡江 MCP</dt>
           <dd>
@@ -343,8 +349,8 @@ export default function ConnectionSettings({
           </dd>
           <dt>場圖 Atlas</dt>
           <dd>
-            {data?.atlas?.configured
-              ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
+            {data?.atlas
+              ? `${TAMKANG[data.atlas.state || ""] || data.atlas.state || "未設定"} · ${data.atlas.detail || "尚未回報"}`
               : "尚未設定"}
           </dd>
           <dt>Lumen 創作台</dt>
@@ -375,12 +381,12 @@ export default function ConnectionSettings({
           {
             id: "hermes",
             name: "Hermes",
-            state: data?.hermes.configured ? "configured" : "unconfigured",
+            state: data?.hermes.state || "unconfigured",
           },
           {
             id: "workspace",
             name: "Workspace",
-            state: data?.mcpBridge.configured ? "configured" : "unconfigured",
+            state: data?.mcpBridge.state || "unconfigured",
           },
           {
             id: "galley",
@@ -390,7 +396,7 @@ export default function ConnectionSettings({
           {
             id: "atlas",
             name: "Atlas",
-            state: data?.atlas?.configured ? "configured" : "unconfigured",
+            state: data?.atlas?.state || "unconfigured",
           },
           {
             id: "framelab",
@@ -425,9 +431,7 @@ export default function ConnectionSettings({
           {
             id: "zeabur",
             name: "Zeabur",
-            state: data?.zeabur?.token.configured
-              ? "configured"
-              : "unconfigured",
+            state: data?.zeabur?.state || "unconfigured",
           },
         ]}
       />
