@@ -37,11 +37,12 @@
 | 正式啟動檢查 | 可用（契約） | 缺 `CONSOLE_ORIGIN`、公開 HTTP、非本機 `CONSOLE_ALLOW_LOCAL_ACCESS`、測試 session 會在 production startup 直接失敗。 |
 | Health liveness | 可用（契約） | `GET /api/health` 不等 Hermes。`live` 在 store／Hermes 掛掉時仍為 true。憑證在但還沒探測是 verifying，不是 available。 |
 | 備份／演練 | 可用（契約） | `npm run backup` 複製 sqlite／WAL／vault.key，不印秘密。`npm run rehearse` 只報告已設定／未設定。不是 Zeabur 實機快照。 |
+| 對話／記憶讀取 | 可用（契約） | 沒有 Hermes session 的對話 GET、記憶 GET、Brain GET 不等 discovery。任務提交在 unconfigured／failed 快取上立即 503。 |
 
 ## 本輪驗證（2026-09-16）
 
 - 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`npm run rehearse`、`test:entry`、`test:ui`、`test:chat`、`test:workbench`、`test:runtime`、`test:gateway` 通過。
-- `npm test`：406 tests, 404 pass, 2 skipped, 0 fail。含 health GET 不等 hanging Hermes、store 掛掉仍 live、backup 不印 vault key。
+- `npm test`：409 tests, 407 pass, 2 skipped, 0 fail。含 health GET 不等 hanging Hermes、store 掛掉仍 live、backup 不印 vault key、記憶／本地對話讀取不等 Hermes。
 - `/` First Load JS 109 kB（shared 103 kB；登入頁 6.13 kB）。
 - Playwright 六套契約全過。`test:ui` 本機 Chrome LCP 376ms／CLS ~0.00008（不是實機）。
 - `npm run rehearse`：local `ok: true`，Hermes／Google／Tamkang／mail／gateway 皆未設定並寫入 warnings。不是 Zeabur。
