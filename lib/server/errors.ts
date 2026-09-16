@@ -49,6 +49,7 @@ const UNAVAILABLE = new Set([
   "TOOL_UNAVAILABLE",
   "tool_unavailable",
   "mcp_unconfigured",
+  "mcp_credential_missing",
   "invalid_mcp_target",
 ]);
 const RATE = new Set(["RATE_LIMIT", "rate_limited"]);

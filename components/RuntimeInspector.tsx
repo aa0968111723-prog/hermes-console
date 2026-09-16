@@ -20,9 +20,11 @@ const statusLabel = (value: string) => labels[value] || value;
 const ToolRow = memo(function ToolRow({
   tool,
   stale,
+  developer,
 }: {
   tool: ToolDescriptor;
   stale: boolean;
+  developer: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const shown = stale ? "stale" : tool.status;
@@ -40,8 +42,7 @@ const ToolRow = memo(function ToolRow({
         />
         <strong>{tool.displayName}</strong>
         <small>
-          {tool.canonicalName} ·{" "}
-          {tool.enabled ? statusLabel(shown) : "未啟用"}
+          {tool.canonicalName} · {tool.enabled ? statusLabel(shown) : "未啟用"}
         </small>
         <ChevronDown
           className={open ? "is-open" : ""}
@@ -63,26 +64,24 @@ const ToolRow = memo(function ToolRow({
                 ? new Date(tool.lastVerifiedAt).toLocaleString("zh-TW")
                 : "尚無此工具的執行驗證"}
             </dd>
-            <dt>專案綁定</dt>
-            <dd>
-              {tool.metadata.bindingSupported
-                ? "由 Console 後端檢查"
-                : "尚無可強制套用的介面"}
-            </dd>
           </dl>
-          <details>
-            <summary>輸入格式</summary>
-            {Object.keys(tool.inputSchema).length ? (
-              <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
-            ) : (
-              <p>此探索介面未提供輸入 schema。</p>
-            )}
-          </details>
-          {tool.outputSchema && (
-            <details>
-              <summary>輸出格式</summary>
-              <pre>{JSON.stringify(tool.outputSchema, null, 2)}</pre>
-            </details>
+          {developer && (
+            <>
+              <details>
+                <summary>輸入格式</summary>
+                {Object.keys(tool.inputSchema).length ? (
+                  <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
+                ) : (
+                  <p>此探索介面未提供輸入 schema。</p>
+                )}
+              </details>
+              {tool.outputSchema && (
+                <details>
+                  <summary>輸出格式</summary>
+                  <pre>{JSON.stringify(tool.outputSchema, null, 2)}</pre>
+                </details>
+              )}
+            </>
           )}
         </div>
       )}
@@ -105,6 +104,7 @@ export default function RuntimeInspector({
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(100);
+  const [developer, setDeveloper] = useState(false);
   const accept = useCallback((next: HermesRuntimeSnapshot) => {
     setSnapshot((previous) =>
       previous && Date.parse(previous.fetchedAt) > Date.parse(next.fetchedAt)
@@ -224,6 +224,12 @@ export default function RuntimeInspector({
     snapshot?.tools.filter(
       (tool) => tool.enabled && tool.status === "available",
     ).length || 0;
+  const mcpAvailable =
+    snapshot?.mcpServers.filter(
+      (server) => server.enabled && server.status === "available",
+    ).length || 0;
+  const mcpEnabled =
+    snapshot?.mcpServers.filter((server) => server.enabled).length || 0;
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>
@@ -235,6 +241,12 @@ export default function RuntimeInspector({
           <button onClick={() => void refresh()} disabled={busy}>
             <RefreshCw size={15} />
             {busy ? "同步中…" : "重新同步"}
+          </button>
+          <button
+            aria-pressed={developer}
+            onClick={() => setDeveloper((value) => !value)}
+          >
+            {developer ? "一般檢視" : "開發者檢視"}
           </button>
           <span className={`runtime-state ${state}`}>
             <i aria-hidden="true" />
@@ -269,14 +281,6 @@ export default function RuntimeInspector({
         </span>
         <span>
           <i
-            className={!stale && availableTools > 0 ? "good" : "unknown"}
-            aria-hidden="true"
-          />
-          工具{" "}
-          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未知"}
-        </span>
-        <span>
-          <i
             className={
               !stale && snapshot?.memorySupport === "available"
                 ? "good"
@@ -285,6 +289,21 @@ export default function RuntimeInspector({
             aria-hidden="true"
           />
           記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+        </span>
+        <span>
+          <i
+            className={!stale && availableTools > 0 ? "good" : "unknown"}
+            aria-hidden="true"
+          />
+          工具{" "}
+          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未知"}
+        </span>
+        <span>
+          <i
+            className={!stale && mcpAvailable > 0 ? "good" : "unknown"}
+            aria-hidden="true"
+          />
+          MCP {snapshot ? `${mcpAvailable}/${mcpEnabled}` : "未知"}
         </span>
         {!stale && snapshot?.status === "available" && (
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />
@@ -296,7 +315,7 @@ export default function RuntimeInspector({
         stale={stale}
         animation={animation}
       />
-      {snapshot && (
+      {developer && snapshot && (
         <>
           <p className="muted">
             探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
@@ -325,6 +344,7 @@ export default function RuntimeInspector({
                       key={tool.canonicalName}
                       tool={tool}
                       stale={stale}
+                      developer={developer}
                     />
                   ))}
                 </ul>
@@ -339,12 +359,8 @@ export default function RuntimeInspector({
           {!groups.length && (
             <p>目前沒有符合的工具；這不代表工具已可用。</p>
           )}
-        </>
-      )}
-      <details className="runtime-advanced">
-        <summary>Advanced · Runtime 詳情</summary>
-        {snapshot && (
-          <>
+          <details className="runtime-advanced" open>
+            <summary>開發者 · Runtime 詳情</summary>
             <p className="muted">
               最後同步：
               {new Date(snapshot.lastSyncedAt).toLocaleString("zh-TW")} ·
@@ -397,9 +413,9 @@ export default function RuntimeInspector({
                 ))}
               </ul>
             </details>
-          </>
-        )}
-      </details>
+          </details>
+        </>
+      )}
     </section>
   );
 }

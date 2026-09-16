@@ -133,7 +133,7 @@ test("GitHub 倉庫不是 Planform MCP", () => {
 
 test("設定 PLANFORM_MCP_URL 後自動列入核准清單", () => {
   assert.equal(planformConfigured(), true);
-  assert.equal(planformStatus().state, "partial");
+  assert.equal(planformStatus().state, "awaiting_authorization");
   const entry = seedRegistry().find((item) => item.id === "planform");
   assert.ok(entry);
   assert.equal(entry?.name, "Planform 場佈");
@@ -173,6 +173,7 @@ test("probe 只做 initialize／tools/list", async () => {
   assert.ok(entry);
   const probed = await probeMcp(entry!);
   assert.equal(probed.status, "partial");
+  assert.equal(planformStatus().state, "partial");
   assert.ok(probed.tools.some((tool) => tool.name === "planform_run_agent"));
 });
 

@@ -311,6 +311,16 @@ export function interpretVerification(steps: {
 export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
+  if (config.credentialReference && !runtimeEnv(config.credentialReference)) {
+    return put("mcp_registry", WORKSPACE_OWNER, {
+      ...entry,
+      ...config,
+      tools: [],
+      status: "unconfigured" as const,
+      verifiedAt: null,
+      lastError: "此 MCP 缺少後端服務憑證。",
+    });
+  }
   const client = new Client({ name: "hermes-console-discovery", version: "2" });
   let connected = false;
   const deadline = AbortSignal.timeout(20_000);
@@ -434,7 +444,11 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       ...entry,
       ...config,
       tools,
-      status: "partial" as const,
+      status: interpretVerification({
+        initialize: true,
+        toolsList: tools.length > 0,
+        safeRead: false,
+      }),
       verifiedAt: new Date().toISOString(),
       lastError: null,
       serverInfo: JSON.parse(
@@ -452,7 +466,14 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       ...entry,
       ...config,
       tools: [],
-      status: connected ? ("connected" as const) : ("failed" as const),
+      status:
+        !connected &&
+        error instanceof ApiError &&
+        error.code === "mcp_credential_missing"
+          ? ("unconfigured" as const)
+          : connected
+            ? ("connected" as const)
+            : ("failed" as const),
       verifiedAt: null,
       lastError:
         error instanceof ApiError
@@ -480,4 +501,63 @@ export function setMcpEnabled(id: string, enabled: boolean) {
 }
 export function getMcp(id: string) {
   return seedRegistry().find((item) => item.id === id) || null;
+}
+
+/** Client-safe registry row: no endpoint, credential name, or tool schemas. */
+export function publicMcpEntry(entry: McpEntry) {
+  return {
+    id: entry.id,
+    name: entry.name,
+    status: entry.status,
+    enabled: entry.enabled,
+    readonly: entry.readonly,
+    trustedLevel: entry.trustedLevel,
+    toolsCount: entry.tools.length,
+    tools: entry.tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      annotations: tool.annotations,
+    })),
+    verifiedAt: entry.verifiedAt,
+    lastError: entry.lastError,
+  };
+}
+
+export function seedPublicRegistry() {
+  return seedRegistry().map(publicMcpEntry);
+}
+
+/**
+ * Config-only MCP is awaiting verification, never "partial"/"available".
+ * Overlay live registry after initialize／tools/list／safe-read.
+ */
+export function honestConfiguredStatus<T extends { state: string; detail: string }>(
+  id: string,
+  base: T,
+): T {
+  if (base.state === "unconfigured" || base.state === "failed") return base;
+  const entry = getMcp(id);
+  if (entry?.status === "failed")
+    return {
+      ...base,
+      state: "failed",
+      detail: entry.lastError || base.detail,
+    };
+  if (entry?.status === "verified")
+    return {
+      ...base,
+      state: "available",
+      detail: "已通過安全讀取工具驗證。",
+    };
+  if (entry?.status === "partial" && entry.tools.length)
+    return {
+      ...base,
+      state: "partial",
+      detail: "已列出工具，尚未完成安全讀取驗證。",
+    };
+  return {
+    ...base,
+    state: "awaiting_authorization",
+    detail: "已設定端點，尚未完成 initialize／tools/list。",
+  };
 }

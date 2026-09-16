@@ -6,11 +6,11 @@ import {
   route,
   consumeConfirmation,
 } from "@/lib/server/security";
-import { getMcp, probeMcp, registerMcp, seedRegistry, setMcpEnabled } from "@/lib/server/mcp-registry";
+import { getMcp, probeMcp, registerMcp, seedPublicRegistry, setMcpEnabled } from "@/lib/server/mcp-registry";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   authenticate(req);
-  return respond({ servers: seedRegistry() });
+  return respond({ servers: seedPublicRegistry() });
 });
 export const POST = route(async (req) => {
   authenticate(req, true);

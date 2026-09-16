@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ApiError, redact } from "./security";
 import { runtimeEnv } from "./credentials";
-import { githubIsNotMcp } from "./mcp-registry";
+import { githubIsNotMcp, honestConfiguredStatus } from "./mcp-registry";
 
 const context = {
   taskId: z.string().uuid().optional(),
@@ -176,12 +176,12 @@ export function framelabStatus() {
       state: "awaiting_authorization" as const,
       detail: "已設定端點，尚未提供 FRAMELAB_MCP_TOKEN。請從 FrameLab 工作室首頁產生權杖。",
     };
-  return {
+  return honestConfiguredStatus("framelab", {
     id: "framelab",
     name: "FrameLab",
-    state: "partial" as const,
-    detail: "已設定端點與權杖，需 initialize／tools/list 驗證後 Hermes 才能呼叫 mcp.framelab 與 framelab_*。",
-  };
+    state: "awaiting_authorization" as const,
+    detail: "已設定端點與權杖，尚未完成 initialize／tools/list。",
+  });
 }
 
 type RpcResult = {
