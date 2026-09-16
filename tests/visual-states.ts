@@ -2,6 +2,7 @@ import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { DESIGN_WITHOUT_PREVIEW } from "../lib/contracts";
 
 /** Real uploads/settings first; explicitly labelled UI response fixtures second.
  * The fixtures never configure credentials, publish, or contact external providers. */
@@ -592,6 +593,45 @@ export async function verifyVisualStates(
   await page.screenshot({
     path: join(output, "continue-artifact-composer.png"),
   });
+  await page.route("**/api/workflows", (route) =>
+    route.fulfill({ json: { workflows: [] } }),
+  );
+  task.events.push({
+    id: "event-spec-only",
+    taskId: task.id,
+    toolCallId: null,
+    toolName: null,
+    status: "completed",
+    startedAt: now,
+    endedAt: now,
+    summary: DESIGN_WITHOUT_PREVIEW,
+    result: null,
+    sources: [],
+    error: null,
+    usage: null,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(page.locator(".composer-task-status")).toContainText("規格已保留");
+  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
+  await expect(page.locator(".composer-task-status")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.locator(".visual-message")).toContainText("規格已保留");
+  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
+  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
+  await expect(page.locator(".turtle")).toHaveAttribute(
+    "aria-label",
+    /規格已保留/,
+  );
+  await expect(
+    page
+      .locator(".visual-message")
+      .getByRole("region", { name: "設計成果預覽" }),
+  ).toHaveCount(0);
+  await page.screenshot({ path: join(output, "design-spec-only-honesty.png") });
+  task.events = task.events.filter((event) => event.id !== "event-spec-only");
   task.state = "failed";
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();

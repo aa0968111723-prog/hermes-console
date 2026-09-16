@@ -1,7 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityKind, eventPhaseLabel, eventStateLabel, eventUserResult, progressSteps, safeSource, workingEvent, designsFromTask, artifactsForConversation } from "../lib/client/activity";
-import type { Task, TaskEvent } from "../lib/contracts";
+import {
+  activityKind,
+  artifactsForConversation,
+  designsFromTask,
+  eventPhaseLabel,
+  eventStateLabel,
+  eventUserResult,
+  progressSteps,
+  safeSource,
+  SPEC_ONLY_DESIGN_LABEL,
+  studentProcessDone,
+  studentTaskLabel,
+  taskKeptSpecOnly,
+  visualProcessCaption,
+  workingEvent,
+} from "../lib/client/activity";
+import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../lib/contracts";
 const event = (
   id: string,
   status: string,
@@ -134,6 +149,47 @@ test("tool JSON is technical, never the user-facing result", () => {
   assert.equal(eventUserResult("已找到三筆來源").technical, null);
   assert.equal(eventUserResult('{"ok":true}').text, null);
   assert.ok(eventUserResult('{"ok":true}').technical);
+});
+
+test("spec-only design completion is not painted as visual success", () => {
+  const spec = task("completed", [
+    event("research", "completed"),
+    {
+      ...event("spec", "completed", "workspace_get_visual_concepts", "call-spec"),
+      summary: DESIGN_WITHOUT_PREVIEW,
+    },
+  ]);
+  spec.goal = { requiresDesign: true } as Task["goal"];
+  spec.plan = {
+    summary: "做海報",
+    budgetMode: "balanced",
+    fallbacks: [],
+    steps: [
+      { id: "a", title: "讀取專案上下文", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "completed" },
+      { id: "c", title: "查資料", purpose: "", dependencies: [], agent: "general", tool: "galley_research", fallback: null, status: "completed" },
+      { id: "e", title: "Canva 接續", purpose: "", dependencies: [], agent: "general", tool: "canva_create_design", fallback: null, status: "pending" },
+      { id: "f", title: "最終審查", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "pending" },
+    ],
+  };
+  assert.equal(taskKeptSpecOnly(spec), true);
+  assert.equal(studentTaskLabel(spec), SPEC_ONLY_DESIGN_LABEL);
+  const steps = progressSteps(spec);
+  assert.equal(steps.find((step) => step.label === "創作")?.state, "uncertain");
+  assert.equal(steps.find((step) => step.label === "完成")?.state, "uncertain");
+  assert.equal(studentProcessDone(spec, steps), false);
+  assert.equal(visualProcessCaption(spec, steps), SPEC_ONLY_DESIGN_LABEL);
+  const withPreview = task("completed", [
+    {
+      ...event("design", "completed", "canva_create_design"),
+      result: {
+        title: "茶會海報",
+        thumbnail: { url: "https://www.canva.com/preview.png" },
+      },
+    },
+  ]);
+  assert.equal(taskKeptSpecOnly(withPreview), false);
+  assert.equal(studentTaskLabel(withPreview), "完成");
+  assert.equal(visualProcessCaption(withPreview), "過程完成");
 });
 
 test("creative tasks attach Canva designs as conversation artifacts", () => {

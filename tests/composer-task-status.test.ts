@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import type { Task, TaskEvent } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../lib/contracts";
 import {
   OFFLINE_NOTICE,
   OFFLINE_PILL_LABEL,
@@ -70,6 +70,32 @@ test("uncertain and offline never auto-resend or auto-acknowledge via pill actio
   assert.notEqual(composerTaskPillAction(true), "open_sheet");
   assert.notEqual(recoveryOnReconnectAction() as string, "resend");
   assert.notEqual(recoveryOnReconnectAction() as string, "acknowledge");
+});
+
+test("spec-only design completion is a warning, not a green check", () => {
+  const spec = task("completed");
+  spec.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "workspace_get_visual_concepts",
+      status: "completed",
+      summary: DESIGN_WITHOUT_PREVIEW,
+    } as TaskEvent,
+  ];
+  spec.goal = { requiresDesign: true } as Task["goal"];
+  assert.deepEqual(composerTaskStatus(spec, false), {
+    label: "規格已保留",
+    tone: "warning",
+    tool: null,
+    toolName: null,
+    toolKind: null,
+  });
+  assert.notEqual(composerTaskStatus(task("completed"), false).tone, "warning");
+  assert.equal(composerTaskStatus(task("completed"), false).label, "完成");
+  const failedWithMark = task("failed");
+  failedWithMark.events[0].summary = DESIGN_WITHOUT_PREVIEW;
+  assert.equal(composerTaskStatus(failedWithMark, false).label, "失敗");
+  assert.equal(composerTaskStatus(failedWithMark, false).tone, "error");
 });
 
 test("shortTaskError hides long stacks", () => {

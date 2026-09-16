@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { turtleState } from "../components/Turtle";
-import type { Task, TaskEvent } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../lib/contracts";
 
 function task(state: Task["state"], toolStatus?: string): Task {
   return {
@@ -34,6 +34,25 @@ test("turtle terminal task and offline states override old tool activity", () =>
   assert.equal(turtleState(task("stopping", "running"), false).id, "waiting");
   assert.equal(turtleState(task("completed"), true).id, "offline");
   assert.equal(turtleState(undefined, false).id, "idle");
+});
+
+test("turtle does not celebrate a design task that kept only the spec", () => {
+  const spec = {
+    state: "completed",
+    events: [
+      {
+        toolName: "workspace_get_visual_concepts",
+        status: "completed",
+        summary: DESIGN_WITHOUT_PREVIEW,
+      },
+    ],
+  } as Task;
+  assert.equal(turtleState(spec, false).id, "waiting");
+  assert.equal(turtleState(spec, false).label, "規格已保留");
+  assert.notEqual(turtleState(spec, false).id, "success");
+  const finished = task("completed");
+  assert.equal(turtleState(finished, false).id, "success");
+  assert.equal(turtleState(finished, false).label, "完成了");
 });
 
 test("turtle student labels never name vendors or tools", () => {
