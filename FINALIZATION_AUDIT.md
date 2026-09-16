@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 手機捲動擁有權 | live（契約／瀏覽器） | Chat：`conversation-scroll`；其他頁：`.secondary-page`／`.page-scroll`。靈感頁不再被 100dvh+overflow:hidden 裁切。 |
 | Android 鍵盤 | live（模擬 visualViewport） | 開啟才寫 `--app-height`；關閉移除，避免殼層永久縮短。`offsetTop` 納入判斷。鍵盤開啟時隱藏首頁龜龜／快捷鍵，輸入列捲到游標行，送出鍵仍在可視區。不是實體 Android Chrome。 |
-| Bottom dock | live | 對話／專案／Hermes／靈感／Agent；設定在頭像／齒輪。手機核心分頁走 Dock，不走漢堡。漢堡只開對話紀錄與開啟新對話；頂欄另有開啟新對話。未連線時頂欄顯示「未設定」。手機頂欄不顯示會被裁成「He／Ag／靈／專案與」的標題；頁面 h1 與 Dock 負責定位。 |
+| Bottom dock | live | 對話／專案／Hermes／靈感／Agent；設定在頭像。手機不重複顯示齒輪。漢堡只開對話紀錄與開啟新對話；頂欄另有開啟新對話。未連線時頂欄顯示「未設定」。手機頂欄不顯示會被裁成「He／Ag／靈／專案與」的標題；頁面 h1 與 Dock 負責定位。 |
 | AuthGate | live（正式必填） | `/` → Login → Hermes。未登入不靜態載入 `HermesConsole`（`next/dynamic` + `ssr: false`）。First Load JS 約 107 kB；工作區 chunk 登入後才抓。Playwright 斷言 login 不請求該 chunk。`CONSOLE_AUTH_MODE=workspace` 僅契約／本機。 |
 | 設定鍵盤焦點 | live 契約 | Home／End 選分頁後焦點留在 tab。共用 dialog 記住 opener，Escape 還原（含空間→管理記憶→龜龜）。 |
 | 本機 LCP／CLS | live Chromium | `test:ui` LCP 380ms、CLS 0.00009；axe 0。不是實機 WebPageTest。 |

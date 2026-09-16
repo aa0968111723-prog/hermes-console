@@ -92,4 +92,4 @@ MCP_ALLOWED_ORIGINS=
 
 ## 安全
 
-這站免登入。把 `/api/mcp` 交給 Spark，等於讓 Google 代理使用工作區工具。建議先加 Cloudflare Access、IP allowlist 或 Zeabur 私有網路，再開放給 Spark。
+正式產品須登入（AuthGate）。把 `/api/mcp` 交給 Spark，等於讓 Google 代理使用已授權工作區的工具。仍建議加 Cloudflare Access、IP allowlist 或 Zeabur 私有網路，再開放給 Spark。不要把未登入當成可以公開 MCP。

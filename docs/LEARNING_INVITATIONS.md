@@ -1,6 +1,6 @@
 # 活動工作流、學習地圖與電子信箱邀請制
 
-產品不變量：Hermes Console 是免登入單一工作區。電子信箱邀請模組為休眠選項，不得擋住 `/` 或工作區 API。現有 SQLite 工作區、對話與素材保留，沒有重寫 Git 歷史。
+產品不變量：Hermes Console 是登入後的 Visual AI Agent Workspace。開啟 `/` 先走 AuthGate（Google／淡江 SSO／Email），再進入 `HermesConsole`。電子信箱邀請模組為休眠選項，不得擋住 AuthGate 或工作區 API。現有 SQLite 工作區、對話與素材保留，沒有重寫 Git 歷史。`CONSOLE_AUTH_MODE=workspace` 僅契約測試／本機單一 owner。
 
 ## 可以實際操作的內容
 
@@ -70,7 +70,7 @@ SQLite 節點／修訂透過同一資料卷持久化；備份時停止唯一 Con
 
 ## Runtime 與 MCP 動態同步
 
-`/api/runtime` 是 Runtime Inspector 的能力快照入口；`/api/runtime/tools`、`/api/runtime/agents` 與 `/api/runtime/mcp` 是同一快照的篩選視圖。旧 `/api/health` 等介面尚未全部改用此入口，不能宣稱全站只有一份探索邏輯。最新主分支採免登入工作區及可配置閘道；寫入動作驗證 Origin，不依賴受邀 session。
+`/api/runtime` 是 Runtime Inspector 的能力快照入口；`/api/runtime/tools`、`/api/runtime/agents` 與 `/api/runtime/mcp` 是同一快照的篩選視圖。旧 `/api/health` 等介面尚未全部改用此入口，不能宣稱全站只有一份探索邏輯。最新主分支採 AuthGate；正式環境須登入。寫入動作驗證 Origin 與 session／membership，不依賴受邀 session。
 
 快照的內容 hash 排除觀測時間；大清單只在內容變更時保存，小型檢查時間紀錄仍會更新。探索不等於工具執行驗證。MCP 工具採 `mcp.<server>.<tool>` 命名，Hermes 原生工具採 `hermes.<toolset>.<tool>`，避免同名工具碰撞。
 
