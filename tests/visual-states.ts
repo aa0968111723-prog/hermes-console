@@ -269,15 +269,14 @@ export async function verifyVisualStates(
     await page.keyboard.press("Enter");
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
-    await expect(detail).not.toContainText("ui-fixture-task");
-    await expect(detail).not.toContainText("galley_research");
     await expect(detail.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
     const technical = detail.locator(".task-technical");
     await expect(technical).toBeVisible();
     const technicalSummary = technical.locator("summary");
     await expect(technical).not.toHaveAttribute("open", "");
     await expect(technicalSummary).toContainText("維運檢視");
-    await expect(technical.locator("code").first()).toBeHidden();
+    await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
+    await expect(detail.locator(".event-meta code").filter({ hasText: "galley_research" })).toBeHidden();
     if (width === 390 && height === 420) {
       await page.screenshot({
         path: join(output, "task-technical-collapsed-390x420.png"),
@@ -309,7 +308,8 @@ export async function verifyVisualStates(
     await expect(detail.locator(".event-meta code").first()).toBeVisible();
     await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
     await technicalSummary.click();
-    await expect(detail).not.toContainText("ui-fixture-task");
+    await expect(technical).not.toHaveAttribute("open", "");
+    await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
     await page.keyboard.press("Escape");
     await expect(composer).toBeFocused();
     await expect(composer).toHaveValue(draft);

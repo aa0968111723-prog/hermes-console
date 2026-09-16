@@ -239,6 +239,8 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, /allowDeveloper=\{runtimeOps\}/);
   assert.match(consoleUi, /顯示維運檢視/);
   assert.match(consoleUi, /說完了，請按送出/);
+  assert.match(consoleUi, /composer-voice-hint/);
+  assert.match(consoleUi, /onDenied=\{\(message\) => setError\(message\)\}/);
   assert.doesNotMatch(consoleUi, /setInspectDeveloper\(\(value\) => !value\)/);
   const settings = await readFile(
     new URL("../components/settings/ConnectionSettings.tsx", import.meta.url),

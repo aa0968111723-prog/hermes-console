@@ -4,6 +4,7 @@ import {
   appendTranscript,
   createSpeechSession,
   speechRecognitionCtor,
+  studentSpeechError,
   type SpeechRecognitionLike,
   type SpeechResultEvent,
 } from "../lib/client/speech-input";
@@ -21,7 +22,7 @@ test("speech recognition is opt-in and zh-TW", () => {
     interimResults = true;
     continuous = true;
     onresult: ((event: SpeechResultEvent) => void) | null = null;
-    onerror: (() => void) | null = null;
+    onerror: ((event?: { error?: string }) => void) | null = null;
     onend: (() => void) | null = null;
     start() {
       started = true;
@@ -47,4 +48,69 @@ test("speech recognition is opt-in and zh-TW", () => {
     Fake,
   );
   assert.equal(createSpeechSession({ onFinal() {} }), null);
+});
+
+test("speech not-allowed maps to student microphone copy", () => {
+  assert.equal(
+    studentSpeechError("not-allowed"),
+    "無法使用麥克風。請允許這個頁面使用麥克風。",
+  );
+  assert.equal(studentSpeechError("no-speech"), null);
+  class Deny implements SpeechRecognitionLike {
+    lang = "";
+    interimResults = true;
+    continuous = true;
+    onresult: ((event: SpeechResultEvent) => void) | null = null;
+    onerror: ((event?: { error?: string }) => void) | null = null;
+    onend: (() => void) | null = null;
+    start() {
+      this.onerror?.({ error: "not-allowed" });
+      this.onend?.();
+    }
+    stop() {}
+  }
+  let denied = "";
+  const session = createSpeechSession({
+    ctor: Deny,
+    onFinal() {},
+    onError: (code) => {
+      denied = studentSpeechError(code) || "";
+    },
+  });
+  assert.ok(session);
+  session!.start();
+  assert.equal(denied, "無法使用麥克風。請允許這個頁面使用麥克風。");
+});
+
+test("speech start NotAllowedError maps to not-allowed", () => {
+  class Blocked implements SpeechRecognitionLike {
+    lang = "";
+    interimResults = true;
+    continuous = true;
+    onresult: ((event: SpeechResultEvent) => void) | null = null;
+    onerror: ((event?: { error?: string }) => void) | null = null;
+    onend: (() => void) | null = null;
+    start() {
+      const error = new Error("denied");
+      error.name = "NotAllowedError";
+      throw error;
+    }
+    stop() {}
+  }
+  let denied = "";
+  let ended = false;
+  const session = createSpeechSession({
+    ctor: Blocked,
+    onFinal() {},
+    onError: (code) => {
+      denied = studentSpeechError(code) || "";
+    },
+    onEnd: () => {
+      ended = true;
+    },
+  });
+  assert.ok(session);
+  session!.start();
+  assert.equal(denied, "無法使用麥克風。請允許這個頁面使用麥克風。");
+  assert.equal(ended, true);
 });

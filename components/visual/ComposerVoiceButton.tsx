@@ -5,6 +5,7 @@ import {
   appendTranscript,
   createSpeechSession,
   speechRecognitionCtor,
+  studentSpeechError,
   type SpeechSession,
 } from "@/lib/client/speech-input";
 
@@ -14,12 +15,14 @@ export default function ComposerVoiceButton({
   value,
   onChange,
   onReady,
+  onDenied,
 }: {
   disabled?: boolean;
   isComposing: () => boolean;
   value: string;
   onChange: (next: string) => void;
   onReady?: () => void;
+  onDenied?: (message: string) => void;
 }) {
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
@@ -45,6 +48,10 @@ export default function ComposerVoiceButton({
         onChange(appendTranscript(valueRef.current, text));
         onReady?.();
       },
+      onError: (code) => {
+        const message = studentSpeechError(code);
+        if (message) onDenied?.(message);
+      },
       onEnd: () => {
         session.current = null;
         setListening(false);
@@ -53,7 +60,7 @@ export default function ComposerVoiceButton({
     if (!next) return;
     session.current = next;
     next.start();
-    setListening(true);
+    if (session.current) setListening(true);
   }
   return (
     <button

@@ -1663,6 +1663,7 @@ export default function HermesConsole() {
                         input.current?.focus();
                       }}
                       onReady={() => setVoiceReady(true)}
+                      onDenied={(message) => setError(message)}
                     />
                     <ComposerMenu
                       disabled={busy}
@@ -1727,9 +1728,11 @@ export default function HermesConsole() {
                   : "請核對重要資訊與素材權利。"}
                 <span>Enter 送出 · Shift + Enter 換行</span>
               </p>
-              <p className="sr-only" aria-live="polite">
-                {voiceReady ? "說完了，請按送出" : ""}
-              </p>
+              {voiceReady && (
+                <p className="composer-voice-hint" role="status" aria-live="polite">
+                  說完了，請按送出
+                </p>
+              )}
             </div>
           </>
         ) : nav === "projects" ? (

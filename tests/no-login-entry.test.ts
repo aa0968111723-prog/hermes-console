@@ -133,6 +133,14 @@ test("no-login entry contracts", async (t) => {
     assert.match(button, /zh-TW|createSpeechSession/);
     assert.match(button, /說完後按送出/);
     assert.match(button, /onReady/);
+    assert.match(button, /onDenied/);
+    assert.match(speech, /studentSpeechError/);
+    const config = await readFile(
+      new URL("../next.config.ts", import.meta.url),
+      "utf8",
+    );
+    assert.match(config, /microphone=\(self\)/);
+    assert.doesNotMatch(config, /microphone=\(\)/);
     assert.match(speech, /zh-TW/);
     assert.match(speech, /webkitSpeechRecognition/);
   });

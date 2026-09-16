@@ -42,10 +42,19 @@ export type SpeechSession = {
   stop: () => void;
 };
 
+export function studentSpeechError(code?: string): string | null {
+  if (code === "not-allowed" || code === "service-not-allowed")
+    return "無法使用麥克風。請允許這個頁面使用麥克風。";
+  if (code === "audio-capture") return "找不到麥克風。";
+  if (code === "network") return "語音辨識暫時無法使用。";
+  return null;
+}
+
 export function createSpeechSession(options: {
   lang?: string;
   onFinal: (text: string) => void;
   onEnd?: () => void;
+  onError?: (code?: string) => void;
   ctor?: new () => SpeechRecognitionLike;
 }): SpeechSession | null {
   const Ctor = options.ctor || speechRecognitionCtor();
@@ -60,10 +69,24 @@ export function createSpeechSession(options: {
     const text = last[0]?.transcript || "";
     if (text.trim()) options.onFinal(text);
   };
-  rec.onerror = () => options.onEnd?.();
+  rec.onerror = (event) => {
+    options.onError?.(event?.error);
+    options.onEnd?.();
+  };
   rec.onend = () => options.onEnd?.();
   return {
-    start: () => rec.start(),
+    start: () => {
+      try {
+        rec.start();
+      } catch (error) {
+        const name =
+          error && typeof error === "object" && "name" in error
+            ? String((error as { name?: string }).name)
+            : "";
+        options.onError?.(name === "NotAllowedError" ? "not-allowed" : "audio-capture");
+        options.onEnd?.();
+      }
+    },
     stop: () => rec.stop(),
   };
 }

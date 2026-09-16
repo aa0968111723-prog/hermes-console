@@ -34,6 +34,7 @@
 
 - 寫入驗證 Origin。CSRF：cookie SameSite + Origin。
 - OAuth state 10 分鐘過期、單次使用。
+- `Permissions-Policy`：相機與定位關閉。麥克風僅允許同源（`microphone=(self)`），給作曲語音輸入；拒絕時畫面寫「無法使用麥克風」，不假裝已聽到。
 - 錯誤分類見 `lib/server/errors.ts`（`AUTH_ERROR` 等）。回應可含 `category`，不回內部 stack 或 token。
 - 確認型操作使用伺服器一次性 confirmation token，前端 `confirmed=true` 不足。
 - 事故：撤銷洩漏憑證、輪替 vault key 前先備份，否則舊密文無法解密。
