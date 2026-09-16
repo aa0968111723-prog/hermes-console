@@ -13,7 +13,7 @@
 | 手機頂欄 | 可用（契約） | Hermes 操作葉片不再蓋住標題殘字。Playwright 斷言 trigger 在選單右側。 |
 | AuthGate | 可用 | `/` 先登入。Google／淡江未設定顯示尚未完成設定。未設定寄件時不出現寄送表單，並顯示「尚未設定寄件，無法寄送登入或重設連結」。驗證按鈕為「完成驗證」。Magic／重設／驗證有 Playwright。 |
 | 身份模型 | 可用 | User / Identity / Session / Membership。禁止 email 自動合併。連結電子信箱要驗證；未設定寄件時不出現連結表單。密碼登入看 email identity 驗證旗標，不是 Google 的 user.emailVerified。 |
-| API 授權 | 可用 | `authenticate()` 要 session + membership。連線／MCP／Zeabur／Canva 授權／runtime bindings 變更走 `authenticateOperator()`（owner／admin）。成員 403 `permission_denied`。Health/ready 仍公開且不含秘密。 |
+| API 授權 | 可用 | `authenticate()` 要 session + membership。連線／MCP／Zeabur／Canva 授權／runtime bindings 變更走 `authenticateOperator()`（owner／admin）。成員 403 `permission_denied`。GET `/api/integrations` 與 `/api/agents` 成員為 `view: normal`，不含工具名與 `*_MCP_TOKEN`。`/api/runtime/tools|mcp|agents|bindings`、`/api/certification`、`/api/usage` 僅 owner／admin。Health/ready 仍公開且不含秘密。 |
 | MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。GET `/api/mcp-registry` 成員只得 status；endpoint／schema 僅 owner／admin。 |
 | 設定分頁 | 可用 | 擁有者／管理者：帳號 / 外觀 / 連線 / 工作區 / 進階。成員看不到連線與進階；API 仍拒絕。 |
 | Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
@@ -40,7 +40,7 @@
 - `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊且可開連線設定；magic redeem；密碼重設；email 驗證；成員看不到連線／進階且 GET credentials 為 403；Google-only 帳號頁不提供未驗證的信箱連結表單。
 - `test:ui`：含 connections-mobile / connection-editor；axe 無 violations。
 - `test:gateway`：閘道／跨來源寫入拒絕。
-- `test:runtime`：owner 可開 Developer 工具詳情；300 工具搜尋；離線重連。
+- `test:runtime`：owner 可開 Developer 工具詳情；300 工具搜尋；離線重連。成員 GET `/api/mcp-registry` 與 `/api/integrations` 為 `view: normal`，不含 endpoint／schema／`_MCP_TOKEN`／工具名。
 - 本輪未重跑：`test:chat`、`test:workbench`。
 
 ## 仍是 Partial（禁止標綠）
