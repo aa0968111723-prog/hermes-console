@@ -16,13 +16,13 @@
 | API 授權 | 可用 | `authenticate()` 要 session + membership。Health/ready 仍公開且不含秘密。 |
 | MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。 |
 | 設定分頁 | 可用 | 帳號 / 外觀 / 連線 / 工作區 / 進階。 |
-| Artifact 連續 | 部分 | `/api/artifacts` restore/fork 文案版本；Canva 設計預覽仍走既有 CanvaResult。 |
+| Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 
 ## 本輪驗證（2026-09-16）
 
-- `npm test`：376 tests, 374 pass, 2 skipped, 0 fail。
+- `npm test`：381 tests, 379 pass, 2 skipped, 0 fail。
 - `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 236 kB（shared 103 kB）。
 - Playwright Chromium：`test:entry` `test:ui` `test:chat` `test:workbench` `test:gateway` `test:runtime` 全過。
 - Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
