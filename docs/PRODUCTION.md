@@ -33,7 +33,7 @@ Optional, honest unconfigured if blank:
 - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
 - `TAMKANG_SSO_*` (do not invent a client)
 - MCP URLs/tokens (`TKU_`, `GALLEY_`, `XUNHE_`, `ATLAS_`, `LUMEN_`, `FRAMELAB_`, `DUIGAO_`, `MCP_BRIDGE_TOKEN`, `CONSOLE_MCP_SERVERS_JSON`)
-- `RESEND_API_KEY` / `CONSOLE_EMAIL_FROM` (needed for verification, magic link, and password reset mail)
+- `RESEND_API_KEY` / `CONSOLE_EMAIL_FROM` (needed for verification, magic link, and password reset mail). Without them the login screen must say **尚未設定寄件，無法寄送登入或重設連結** and must not show a send form.
 - Canva / Zeabur / Instagram / Pinterest
 
 `CONSOLE_ALLOW_LOCAL_ACCESS=true` is loopback-only.
