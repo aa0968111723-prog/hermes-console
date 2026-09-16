@@ -16,6 +16,13 @@ test("composer dock is extracted from HermesConsole", async () => {
   assert.match(composer, /className="composer-area"/);
   assert.match(composer, /placeholder="想做什麼？"/);
   assert.match(composer, /ComposerMenu/);
+  const menu = await readFile(
+    new URL("../components/visual/ComposerMenu.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(menu, />參考</);
+  assert.match(menu, />素材</);
+  assert.doesNotMatch(menu, /參考連結|專案素材/);
   assert.match(composer, /composer-uncertain-hint/);
   assert.match(composer, /!ready/);
   assert.match(consoleUi, /ready=\{\!\!health\}/);

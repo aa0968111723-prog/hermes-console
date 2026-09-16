@@ -103,9 +103,22 @@ try {
   }
   await page.goto(base);
   await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Magic Link" })).toBeVisible();
+  await expect(page.getByLabel("電子信箱")).toBeVisible();
+  await expect(page.getByRole("button", { name: "進入工作區" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "信件登入" })).toBeVisible();
   await expect(page.getByRole("button", { name: "忘記密碼" })).toBeVisible();
   await expect(page.getByText("寄信尚未完成設定")).toBeVisible();
+  const emailBox = await page.getByLabel("電子信箱").boundingBox();
+  const tamkang = page.getByRole("button", { name: "淡江 SSO", exact: true });
+  await expect(tamkang).toBeDisabled();
+  await expect(page.getByText("淡江 SSO 尚未完成設定")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Google", exact: true })).toBeDisabled();
+  await expect(page.getByText("Google 尚未完成設定")).toBeVisible();
+  const tamkangBox = await tamkang.boundingBox();
+  assert.ok(
+    emailBox && tamkangBox && emailBox.y < tamkangBox.y,
+    "email login must sit above unconfigured SSO",
+  );
   await page.screenshot({
     path: join(output, "login-desktop.png"),
     fullPage: true,

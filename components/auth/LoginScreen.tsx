@@ -113,26 +113,6 @@ export default function LoginScreen() {
             {error || notice}
           </p>
         )}
-        <div className="login-providers">
-          {auth.google === "available" ? (
-            <a className="primary" href="/api/auth/google">
-              Google
-            </a>
-          ) : (
-            <button type="button" disabled>
-              Google 尚未完成設定
-            </button>
-          )}
-          {auth.tamkang === "available" ? (
-            <a className="primary" href="/api/auth/tamkang">
-              淡江 SSO
-            </a>
-          ) : (
-            <button type="button" disabled>
-              淡江 SSO 尚未完成設定
-            </button>
-          )}
-        </div>
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -196,7 +176,7 @@ export default function LoginScreen() {
               className="text-button"
               onClick={() => setMode(mode === "magic" ? "enter" : "magic")}
             >
-              {mode === "magic" ? "改用密碼" : "Magic Link"}
+              {mode === "magic" ? "改用密碼" : "信件登入"}
             </button>
             <button
               type="button"
@@ -210,6 +190,32 @@ export default function LoginScreen() {
             )}
           </div>
         )}
+        <div className="login-providers">
+          {auth.google === "available" ? (
+            <a className="primary" href="/api/auth/google">
+              Google
+            </a>
+          ) : (
+            <div className="login-provider">
+              <button type="button" disabled>
+                Google
+              </button>
+              <p>Google 尚未完成設定</p>
+            </div>
+          )}
+          {auth.tamkang === "available" ? (
+            <a className="primary" href="/api/auth/tamkang">
+              淡江 SSO
+            </a>
+          ) : (
+            <div className="login-provider">
+              <button type="button" disabled>
+                淡江 SSO
+              </button>
+              <p>淡江 SSO 尚未完成設定</p>
+            </div>
+          )}
+        </div>
       </section>
     </main>
   );

@@ -41,7 +41,7 @@
 | 圖片評論 | live 契約 | 「這張哪裡可以改？」不走 fast path；有圖才 `workspace_read_material` 並標受眾模擬。對話顯示已讀取海報預覽、UNKNOWN 層級與模擬修改方向；原生 `image_url` 僅在 `HERMES_IMAGE_INPUT=true`，不把檔名或空分數當成已看圖。 |
 | Email 連結 | live 契約 | 已登入使用者可連結 Email 到同一 User；不得因信箱相同合併他人。無效 `#verify`／`#login` 顯示錯誤。 |
 | 第 N 版 | live 契約 | 「第二版字放大」鎖定 `v2`，不得另開無關作品。 |
-| Email 找回 | live 契約 | 登入頁一律顯示 Magic Link／忘記密碼；寄信未設標「寄信尚未完成設定」。 |
+| Email 找回 | live 契約 | 登入頁信箱表單在可用路徑最上方；信件登入／忘記密碼仍顯示。寄信未設標「寄信尚未完成設定」。Google／淡江未設定時按鈕短名，句子當狀態。 |
 | 圖片縮圖 | live 契約 | 列表／附件用 `variant=thumb` WebP 480px；預覽仍用原檔。PDF 為標示封面 SVG，不是頁面擷取。連結只顯示 hostname，不代抓 OG。 |
 | 安全重試 | live 契約 | 僅 `read` 工具對 429／短暫 503／504 做 backoff+jitter。發佈／刪除／空結果／未設定不重試。 |
 | 任務輪詢 | live 契約 | 進行中 3s；閒置 20s。隱藏分頁不打。重連只 refresh，不重送。 |

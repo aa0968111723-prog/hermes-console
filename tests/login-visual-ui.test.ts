@@ -17,8 +17,14 @@ test("login is turtle-first with honest unconfigured providers", async () => {
   assert.match(screen, /淡江 SSO 尚未完成設定/);
   assert.match(screen, /Google 尚未完成設定/);
   assert.match(screen, /寄信尚未完成設定/);
+  assert.match(screen, /信件登入/);
+  assert.doesNotMatch(screen, /Magic Link/);
   assert.match(screen, /建立帳號/);
   assert.doesNotMatch(screen, /建立電子信箱帳號/);
+  assert.ok(
+    screen.indexOf('htmlFor="login-email"') < screen.indexOf("login-providers"),
+    "working email login must appear before unconfigured SSO buttons",
+  );
   assert.match(gate, /LoginMascot/);
   assert.match(css, /\.login-stage/);
   assert.match(css, /\.login-turtle[\s\S]*breathe/);

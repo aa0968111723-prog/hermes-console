@@ -35,7 +35,7 @@ async function sendMail(to: string, subject: string, text: string) {
     throw new ApiError(
       503,
       "AUTH_ERROR",
-      "電子信箱驗證／Magic Link 尚未完成寄信設定。",
+      "電子信箱驗證／信件登入尚未完成寄信設定。",
       "AUTH_ERROR",
     );
   const response = await fetch("https://api.resend.com/emails", {

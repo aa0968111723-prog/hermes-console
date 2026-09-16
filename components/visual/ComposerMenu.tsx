@@ -80,7 +80,7 @@ export default function ComposerMenu({
             }}
           >
             <Link size={18} />
-            參考連結
+            參考
           </button>
           <button
             type="button"
@@ -100,7 +100,7 @@ export default function ComposerMenu({
             }}
           >
             <Folder size={18} />
-            專案素材
+            素材
           </button>
           <small className="sr-only">
             PNG / JPG / WebP / TXT / PDF，每檔 8 MB，每則最多 4 個附件
