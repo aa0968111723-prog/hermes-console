@@ -22,6 +22,15 @@ test("turtle only displays active tool work, not cancelled or uncertain events",
   );
 });
 
+test("turtle queued planning and creating tool states", () => {
+  assert.equal(turtleState(task("queued"), false).id, "planning");
+  const creating = {
+    state: "running" as const,
+    events: [{ toolName: "canva_create", status: "running" }],
+  } as Task;
+  assert.equal(turtleState(creating, false).id, "creating");
+});
+
 test("turtle terminal task and offline states override old tool activity", () => {
   assert.equal(
     turtleState(task("completed", "running"), false).id,
@@ -32,6 +41,6 @@ test("turtle terminal task and offline states override old tool activity", () =>
     "結果待確認",
   );
   assert.equal(turtleState(task("stopping", "running"), false).id, "waiting");
-  assert.equal(turtleState(task("completed"), true).id, "error");
+  assert.equal(turtleState(task("completed"), true).id, "offline");
   assert.equal(turtleState(undefined, false).id, "idle");
 });

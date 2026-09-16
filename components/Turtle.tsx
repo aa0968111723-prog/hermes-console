@@ -3,7 +3,7 @@ import { memo, useEffect, useState } from "react";
 import type { Task } from "@/lib/contracts";
 import { eventState, workingEvent } from "@/lib/client/activity";
 export function turtleState(task: Task | undefined, offline: boolean) {
-  if (offline) return { id: "error", label: "連線待確認" };
+  if (offline) return { id: "offline", label: "離線" };
   if (!task) return { id: "idle", label: "陪你把想法慢慢完成" };
   if (task.state === "failed" || task.state === "uncertain")
     return {
@@ -12,7 +12,9 @@ export function turtleState(task: Task | undefined, offline: boolean) {
     };
   if (task.state === "completed")
     return { id: "success", label: "成果已回來了" };
-  if (task.state === "waiting_user")
+  if (task.state === "queued")
+    return { id: "planning", label: "正在規劃" };
+  if (task.state === "waiting_user" || task.state === "waiting_authorization")
     return { id: "waiting", label: "等待你的確認" };
   if (task.state === "stopping")
     return { id: "waiting", label: "等待 Hermes 確認停止" };
@@ -34,8 +36,8 @@ export function turtleState(task: Task | undefined, offline: boolean) {
       return { id: "searching", label: "正在搜尋設計參考" };
     if (/audience|twin/i.test(name))
       return { id: "thinking", label: "正在建立 Audience Twin" };
-    if (/canva|design|autofill/i.test(name))
-      return { id: "designing", label: "正在呼叫 Canva" };
+    if (/canva|design|autofill|lumen|framelab|duigao/i.test(name))
+      return { id: "creating", label: "正在創作" };
     return { id: "tool", label: "Hermes 正在操作工具" };
   }
   return { id: "thinking", label: "Hermes 正在處理請求" };

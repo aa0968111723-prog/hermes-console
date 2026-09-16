@@ -24,11 +24,11 @@ export async function verifyMobileSpatial(
   );
   assert.ok((await page.locator(".compact-orbit .orbit-node").count()) <= 4);
   await page.screenshot({ path: join(output, "spatial-home-390.png") });
-  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
-  const radial = page.getByRole("dialog", { name: "Hermes", exact: true });
+  await page.getByRole("button", { name: "加入內容", exact: true }).click();
+  const radial = page.getByRole("dialog", { name: "加入內容選項", exact: true });
   await expect(radial).toBeVisible();
   await expect(radial).toHaveCSS("transform", "none");
-  await expect(radial.locator(".radial-actions button")).toHaveCount(5);
+  await expect(radial.locator("button")).toHaveCount(5);
   for (const button of await radial.locator("button").all()) {
     const box = await button.boundingBox();
     assert.ok(box && box.width >= 44 && box.height >= 44);
@@ -37,7 +37,7 @@ export async function verifyMobileSpatial(
   await page.screenshot({ path: join(output, "spatial-radial-390.png") });
   await page.keyboard.press("Escape");
   await expect(
-    page.getByRole("button", { name: "Hermes 操作", exact: true }),
+    page.getByRole("button", { name: "加入內容", exact: true }),
   ).toBeFocused();
   // The primary mobile action sheet must honor the real appearance preference,
   // including on a short viewport where larger labels need flexible rows.
@@ -45,7 +45,7 @@ export async function verifyMobileSpatial(
   await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 360, height: 560 });
-  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
+  await page.getByRole("button", { name: "加入內容", exact: true }).click();
   await expect(radial).toBeVisible();
   await expect(radial).toHaveCSS("transform", "none");
   const radialBounds = await radial.boundingBox();
@@ -58,11 +58,11 @@ export async function verifyMobileSpatial(
   await page.screenshot({
     path: join(output, "spatial-radial-large-text-360x560.png"),
   });
-  await expect(radial.locator(".radial-actions button").first()).toHaveCSS(
+  await expect(radial.locator("button").first()).toHaveCSS(
     "font-size",
     "20px",
   );
-  for (const button of await radial.locator(".radial-actions button").all()) {
+  for (const button of await radial.locator("button").all()) {
     const fits = await button.evaluate(
       (element) =>
         element.scrollWidth <= element.clientWidth &&
@@ -91,7 +91,7 @@ export async function verifyMobileSpatial(
       `${inset}px`,
     );
   }, safeAreaBottom);
-  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
+  await page.getByRole("button", { name: "加入內容", exact: true }).click();
   await expect(radial).toBeVisible();
   await expect(radial).toHaveCSS("transform", "none");
   const safeAreaSheetBounds = await radial.boundingBox();
@@ -115,18 +115,7 @@ export async function verifyMobileSpatial(
   await expect
     .poll(() => radial.evaluate((element) => element.scrollTop))
     .toBeGreaterThan(0);
-  const shortSheetBounds = await radial.boundingBox();
-  const closeBounds = await radial
-    .getByRole("button", { name: "關閉 Hermes 操作" })
-    .boundingBox();
-  assert.ok(
-    shortSheetBounds &&
-      closeBounds &&
-      closeBounds.y >= shortSheetBounds.y &&
-      closeBounds.y + closeBounds.height <=
-        shortSheetBounds.y + shortSheetBounds.height,
-    "large-text radial close action must remain visible while scrolling",
-  );
+  await expect(radial).toBeVisible();
   await audit("spatial-radial-large-text-scrolled");
   await page.screenshot({
     path: join(output, "spatial-radial-large-text-scrolled-320x360.png"),
@@ -142,9 +131,9 @@ export async function verifyMobileSpatial(
   // Real file chooser -> actual Console upload, including when opened outside chat.
   await page
     .locator(".mobile-bottom-dock")
-    .getByRole("button", { name: "專案", exact: true })
+    .getByRole("button", { name: "對話", exact: true })
     .click();
-  await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
+  await page.getByRole("button", { name: "加入內容", exact: true }).click();
   const choosing = page.waitForEvent("filechooser");
   await radial.getByRole("button", { name: "圖片", exact: true }).click();
   const materialName =

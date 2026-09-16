@@ -40,6 +40,7 @@ import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
 import CapabilityCertification from "./settings/CapabilityCertification";
+import AccountSettings from "./settings/AccountSettings";
 import ConnectionSettings from "./settings/ConnectionSettings";
 import SharedMemory from "./settings/SharedMemory";
 import HermesCore from "./visual/HermesCore";
@@ -119,6 +120,7 @@ const taskLabels: Record<string, string> = {
   queued: "準備提交",
   running: "執行中",
   waiting_user: "等待確認",
+  waiting_authorization: "等待授權",
   stopping: "停止確認中",
   completed: "已完成",
   failed: "失敗",
@@ -134,7 +136,7 @@ const connectionLabels: Record<string, string> = {
   failed: "失敗",
 };
 const isActive = (task: Task) =>
-  ["queued", "running", "waiting_user", "stopping"].includes(task.state);
+  ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
 const time = (value: string) =>
   new Date(value).toLocaleString("zh-TW", {
     month: "numeric",
@@ -211,7 +213,6 @@ export default function HermesConsole() {
   const [offline, setOffline] = useState(false);
   const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFS);
   const spatial = useSpatialMode(prefs.animation);
-  const [radialOpen, setRadialOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [legacy, setLegacy] = useState(false);
   const [newProject, setNewProject] = useState("");
@@ -415,6 +416,10 @@ export default function HermesConsole() {
       document.documentElement.style.setProperty(
         "--app-height",
         current.height + "px",
+      );
+      document.documentElement.style.setProperty(
+        "--app-top",
+        (viewport?.offsetTop || 0) + "px",
       );
       const keyboardOpen =
         composerFocused &&
@@ -845,7 +850,7 @@ export default function HermesConsole() {
           aria-label="新增專案"
           onClick={() => {
             setPanel("settings");
-            setSettingsTab("專案");
+            setSettingsTab("工作區");
             setDrawer(false);
           }}
         >
@@ -931,7 +936,7 @@ export default function HermesConsole() {
       data-compact={prefs.compact}
       data-spatial={spatial.mode}
       data-page-visible={spatial.visible}
-      data-sheet-open={!!panel || drawer || radialOpen}
+      data-sheet-open={!!panel || drawer}
     >
       <a className="skip-link" href="#composer">
         跳至輸入區
@@ -972,6 +977,7 @@ export default function HermesConsole() {
           <button
             className="icon-button mobile-toggle"
             aria-label="開啟導覽"
+            hidden
             onClick={() => setDrawer(true)}
           >
             <Menu size={21} />
@@ -1489,7 +1495,7 @@ export default function HermesConsole() {
               }}
               onCreate={() => {
                 setPanel("settings");
-                setSettingsTab("專案");
+                setSettingsTab("工作區");
               }}
             />
             <details className="workbench-disclosure">
@@ -1617,7 +1623,7 @@ export default function HermesConsole() {
             )}
           </section>
         ) : nav === "inspiration" ? (
-          <>
+          <section className="secondary-page">
             <InspirationBoard
               items={inspiration}
               syncStatus={sheetsSync}
@@ -1638,7 +1644,7 @@ export default function HermesConsole() {
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />
             <KnowledgeArchive />
-          </>
+          </section>
         ) : nav === "agents" ? (
           <section className="secondary-page">
             <div className="page-heading-row">
@@ -1646,7 +1652,15 @@ export default function HermesConsole() {
                 <p className="eyebrow">能力</p>
                 <h1>Agent Runtime</h1>
               </div>
-              <VisualStatus health={health} offline={offline} />
+              <div className="page-heading-actions">
+                <VisualStatus health={health} offline={offline} />
+                <button
+                  className="text-button"
+                  onClick={() => navigate("tasks")}
+                >
+                  任務
+                </button>
+              </div>
             </div>
             <RuntimeInspector
               task={currentTask}
@@ -1800,17 +1814,7 @@ export default function HermesConsole() {
           </section>
         )}
       </main>
-      <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
-        onAction={action=>{
-          if(action==="spatial")setPanel("spatial");
-          else if(action==="memory"){setSettingsTab("記憶");setPanel("settings");}
-          else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
-        }}
-        onFiles={files=>{
-          if(files.length+uploads.length+references.length>4){setError("每則訊息最多四個附件。");return;}
-          setNav("chat");files.forEach(file=>uploadFile(file));
-        }}
-      />
+      <AppDock nav={nav} onNavigate={navigate} />
       <dialog
         ref={dialog}
         className={"detail-dialog "+(panel==="spatial"?"spatial-sheet":panel==="preview"?"preview-sheet":"")}
@@ -1844,7 +1848,7 @@ export default function HermesConsole() {
           )}
           {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
             animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
-            onMemory={()=>{setSettingsTab("記憶");setPanel("settings");}}
+            onMemory={()=>{setSettingsTab("工作區");setPanel("settings");}}
             onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
             <>
               <div
@@ -1880,7 +1884,7 @@ export default function HermesConsole() {
                   tabs[next]?.click();
                 }}
               >
-                {["外觀", "連線", "記憶", "使用量", "說明", "專案"].map((tab) => (
+                {["帳號", "外觀", "連線", "工作區", "進階"].map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -1900,7 +1904,9 @@ export default function HermesConsole() {
                 aria-labelledby={"setting-tab-" + settingsTab}
                 tabIndex={0}
               >
-                {settingsTab === "外觀" ? (
+                {settingsTab === "帳號" ? (
+                  <AccountSettings />
+                ) : settingsTab === "外觀" ? (
                   <div className="settings-stack">
                     <p className="muted">
                       固定明亮介面。外觀偏好只儲存在此瀏覽器。
@@ -2143,7 +2149,7 @@ export default function HermesConsole() {
                         ))}
                     </details>
                   </div>
-                ) : settingsTab === "記憶" ? (
+                ) : settingsTab === "工作區" ? (
                   <div className="settings-stack">
                     <h3>記憶與會話</h3>
                     <SharedMemory projectId={project} />
@@ -2194,27 +2200,7 @@ export default function HermesConsole() {
                     {legacy && (
                       <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
                     )}
-                  </div>
-                ) : settingsTab === "使用量" ? (
-                  <div className="settings-stack">
-                    <p>
-                      僅顯示 Hermes
-                      回傳的統計。未知費用不是零，也不推測外部工具費用。
-                    </p>
-                    {tasks.map((t) => (
-                      <details key={t.id}>
-                        <summary>{t.input.slice(0, 40)}</summary>
-                        <TaskUsageSummary task={t} />
-                      </details>
-                    ))}
-                    {!tasks.length && (
-                      <p className="muted">尚無任務使用量資料。</p>
-                    )}
-                  </div>
-                ) : settingsTab === "說明" ? (
-                  <HelpPage />
-                ) : (
-                  <div className="settings-stack">
+                    <h3>專案</h3>
                     <p>
                       目前有 {data.projects.length}{" "}
                       個自訂專案；不包含預設個人工作區。
@@ -2245,6 +2231,23 @@ export default function HermesConsole() {
                         建立專案
                       </button>
                     </form>
+                  </div>
+                ) : (
+                  <div className="settings-stack">
+                    <HelpPage />
+                    <p>
+                      僅顯示 Hermes
+                      回傳的統計。未知費用不是零，也不推測外部工具費用。
+                    </p>
+                    {tasks.map((t) => (
+                      <details key={t.id}>
+                        <summary>{t.input.slice(0, 40)}</summary>
+                        <TaskUsageSummary task={t} />
+                      </details>
+                    ))}
+                    {!tasks.length && (
+                      <p className="muted">尚無任務使用量資料。</p>
+                    )}
                   </div>
                 )}
               </div>

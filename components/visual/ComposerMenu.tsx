@@ -49,7 +49,7 @@ export default function ComposerMenu({
         <div
           id="composer-add-menu"
           className="composer-popover"
-          role="group"
+          role="dialog"
           aria-label="加入內容選項"
         >
           <button

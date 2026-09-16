@@ -2,6 +2,7 @@ import { chromium, webkit, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
+import { signInConsole } from "./playwright-login";
 
 // Browser emulation only. WebKit on CI is not a physical iPhone Safari run.
 export async function verifyMobileEngines(base: string, output: string) {
@@ -21,6 +22,7 @@ export async function verifyMobileEngines(base: string, output: string) {
         errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(base);
+      await signInConsole(page);
       await expect(page.locator(".quick-action")).toHaveCount(4);
       for (const [width, height] of [
         [360, 800],
@@ -73,42 +75,38 @@ export async function verifyMobileEngines(base: string, output: string) {
         page.getByRole("textbox", { name: "訊息", exact: true }),
       ).toHaveValue("幫我找網宣靈感。");
       await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
-      await page
-        .getByRole("button", { name: "Hermes 操作", exact: true })
-        .tap();
-      const menu = page.getByRole("dialog", { name: "Hermes", exact: true });
-      await expect(menu).toBeVisible();
-      await expect(menu).toHaveCSS("transform", "none");
-      await page.screenshot({
-        path: join(output, `spatial-${engine}-radial.png`),
-      });
-      // Explicit failure fixture: no fake memory or stale successful result.
       await page.route("**/api/memory?scope=all", (route) =>
         route.fulfill({
           status: 503,
           json: { error: { message: "[測試] 記憶服務暫時不可用" } },
         }),
       );
-      await menu.getByRole("button", { name: "能力", exact: true }).tap();
+      await page
+        .getByRole("button", { name: "開啟 Hermes 空間", exact: true })
+        .tap();
       const space = page.getByRole("dialog", {
         name: "Hermes 空間",
         exact: true,
       });
+      await expect(space).toBeVisible();
       await expect(space.getByRole("alert")).toContainText(
         "記憶服務暫時不可用",
       );
       await expect(space.locator(".memory-orbs button")).toHaveCount(0);
+      await page.screenshot({
+        path: join(output, `spatial-${engine}-radial.png`),
+      });
       await page.unroute("**/api/memory?scope=all");
       await space.getByRole("button", { name: "重試", exact: true }).tap();
       await expect(space.getByRole("alert")).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(
-        page.getByRole("button", { name: "Hermes 操作", exact: true }),
+        page.getByRole("button", { name: "開啟 Hermes 空間", exact: true }),
       ).toBeFocused();
       for (const [name, shot] of [
         ["專案", "projects"],
         ["靈感", "inspiration"],
-        ["任務", "tasks"],
+        ["Agent", "agents"],
         ["對話", "chat"],
       ]) {
         await page
