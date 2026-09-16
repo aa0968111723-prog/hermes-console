@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { readFile } from "node:fs/promises";
+import { openAppearanceSettings } from "./browser-login";
 export async function verifyMobileSpatial(
   page: Page,
   base: string,
@@ -10,7 +11,7 @@ export async function verifyMobileSpatial(
 ) {
   await page.reload();
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
@@ -41,7 +42,7 @@ export async function verifyMobileSpatial(
   ).toBeFocused();
   // The primary mobile action sheet must honor the real appearance preference,
   // including on a short viewport where larger labels need flexible rows.
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 360, height: 560 });
@@ -136,7 +137,7 @@ export async function verifyMobileSpatial(
     document.documentElement.style.removeProperty("--safe-area-bottom");
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   // Real file chooser -> actual Console upload, including when opened outside chat.
@@ -246,7 +247,7 @@ export async function verifyMobileSpatial(
     document.documentElement.style.removeProperty("--safe-area-top");
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "移除附件" }).click();
@@ -282,7 +283,7 @@ export async function verifyMobileSpatial(
     name: "開啟 Hermes 空間",
     exact: true,
   });
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 320, height: 360 });

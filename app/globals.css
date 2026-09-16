@@ -2706,6 +2706,7 @@ body::before {
   .topbar { min-height: 60px; padding: max(8px, var(--safe-area-top, env(safe-area-inset-top, 0px))) 12px 8px; }
   .connection-pill[data-ready="true"] .connection-label { display: none; }
   .connection-pill[data-ready="true"] { width: 44px; padding: 0; justify-content: center; }
+  .topbar .settings-gear { display: none; }
   .conversation { padding: 10px 14px 18px; }
   .welcome { padding-top: 5px; }.welcome-stage { min-height: 225px; }.hermes-core { height: 220px; }
   .quick-actions { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; }.quick-action { min-height: 72px; border-radius: 17px; padding: 10px 5px; }.quick-action-icon { width: 39px; height: 39px; border-radius: 13px; }.quick-action-label { font-size: 13px; }.quick-action-detail { display: none; }

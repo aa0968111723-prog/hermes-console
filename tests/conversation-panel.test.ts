@@ -23,6 +23,7 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.match(topBar, /創作對話/);
   assert.match(topBar, /aria-label="開啟新對話"/);
   assert.match(topBar, /aria-label="帳號設定"/);
+  assert.match(topBar, /settings-gear/);
   assert.match(topBar, /data-ready=/);
   assert.match(topBar, /const hideTitle = mobile;/);
   assert.match(topBar, /data-compact-title=\{hideTitle \? "true" : "false"\}/);
@@ -40,6 +41,7 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
     css,
     /connection-pill\[data-ready="true"\] \.connection-label \{ display: none/,
   );
+  assert.match(css, /\.topbar \.settings-gear \{ display: none/);
   assert.match(
     css,
     /data-composer-keyboard="open"\] \.welcome \{\s*display: none/,

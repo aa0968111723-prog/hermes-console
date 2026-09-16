@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { verifyVisualStates } from "./visual-states";
 import { verifyMobileSpatial } from "./mobile-spatial";
 import { verifyMobileEngines } from "./mobile-engines";
-import { signInEmail } from "./browser-login";
+import { signInEmail, openAppearanceSettings } from "./browser-login";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -588,7 +588,7 @@ try {
   });
   await page.getByRole("button", { name: "關閉面板" }).click();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
   await page.locator(".mobile-bottom-dock").getByRole("button", { name: "對話", exact: true }).click();
@@ -818,7 +818,7 @@ try {
   await expect(
     restrictedPage.getByRole("textbox", { name: "訊息", exact: true }),
   ).toBeVisible();
-  await restrictedPage.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(restrictedPage);
   await restrictedPage
     .getByRole("combobox", { name: /文字大小/ })
     .selectOption("20");

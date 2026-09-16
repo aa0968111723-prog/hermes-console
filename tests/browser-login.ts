@@ -26,3 +26,15 @@ export async function signInEmail(
     await expect(home).toBeVisible({ timeout: 15_000 });
   }
 }
+
+export async function openAppearanceSettings(page: Page) {
+  const gear = page.getByRole("button", { name: "外觀設定", exact: true });
+  if (await gear.isVisible().catch(() => false)) {
+    await gear.click();
+    return;
+  }
+  await page.getByRole("button", { name: "帳號設定", exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "工作區設定" });
+  await expect(settings).toBeVisible();
+  await settings.getByRole("tab", { name: "外觀", exact: true }).click();
+}

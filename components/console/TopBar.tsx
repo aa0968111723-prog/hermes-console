@@ -86,7 +86,7 @@ export default function TopBar({
         )}
       </div>
       <button
-        className="icon-button"
+        className="icon-button tasks-chip"
         aria-label="任務與成果"
         title="任務與成果"
         onClick={onOpenTasks}
@@ -133,7 +133,7 @@ export default function TopBar({
         )}
       </button>
       <button
-        className="icon-button"
+        className="icon-button settings-gear"
         aria-label="外觀設定"
         onClick={() => onOpenSettings("外觀")}
       >

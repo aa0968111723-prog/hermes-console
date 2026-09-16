@@ -1,4 +1,5 @@
 import { expect, type Page, type Request } from "@playwright/test";
+import { openAppearanceSettings } from "./browser-login";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -46,7 +47,7 @@ export async function verifyVisualStates(
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: join(output, "context-mobile.png") });
   await audit("image-context-mobile");
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("tab", { name: "連線", exact: true }).click();
   await expect(page.getByRole("group", { name: "選擇連線" })).toBeVisible();
   await expect(page.locator(".connection-editor")).toBeHidden();
@@ -391,13 +392,13 @@ export async function verifyVisualStates(
   await page.reload();
   await page.setViewportSize({ width: 1440, height: 1000 });
   // The essential task shortcut must survive turning the decorative pet off.
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("tab", { name: "外觀", exact: true }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.keyboard.press("Escape");
   await expect(page.locator(".turtle")).toHaveCount(0);
   await expect(page.locator(".composer-task-status")).toBeVisible();
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByLabel("顯示龜龜", { exact: true }).check();
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 360, height: 420 });
@@ -721,7 +722,7 @@ export async function verifyVisualStates(
   ).toBeHidden();
   await page.screenshot({ path: join(output, "artifact-fixture.png") });
   await audit("artifact-fixture");
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page
     .getByRole("combobox", { name: /文字大小/ })
     .selectOption("20");
@@ -787,7 +788,7 @@ export async function verifyVisualStates(
     document.documentElement.style.removeProperty("--safe-area-bottom");
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "外觀設定" }).click();
+  await openAppearanceSettings(page);
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
