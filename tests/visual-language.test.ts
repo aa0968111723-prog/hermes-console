@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { seedSession } from "./session-fixture";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-visual-language-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3220";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 
@@ -16,7 +18,6 @@ const { analyzeReference, resolveInspirationUrl } =
   await import("../lib/server/inspiration/engine");
 const { ingestUrl } = await import("../lib/server/inspiration");
 const inspirationRoute = await import("../app/api/inspiration/route");
-const { seedSession } = await import("./session-fixture");
 
 test("tku visual language is provenance-labelled and not a fake IG connection", () => {
   const brief = tkuVisualLanguage();

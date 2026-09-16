@@ -1,10 +1,21 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { Conversation, EMPTY_USAGE, Task, TaskEvent } from "../contracts";
+import {
+  Conversation,
+  DESIGN_WITHOUT_PREVIEW,
+  EMPTY_USAGE,
+  IMAGE_WITHOUT_VISION,
+  RESEARCH_WITHOUT_SOURCES,
+  Task,
+  TaskEvent,
+} from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
+import { isEmptyToolResult, studentHermesError } from "./errors";
+import { studentConnectionMessage } from "./hermes/health-view";
 import {
   deadline,
+  ensureHermesReady,
   health,
   httpError,
   readJSON,
@@ -22,9 +33,11 @@ import {
   windowConversationHistory,
 } from "./context/history";
 import { classifyIntent, isFastTier } from "./orchestrator/intent";
+import { wantsNewVisual } from "./orchestrator/goal";
 import {
   composeTaskInstructions,
   dropOptionalPacks,
+  focusInstructions,
 } from "./orchestrator/instructions";
 import { recordTaskUsage } from "./usage";
 import { attachmentParts, material } from "./materials";
@@ -39,6 +52,9 @@ import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
+import { activity, copyDocument } from "./creative";
+import { workflow, listWorkflows } from "./workflows";
+import { listArtifacts } from "./artifacts";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -55,8 +71,23 @@ export {
   windowConversationHistory,
 } from "./context/history";
 export const active = (t: Task) =>
-  ["queued", "running", "waiting_user", "stopping"].includes(t.state);
+  ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(t.state);
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
+export const taskFocus = z
+  .object({
+    copyId: z.string().uuid().optional(),
+    revision: z.number().int().min(1).max(200).optional(),
+    workflowId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    direction: z.number().int().min(1).max(8).optional(),
+    activityId: z.string().uuid().optional(),
+  })
+  .strict()
+  .refine(
+    (value) => !!(value.copyId || value.workflowId || value.activityId),
+    {
+      message: "接續目標不完整。",
+    },
+  );
 export const taskInput = z
   .object({
     conversationId: z.string().uuid(),
@@ -65,6 +96,7 @@ export const taskInput = z
     attachments: z.array(z.string().uuid()).max(4).default([]),
     mode: z.enum(["creative", "research", "admin"]).optional(),
     budgetMode: z.enum(["fast", "balanced", "deep"]).optional(),
+    focus: taskFocus.optional(),
   })
   .strict();
 function save(owner: string, task: Task) {
@@ -92,12 +124,18 @@ export function taskFor(owner: string, id: string) {
   if (!value) throw new ApiError(404, "not_found", "找不到任務。");
   return value;
 }
+function toolEventHasContent(result: unknown, summary = "") {
+  if (result != null) return !isEmptyToolResult(result);
+  const preview = summary.trim();
+  return preview.length > 0 && preview !== "Hermes 回報工具活動。";
+}
+
 export function hasCompletedToolEvents(task: Task) {
   return task.events.some((event) => {
     const isTool = event.kind === "tool" || Boolean(event.toolName);
     const done =
       event.status === "completed" || event.status === "tool.completed";
-    return isTool && done;
+    return isTool && done && toolEventHasContent(event.result, event.summary);
   });
 }
 function event(
@@ -126,12 +164,125 @@ function event(
   task.events.push(record);
   if (task.events.length > 300) task.events.shift();
 }
+function failedToolEvents(task: Task) {
+  return task.events.filter((event) => {
+    const isTool = event.kind === "tool" || Boolean(event.toolName);
+    return (
+      isTool &&
+      (event.status === "failed" ||
+        event.status === "tool.failed" ||
+        event.status === "uncertain")
+    );
+  });
+}
+
+export { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES };
+
+export function isGroundedSource(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
+export function taskHasGroundedSources(task: Task): boolean {
+  return task.events.some((event) =>
+    (event.sources || []).some(isGroundedSource),
+  );
+}
+
+export function taskHasVisualArtifact(owner: string, task: Task) {
+  const conv = conversation(owner, task.conversationId);
+  const started = Date.parse(task.createdAt) - 2000;
+  if (
+    listArtifacts(owner, conv.projectId).some(
+      (row) => row.source === "copy" && Date.parse(row.createdAt) >= started,
+    )
+  )
+    return true;
+  if (
+    listWorkflows(owner).some(
+      (row) =>
+        row.projectId === conv.projectId &&
+        row.design &&
+        Date.parse(row.updatedAt) >= started,
+    )
+  )
+    return true;
+  return task.events.some((event) => {
+    const done =
+      event.status === "completed" || event.status === "tool.completed";
+    if (!done || !toolEventHasContent(event.result, event.summary))
+      return false;
+    const text =
+      (typeof event.result === "string"
+        ? event.result
+        : JSON.stringify(event.result ?? "")) + event.summary;
+    return /canva\.com\/design|"thumbnail"|preview_url/i.test(text);
+  });
+}
+
+function honestyMark(notice: string): string {
+  if (notice.includes("假裝設計")) return "沒有假裝設計完成";
+  if (notice.includes("假裝已經搜到")) return "沒有假裝已經搜到資料";
+  if (notice.includes("假裝已分析畫面") || notice.includes("假裝已看圖"))
+    return "沒有假裝已分析畫面";
+  return notice;
+}
+
+function honestyNotices(owner: string, task: Task, state: Task["state"]) {
+  if (state !== "completed") return [] as string[];
+  const notices: string[] = [];
+  const visionOff = process.env.HERMES_IMAGE_INPUT !== "true";
+  if (task.goal?.requiresImageAnalysis && visionOff)
+    notices.push(IMAGE_WITHOUT_VISION);
+  if (
+    (task.goal?.requiresResearch || task.goal?.requiresTamkang) &&
+    !taskHasGroundedSources(task)
+  )
+    notices.push(RESEARCH_WITHOUT_SOURCES);
+  const askedForNewVisual =
+    wantsNewVisual(task.input) ||
+    wantsNewVisual(task.goal?.goal || "") ||
+    !!task.focus?.copyId ||
+    !!task.focus?.workflowId;
+  if (
+    task.goal?.requiresDesign &&
+    askedForNewVisual &&
+    !taskHasVisualArtifact(owner, task)
+  )
+    notices.push(DESIGN_WITHOUT_PREVIEW);
+  return notices;
+}
+
+function applyHonestyOutput(task: Task, notices: string[]) {
+  if (!notices.length) return;
+  const body = task.output.trim();
+  const extra = notices.filter((notice) => !body.includes(notice));
+  if (!extra.length) return;
+  task.output = body ? body + "\n\n" + extra.join("\n\n") : extra.join("\n\n");
+}
+
 function finish(
   owner: string,
   task: Task,
   state: Task["state"],
   error: string | null = null,
 ) {
+  if (state === "completed" && failedToolEvents(task).length)
+    event(
+      task,
+      "部分步驟目前做不到，只保留已確認的內容。",
+      "fallback",
+    );
+  const notices = honestyNotices(owner, task, state);
+  for (const notice of notices) {
+    const mark = honestyMark(notice);
+    if (!task.events.some((item) => item.summary.includes(mark)))
+      event(task, notice, "fallback");
+  }
   task.state = state;
   task.error = error;
   task.endedAt = now();
@@ -140,12 +291,13 @@ function finish(
     task,
     error ||
       (state === "completed"
-        ? "Hermes 已回傳完成結果。"
+        ? notices[0] || "Hermes 已回傳完成結果。"
         : state === "cancelled"
           ? "Hermes 已確認停止。"
           : "任務已結束。"),
   );
   if (state === "completed") {
+    applyHonestyOutput(task, notices);
     const conv = conversation(owner, task.conversationId);
     if (
       !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
@@ -160,11 +312,12 @@ function finish(
       });
     conv.updatedAt = now();
     put("conversation", owner, conv);
-    put("agent", owner, {
-      id: "verified",
-      verifiedAt: now(),
-      targetHash: serviceIdentity(),
-    });
+    if (!notices.length)
+      put("agent", owner, {
+        id: "verified",
+        verifiedAt: now(),
+        targetHash: serviceIdentity(),
+      });
     recordTaskUsage(task, {
       agentId: "general",
       projectId: conv.projectId,
@@ -177,6 +330,21 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   for (const id of input.attachments)
     if (material(owner, id).projectId !== conv.projectId)
       throw new ApiError(403, "scope_mismatch", "附件不屬於此專案。");
+  if (input.focus?.copyId) {
+    const doc = copyDocument(owner, input.focus.copyId);
+    if (doc.projectId !== conv.projectId)
+      throw new ApiError(403, "scope_mismatch", "作品不屬於此專案。");
+  }
+  if (input.focus?.workflowId) {
+    const record = workflow(owner, input.focus.workflowId);
+    if (record.projectId !== conv.projectId)
+      throw new ApiError(403, "scope_mismatch", "創作方向不屬於此專案。");
+  }
+  if (input.focus?.activityId) {
+    const record = activity(owner, input.focus.activityId);
+    if (record.projectId !== conv.projectId)
+      throw new ApiError(403, "scope_mismatch", "活動不屬於此專案。");
+  }
   // Validate actual attachment support before reserving a task or transmitting anything.
   await attachmentParts(owner, input.attachments);
   const payloadHash = hash(JSON.stringify(input));
@@ -193,9 +361,13 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     return existing;
   }
   limited("tasks:" + owner, 20, 60_000);
-  const connection = await health(owner);
+  const connection = await ensureHermesReady(owner);
   if (connection.credential !== "valid")
-    throw new ApiError(503, "hermes_not_ready", connection.message);
+    throw new ApiError(
+      503,
+      "hermes_not_ready",
+      studentConnectionMessage(connection),
+    );
   const native =
     connection.features.run_submission &&
     connection.features.run_status &&
@@ -219,9 +391,16 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
-    budgetMode: isFastTier(classifyIntent(input.input))
-      ? "fast"
-      : input.budgetMode || "balanced",
+    budgetMode: input.focus
+      ? input.budgetMode || "balanced"
+      : isFastTier(
+            classifyIntent(input.input, {
+              hasImage: input.attachments.length > 0,
+            }),
+          )
+        ? "fast"
+        : input.budgetMode || "balanced",
+    focus: input.focus || null,
   };
   const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
   if (mode === "research") task.researchBundle = researchBundle({ prompt: input.input });
@@ -348,19 +527,6 @@ async function execute(
     task.goal = orchestration.goal;
     task.plan = orchestration.plan;
     event(task, "已整理目標與可見執行計畫。", "plan");
-    event(
-      task,
-      "意圖 " +
-        orchestration.goal.intentTier +
-        "；budgetMode=" +
-        orchestration.plan.budgetMode +
-        "；歷史 " +
-        windowed.messages.length +
-        " 則（省略 " +
-        windowed.omitted +
-        "）。",
-      "plan",
-    );
     for (const step of orchestration.plan.steps)
       event(task, "計畫：" + step.title, "queued");
     for (const fallback of orchestration.plan.fallbacks)
@@ -382,6 +548,7 @@ async function execute(
       mode,
       text: task.input,
       goal: orchestration.goal,
+      intentTier: task.focus ? "create" : orchestration.goal.intentTier,
     });
     const suffix =
       "\n目前專案識別：" +
@@ -400,7 +567,8 @@ async function execute(
       orchestration.instructions +
       (task.researchBundle
         ? "\n" + formatResearchPlanForInstructions(task.researchBundle)
-        : "");
+        : "") +
+      (focusInstructions(task.focus) ? "\n" + focusInstructions(task.focus) : "");
     const extras =
       (composed.includeFramelabManual ? framelabTaskInstructions() : "") +
       (composed.includeLumenManual ? lumenTaskInstructions() : "");
@@ -433,17 +601,8 @@ async function execute(
       );
     instructions = fitted.instructions;
     const boundedHistory = fitted.history;
-    event(
-      task,
-      "任務輸入估計 " +
-        fitted.estimated +
-        "/" +
-        tokenBudget +
-        " tokens" +
-        (fitted.trimmed || windowed.omitted ? "（已裁切歷史）" : "") +
-        "。",
-      "budget",
-    );
+    if (fitted.trimmed || windowed.omitted)
+      event(task, "內容較長，已整理成這次能送出的範圍。", "budget");
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);
@@ -592,10 +751,12 @@ async function execute(
       throw new ApiError(502, "empty_output", "Hermes 未產生可顯示的回應。");
     finish(owner, task, "completed");
   } catch (error) {
-    const message =
+    const message = studentHermesError(
       error instanceof ApiError
         ? error.message
-        : "Hermes 回應格式異常，請查回任務後再決定是否重試。";
+        : "Hermes 回應格式異常，請查回任務後再決定是否重試。",
+      error instanceof ApiError ? error.code : undefined,
+    );
     const definite =
       error instanceof ApiError &&
       /^(upstream_|session_invalid|client_tools_unsupported|agent_error|empty_output|empty_stream|invalid_stream|frame_too_large|output_limit|token_budget_exceeded)$/.test(
@@ -625,20 +786,25 @@ function toolEvent(task: Task, data: Record<string, unknown>) {
       : typeof data.event === "string"
         ? data.event
         : "running";
-  const state = rawState.replace(/^tool[._]/, "");
+  let state = rawState.replace(/^tool[._]/, "");
   const result =
     typeof data.result === "string"
       ? redact(data.result).slice(0, 20_000)
       : typeof data.output === "string"
         ? redact(data.output).slice(0, 20_000)
-        : null;
-  event(
-    task,
-    typeof data.preview === "string" ? data.preview : "Hermes 回報工具活動。",
-    state,
-    name,
-    result,
-  );
+        : data.result && typeof data.result === "object"
+          ? data.result
+          : data.output && typeof data.output === "object"
+            ? data.output
+            : null;
+  const preview =
+    typeof data.preview === "string" ? data.preview : "Hermes 回報工具活動。";
+  if (
+    (state === "completed" || state === "tool.completed") &&
+    !toolEventHasContent(result, preview)
+  )
+    state = "failed";
+  event(task, preview, state, name, result);
   const last = task.events[task.events.length - 1];
   last.sources = Array.from(
     new Set(
@@ -788,10 +954,12 @@ export async function reconcile(owner: string, id: string) {
     }
     void observe(owner, id);
   } catch (error) {
-    task.observationError =
+    task.observationError = studentHermesError(
       error instanceof ApiError
         ? error.message
-        : "查回任務失敗，保留上次已知狀態。";
+        : "查回任務失敗，保留上次已知狀態。",
+      error instanceof ApiError ? error.code : undefined,
+    );
   }
   return save(owner, task);
 }

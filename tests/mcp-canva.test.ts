@@ -7,10 +7,12 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { seedSession } from "./session-fixture";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-mcp-contract-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "https://console.example";
 // This isolated SDK suite tests tools without a running Hermes task; production defaults true.
 process.env.MCP_REQUIRE_TASK_CONTEXT = "false";

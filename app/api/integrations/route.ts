@@ -1,7 +1,16 @@
-import { ApiError, authenticate, respond, route } from "@/lib/server/security";
-import { health } from "@/lib/server/hermes";
-import { integrationsSnapshot } from "@/lib/server/integrations";
-import { canvaStatus } from "@/lib/server/canva";
+import {
+  ApiError,
+  authenticate,
+  isWorkspaceOperator,
+  respond,
+  route,
+} from "@/lib/server/security";
+import { healthSnapshot } from "@/lib/server/hermes";
+import {
+  integrationsSnapshot,
+  presentIntegration,
+} from "@/lib/server/integrations";
+import { canvaStatus, presentCanvaStatus } from "@/lib/server/canva";
 export const runtime = "nodejs";
 
 const CANVA_UNAVAILABLE = {
@@ -14,8 +23,9 @@ const CANVA_UNAVAILABLE = {
 
 export const GET = route(async (req) => {
   const owner = authenticate(req);
+  const operator = isWorkspaceOperator(req);
   try {
-    const snapshot = integrationsSnapshot(owner, await health(owner));
+    const snapshot = integrationsSnapshot(owner, healthSnapshot(owner));
     let canva: ReturnType<typeof canvaStatus> = CANVA_UNAVAILABLE;
     let degraded = snapshot.degraded;
     try {
@@ -30,8 +40,11 @@ export const GET = route(async (req) => {
       item.evidence = canva.message;
     }
     return respond({
-      integrations: snapshot.integrations,
-      canva,
+      view: operator ? "developer" : "normal",
+      integrations: snapshot.integrations.map((entry) =>
+        presentIntegration(entry, operator),
+      ),
+      canva: presentCanvaStatus(canva, operator),
       degraded,
       ...(degraded
         ? {
@@ -45,8 +58,9 @@ export const GET = route(async (req) => {
   } catch (error) {
     if (error instanceof ApiError) throw error;
     return respond({
+      view: operator ? "developer" : "normal",
       integrations: [],
-      canva: CANVA_UNAVAILABLE,
+      canva: presentCanvaStatus(CANVA_UNAVAILABLE, operator),
       degraded: true,
       error: {
         code: "store_unavailable",

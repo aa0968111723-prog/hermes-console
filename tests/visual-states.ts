@@ -2,6 +2,7 @@ import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES } from "../lib/contracts";
 
 /** Real uploads/settings first; explicitly labelled UI response fixtures second.
  * The fixtures never configure credentials, publish, or contact external providers. */
@@ -49,11 +50,16 @@ export async function verifyVisualStates(
   await page.getByRole("tab", { name: "連線", exact: true }).click();
   await expect(page.getByRole("group", { name: "選擇連線" })).toBeVisible();
   await expect(page.locator(".connection-editor")).toBeHidden();
+  const picker = page.getByRole("group", { name: "選擇連線" });
+  await expect(picker.locator(".connection-state i")).toHaveCount(12);
+  assert.doesNotMatch(
+    await picker.innerText(),
+    /未設定|已驗證|部分可用|待授權|已連線/,
+  );
   await page.screenshot({
     path: join(output, "settings-connections-mobile.png"),
   });
   await audit("connections-mobile");
-  const picker = page.getByRole("group", { name: "選擇連線" });
   for (const name of [
     "GALLEY",
     "淡江",
@@ -71,6 +77,20 @@ export async function verifyVisualStates(
       page.locator(".connection-editor section:visible"),
     ).toHaveCount(1);
   }
+  await picker.getByRole("button", { name: /^GALLEY：/ }).click();
+  await expect(page.locator(".connection-editor section:visible")).toContainText(
+    "進階說明",
+  );
+  await expect(page.locator(".connection-editor")).not.toContainText(
+    "galley_research",
+  );
+  await picker.getByRole("button", { name: /^淡江：/ }).click();
+  await expect(page.locator(".connection-editor section:visible")).toContainText(
+    "不是淡江 SSO",
+  );
+  await expect(
+    page.locator(".connection-editor section:visible").getByLabel("MCP 密碼"),
+  ).toBeHidden();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
     path: join(output, "settings-connections-desktop.png"),
@@ -129,8 +149,8 @@ export async function verifyVisualStates(
       {
         id: "event-1",
         taskId: "ui-fixture-task",
-        toolCallId: "call-1",
-        toolName: "galley_research",
+        toolCallId: "call-1" as string | null,
+        toolName: "galley_research" as string | null,
         status: "running",
         startedAt: now,
         endedAt: null as string | null,
@@ -141,6 +161,19 @@ export async function verifyVisualStates(
         usage: null,
       },
     ],
+    goal: {
+      goal: "[介面測試資料] 研究春日活動參考",
+      audience: null,
+      output: "海報",
+      constraints: [] as string[],
+      requiresResearch: true,
+      requiresDesign: true,
+      requiresAudienceEvaluation: false,
+      requiresTamkang: false,
+      requiresInspiration: false,
+      requiresImageAnalysis: false,
+      intentTier: "create" as const,
+    },
   };
   await page.route("**/api/tasks", (route) =>
     route.fulfill({ json: { tasks: [task] } }),
@@ -242,7 +275,7 @@ export async function verifyVisualStates(
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
     const draft = "[介面測試草稿] 等候工具結果";
     await composer.fill(draft);
-    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究 · GALLEY", exact: true });
+    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究", exact: true });
     await expect(status).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const box = await status.boundingBox();
@@ -279,9 +312,10 @@ export async function verifyVisualStates(
     if ((await eventDetails.getAttribute("open")) !== null)
       await eventSummary.click();
     await expect(eventDetails).not.toHaveAttribute("open", "");
-    await expect(eventSummary).toContainText("研究 · GALLEY");
+    await expect(eventSummary).toContainText("研究");
     await expect(eventSummary).toContainText("執行中");
     await expect(eventSummary).toContainText("[介面測試事件] 研究來源");
+    await expect(eventSummary).not.toContainText("GALLEY");
     await expect(eventSummary).not.toContainText("galley_research");
     if ((width === 390 && height === 420) || width === 1440) {
       await eventSummary.scrollIntoViewIfNeeded();
@@ -306,7 +340,7 @@ export async function verifyVisualStates(
   await expect(page.locator(".conversation")).toContainText("[介面測試段落 24]");
   await expect(page.locator(".composer-task-tool")).toHaveText("工具");
   await expect(page.locator(".composer-task-status")).not.toContainText(task.events[0].toolName);
-  await expect(page.locator(".composer-task-tool")).toHaveAttribute("title", `技術名稱：${task.events[0].toolName}`);
+  await expect(page.locator(".composer-task-tool")).not.toHaveAttribute("title");
   const conversationScroll = page.locator(".conversation-scroll");
   assert.ok(await conversationScroll.evaluate(el => el.scrollHeight > el.clientHeight));
   await conversationScroll.evaluate(el => el.scrollTo(0, el.scrollHeight));
@@ -396,7 +430,20 @@ export async function verifyVisualStates(
     "[介面測試回覆] 已接收一個工具結果。\n\n| 方向 | 用途 |\n| --- | --- |\n| 春日共創 | 活動宣傳 |";
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("完成");
-  await expect(page.locator(".visual-message")).toContainText("1 / 1");
+  await expect(page.locator(".visual-message")).toContainText("過程完成");
+  await expect(page.locator(".visual-message .source-cards")).toContainText(
+    "1 個來源",
+  );
+  await expect(
+    page.locator(".visual-message").getByRole("region", { name: "設計成果預覽" }),
+  ).toBeVisible();
+  assert.equal(
+    await page
+      .locator(".visual-message .canva-result h3")
+      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+    true,
+    "in-chat artifact title must wrap without horizontal overflow",
+  );
   await page.setViewportSize({ width: 390, height: 420 });
   await page.locator(".composer-task-status").click();
   let taskUsage = page.getByRole("dialog", { name: "任務詳情" })
@@ -523,13 +570,135 @@ export async function verifyVisualStates(
     document.documentElement.style.removeProperty("--safe-area-bottom");
   });
   await page.setViewportSize({ width: 390, height: 844 });
+  const mobileTitle = page
+    .getByRole("region", { name: "設計成果預覽" })
+    .locator("h3")
+    .first();
+  await mobileTitle.scrollIntoViewIfNeeded();
+  await expect(mobileTitle).toBeVisible();
+  assert.equal(
+    await mobileTitle.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "in-chat artifact title must wrap on mobile without horizontal overflow",
+  );
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
+  const continueComposer = page.getByRole("textbox", { name: "訊息", exact: true });
+  await expect(continueComposer).toHaveValue("請接續修改這個作品。");
+  await expect(continueComposer).not.toHaveValue(/ui-fixture-artifact-B|workspace_/);
+  await page.screenshot({
+    path: join(output, "continue-artifact-composer.png"),
+  });
+  await page.route("**/api/workflows", (route) =>
+    route.fulfill({ json: { workflows: [] } }),
+  );
+  task.events.push({
+    id: "event-spec-only",
+    taskId: task.id,
+    toolCallId: null,
+    toolName: null,
+    status: "completed",
+    startedAt: now,
+    endedAt: now,
+    summary: DESIGN_WITHOUT_PREVIEW,
+    result: null,
+    sources: [],
+    error: null,
+    usage: null,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(page.locator(".composer-task-status")).toContainText("規格已保留");
+  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
+  await expect(page.locator(".composer-task-status")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.locator(".visual-message")).toContainText("規格已保留");
+  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
+  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
+  await expect(page.locator(".turtle")).toHaveAttribute(
+    "aria-label",
+    /規格已保留/,
+  );
   await expect(
-    page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).toContainText("ui-fixture-artifact-B");
+    page
+      .locator(".visual-message")
+      .getByRole("region", { name: "設計成果預覽" }),
+  ).toHaveCount(0);
+  await page.screenshot({ path: join(output, "design-spec-only-honesty.png") });
+  task.events = task.events.filter((event) => event.id !== "event-spec-only");
+  task.events[0].sources = [];
+  task.events.push({
+    id: "event-no-sources",
+    taskId: task.id,
+    toolCallId: null,
+    toolName: null,
+    status: "completed",
+    startedAt: now,
+    endedAt: now,
+    summary: RESEARCH_WITHOUT_SOURCES,
+    result: null,
+    sources: [],
+    error: null,
+    usage: null,
+  });
+  await page.reload();
+  await expect(page.locator(".composer-task-status")).toContainText(
+    "還沒找到來源",
+  );
+  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
+  await expect(page.locator(".composer-task-status")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.locator(".visual-message")).toContainText("還沒找到來源");
+  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
+  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
+  await expect(page.locator(".turtle")).toHaveAttribute(
+    "aria-label",
+    /還沒找到來源/,
+  );
+  await page.screenshot({
+    path: join(output, "research-without-sources-honesty.png"),
+  });
+  task.events = task.events.filter((event) => event.id !== "event-no-sources");
+  task.events[0].sources = ["https://example.com/reference"];
+  task.goal.requiresImageAnalysis = true;
+  task.events.push({
+    id: "event-unseen",
+    taskId: task.id,
+    toolCallId: null,
+    toolName: null,
+    status: "completed",
+    startedAt: now,
+    endedAt: now,
+    summary: IMAGE_WITHOUT_VISION,
+    result: null,
+    sources: [],
+    error: null,
+    usage: null,
+  });
+  await page.reload();
+  await expect(page.locator(".composer-task-status")).toContainText("還沒看圖");
+  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
+  await expect(page.locator(".composer-task-status")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.locator(".visual-message")).toContainText("還沒看圖");
+  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
+  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
+  await expect(page.locator(".turtle")).toHaveAttribute("aria-label", /還沒看圖/);
+  await page.screenshot({
+    path: join(output, "image-without-vision-honesty.png"),
+  });
+  task.events = task.events.filter((event) => event.id !== "event-unseen");
+  task.goal.requiresImageAnalysis = false;
   task.state = "failed";
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();
@@ -540,16 +709,23 @@ export async function verifyVisualStates(
   await page.keyboard.press("Escape");
   await page.screenshot({ path: join(output, "error-fixture.png") });
     await page.context().setOffline(true);
-  await expect(page.locator(".turtle")).toHaveAttribute(
-    "aria-label",
-    /連線待確認/,
-  );
+  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "offline");
+  await expect(page.locator(".turtle")).toHaveAttribute("aria-label", /離線/);
   await page.setViewportSize({ width: 390, height: 844 });
   // Wait until offline pill replaces prior failed state (avoid flake on 「失敗」).
   await expect(page.locator(".composer-task-status")).toContainText(
     "離線 · 顯示上次資料",
     { timeout: 15_000 },
   );
+  const jump = page.getByRole("button", { name: "回到最新訊息" });
+  if (await jump.isVisible()) {
+    const box = await jump.boundingBox();
+    assert.ok(
+      box && box.width >= 44 && box.height >= 44 && box.x >= 390 / 2,
+      "jump chip must stay on the right and keep a 44px target: " +
+        JSON.stringify(box),
+    );
+  }
   await page.screenshot({ path: join(output, "offline-mobile.png") });
   await page.context().setOffline(false);
   await page.unrouteAll({ behavior: "wait" });

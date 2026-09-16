@@ -13,8 +13,16 @@ import {
   transaction,
   StoreUnavailableError,
 } from "./store";
+import { ApiError, taxonomyFor } from "./errors";
+
+export { ApiError, taxonomyFor } from "./errors";
 
 export const WORKSPACE_OWNER = "workspace";
+export type WorkspaceRole = "owner" | "admin" | "member";
+export const WORKSPACE_OPERATOR_ROLES: readonly WorkspaceRole[] = [
+  "owner",
+  "admin",
+];
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const METADATA_HOSTS = new Set([
   "169.254.169.254",
@@ -119,15 +127,6 @@ export function assertSafeServiceUrl(
   return url;
 }
 
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
 export const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 let extraSecretValues: () => string[] = () => [];
@@ -194,12 +193,99 @@ export function checkOrigin(request: Request) {
     "後端尚未設定 CONSOLE_ORIGIN。",
   );
 }
-export function authenticate(request: Request, mutation = false): string {
+function workspaceRoleOf(membership: unknown): WorkspaceRole | null {
+  const role = (membership as { role?: unknown } | null)?.role;
+  if (role === "owner" || role === "admin" || role === "member") return role;
+  return null;
+}
+
+function sessionToken(request: Request) {
+  const rawSession =
+    (request.headers.get("cookie") || "")
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("hermes_session="))
+      ?.slice("hermes_session=".length) || "";
+  if (/^[a-f0-9]{64}$/.test(rawSession)) return rawSession;
+  if (rawSession) return "";
+  return (
+    (process.env.NODE_TEST_CONTEXT && process.env.CONSOLE_TEST_SESSION) || ""
+  );
+}
+
+export function readWorkspaceRole(request: Request): WorkspaceRole | null {
+  const token = sessionToken(request);
+  if (!/^[a-f0-9]{64}$/.test(token)) return null;
+  try {
+    const session = get<{ userId: string; expires: number }>(
+      "auth_session",
+      "identity",
+      hash(token),
+    );
+    if (!session || session.expires <= Date.now()) return null;
+    return workspaceRoleOf(
+      get("membership", WORKSPACE_OWNER, session.userId),
+    );
+  } catch {
+    return null;
+  }
+}
+
+export function isWorkspaceOperator(request: Request) {
+  const role = readWorkspaceRole(request);
+  return role === "owner" || role === "admin";
+}
+
+export function authenticate(
+  request: Request,
+  mutation = false,
+  roles?: readonly WorkspaceRole[],
+): string {
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
+  const token = sessionToken(request);
+  if (!/^[a-f0-9]{64}$/.test(token))
+    throw new ApiError(401, "sign_in_required", "請先登入。");
+  let session: { userId: string; expires: number } | null = null;
+  let membership: unknown = null;
+  try {
+    session = get<{ userId: string; expires: number }>(
+      "auth_session",
+      "identity",
+      hash(token),
+    );
+    membership = session
+      ? get("membership", WORKSPACE_OWNER, session.userId)
+      : null;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new StoreUnavailableError();
+  }
+  if (!session || session.expires <= Date.now())
+    throw new ApiError(401, "session_expired", "登入已過期，請重新登入。");
+  if (!membership)
+    throw new ApiError(
+      403,
+      "membership_required",
+      "這個帳號還沒有工作區權限。",
+    );
+  if (roles?.length) {
+    const role = workspaceRoleOf(membership);
+    if (!role || !roles.includes(role))
+      throw new ApiError(
+        403,
+        "permission_denied",
+        "這個操作需要工作區管理者權限。",
+      );
+  }
   return WORKSPACE_OWNER;
+}
+
+/** Hermes / MCP / Zeabur credential surfaces. Members may use the workspace, not change secrets. */
+export function authenticateOperator(request: Request, mutation = false) {
+  return authenticate(request, mutation, WORKSPACE_OPERATOR_ROLES);
 }
 
 // Optional deployment-level protection. Not an account login.
@@ -401,7 +487,13 @@ export function route(fn: (req: Request) => Promise<Response>) {
     } catch (error) {
       if (error instanceof ApiError)
         return respond(
-          { error: { code: error.code, message: error.message } },
+          {
+            error: {
+              code: error.code,
+              taxonomy: taxonomyFor(error.code),
+              message: error.message,
+            },
+          },
           error.status,
           error.status === 429 ? { "Retry-After": "60" } : {},
         );
@@ -410,6 +502,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
           {
             error: {
               code: "invalid_input",
+              taxonomy: "INVALID_INPUT",
               message: "輸入格式不正確，請確認欄位與長度。",
             },
           },
@@ -420,6 +513,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
           {
             error: {
               code: "store_unavailable",
+              taxonomy: "NETWORK_ERROR",
               message: "儲存庫無法使用。",
             },
           },
@@ -429,6 +523,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
         {
           error: {
             code: "internal_error",
+            taxonomy: "UNKNOWN",
             message: "操作未完成，請查看設定或重試。",
           },
         },

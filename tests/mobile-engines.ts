@@ -2,6 +2,7 @@ import { chromium, webkit, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
+import { bootstrapOwner } from "./browser-auth";
 
 // Browser emulation only. WebKit on CI is not a physical iPhone Safari run.
 export async function verifyMobileEngines(base: string, output: string) {
@@ -17,11 +18,12 @@ export async function verifyMobileEngines(base: string, output: string) {
         isMobile: true,
         hasTouch: true,
       });
+      await bootstrapOwner(base, context);
       const page = await context.newPage(),
         errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(base);
-      await expect(page.locator(".quick-action")).toHaveCount(4);
+      await expect(page.locator(".quick-action")).toHaveCount(6);
       for (const [width, height] of [
         [360, 800],
         [375, 812],
@@ -108,7 +110,7 @@ export async function verifyMobileEngines(base: string, output: string) {
       for (const [name, shot] of [
         ["專案", "projects"],
         ["靈感", "inspiration"],
-        ["任務", "tasks"],
+        ["Agent", "agents"],
         ["對話", "chat"],
       ]) {
         await page

@@ -28,6 +28,7 @@ import { VISUAL_FORMAT_IDS } from "./creative/formats";
 import { auditEventCopy } from "./qa";
 import { z } from "zod";
 import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
+import { isEmptyToolResult } from "./errors";
 import { runtimeEnv } from "./credentials";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest, canvaStatus } from "./canva";
@@ -858,6 +859,12 @@ async function finishToolCall(
       name === "workspace_read_material" && typeof object.imageData === "string"
         ? object.imageData
         : null;
+    if (isEmptyToolResult(object) && !imageData)
+      throw new ApiError(
+        502,
+        "empty_tool_result",
+        "工具沒有回傳可讀內容，不能算成功。",
+      );
     delete object.imageData;
     const text = redact(JSON.stringify(object));
     if (Buffer.byteLength(text, "utf8") > 1_000_000)

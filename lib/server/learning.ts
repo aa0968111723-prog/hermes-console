@@ -64,7 +64,7 @@ export function learningView(owner: string, node: LearningNode): LearningView {
   let state: LearningView["state"] = "draft";
   if (attempt) {
     if (!task) state = "waiting_configuration";
-    else if (["queued", "running", "waiting_user", "stopping"].includes(task.state)) state = "running";
+    else if (["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state)) state = "running";
     else if (task.state === "completed") state = "review_required";
     else if (task.state === "uncertain") state = "uncertain";
     else state = "failed";

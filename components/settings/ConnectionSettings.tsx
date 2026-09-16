@@ -120,6 +120,15 @@ function secretHint(field?: FieldStatus) {
   );
 }
 
+function ConnectionNote({ children }: { children: ReactNode }) {
+  return (
+    <details className="connection-advanced">
+      <summary>進階說明</summary>
+      <p className="muted">{children}</p>
+    </details>
+  );
+}
+
 export default function ConnectionSettings({
   onChanged,
   canva,
@@ -565,11 +574,10 @@ export default function ConnectionSettings({
                 spellCheck={false}
               />
             </label>
-            <p className="muted">
-              JSON
-              只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江、訊核與
-              GALLEY 可用下方專用欄位。
-            </p>
+            <ConnectionNote>
+              JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江、訊核與
+              GALLEY 用各自卡片設定。
+            </ConnectionNote>
           </section>
           <section
             hidden={selected !== "galley"}
@@ -609,19 +617,16 @@ export default function ConnectionSettings({
               />
               清除已存 GALLEY 權杖
             </label>
-            <p className="muted">
-              Hermes 經工作區工具 galley_research 呼叫 GALLEY。填入部署後的
-              HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端
-              GALLEY_MCP_TOKEN 相同。
-            </p>
+            <ConnectionNote>
+              填公開 HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端相同。
+            </ConnectionNote>
           </section>
           <section hidden={selected !== "atlas"} aria-label="場圖 Atlas MCP">
             <h3>場圖 Atlas MCP</h3>
-            <p className="muted">
+            <ConnectionNote>
               端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 localhost 或 GitHub
-              網址。 權杖與場圖後端 ATLAS_MCP_TOKEN
-              相同。儲存後按「測試場圖連線」，Hermes 即可呼叫 mcp.atlas.*。
-            </p>
+              網址。儲存後按「測試場圖連線」。
+            </ConnectionNote>
             <label>
               場圖 MCP 網址
               <input
@@ -661,12 +666,10 @@ export default function ConnectionSettings({
             aria-label="FrameLab 動畫 MCP"
           >
             <h3>FrameLab 動畫 MCP</h3>
-            <p className="muted">
+            <ConnectionNote>
               端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
-              權杖從 FrameLab 首頁「產生連線權杖」複製，開頭為
-              fl_。儲存後按「測試 FrameLab 連線」，Hermes 即可呼叫
-              mcp.framelab.* 與 framelab_*。
-            </p>
+              權杖從 FrameLab 首頁複製，開頭為 fl_。儲存後按「測試 FrameLab 連線」。
+            </ConnectionNote>
             <label>
               FrameLab MCP 網址
               <input
@@ -703,13 +706,11 @@ export default function ConnectionSettings({
           </section>
           <section hidden={selected !== "lumen"} aria-label="Lumen 創作台">
             <h3>Lumen 創作台</h3>
-            <p className="muted">
+            <ConnectionNote>
               填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub
-              倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN
-              相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫
-              lumen_utter；按「測試 Lumen 連線」確認
-              initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
-            </p>
+              倉庫網址。權杖至少 32 字元。按「測試 Lumen 連線」確認後才算可用。
+              選定方向留給使用者。
+            </ConnectionNote>
             <label>
               Lumen MCP 網址
               <input
@@ -746,11 +747,10 @@ export default function ConnectionSettings({
           </section>
           <section hidden={selected !== "xunhe"} aria-label="訊核即時情報 MCP">
             <h3>訊核即時情報 MCP</h3>
-            <p className="muted">
+            <ConnectionNote>
               填訊核的 Streamable HTTP 端點（路徑 /mcp 或 /api/mcp）。不能填
-              GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表 Hermes
-              能呼叫 xunhe_research。
-            </p>
+              GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表可用。
+            </ConnectionNote>
             <label>
               訊核 MCP 網址
               <input
@@ -787,11 +787,10 @@ export default function ConnectionSettings({
           </section>
           <section hidden={selected !== "planform"} aria-label="Planform 場佈 MCP">
             <h3>Planform 場佈 MCP</h3>
-            <p className="muted">
+            <ConnectionNote>
               填 Planform 的 Streamable HTTP 端點（路徑必須是 /mcp）。不能填 GitHub
-              倉庫網址。儲存後按「測試 Planform 連線」，成功後 Hermes 經工作區 MCP 呼叫
-              planform_run_agent。
-            </p>
+              倉庫網址。儲存後按「測試 Planform 連線」，成功才代表可用。
+            </ConnectionNote>
             <label>
               Planform MCP 網址
               <input
@@ -829,11 +828,10 @@ export default function ConnectionSettings({
 
           <section hidden={selected !== "duigao"} aria-label="對稿工作室 MCP">
             <h3>對稿工作室 MCP</h3>
-            <p className="muted">
+            <ConnectionNote>
               端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
-              權杖從對稿「MCP」頁複製，開頭為 dg_。儲存後按「測試對稿連線」，Hermes
-              即可呼叫 mcp.duigao.* 與 duigao_*。
-            </p>
+              權杖從對稿「MCP」頁複製，開頭為 dg_。儲存後按「測試對稿連線」。
+            </ConnectionNote>
             <label>
               對稿 MCP 網址
               <input
@@ -901,28 +899,55 @@ export default function ConnectionSettings({
               />
               清除已存淡江權杖
             </label>
-            <label>
-              淡江使用者名稱（選用）
-              <input
-                value={tkuUser}
-                onChange={(e) => setTkuUser(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <label>
-              淡江密碼（選用）
-              <input
-                type="password"
-                value={tkuPassword}
-                onChange={(e) => setTkuPassword(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <p className="muted">
-              既有實作以網址加 Bearer 權杖為準。若伺服器在同一來源提供
-              /auth/login、/api/auth/login、/login 或 JSON-RPC
-              auth/login，後端會代為交換權杖；沒有這些端點時請直接貼權杖。
-            </p>
+            <details className="connection-advanced">
+              <summary>MCP 權杖交換（不是淡江 SSO）</summary>
+              <p className="muted">
+                這不是學校登入。學生請用「帳號」分頁的淡江 SSO。只有淡江 MCP
+                伺服器在同一來源提供 /auth/login 時，才用管理者憑證換成 Bearer
+                權杖；沒有該端點時請直接貼權杖。
+              </p>
+              <label>
+                MCP 使用者名稱
+                <input
+                  value={tkuUser}
+                  onChange={(e) => setTkuUser(e.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <label>
+                MCP 密碼
+                <input
+                  type="password"
+                  value={tkuPassword}
+                  onChange={(e) => setTkuPassword(e.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={busy || !tkuUser || !tkuPassword}
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  setNotice("");
+                  try {
+                    const result = (await postJson("settings/tamkang", {
+                      action: "login",
+                      username: tkuUser,
+                      password: tkuPassword,
+                    })) as SettingsPayload;
+                    setTkuUser("");
+                    await afterSave(result, "已用 MCP 憑證交換權杖並探測連線。");
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                以 MCP 憑證交換權杖
+              </button>
+            </details>
           </section>
           <section hidden={selected !== "zeabur"} aria-label="Zeabur 部署">
             <h3>Zeabur 部署</h3>
@@ -1324,31 +1349,6 @@ export default function ConnectionSettings({
             >
               <RefreshCw size={16} />
               測試對稿連線
-            </button>
-            <button
-              hidden={selected !== "tamkang"}
-              type="button"
-              disabled={busy || !tkuUser || !tkuPassword}
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                setNotice("");
-                try {
-                  const result = (await postJson("settings/tamkang", {
-                    action: "login",
-                    username: tkuUser,
-                    password: tkuPassword,
-                  })) as SettingsPayload;
-                  setTkuUser("");
-                  await afterSave(result, "已用校園憑證交換權杖並探測連線。");
-                } catch (e) {
-                  setError((e as Error).message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              以校園憑證交換權杖
             </button>
           </div>
         </form>

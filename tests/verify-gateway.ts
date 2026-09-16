@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { bootstrapOwner } from "./browser-auth";
 
 const data = await mkdtemp(join(tmpdir(), "hermes-gateway-browser-"));
 const backendPort = Number(process.env.GATEWAY_TEST_PORT || 3371);
@@ -121,6 +122,10 @@ try {
   await context.addCookies([
     { name: "gateway_fixture", value: session, url: origin },
   ]);
+  await bootstrapOwner(backend, context, {
+    cookieUrl: origin,
+    headers: { "X-Console-Gateway": secret, Origin: origin },
+  });
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -131,7 +136,10 @@ try {
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
-  await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await expect(page.locator(".connection-pill")).toHaveAttribute(
+    "aria-label",
+    "連線狀態：未設定",
+  );
   assert.equal(
     (await context.request.get(origin + "/api/workspace")).status(),
     200,

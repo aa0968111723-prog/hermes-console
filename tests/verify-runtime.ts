@@ -6,6 +6,7 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
+import { bootstrapOwner } from "./browser-auth";
 
 // Production Console + real Chrome + isolated HTTP discovery fixture.
 // The fixture declares tools; it never pretends to execute Hermes or Canva.
@@ -110,12 +111,18 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
+  await bootstrapOwner(base, context);
   const page = await context.newPage(),
     errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   const inspector = page.getByRole("region", { name: "Hermes Runtime 狀態" });
+  await expect(inspector.locator(".runtime-human-summary")).toBeVisible();
+  await expect(
+    inspector.getByText("fixture_tool_000", { exact: true }),
+  ).not.toBeVisible();
+  await inspector.locator(".runtime-advanced > summary").click();
   await expect(
     inspector.getByText("fixture_tool_000", { exact: true }),
   ).toBeVisible();
@@ -175,8 +182,7 @@ try {
       });
     }
   }
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "任務", exact: true }).click();
+  await page.getByRole("button", { name: "任務與成果", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
@@ -189,7 +195,10 @@ try {
     .click();
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).toHaveValue(/第 2 個方向/);
+  ).toHaveValue("已選定方向 2。請依此製作。");
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).not.toHaveValue(new RegExp(workflow.id));
   const saved = await (
     await context.request.get(base + "/api/workflows")
   ).json();

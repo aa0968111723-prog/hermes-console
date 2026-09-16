@@ -1,0 +1,288 @@
+"use client";
+
+import { useEffect, useState, type FormEvent } from "react";
+
+type Identity = {
+  provider: "google" | "tamkang" | "email";
+  email: string | null;
+  emailVerified: boolean;
+};
+
+type Account = {
+  user: {
+    id: string;
+    name: string;
+    email: string | null;
+    avatarUrl: string | null;
+    emailVerified: boolean;
+  };
+  membership: { role: string } | null;
+  identities: Identity[];
+  sessions: { id: string; current?: boolean; createdAt: string; expiresAt: string }[];
+  providers: {
+    google: { configured: boolean; label: string };
+    tamkang: { configured: boolean; label: string };
+    email: { configured: boolean; mail: boolean; label: string };
+  };
+};
+
+export default function AccountSettings() {
+  const [account, setAccount] = useState<Account | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [confirmOthers, setConfirmOthers] = useState(false);
+
+  async function load() {
+    const response = await fetch("/api/auth", {
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+    if (response.ok) setAccount(await response.json());
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const has = (provider: Identity["provider"]) =>
+    account?.identities.some((row) => row.provider === provider);
+  const emailIdentity = account?.identities.find((row) => row.provider === "email");
+
+  async function logout() {
+    setBusy(true);
+    try {
+      await fetch("/api/auth", {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      window.location.assign("/");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function postAuth(body: unknown) {
+    const response = await fetch("/api/auth", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error?.message || "無法完成。");
+    return result;
+  }
+
+  async function revokeOthers() {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      await postAuth({ action: "revoke_others" });
+      setConfirmOthers(false);
+      setNotice("已結束其他裝置的登入。");
+      await load();
+    } catch (error) {
+      setNotice((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revokeSession(sessionId: string) {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      await postAuth({ action: "revoke_session", sessionId });
+      setNotice("已結束該工作階段。");
+      await load();
+    } catch (error) {
+      setNotice((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function linkEmail(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "link_email", email, password }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || "無法連結。");
+      setNotice(
+        result.verificationSent
+          ? "請至信箱完成驗證後再以密碼登入。"
+          : "已連結電子信箱。",
+      );
+      setPassword("");
+      await load();
+    } catch (error) {
+      setNotice((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!account) return <p className="muted">讀取帳號…</p>;
+
+  return (
+    <div className="settings-stack account-settings">
+      <div className="account-card">
+        {account.user.avatarUrl ? (
+          <img src={account.user.avatarUrl} alt="" width={56} height={56} />
+        ) : (
+          <span className="account-avatar" aria-hidden="true">
+            {(account.user.name || "?").slice(0, 1)}
+          </span>
+        )}
+        <div>
+          <strong>{account.user.name}</strong>
+          <p>{account.user.email || "尚未連結電子信箱"}</p>
+          <p className="muted">
+            {account.membership?.role === "owner"
+              ? "工作區擁有者"
+              : account.membership?.role === "admin"
+                ? "管理者"
+                : "成員"}
+          </p>
+        </div>
+      </div>
+      {notice && (
+        <p className="error" role="alert">
+          {notice}
+        </p>
+      )}
+      <ul className="identity-list">
+        <li>
+          <span>Google</span>
+          <span>{has("google") ? "已連結" : "未連結"}</span>
+          {!has("google") &&
+            (account.providers.google.configured ? (
+              <a href="/api/auth/google?mode=link">連結</a>
+            ) : (
+              <small>{account.providers.google.label}</small>
+            ))}
+        </li>
+        <li>
+          <span>淡江 SSO</span>
+          <span>{has("tamkang") ? "已連結" : "未連結"}</span>
+          {!has("tamkang") &&
+            (account.providers.tamkang.configured ? (
+              <a href="/api/auth/tamkang?mode=link">連結</a>
+            ) : (
+              <small>{account.providers.tamkang.label}</small>
+            ))}
+        </li>
+        <li>
+          <span>電子信箱</span>
+          <span>
+            {has("email")
+              ? emailIdentity?.emailVerified
+                ? "已連結"
+                : "已連結 · 未驗證"
+              : "未連結"}
+          </span>
+        </li>
+      </ul>
+      {!has("email") &&
+        (account.providers.email.mail ? (
+          <form onSubmit={(event) => void linkEmail(event)}>
+            <label>
+              連結電子信箱
+              <input
+                type="email"
+                value={email}
+                autoComplete="email"
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              設定密碼
+              <input
+                type="password"
+                value={password}
+                autoComplete="new-password"
+                minLength={12}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            <button className="primary" disabled={busy}>
+              連結信箱
+            </button>
+          </form>
+        ) : (
+          <p className="muted">尚未設定寄件，無法連結並驗證電子信箱</p>
+        ))}
+      <h3>工作階段</h3>
+      <ul className="session-list">
+        {account.sessions.map((row) => (
+          <li key={row.id}>
+            <span>
+              {row.current ? "目前這台" : "其他裝置"}
+              <span className="muted">
+                {" "}
+                · {new Date(row.createdAt).toLocaleString("zh-TW")}
+              </span>
+            </span>
+            {!row.current && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void revokeSession(row.id)}
+              >
+                結束
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {account.sessions.some((row) => !row.current) &&
+        (confirmOthers ? (
+          <div className="artifact-confirm" role="alertdialog" aria-label="結束其他登入">
+            <p>結束其他裝置的登入？目前這次不會退出。</p>
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => void revokeOthers()}
+            >
+              確定結束
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmOthers(false)}
+            >
+              取消
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmOthers(true)}
+          >
+            結束其他工作階段
+          </button>
+        ))}
+      <button onClick={() => void logout()} disabled={busy}>
+        登出
+      </button>
+    </div>
+  );
+}

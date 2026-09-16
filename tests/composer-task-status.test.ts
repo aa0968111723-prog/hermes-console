@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import type { Task, TaskEvent } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES, type Task, type TaskEvent } from "../lib/contracts";
 import {
   OFFLINE_NOTICE,
   OFFLINE_PILL_LABEL,
@@ -17,7 +17,7 @@ const task = (state: Task["state"], observationError: string | null = null) => (
 
 test("composer exposes observed task state and only active tool evidence", () => {
   assert.deepEqual(composerTaskStatus(task("running"), false), {
-    label: "執行中", tone: "neutral", tool: "研究 · GALLEY",
+    label: "執行中", tone: "neutral", tool: "研究",
     toolName: "galley_research", toolKind: "research",
   });
   for (const [state, label] of Object.entries({ completed: "完成", failed: "失敗", uncertain: "結果待確認", waiting_user: "等待確認", stopping: "停止確認中", cancelled: "已取消" })) {
@@ -27,18 +27,18 @@ test("composer exposes observed task state and only active tool evidence", () =>
   }
 });
 
-test("composer translates known tools and hides unknown technical identifiers", () => {
+test("composer shows student phases, not vendor tool names", () => {
   for (const [name, label] of Object.entries({
-    tamkang_lookup: "查詢 · 淡江",
-    instagram_search: "參考 · Instagram",
-    pinterest_fetch: "參考 · Pinterest",
-    canva_create_design: "創作 · Canva",
-    workspace_get_visual_concepts: "視覺 · 概念規格",
-    planform_layout: "場佈 · Planform",
-    xunhe_research: "研究 · 訊核",
-    audience_twin: "模擬 · 目標客群",
-    console_workspace_context: "整理 · 工作區",
-    hermes_web_search: "搜尋 · 網路",
+    tamkang_lookup: "研究",
+    instagram_search: "靈感",
+    pinterest_fetch: "靈感",
+    canva_create_design: "創作",
+    workspace_get_visual_concepts: "創作",
+    planform_layout: "創作",
+    xunhe_research: "研究",
+    audience_twin: "客群",
+    console_workspace_context: "理解",
+    hermes_web_search: "研究",
     untrusted_vendor_tool_9834: "工具",
   })) {
     const value = task("running");
@@ -72,9 +72,79 @@ test("uncertain and offline never auto-resend or auto-acknowledge via pill actio
   assert.notEqual(recoveryOnReconnectAction() as string, "acknowledge");
 });
 
+test("spec-only design completion is a warning, not a green check", () => {
+  const spec = task("completed");
+  spec.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "workspace_get_visual_concepts",
+      status: "completed",
+      summary: DESIGN_WITHOUT_PREVIEW,
+    } as TaskEvent,
+  ];
+  spec.goal = { requiresDesign: true } as Task["goal"];
+  assert.deepEqual(composerTaskStatus(spec, false), {
+    label: "規格已保留",
+    tone: "warning",
+    tool: null,
+    toolName: null,
+    toolKind: null,
+  });
+  assert.notEqual(composerTaskStatus(task("completed"), false).tone, "warning");
+  assert.equal(composerTaskStatus(task("completed"), false).label, "完成");
+  const failedWithMark = task("failed");
+  failedWithMark.events[0].summary = DESIGN_WITHOUT_PREVIEW;
+  assert.equal(composerTaskStatus(failedWithMark, false).label, "失敗");
+  assert.equal(composerTaskStatus(failedWithMark, false).tone, "error");
+});
+
+test("research without sources is a warning, not a green check", () => {
+  const missing = task("completed");
+  missing.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "galley_research",
+      status: "completed",
+      summary: RESEARCH_WITHOUT_SOURCES,
+    } as TaskEvent,
+  ];
+  missing.goal = { requiresResearch: true } as Task["goal"];
+  assert.deepEqual(composerTaskStatus(missing, false), {
+    label: "還沒找到來源",
+    tone: "warning",
+    tool: null,
+    toolName: null,
+    toolKind: null,
+  });
+});
+
+test("unverified vision is a warning, not a green check", () => {
+  const unseen = task("completed");
+  unseen.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "ask_user",
+      status: "completed",
+      summary: IMAGE_WITHOUT_VISION,
+    } as TaskEvent,
+  ];
+  unseen.goal = { requiresImageAnalysis: true } as Task["goal"];
+  assert.deepEqual(composerTaskStatus(unseen, false), {
+    label: "還沒看圖",
+    tone: "warning",
+    tool: null,
+    toolName: null,
+    toolKind: null,
+  });
+});
+
 test("shortTaskError hides long stacks", () => {
   const stacked = "upstream timeout\n    at runTask (/app/lib/server/tasks.ts:1:1)\n    at processTicks";
   assert.equal(shortTaskError(stacked), "upstream timeout");
+  assert.equal(
+    shortTaskError("Hermes 金鑰無效或已撤銷，請在後端更換。"),
+    "現在沒辦法連到 Hermes。",
+  );
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
   assert.equal(shortTaskError(""), null);
   assert.equal(shortTaskError(null), null);

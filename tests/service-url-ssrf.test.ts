@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-ssrf-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3260";
 process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
 delete process.env.CONSOLE_MCP_SERVERS_JSON;

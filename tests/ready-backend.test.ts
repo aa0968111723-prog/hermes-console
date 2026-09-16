@@ -126,7 +126,11 @@ test("health and ready backend fields omit secrets", async () => {
     assert.equal(healthBody.backend, "sqlite");
     assert.equal(healthBody.dataDir, dataDir);
     assert.equal(healthBody.storeReady, true);
-    assert.ok(healthBody.configSource);
+    assert.equal(healthBody.live, true);
+    assert.equal(healthBody.configSource, undefined);
+    assert.deepEqual(healthBody.models, []);
+    assert.deepEqual(healthBody.skills, []);
+    assert.deepEqual(healthBody.toolsets, []);
     assertNoSecrets(healthBody, [secret]);
   } finally {
     delete process.env.DATABASE_URL;

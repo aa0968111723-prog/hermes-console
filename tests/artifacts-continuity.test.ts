@@ -1,0 +1,218 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { seedSession } from "./session-fixture";
+import type { CopyDocument } from "../lib/creative";
+
+process.env.CONSOLE_DATA_DIR = await mkdtemp(
+  join(tmpdir(), "hermes-artifacts-"),
+);
+process.env.CONSOLE_ORIGIN = "http://localhost:3268";
+process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
+const { cookie } = seedSession();
+
+const { put } = await import("../lib/server/store");
+const {
+  forkArtifact,
+  listArtifacts,
+  restoreArtifact,
+} = await import("../lib/server/artifacts");
+const { copyDocument } = await import("../lib/server/creative");
+const artifacts = await import("../app/api/artifacts/route");
+const {
+  continueActivity,
+  continueCaptionSet,
+  continueCopy,
+  continueCurrentDesign,
+  continueDesign,
+  continueProjectDraft,
+  revisionLabel,
+} = await import("../lib/client/artifacts");
+const { focusInstructions } = await import(
+  "../lib/server/orchestrator/instructions"
+);
+const {
+  assembleContext,
+  formatContextForInstructions,
+} = await import("../lib/server/context/assembler");
+
+function revision(
+  number: number,
+  body: string,
+  activityId: string,
+): CopyDocument["revisions"][number] {
+  return {
+    projectId: "personal",
+    activityId,
+    title: "茶會宣傳 " + number,
+    format: "post",
+    tone: "",
+    audience: "",
+    pages: [{ title: "主視覺", body, visual: "海報" }],
+    materialIds: [],
+    factIds: [],
+    revision: number,
+    at: "2026-01-0" + number + "T00:00:00.000Z",
+    actor: number === 1 ? "hermes" : "owner",
+    activityRevision: 1,
+  };
+}
+
+test("copy artifacts keep stable ids, versions, restore and fork", () => {
+  const activityId = randomUUID();
+  const artifactId = randomUUID();
+  put("copy", "workspace", {
+    id: artifactId,
+    projectId: "personal",
+    activityId,
+    selectedRevision: 1,
+    revisions: [
+      revision(1, "第一版小字", activityId),
+      revision(2, "第二版大字", activityId),
+    ],
+  } satisfies CopyDocument);
+  const listed = listArtifacts("workspace", "personal").filter(
+    (row) => row.source === "copy",
+  );
+  assert.equal(listed.length, 1);
+  assert.equal(listed[0].artifactId, artifactId);
+  assert.equal(listed[0].revision, 1);
+  assert.equal(listed[0].expectedRevision, 2);
+  assert.equal(listed[0].revisions.length, 2);
+  assert.match(listed[0].revisions[1].excerpt || "", /第二版大字/);
+  restoreArtifact("workspace", artifactId, "2", 2);
+  assert.equal(copyDocument("workspace", artifactId).selectedRevision, 2);
+  const forked = forkArtifact(
+    "workspace",
+    artifactId,
+    "1",
+    randomUUID(),
+  );
+  assert.notEqual(forked.id, artifactId);
+  assert.equal(forked.revisions.length, 1);
+  assert.match(forked.revisions[0].pages[0].body, /第一版小字/);
+  const continued = continueCopy(artifactId, 2);
+  assert.match(continued.text, /第 2 版/);
+  assert.doesNotMatch(continued.text, /workspace_/);
+  assert.doesNotMatch(continued.text, new RegExp(artifactId));
+  assert.equal(continued.focus.copyId, artifactId);
+  assert.equal(continued.focus.revision, 2);
+  assert.match(focusInstructions(continued.focus), /workspace_get_copy/);
+  assert.match(focusInstructions(continued.focus), new RegExp(artifactId));
+  assert.equal(revisionLabel(3), "V3");
+  const packed = assembleContext({
+    owner: "workspace",
+    projectId: "personal",
+    goalText: "第二版字放大",
+    budgetMode: "balanced",
+  });
+  assert.ok(packed.items.some((item) => item.source === "artifact"));
+  assert.ok(
+    packed.items.some(
+      (item) =>
+        item.source === "artifact" && item.content.includes(artifactId),
+    ),
+  );
+  const framed = formatContextForInstructions(packed);
+  assert.match(framed, /artifact/);
+  assert.match(framed, /沿用同一作品修改/);
+});
+
+test("student continue lines keep ids and tools off the composer", () => {
+  const workflowId = "ab".repeat(32);
+  const activityId = randomUUID();
+  const design = continueDesign(workflowId);
+  assert.equal(design.text, "請接續修改這個作品。");
+  assert.doesNotMatch(design.text, new RegExp(workflowId));
+  assert.equal(design.focus?.workflowId, workflowId);
+  const unlabeled = continueDesign("ui-fixture-artifact-B");
+  assert.equal(unlabeled.text, "請接續修改這個作品。");
+  assert.equal(unlabeled.focus, undefined);
+  const continuedActivity = continueActivity(activityId);
+  assert.doesNotMatch(continuedActivity.text, new RegExp(activityId));
+  assert.doesNotMatch(continuedActivity.text, /workspace_/);
+  assert.equal(continuedActivity.focus.activityId, activityId);
+  assert.match(
+    focusInstructions(continuedActivity.focus),
+    /workspace_project_context/,
+  );
+  assert.match(
+    focusInstructions(continuedActivity.focus),
+    new RegExp(activityId),
+  );
+  assert.doesNotMatch(continueProjectDraft().text, /workspace_/);
+  assert.doesNotMatch(continueCaptionSet().text, /workspace_/);
+  const older = "ab".repeat(32);
+  const newer = "cd".repeat(32);
+  const current = continueCurrentDesign(
+    [
+      {
+        id: older,
+        projectId: "personal",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        id: newer,
+        projectId: "personal",
+        updatedAt: "2026-02-01T00:00:00.000Z",
+      },
+      {
+        id: "ef".repeat(32),
+        projectId: "other",
+        updatedAt: "2026-03-01T00:00:00.000Z",
+      },
+    ],
+    "personal",
+  );
+  assert.equal(current.focus?.workflowId, newer);
+  assert.doesNotMatch(current.text, new RegExp(newer));
+  assert.equal(
+    continueCurrentDesign([], "personal").text,
+    "請接續我現有的設計。",
+  );
+});
+
+test("artifact restore requires a workspace session", async () => {
+  const previous = process.env.CONSOLE_TEST_SESSION;
+  delete process.env.CONSOLE_TEST_SESSION;
+  try {
+    const unauthorized = await artifacts.POST(
+      new Request("http://localhost:3268/api/artifacts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "http://localhost:3268",
+        },
+        body: JSON.stringify({
+          action: "restore",
+          artifactId: randomUUID(),
+          revisionId: "1",
+          expectedRevision: 1,
+        }),
+      }),
+    );
+    assert.equal(unauthorized.status, 401);
+  } finally {
+    if (previous) process.env.CONSOLE_TEST_SESSION = previous;
+  }
+  const missing = await artifacts.POST(
+    new Request("http://localhost:3268/api/artifacts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "http://localhost:3268",
+        Cookie: cookie,
+      },
+      body: JSON.stringify({
+        action: "restore",
+        artifactId: randomUUID(),
+        revisionId: "1",
+        expectedRevision: 1,
+      }),
+    }),
+  );
+  assert.ok([403, 404].includes(missing.status));
+});

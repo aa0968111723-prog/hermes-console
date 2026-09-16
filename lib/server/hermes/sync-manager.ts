@@ -3,6 +3,7 @@ import { health, serviceIdentity } from "../hermes";
 import { listAgents, capabilityFromHealth } from "../agents";
 import {
   configuredMcp,
+  publicMcpStatus,
   seedRegistry,
   probeMcp,
   type McpEntry,
@@ -170,9 +171,10 @@ export function runtimeDiff(
 }
 function mcpStatus(entry: McpEntry): RuntimeStatus {
   if (!entry.enabled) return "unknown";
-  return entry.status === "failed"
+  const status = publicMcpStatus(entry.status);
+  return status === "failed"
     ? "failed"
-    : ["partial", "verified"].includes(entry.status)
+    : ["partial", "available"].includes(status)
       ? "partial"
       : "unknown";
 }
@@ -288,7 +290,7 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
   if (mcpResult.status === "rejected")
     errors.push("MCP 核准清單或探索失敗，請檢查後端設定。");
   for (const entry of entries) {
-    if (entry.enabled && ["failed", "connected"].includes(entry.status))
+    if (entry.enabled && ["failed", "verifying", "connected"].includes(entry.status))
       errors.push(`MCP ${entry.id} 探索失敗；請檢查授權或服務。`);
     for (const tool of entry.tools)
       tools.push({
@@ -315,7 +317,7 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
           bindingSupported: false,
         },
       });
-    if (entry.enabled && ["failed", "connected"].includes(entry.status))
+    if (entry.enabled && ["failed", "verifying", "connected"].includes(entry.status))
       tools.push(
         ...(before?.tools || [])
           .filter((t) => t.source === "mcp" && t.sourceServer === entry.id)

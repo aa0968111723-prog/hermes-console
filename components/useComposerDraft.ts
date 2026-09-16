@@ -1,6 +1,6 @@
 "use client";
 import { useState, type SetStateAction } from "react";
-import type { Material } from "@/lib/contracts";
+import type { Material, TaskFocus } from "@/lib/contracts";
 
 export type Upload = {
   key: string;
@@ -13,11 +13,13 @@ export type ComposerDraft = {
   text: string;
   uploads: Upload[];
   references: string[];
+  focus: TaskFocus | null;
 };
 export const emptyDraft = (): ComposerDraft => ({
   text: "",
   uploads: [],
   references: [],
+  focus: null,
 });
 
 // Only kept in this tab's memory. Each asynchronous upload retains its original
@@ -47,6 +49,8 @@ export function useComposerDraft(scope: string) {
       updateField("uploads", value),
     setReferences: (value: SetStateAction<string[]>) =>
       updateField("references", value),
+    setFocus: (value: SetStateAction<TaskFocus | null>) =>
+      updateField("focus", value),
     clearDrafts: () => setDrafts({}),
   };
 }

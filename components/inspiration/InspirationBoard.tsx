@@ -90,18 +90,21 @@ export default function InspirationBoard({
           {language.nextSlot.location.value}
           <span className="provenance-pill">{language.nextSlot.location.provenance}</span>
         </p>
-        <p>Visual：{language.nextSlot.visualAgentInput}</p>
-        <p>文案：{language.nextSlot.copywritingAgentInput}</p>
-        {language.nextSlot.beats && (
-          <ol className="story-beats">
-            {language.nextSlot.beats.map((beat) => (
-              <li key={beat.frame}>
-                {beat.frame}. {beat.onImage}
-                <small> ≤{beat.maxChars}字</small>
-              </li>
-            ))}
-          </ol>
-        )}
+        <details className="inspiration-handoff">
+          <summary>交接給設計與文案</summary>
+          <p>Visual：{language.nextSlot.visualAgentInput}</p>
+          <p>文案：{language.nextSlot.copywritingAgentInput}</p>
+          {language.nextSlot.beats && (
+            <ol className="story-beats">
+              {language.nextSlot.beats.map((beat) => (
+                <li key={beat.frame}>
+                  {beat.frame}. {beat.onImage}
+                  <small> ≤{beat.maxChars}字</small>
+                </li>
+              ))}
+            </ol>
+          )}
+        </details>
       </article>
 
       <h2 className="language-section">值得學</h2>
@@ -118,28 +121,31 @@ export default function InspirationBoard({
         ))}
       </ul>
 
-      <div className="handoff-grid">
-        <article className="handoff-card">
-          <p className="eyebrow">給 Visual Agent</p>
-          <p>{language.visualAgent.brief}</p>
-          <p>
-            <strong>做</strong> {language.visualAgent.do.join("、")}
-          </p>
-          <p>
-            <strong>不做</strong> {language.visualAgent.dont.join("、")}
-          </p>
-        </article>
-        <article className="handoff-card">
-          <p className="eyebrow">給 Copywriting Agent</p>
-          <p>{language.copywritingAgent.brief}</p>
-          <p>
-            <strong>做</strong> {language.copywritingAgent.do.join("、")}
-          </p>
-          <p>
-            <strong>不做</strong> {language.copywritingAgent.dont.join("、")}
-          </p>
-        </article>
-      </div>
+      <details className="inspiration-handoff">
+        <summary>給設計與文案的交接</summary>
+        <div className="handoff-grid">
+          <article className="handoff-card">
+            <p className="eyebrow">設計方向</p>
+            <p>{language.visualAgent.brief}</p>
+            <p>
+              <strong>做</strong> {language.visualAgent.do.join("、")}
+            </p>
+            <p>
+              <strong>不做</strong> {language.visualAgent.dont.join("、")}
+            </p>
+          </article>
+          <article className="handoff-card">
+            <p className="eyebrow">文案方向</p>
+            <p>{language.copywritingAgent.brief}</p>
+            <p>
+              <strong>做</strong> {language.copywritingAgent.do.join("、")}
+            </p>
+            <p>
+              <strong>不做</strong> {language.copywritingAgent.dont.join("、")}
+            </p>
+          </article>
+        </div>
+      </details>
 
       <button type="button" disabled={busy} onClick={sync} style={{ minHeight: 44 }}>
         {busy ? "讀取中…" : "匯入已設定來源"}
@@ -174,8 +180,10 @@ export default function InspirationBoard({
         {items.map((item) => (
           <li key={item.id} className="inspiration-card">
             <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-              <span className="inspiration-thumb" aria-hidden="true">
-                {item.platform.toLowerCase().includes("pinterest") ? (
+              <span className={"inspiration-thumb" + (item.image ? " has-photo" : "")} aria-hidden="true">
+                {item.image ? (
+                  <img src={item.image} alt="" loading="lazy" />
+                ) : item.platform.toLowerCase().includes("pinterest") ? (
                   <Image size={21} />
                 ) : (
                   <Link2 size={21} />

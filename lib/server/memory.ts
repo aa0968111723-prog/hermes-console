@@ -3,6 +3,7 @@ import { z } from "zod";
 import { projectKey } from "../creative";
 import { ApiError, redact } from "./security";
 import { get, list, put, remove, storeBackend, probeStore } from "./store";
+import { researchDigest } from "./research-index";
 import type { Health } from "../contracts";
 
 export const memoryKinds = {
@@ -33,6 +34,10 @@ export const memoryInput = z
     createdBy: z.string().trim().min(1).max(80).optional(),
     importance: z.number().min(0).max(1).nullable().optional(),
     confidence: z.number().min(0).max(1).nullable().optional(),
+    layer: z
+      .enum(["conversation", "project", "workspace", "preference", "runtime"])
+      .optional(),
+    conversationId: z.string().trim().min(1).max(80).optional(),
   })
   .strict();
 
@@ -56,6 +61,8 @@ export type SharedMemory = {
   lastUsedAt: string | null;
   /** 0–1 confidence in the content, or null if unset. */
   confidence: number | null;
+  layer: "conversation" | "project" | "workspace" | "preference" | "runtime";
+  conversationId: string | null;
 };
 
 const KIND = "shared_memory";
@@ -77,7 +84,31 @@ function rejectSecrets(value: unknown) {
     throw new ApiError(400, "sensitive_content", "共用記憶不得包含憑證或金鑰。");
 }
 
+export const STALE_MEMORY_DAYS = 30;
+
+export function inferMemoryLayer(
+  kind: SharedMemory["kind"],
+  scope: string,
+  conversationId?: string | null,
+): SharedMemory["layer"] {
+  if (kind === "preference") return "preference";
+  if (conversationId) return "conversation";
+  if (scope === "workspace") return "workspace";
+  return "project";
+}
+
+export function memoryAgeDays(item: SharedMemory, now = Date.now()) {
+  const age = now - Date.parse(item.updatedAt);
+  if (!Number.isFinite(age) || age < 0) return Number.POSITIVE_INFINITY;
+  return age / 86_400_000;
+}
+
+export function isStaleMemory(item: SharedMemory, now = Date.now()) {
+  return memoryAgeDays(item, now) >= STALE_MEMORY_DAYS;
+}
+
 function normalizeMemory(raw: SharedMemory): SharedMemory {
+  const conversationId = raw.conversationId || null;
   return {
     ...raw,
     source: raw.source || "console",
@@ -91,6 +122,9 @@ function normalizeMemory(raw: SharedMemory): SharedMemory {
       typeof raw.confidence === "number" && Number.isFinite(raw.confidence)
         ? Math.min(1, Math.max(0, raw.confidence))
         : null,
+    conversationId,
+    layer:
+      raw.layer || inferMemoryLayer(raw.kind, raw.scope, conversationId),
   };
 }
 
@@ -107,6 +141,22 @@ export function listMemories(owner: string, scope?: string) {
       if (!scope || scope === "all") return true;
       return item.scope === scope || item.scope === "workspace";
     });
+}
+
+/** Memories Hermes may use as task context. Runtime state stays out; conversation rows stay in their thread. */
+export function memoriesForContext(
+  owner: string,
+  projectId?: string,
+  options?: { conversationId?: string | null },
+) {
+  return listMemories(owner, projectId || "workspace").filter((item) => {
+    if (item.layer === "runtime") return false;
+    if (item.layer === "conversation") {
+      if (!options?.conversationId || !item.conversationId) return false;
+      return item.conversationId === options.conversationId;
+    }
+    return true;
+  });
 }
 
 export function saveMemory(
@@ -131,6 +181,8 @@ export function saveMemory(
   )
     throw new ApiError(409, "revision_conflict", "記憶已被更新，請重新讀取後修改。");
   const now = new Date().toISOString();
+  const conversationId =
+    input.conversationId || previous?.conversationId || null;
   return storeOp(() =>
     put(KIND, owner, {
       id: previous?.id || randomUUID(),
@@ -153,6 +205,11 @@ export function saveMemory(
         input.confidence !== undefined
           ? input.confidence
           : (previous?.confidence ?? null),
+      conversationId,
+      layer:
+        input.layer ||
+        previous?.layer ||
+        inferMemoryLayer(input.kind, input.scope, conversationId),
     } satisfies SharedMemory),
   );
 }
@@ -235,8 +292,24 @@ function memoryStoreLabel() {
   return storeBackend() === "postgres" ? "Console Postgres" : "Console SQLite";
 }
 
-export function memoryDigest(owner: string, projectId?: string) {
-  const items = listMemories(owner, projectId || "workspace").slice(0, 8);
+export function memoryDigest(
+  owner: string,
+  projectId?: string,
+  conversationId?: string,
+) {
+  const items = memoriesForContext(owner, projectId || "workspace", {
+    conversationId,
+  })
+    .sort((a, b) => {
+      const staleA = isStaleMemory(a) ? 1 : 0;
+      const staleB = isStaleMemory(b) ? 1 : 0;
+      if (staleA !== staleB) return staleA - staleB;
+      const impA = a.importance ?? 0;
+      const impB = b.importance ?? 0;
+      if (impA !== impB) return impB - impA;
+      return b.updatedAt.localeCompare(a.updatedAt);
+    })
+    .slice(0, 8);
   if (!items.length) return "";
   touchMemories(
     owner,
@@ -244,19 +317,24 @@ export function memoryDigest(owner: string, projectId?: string) {
   );
   const lines = items.map((item) => {
     const body = item.content.replace(/\s+/g, " ").slice(0, 200);
-    const meta: string[] = [`${item.kind}/${item.scope}`];
+    const meta: string[] = [
+      `${item.kind}/${item.scope}`,
+      `layer=${item.layer}`,
+    ];
     if (item.source !== "console") meta.push(`src=${item.source}`);
     if (item.confidence != null)
       meta.push(`conf=${item.confidence.toFixed(2)}`);
     if (item.importance != null)
       meta.push(`imp=${item.importance.toFixed(2)}`);
+    if (isStaleMemory(item)) meta.push("stale");
     return `- [${meta.join(" ")}] ${item.title}：${body}`;
   });
   return (
     "\n工作區共用記憶（" +
     memoryStoreLabel() +
     "，經 Workspace MCP 與任務指示共用；不是 Hermes 遠端記憶鏡像）：\n" +
-    lines.join("\n")
+    lines.join("\n") +
+    researchDigest(6)
   );
 }
 
@@ -292,6 +370,10 @@ export function memoryShareStatus(owner: string, connection?: Health) {
       "importance",
       "lastUsedAt",
       "confidence",
+      "layer",
+      "createdAt",
+      "updatedAt",
+      "scope",
     ] as const,
     notice:
       hermesRemote === "available"

@@ -1,13 +1,21 @@
 import { z } from "zod";
-import { ApiError, authenticate, jsonBody, respond, route } from "@/lib/server/security";
+import {
+  ApiError,
+  authenticate,
+  authenticateOperator,
+  isWorkspaceOperator,
+  jsonBody,
+  respond,
+  route,
+} from "@/lib/server/security";
 import {
   brainVisible,
   capabilityFromHealth,
   listAgentsBestEffort,
-  publicProfile,
+  presentAgentProfile,
   saveAgentDiscovery,
 } from "@/lib/server/agents";
-import { health } from "@/lib/server/hermes";
+import { health, healthSnapshot } from "@/lib/server/hermes";
 import { aggregateUsage } from "@/lib/server/usage";
 import type { Health } from "@/lib/contracts";
 export const runtime = "nodejs";
@@ -29,12 +37,13 @@ function rethrowUnlessStoreFailure(error: unknown) {
 
 export const GET = route(async (req) => {
   const owner = authenticate(req);
+  const operator = isWorkspaceOperator(req);
   try {
     let degraded = false;
     let error = STORE_UNAVAILABLE;
     let connection: Health | null = null;
     try {
-      connection = await health(owner);
+      connection = healthSnapshot(owner);
     } catch (caught) {
       rethrowUnlessStoreFailure(caught);
       degraded = true;
@@ -57,30 +66,34 @@ export const GET = route(async (req) => {
     const agents = snapshot.agents.map((agent) => {
       if (agent.role === "general" && connection?.credential === "valid") {
         const capabilities = capabilityFromHealth(connection);
-        return publicProfile({
-          ...agent,
-          status: connection.reachable ? "reachable" : "configured",
-          reachable: connection.reachable,
-          capabilities,
-          skills: connection.skills,
-          toolsets: connection.toolsets,
-          tools: connection.toolsets.flatMap((item) => item.tools || []),
-          memorySupport: capabilities.memory,
-          sessionSupport: capabilities.sessions,
-          runsSupport: capabilities.runs,
-          lastVerifiedAt: connection.checkedAt,
-          lastError: connection.status === "failed" ? connection.message : null,
-          usage: {
-            totalTokens:
-              (usage.byAgent.general?.tokens as number | null) ?? null,
-            durationMs: usage.averageDurationMs,
+        return presentAgentProfile(
+          {
+            ...agent,
+            status: connection.reachable ? "reachable" : "configured",
+            reachable: connection.reachable,
+            capabilities,
+            skills: connection.skills,
+            toolsets: connection.toolsets,
+            tools: connection.toolsets.flatMap((item) => item.tools || []),
+            memorySupport: capabilities.memory,
+            sessionSupport: capabilities.sessions,
+            runsSupport: capabilities.runs,
+            lastVerifiedAt: connection.checkedAt,
+            lastError: connection.status === "failed" ? connection.message : null,
+            usage: {
+              totalTokens:
+                (usage.byAgent.general?.tokens as number | null) ?? null,
+              durationMs: usage.averageDurationMs,
+            },
+            model: connection.models[0] || agent.model,
           },
-          model: connection.models[0] || agent.model,
-        });
+          operator,
+        );
       }
-      return publicProfile(agent);
+      return presentAgentProfile(agent, operator);
     });
     return respond({
+      view: operator ? "developer" : "normal",
       agents,
       brain: agents
         .filter(brainVisible)
@@ -90,6 +103,7 @@ export const GET = route(async (req) => {
   } catch (error) {
     rethrowUnlessStoreFailure(error);
     return respond({
+      view: operator ? "developer" : "normal",
       agents: [],
       brain: [],
       degraded: true,
@@ -98,7 +112,7 @@ export const GET = route(async (req) => {
   }
 });
 export const POST = route(async (req) => {
-  const owner = authenticate(req, true);
+  const owner = authenticateOperator(req, true);
   z.object({ refresh: z.literal(true) })
     .strict()
     .parse(await jsonBody(req));

@@ -253,7 +253,7 @@ export function publicSettings() {
     },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
-      "此設定頁沒有邀請登入或閘道保護。能開啟網站的人都可以覆寫連線憑證與 Zeabur 部署。",
+      "變更連線憑證需要工作區擁有者或管理者。秘密只存在後端，不會傳回瀏覽器。",
   };
 }
 

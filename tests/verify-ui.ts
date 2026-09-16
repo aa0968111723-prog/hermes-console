@@ -5,9 +5,10 @@ import { verifyMobileSpatial } from "./mobile-spatial";
 import { verifyMobileEngines } from "./mobile-engines";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { bootstrapOwner } from "./browser-auth";
 
 // Real browser + real Console backend, isolated temporary workspace/data.
 // No Hermes/Canva credentials: screenshots show honest unconfigured status.
@@ -74,6 +75,7 @@ try {
   `,
   });
   const page = await context.newPage();
+  await bootstrapOwner(base, context);
   const accessibility: { page: string; violations: unknown[] }[] = [];
   async function audit(name: string) {
     const result = await new AxeBuilder({ page })
@@ -90,28 +92,20 @@ try {
   }
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  async function assertNoLogin(target = page) {
+  async function assertNoInvitationGate(target = page) {
     const text = await target.locator("body").innerText();
     for (const word of [
-      "Login",
-      "Sign In",
-      "帳號",
-      "Username",
-      "Password",
-      "登入",
-      "註冊",
       "受邀電子信箱",
-      "寄送登入連結",
       "歡迎回到 Hermes",
       "正在驗證工作區存取",
     ])
-      assert.ok(!text.includes(word), "forbidden visible text: " + word);
+      assert.ok(!text.includes(word), "invitation UI visible: " + word);
   }
   await page.goto(base);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
-  await assertNoLogin();
+  await assertNoInvitationGate();
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
   assert.equal(
     (await context.request.get(base + "/api/workspace")).status(),
@@ -129,8 +123,11 @@ try {
     .evaluate((image: HTMLImageElement) => image.decode());
   await audit("home-desktop");
   const initialMetrics = await page.evaluate("window.__metrics");
-  await assertNoLogin();
-  await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await assertNoInvitationGate();
+  await expect(page.locator(".connection-pill")).toHaveAttribute(
+    "aria-label",
+    "連線狀態：未設定",
+  );
   await expect(page.locator(".quick-action-label")).toHaveCount(6);
   for (const label of await page
     .locator(".quick-action-label")
@@ -206,7 +203,7 @@ try {
       "send button occluded at " + width,
     );
     const mascot = await page.locator(".turtle").boundingBox();
-    await expect(page.locator(".quick-action")).toHaveCount(width<=760 ? 4 : 6);
+  await expect(page.locator(".quick-action")).toHaveCount(6);
     const columns = await page
       .locator(".quick-actions")
       .evaluate(
@@ -223,6 +220,12 @@ try {
         dock && send && send.y + send.height <= dock.y,
         "bottom dock overlaps send at "+width+": "+JSON.stringify({send,dock}),
       );
+      const menu = await page.getByRole("button", { name: "開啟導覽" }).boundingBox();
+      const actions = await page.getByRole("button", { name: "Hermes 操作", exact: true }).boundingBox();
+      assert.ok(
+        menu && actions && actions.x + 1 >= menu.x + menu.width,
+        "Hermes 操作 must not cover the menu at "+width,
+      );
     }
     const composer = await page.locator(".composer").boundingBox();
     assert.ok(
@@ -238,21 +241,20 @@ try {
         path: join(output, "home-desktop.png"),
         fullPage: true,
       });
-    if (name === "mobile-390")
+    if (name === "mobile-390") {
       await page.screenshot({
         path: join(output, "home-mobile.png"),
         fullPage: true,
       });
+      await page.screenshot({
+        path: join(output, "chat-mobile.png"),
+        fullPage: true,
+      });
+    }
   }
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  const mobileNavigation = page
-    .getByRole("dialog")
-    .filter({ has: page.getByRole("navigation") });
-  await mobileNavigation
-    .getByRole("button", { name: "Agent", exact: true })
-    .click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Agent Runtime", exact: true }),
+    page.getByRole("heading", { name: "能力", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Hermes Runtime 狀態" }),
@@ -278,10 +280,7 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "任務", exact: true })
-    .click();
+  await page.getByRole("button", { name: "任務與成果", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
@@ -289,9 +288,9 @@ try {
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();
-  await mobileNavigation
-    .getByRole("button", { name: "靈感", exact: true })
-    .click();
+  await page.screenshot({ path: join(output, "drawer-mobile.png") });
+  await page.keyboard.press("Escape");
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "靈感", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
@@ -319,12 +318,18 @@ try {
   ).toContainText("測試來源暫時不可用");
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
-  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "專案", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-scroll-mode", "page");
+  assert.ok(
+    await page.locator(".workspace-main").evaluate((el) => {
+      const style = getComputedStyle(el);
+      return style.overflowY === "auto" || style.overflowY === "scroll";
+    }),
+    "project page must own vertical scroll",
+  );
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
+  await page.screenshot({ path: join(output, "project.png"), fullPage: true });
   await page.locator(".reference-disclosure > summary").click();
   await page
     .getByRole("textbox", { name: "參考標題" })
@@ -337,20 +342,15 @@ try {
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "專案", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "對話", exact: true })
-    .click();
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "對話", exact: true }).click();
+  await expect(page.locator(".app-shell")).toHaveAttribute("data-scroll-mode", "chat");
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);
@@ -364,13 +364,41 @@ try {
   await page.getByRole("tab", { name: "外觀", exact: true }).focus();
   await page.keyboard.press("End");
   await expect(
-    page.getByRole("tab", { name: "專案", exact: true }),
+    page.getByRole("tab", { name: "進階", exact: true }),
   ).toBeFocused();
-  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("專案");
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("進階");
   await page.keyboard.press("Home");
   await expect(
-    page.getByRole("tab", { name: "外觀", exact: true }),
+    page.getByRole("tab", { name: "帳號", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  const accountPanel = page.getByRole("tabpanel", { name: "帳號" });
+  await expect(accountPanel.getByText("目前這台")).toBeVisible();
+  await expect(accountPanel.getByText("其他裝置")).toBeVisible();
+  await expect(accountPanel.getByText("Google 登入尚未完成設定")).toBeVisible();
+  await expect(accountPanel.getByText("淡江 SSO 尚未完成設定")).toBeVisible();
+  await expect(accountPanel.getByRole("button", { name: "登出", exact: true })).toBeVisible();
+  assert.doesNotMatch(await accountPanel.innerText(), /[a-f0-9]{64}/);
+  await page.screenshot({
+    path: join(output, "settings-account.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: join(output, "settings-account-mobile.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await accountPanel.getByRole("button", { name: "結束其他工作階段" }).click();
+  await expect(
+    accountPanel.getByRole("alertdialog", { name: "結束其他登入" }),
+  ).toBeVisible();
+  await accountPanel.getByRole("button", { name: "確定結束" }).click();
+  await expect(accountPanel.getByRole("alert")).toContainText(
+    "已結束其他裝置的登入",
+  );
+  await expect(accountPanel.getByText("目前這台")).toBeVisible();
+  await expect(accountPanel.getByRole("button", { name: "結束其他工作階段" })).toHaveCount(0);
+  await page.getByRole("tab", { name: "外觀", exact: true }).click();
   await audit("settings-appearance");
   await page.screenshot({
     path: join(output, "settings-desktop.png"),
@@ -379,6 +407,10 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: join(output, "settings-mobile-390.png"),
+    fullPage: true,
+  });
+  await page.screenshot({
+    path: join(output, "modal.png"),
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -418,8 +450,81 @@ try {
   await textarea.fill("B 獨立草稿");
   await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
   await expect(textarea).toHaveValue("A 尚未送出的內容");
-  await expect(page.locator(".upload-chip")).toContainText("draft-a.txt");
+  await expect(
+    page.getByRole("button", { name: "預覽附件：draft-a.txt" }),
+  ).toBeVisible();
   await expect(page.locator(".upload-chip")).toContainText("已保存");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#composer input[type="file"]').setInputFiles({
+    name: "poster.png",
+    mimeType: "image/png",
+    buffer: await readFile("public/mascot/turtle.png"),
+  });
+  const posterChip = page.locator(".upload-chip").filter({
+    has: page.getByRole("button", { name: "預覽附件：poster.png" }),
+  });
+  await expect(posterChip.locator("img")).toBeVisible();
+  await expect(posterChip).toContainText("已保存", { timeout: 30_000 });
+  assert.ok(
+    await posterChip
+      .locator("img")
+      .evaluate(
+        (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
+      ),
+  );
+  const imageNotice = page.locator(".composer-image-notice");
+  await expect(imageNotice).toBeVisible();
+  await expect(imageNotice).toHaveText(
+    "圖片已保存。還沒驗證看圖，送出後只會根據你的文字，不會假裝已看過圖片。",
+  );
+  await expect(imageNotice).not.toContainText(/像素|部署端|金鑰|環境變數/);
+  const composerBox = await page.locator(".composer").boundingBox();
+  const fileChip = await page
+    .getByRole("button", { name: "預覽附件：draft-a.txt" })
+    .boundingBox();
+  const imageChip = await page
+    .getByRole("button", { name: "預覽附件：poster.png" })
+    .boundingBox();
+  const imageRemove = await posterChip
+    .getByRole("button", { name: "移除附件" })
+    .boundingBox();
+  assert.ok(composerBox && fileChip && imageChip && imageRemove);
+  for (const box of [fileChip, imageChip, imageRemove]) {
+    assert.ok(
+      box.x >= composerBox.x - 1 &&
+        box.y >= composerBox.y - 1 &&
+        box.x + box.width <= composerBox.x + composerBox.width + 1 &&
+        box.y + box.height <= composerBox.y + composerBox.height + 1,
+      "attachment chip clipped by composer: " + JSON.stringify({ box, composerBox }),
+    );
+  }
+  assert.ok(
+    imageRemove.width >= 44 && imageRemove.height >= 44,
+    "image remove target smaller than 44px: " + JSON.stringify(imageRemove),
+  );
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    "horizontal overflow after two composer attachments at 390",
+  );
+  const sendWithImage = await page
+    .getByRole("button", { name: "送出訊息", exact: true })
+    .boundingBox();
+  assert.ok(
+    sendWithImage && sendWithImage.y + sendWithImage.height <= 844,
+    "unverified-image notice must not push send off the 390×844 viewport",
+  );
+  await page.screenshot({
+    path: join(output, "chat-image-unverified.png"),
+    fullPage: true,
+  });
+  await posterChip.getByRole("button", { name: "移除附件" }).click();
+  await expect(imageNotice).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "預覽附件：draft-a.txt" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.unroute("**/api/materials?projectId=personal");
   await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
   await expect(textarea).toHaveValue("B 獨立草稿");
@@ -513,6 +618,10 @@ try {
     path: join(output, "composer-keyboard-390x420.png"),
     clip: { x: 0, y: 0, width: 390, height: 420 },
   });
+  await page.screenshot({
+    path: join(output, "keyboard.png"),
+    clip: { x: 0, y: 0, width: 390, height: 420 },
+  });
   await page.evaluate(() => {
     if (!window.visualViewport) return;
     Reflect.deleteProperty(window.visualViewport, "height");
@@ -538,6 +647,7 @@ try {
     Object.defineProperty(Storage.prototype, method, { value: function () { throw new DOMException("Storage denied", "SecurityError"); } });
   }`,
   });
+  await bootstrapOwner(base, restricted);
   const restrictedPage = await restricted.newPage();
   restrictedPage.on("pageerror", (e) => errors.push(e.message));
   await restrictedPage.goto(base);
@@ -585,7 +695,7 @@ try {
     "axe violations; inspect browser-report.json",
   );
   console.log(
-    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
+    "PASS: authenticated workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
 } catch (error) {

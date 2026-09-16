@@ -8,6 +8,8 @@ import { randomBytes } from "node:crypto";
 import { constants } from "node:fs";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-cred-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3233";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
@@ -180,7 +182,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     tku.close();
   });
 
-  await t.test("GET credentials is open like the no-login workspace", async () => {
+  await t.test("GET credentials requires the workspace session and hides secrets", async () => {
     const response = await credentials.GET(request("settings/credentials"));
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -188,7 +190,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
     assert.equal(body.galley.state, "unconfigured");
-    assert.match(body.openSettingsWarning, /沒有邀請登入或閘道保護/);
+    assert.match(body.openSettingsWarning, /擁有者或管理者/);
     assert.equal(body.zeabur.token.configured, false);
     assert.match(body.zeabur.notice, /覆寫權杖/);
   });
@@ -304,8 +306,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     );
     assert.equal(probed.status, 200);
     const result = await probed.json();
-    assert.ok(["partial", "connected", "verified", "failed"].includes(result.tamkang.state));
-    assert.ok(["partial", "connected", "verified", "failed"].includes(result.probe.status));
+    assert.ok(["unconfigured", "verifying", "available", "partial", "failed"].includes(result.tamkang.state));
+    assert.ok(["unconfigured", "verifying", "available", "partial", "failed"].includes(result.probe.status));
     assert.ok(!JSON.stringify(result).includes(tkuToken));
   });
 
@@ -386,5 +388,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.doesNotMatch(ui, /tku-exchanged-token/);
     assert.doesNotMatch(ui, />帳號</);
     assert.doesNotMatch(ui, />登入</);
+    assert.doesNotMatch(ui, /galley_research|lumen_utter|planform_run_agent/);
+    assert.doesNotMatch(ui, /淡江密碼/);
+    assert.match(ui, /不是淡江 SSO/);
   });
 });

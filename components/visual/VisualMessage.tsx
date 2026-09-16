@@ -1,44 +1,81 @@
-import { ExternalLink, Search, Check, Circle } from "lucide-react";
-import type { Task } from "@/lib/contracts";
-import { eventState, safeSource } from "@/lib/client/activity";
+import { ExternalLink, Search, Check, Circle, CircleHelp } from "lucide-react";
+import type { Task, TaskFocus } from "@/lib/contracts";
+import {
+  artifactsForConversation,
+  progressSteps,
+  safeSource,
+  studentHonestyLabel,
+  studentProcessDone,
+  visualProcessCaption,
+} from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
+import ArtifactStage from "./ArtifactStage";
+
 export default function VisualMessage({
   task,
   onInspect,
+  workflows = [],
+  projectId,
+  onContinue,
 }: {
   task?: Task;
   onInspect: () => void;
+  workflows?: {
+    id: string;
+    projectId: string;
+    design: Record<string, unknown> | null;
+  }[];
+  projectId?: string;
+  onContinue?: (text: string, focus?: TaskFocus) => void;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
   const sources = [...new Set(task.events.flatMap((event) => event.sources))]
     .map(safeSource)
     .filter((value): value is string => !!value);
-  const calls = new Map<string, string>();
-  for (const event of task.events)
-    if (event.toolName)
-      calls.set(event.toolCallId || event.toolName, eventState(event));
-  const completed = [...calls.values()].filter(
-    (state) => state === "completed",
-  ).length;
+  const steps = progressSteps(task);
   const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
-  if (!sources.length && !calls.size && !twinPanel && !layout) return null;
+  const artifacts = artifactsForConversation(
+    task,
+    workflows,
+    projectId || "",
+  );
+  if (
+    !sources.length &&
+    !artifacts.length &&
+    !twinPanel &&
+    !layout &&
+    !steps.length
+  )
+    return null;
+  const honesty = studentHonestyLabel(task);
+  const done = studentProcessDone(task, steps);
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
-      {!!calls.size && (
+      {!!steps.length && (
         <button className="tool-result-summary" onClick={onInspect}>
-          {completed === calls.size ? (
+          {done ? (
             <Check size={15} />
+          ) : honesty ? (
+            <CircleHelp size={15} />
           ) : (
             <Circle size={15} />
           )}
-          {completed} / {calls.size} 個工具完成
+          {visualProcessCaption(task, steps)}
         </button>
       )}
+      {artifacts.map((item) => (
+        <ArtifactStage
+          key={item.id}
+          design={item.design}
+          continueId={item.id}
+          onContinue={onContinue}
+        />
+      ))}
       {!!sources.length && (
         <details className="source-cards">
           <summary>

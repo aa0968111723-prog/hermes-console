@@ -7,6 +7,8 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-galley-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3233";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_REQUIRE_GATEWAY = "false";

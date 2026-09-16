@@ -94,10 +94,12 @@ export default function RuntimeInspector({
   task,
   health = null,
   animation = true,
+  developer = false,
 }: {
   task?: Task;
   health?: Health | null;
   animation?: boolean;
+  developer?: boolean;
 }) {
   const [snapshot, setSnapshot] = useState<HermesRuntimeSnapshot | null>(null);
   const [stale, setStale] = useState(false);
@@ -220,17 +222,16 @@ export default function RuntimeInspector({
     stale || snapshot?.status === "stale"
       ? "stale"
       : snapshot?.status || "unknown";
-  const availableTools =
-    snapshot?.tools.filter(
-      (tool) => tool.enabled && tool.status === "available",
-    ).length || 0;
+  const toolsReady = snapshot?.tools.some(
+    (tool) => tool.enabled && tool.status === "available",
+  );
+  const mcpReady = (snapshot?.mcpServers || []).some(
+    (server) =>
+      server.enabled && ["available", "partial"].includes(server.status),
+  );
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>
-        <div>
-          <p className="eyebrow">系統狀態</p>
-          <h2>能力中心</h2>
-        </div>
         <div className="runtime-actions">
           <button onClick={() => void refresh()} disabled={busy}>
             <RefreshCw size={15} />
@@ -269,14 +270,6 @@ export default function RuntimeInspector({
         </span>
         <span>
           <i
-            className={!stale && availableTools > 0 ? "good" : "unknown"}
-            aria-hidden="true"
-          />
-          工具{" "}
-          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未知"}
-        </span>
-        <span>
-          <i
             className={
               !stale && snapshot?.memorySupport === "available"
                 ? "good"
@@ -285,6 +278,20 @@ export default function RuntimeInspector({
             aria-hidden="true"
           />
           記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+        </span>
+        <span>
+          <i
+            className={!stale && toolsReady ? "good" : "unknown"}
+            aria-hidden="true"
+          />
+          工具 {snapshot ? (toolsReady ? "可用" : "未就緒") : "未知"}
+        </span>
+        <span>
+          <i
+            className={!stale && mcpReady ? "good" : "unknown"}
+            aria-hidden="true"
+          />
+          MCP {snapshot ? (mcpReady ? "可用" : "未就緒") : "未知"}
         </span>
         {!stale && snapshot?.status === "available" && (
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />
@@ -296,55 +303,52 @@ export default function RuntimeInspector({
         stale={stale}
         animation={animation}
       />
-      {snapshot && (
-        <>
-          <p className="muted">
-            探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
-          </p>
-          <label>
-            搜尋工具用途
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setLimit(100);
-              }}
-              placeholder="例如：活動、草稿、search"
-            />
-          </label>
-          <div className="runtime-tool-groups">
-            {groups.map(([source, tools]) => (
-              <details key={source} open>
-                <summary>
-                  {source} · {tools.length} 個工具
-                </summary>
-                <ul>
-                  {tools.map((tool) => (
-                    <ToolRow
-                      key={tool.canonicalName}
-                      tool={tool}
-                      stale={stale}
-                    />
-                  ))}
-                </ul>
-              </details>
-            ))}
-          </div>
-          {filtered.length > limit && (
-            <button onClick={() => setLimit((value) => value + 100)}>
-              顯示更多（共 {filtered.length} 個）
-            </button>
-          )}
-          {!groups.length && (
-            <p>目前沒有符合的工具；這不代表工具已可用。</p>
-          )}
-        </>
-      )}
+      {developer ? (
       <details className="runtime-advanced">
-        <summary>Advanced · Runtime 詳情</summary>
+        <summary>Developer · 工具與詳情</summary>
         {snapshot && (
           <>
+            <p className="muted">
+              探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
+            </p>
+            <label>
+              搜尋工具用途
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setLimit(100);
+                }}
+                placeholder="例如：活動、草稿、search"
+              />
+            </label>
+            <div className="runtime-tool-groups">
+              {groups.map(([source, tools]) => (
+                <details key={source} open>
+                  <summary>
+                    {source} · {tools.length} 個工具
+                  </summary>
+                  <ul>
+                    {tools.map((tool) => (
+                      <ToolRow
+                        key={tool.canonicalName}
+                        tool={tool}
+                        stale={stale}
+                      />
+                    ))}
+                  </ul>
+                </details>
+              ))}
+            </div>
+            {filtered.length > limit && (
+              <button onClick={() => setLimit((value) => value + 100)}>
+                顯示更多（共 {filtered.length} 個）
+              </button>
+            )}
+            {!groups.length && (
+              <p>目前沒有符合的工具；這不代表工具已可用。</p>
+            )}
             <p className="muted">
               最後同步：
               {new Date(snapshot.lastSyncedAt).toLocaleString("zh-TW")} ·
@@ -400,6 +404,7 @@ export default function RuntimeInspector({
           </>
         )}
       </details>
+      ) : null}
     </section>
   );
 }

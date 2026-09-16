@@ -11,6 +11,8 @@ import { classifyTruth, audienceTruth } from "../lib/server/truth";
 import { overallFromCapabilities, evidenceKindForUrl } from "../lib/server/certification/evidence";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-cert-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3255";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";

@@ -7,6 +7,7 @@ export type ContextSourceKind =
   | "material"
   | "inspiration"
   | "creative_direction"
+  | "artifact"
   | "audience"
   | "runtime"
   | "goal";
@@ -22,6 +23,8 @@ export interface ContextItem {
   confidence: number;
   truth: TruthClass;
   tokens: number;
+  layer?: string;
+  stale?: boolean;
 }
 
 export function estimateTokens(text: string) {
