@@ -28,7 +28,7 @@ export default function InspirationResult({
   return (
     <section className="inspiration-result" aria-label="靈感方向">
       <p className="eyebrow">
-        {pack.itemCount} 筆已收藏 · 未搜全站
+        {pack.itemCount > 0 ? "工作區收藏 · 未搜全站" : "沒有已收藏來源 · 未搜全站"}
       </p>
       <ul className="inspiration-direction-grid" aria-label="方向 A 到 C">
         {pack.directions.map((direction) => {
@@ -40,7 +40,6 @@ export default function InspirationResult({
               <p>{direction.summary}</p>
               <small>
                 {direction.source === "saved_references" ? "已收藏" : "社團語言"}
-                {direction.confidence === "medium" ? " · 中" : " · 低"}
               </small>
               {onSelect ? (
                 <span className="inspiration-pick">
