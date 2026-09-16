@@ -173,6 +173,8 @@ try {
   await expect(page.locator(".runtime-human-summary")).toContainText("記憶 未設定");
   await expect(page.locator(".runtime-human-summary")).toContainText("MCP 未設定");
   await expect(page.locator(".runtime-human-summary")).not.toContainText("過期");
+  await expect(page.locator(".runtime-state")).toHaveClass(/unconfigured/);
+  await expect(page.locator(".runtime-state")).not.toHaveClass(/available/);
   await expect(page.locator(".runtime-advanced > summary")).toBeVisible();
   await expect(page.locator(".runtime-inspector > .orbit-layout")).toHaveCount(0);
   await page.screenshot({

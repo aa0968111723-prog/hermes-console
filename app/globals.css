@@ -59,9 +59,9 @@
 }
 .runtime-inspector > header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
 .runtime-actions { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:flex-end; }
-.runtime-state { border-radius:999px; padding:.35rem .65rem; font-size:.84rem; background:#e5f2df; color:#23623a; }
+.runtime-state { border-radius:999px; padding:.35rem .65rem; font-size:.84rem; background:#eef1ec; color:var(--color-muted); }
+.runtime-state.available { background:#e5f2df; color:#23623a; }
 .runtime-state.stale,.runtime-state.failed { background:#fff0e5; color:#9a441d; }
-.runtime-state.unknown,.runtime-state.unsupported { background:#eef1ec; color:var(--color-muted); }
 .runtime-summary { display:flex; flex-wrap:wrap; gap:.55rem; margin:1rem 0; }
 .runtime-summary span { border:1px solid var(--line,#dbe5d7); border-radius:999px; padding:.4rem .7rem; font-size:.9rem; }
 .runtime-tool-groups { display:grid; gap:.6rem; }
