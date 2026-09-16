@@ -20,8 +20,8 @@ test("composer dock is extracted from HermesConsole", async () => {
     new URL("../components/visual/ComposerMenu.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(menu, />參考</);
-  assert.match(menu, />素材</);
+  assert.match(menu, /\n\s*參考\n/);
+  assert.match(menu, /\n\s*素材\n/);
   assert.doesNotMatch(menu, /參考連結|專案素材/);
   assert.match(composer, /composer-uncertain-hint/);
   assert.match(composer, /!ready/);
