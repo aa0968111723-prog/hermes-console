@@ -1625,7 +1625,7 @@ export default function HermesConsole() {
             )}
           </section>
         ) : nav === "inspiration" ? (
-          <>
+          <section className="secondary-page">
             <InspirationBoard
               items={inspiration}
               syncStatus={sheetsSync}
@@ -1646,7 +1646,7 @@ export default function HermesConsole() {
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />
             <KnowledgeArchive />
-          </>
+          </section>
         ) : nav === "agents" ? (
           <section className="secondary-page">
             <div className="page-heading-row">
