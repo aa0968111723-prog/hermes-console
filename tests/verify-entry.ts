@@ -376,11 +376,11 @@ try {
     "這張哪裡可以改？",
   );
   await page.getByRole("button", { name: "送出訊息" }).click();
-  const attached = page.locator("article.message.assistant").last();
-  await expect(attached).toContainText("圖片已保存");
-  await expect(attached).toContainText("不能讀取像素");
-  await expect(attached).toContainText("假裝已看圖");
-  await attached.scrollIntoViewIfNeeded();
+  const attached = () => page.locator("article.message.assistant").last();
+  await expect(attached()).toContainText("圖片已保存");
+  await expect(attached()).toContainText("不能讀取像素");
+  await expect(attached()).toContainText("假裝已看圖");
+  await attached().scrollIntoViewIfNeeded();
   await expect(page.getByText(/視覺層級：/)).toHaveCount(0);
   await expect(page.locator(".notice-bar.warning")).toHaveCount(0);
   await expect(
@@ -395,13 +395,13 @@ try {
     "data-state",
     "offline",
   );
-  await expect(attached).toContainText("圖片已保存");
+  await expect(attached()).toContainText("圖片已保存");
   await page.screenshot({
     path: join(output, "chat-offline-reconnect.png"),
   });
   await page.context().setOffline(false);
   await expect(page.getByText("離線 · 顯示上次資料")).toHaveCount(0);
-  await expect(attached).toContainText("圖片已保存");
+  await expect(attached()).toContainText("圖片已保存");
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("tab", { name: "帳號", exact: true }).click();
   await expect(page.getByRole("heading", { name: "登入方式" })).toBeVisible();
