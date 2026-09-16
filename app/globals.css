@@ -1458,6 +1458,9 @@ dialog {
   max-height: 100%;
   background: transparent;
 }
+dialog:not([open]) {
+  display: none;
+}
 dialog::backdrop {
   background: #25332433;
 }

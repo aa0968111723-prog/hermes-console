@@ -232,16 +232,20 @@ export default function ArtifactStage({
           </button>
         </header>
         <div className="artifact-compare">
-          {previous?.preview ? (
-            <CanvaResult design={previous.preview} />
-          ) : (
-            <p>此版本沒有預覽</p>
-          )}
-          {current?.preview ? (
-            <CanvaResult design={current.preview} />
-          ) : (
-            <CanvaResult design={design} />
-          )}
+          {compare ? (
+            <>
+              {previous?.preview ? (
+                <CanvaResult design={previous.preview} />
+              ) : (
+                <p>此版本沒有預覽</p>
+              )}
+              {current?.preview ? (
+                <CanvaResult design={current.preview} />
+              ) : (
+                <CanvaResult design={design} />
+              )}
+            </>
+          ) : null}
         </div>
       </dialog>
     </section>

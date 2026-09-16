@@ -454,7 +454,14 @@ export async function verifyVisualStates(
   await expect(
     page.getByRole("region", { name: "設計成果預覽" }),
   ).toBeVisible();
-  await expect(page.locator(".artifact-stage img")).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "設計成果預覽" })
+      .getByRole("button", { name: "放大設計預覽" }),
+  ).toBeVisible();
+  await expect(
+    page.locator('dialog[aria-label="比較作品版本"]'),
+  ).toBeHidden();
   await page.screenshot({ path: join(output, "artifact-fixture.png") });
   await audit("artifact-fixture");
   await page.getByRole("button", { name: "外觀設定" }).click();
