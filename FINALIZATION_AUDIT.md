@@ -17,7 +17,8 @@
 | MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。GET `/api/mcp-registry` 成員只得 status；endpoint／schema 僅 owner／admin。 |
 | 設定分頁 | 可用 | 擁有者／管理者：帳號 / 外觀 / 連線 / 工作區 / 進階。成員看不到連線與進階；API 仍拒絕。 |
 | Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。GALLEY／Lumen／FrameLab／Planform 只有 status 為 partial 或 available 才進計畫；未設定不假裝。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
-| 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。工具 JSON 只在「原始結果」。創作回覆帶 ArtifactStage 大圖，不是工具計數。 |
+| 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。Composer 與折疊事件只顯示這些高階進度，不顯示 GALLEY／Canva。工具 JSON 與 toolName 只在展開的技術資訊。創作回覆帶 ArtifactStage 大圖。 |
+| 龜龜狀態 | 可用（契約） | Idle／思考／規劃／搜尋／研究／創作／整理／等待／完成／錯誤／離線。姿勢、光、陰影分開；標籤不出現廠商名。reduced-motion 停止動畫。 |
 | 作品版本 | 可用（契約） | 文案 V1／V2 比較、還原確認、匯出、修改同一作品。不自動重建無關輸出。任務上下文會帶入專案 copy artifact 與創作方向，讓「第二版字放大」沿用同一作品。 |
 | 視覺附件 | 可用（契約） | 列表與 chips 用 WebP 縮圖。PDF／連結顯示種類或 hostname。不抓取任意網頁當預覽。 |
 | Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。成員 API 不含 endpoint、credentialReference、tool schema、hermesKeySource。公開 `GET /api/health` 不含 models／skills／toolsets／configSource；`POST /api/health` 僅 owner／admin。 |
@@ -35,12 +36,12 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry`、`test:ui` 通過。
-- `npm test`：399 tests, 397 pass, 2 skipped, 0 fail。含 memory layer 隔離（runtime 不進任務、conversation 只進同一對話）、過期事實標 STALE、copy artifact 進入任務上下文、公開 `GET /api/health` 不含 models／skills／toolsets／configSource。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry`、`test:ui`、`test:chat`、`test:workbench`、`test:runtime`、`test:gateway` 通過。
+- `npm test`：400 tests, 398 pass, 2 skipped, 0 fail。含 memory layer 隔離、STALE、copy artifact 上下文、龜龜標籤不含 GALLEY／Canva、Composer 高階進度。
 - `/` First Load JS 239 kB（shared 103 kB）。
-- `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊且可開連線設定；magic redeem；密碼重設；email 驗證；成員看不到連線／進階且 GET credentials 為 403。
-- `test:ui`：390／412／430／360／768／1024／1440；專案頁標題「專案」；axe 無 violation；LCP 100ms／CLS ~0.00008（本機 Chrome 契約，不是實機）。
-- 本輪未重跑：`test:chat`、`test:workbench`、`test:runtime`、`test:gateway`。
+- `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊；magic／重設／驗證；成員 403。
+- `test:ui`：360／390／412／430／768／1024／1440；專案頁「專案」；Composer 顯示「研究」不是「研究 · GALLEY」；axe 0；LCP 72ms／CLS ~0.00008（本機 Chrome，不是實機）。
+- `test:chat`／`test:workbench`／`test:runtime`／`test:gateway`：契約 Playwright 通過；不是 live Zeabur／SSO。
 
 ## 仍是 Partial（禁止標綠）
 
