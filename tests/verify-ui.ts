@@ -460,9 +460,18 @@ try {
     mimeType: "image/png",
     buffer: await readFile("public/mascot/turtle.png"),
   });
-  await expect(
-    page.getByRole("button", { name: "預覽附件：poster.png" }),
-  ).toBeVisible();
+  const posterChip = page.locator(".upload-chip").filter({
+    has: page.getByRole("button", { name: "預覽附件：poster.png" }),
+  });
+  await expect(posterChip.locator("img")).toBeVisible();
+  await expect(posterChip).toContainText("已保存", { timeout: 30_000 });
+  assert.ok(
+    await posterChip
+      .locator("img")
+      .evaluate(
+        (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
+      ),
+  );
   const imageNotice = page.locator(".composer-image-notice");
   await expect(imageNotice).toBeVisible();
   await expect(imageNotice).toHaveText(
@@ -476,11 +485,7 @@ try {
   const imageChip = await page
     .getByRole("button", { name: "預覽附件：poster.png" })
     .boundingBox();
-  const imageRemove = await page
-    .locator(".upload-chip")
-    .filter({
-      has: page.getByRole("button", { name: "預覽附件：poster.png" }),
-    })
+  const imageRemove = await posterChip
     .getByRole("button", { name: "移除附件" })
     .boundingBox();
   assert.ok(composerBox && fileChip && imageChip && imageRemove);
@@ -514,13 +519,7 @@ try {
     path: join(output, "chat-image-unverified.png"),
     fullPage: true,
   });
-  await page
-    .locator(".upload-chip")
-    .filter({
-      has: page.getByRole("button", { name: "預覽附件：poster.png" }),
-    })
-    .getByRole("button", { name: "移除附件" })
-    .click();
+  await posterChip.getByRole("button", { name: "移除附件" }).click();
   await expect(imageNotice).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "預覽附件：draft-a.txt" }),
