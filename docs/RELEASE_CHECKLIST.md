@@ -19,6 +19,7 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 - [ ] No auto-merge by email
 - [ ] Logout clears session
 - [ ] Anonymous `/api/workspace` is 401
+- [ ] Members cannot GET/POST `/api/settings/credentials`; owners and admins can
 
 ## Chat / Agent
 

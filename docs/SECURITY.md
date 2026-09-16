@@ -22,7 +22,7 @@ Anything previously pasted into chat, issues, README, or logs is **compromised**
 - Email: Argon2id (`m=19456,t=2,p=1`). Magic link, verification, and password reset tokens are single-use and expire in 15 minutes.
 - Identities do **not** auto-merge because emails match. Linking is explicit. Linking email sends a verification message when mail is configured; without mail the UI must not offer a form that would create an unverified password login. Password login checks the email identity verification flag.
 
-Login ≠ authorization. APIs check `hermes_session` and workspace membership (`owner` / `admin` / `member`). Hiding a button is not access control.
+Login ≠ authorization. APIs check `hermes_session` and workspace membership (`owner` / `admin` / `member`). Changing Hermes, MCP, Canva authorization, runtime bindings, or Zeabur credentials requires owner or admin on the server. Members may use the workspace and read MCP status. Hiding a button is not access control.
 
 Test bypass (`NODE_TEST_CONTEXT` + `CONSOLE_TEST_SESSION`) is ignored when a real cookie is present and must never be set in production.
 

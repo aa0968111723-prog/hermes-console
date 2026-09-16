@@ -80,6 +80,7 @@ Set `CONSOLE_ORIGIN` to the public origin. Cookies use `Secure` on HTTPS. Mutati
 | `GET /api/health` | public | Process live, store probe, Hermes discovery if configured. Includes `live`, `ready`, `agentReady`. No secrets. |
 | `GET /api/ready` | public | Store writable. 200 or 503. |
 | `POST /api/health` | session + origin | Forced refresh. |
+| `GET/POST /api/settings/credentials` | owner or admin | Connection secrets. Members receive 403. |
 
 ## Backup / rollback
 

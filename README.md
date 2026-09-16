@@ -43,7 +43,7 @@ Rotate any credential that was ever committed or pasted.
 
 ## Auth
 
-Google (authorization code + PKCE), Tamkang SSO (real IdP only), Email (Argon2id, magic link, verify, reset). One User with explicit identity linking. APIs require session + membership.
+Google (authorization code + PKCE), Tamkang SSO (real IdP only), Email (Argon2id, magic link, verify, reset). One User with explicit identity linking. APIs require session + membership. Changing Hermes / MCP / Zeabur credentials requires owner or admin; hiding a settings tab is not access control.
 
 ## MCP
 

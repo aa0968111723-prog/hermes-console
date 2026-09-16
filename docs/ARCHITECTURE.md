@@ -16,7 +16,7 @@ Hermes Console is the human interface to that runtime. It is not a tool director
 
 ## Console responsibilities
 
-- Authenticate the user (Google / Tamkang SSO / Email) and authorize workspace membership.
+- Authenticate the user (Google / Tamkang SSO / Email) and authorize workspace membership (`owner` / `admin` / `member`). Connection secrets require owner or admin.
 - Render conversations, projects, inspiration, artifacts, and turtle state.
 - Persist workspace data (SQLite or Console Postgres).
 - Expose Workspace MCP to Hermes. Probe external MCP. Never fake `available`.
