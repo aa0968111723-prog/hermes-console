@@ -19,7 +19,16 @@ test("account settings show identity status without auto-merge copy", async () =
   assert.match(panel, /Google 尚未完成設定/);
   assert.match(panel, /淡江 SSO 尚未完成設定/);
   assert.match(panel, /auth\.sessions/);
+  assert.match(panel, /providerState/);
+  assert.match(panel, /已連結/);
+  assert.match(panel, /可連結/);
+  assert.match(panel, /擁有者/);
+  assert.doesNotMatch(panel, /CONSOLE_AUTH_MODE/);
   assert.doesNotMatch(panel, /自動合併/);
+  assert.doesNotMatch(
+    panel,
+    /auth\.google === "available"\s*\? "unconfigured"/,
+  );
   assert.match(css, /\.account-identities li/);
   assert.match(css, /\.account-identities li \{[\s\S]*?min-height: 44px/);
 });

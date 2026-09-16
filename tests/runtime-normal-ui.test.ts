@@ -34,4 +34,20 @@ test("agent tab shows four status dots; tool lists stay in closed developer deta
   assert.doesNotMatch(consoleUi, /Agent Runtime/);
   assert.doesNotMatch(consoleUi, /KnowledgeArchive/);
   assert.match(consoleUi, /進階 · Agent 設定檔/);
+  const css = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(
+    css,
+    /runtime-human-summary \{ display: grid; grid-template-columns: repeat\(2/,
+  );
+  const agents = await readFile(
+    new URL("../components/agents/AgentPanel.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(agents, /unconfigured: "未設定"/);
+  assert.match(agents, /狀態：\{agentStatus\[agent.status\]\}/);
+  assert.doesNotMatch(agents, /Skills：/);
+  assert.doesNotMatch(agents, /Agent Brain/);
 });

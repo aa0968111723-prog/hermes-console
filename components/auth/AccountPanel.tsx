@@ -3,6 +3,28 @@
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 
+const ROLE_LABEL: Record<string, string> = {
+  owner: "擁有者",
+  admin: "管理者",
+  member: "成員",
+};
+
+function providerState(
+  linked: boolean,
+  configured: "available" | "unconfigured",
+) {
+  if (linked) return "verified" as const;
+  return configured === "available" ? ("partial" as const) : ("unconfigured" as const);
+}
+
+function providerCaption(
+  linked: boolean,
+  configured: "available" | "unconfigured",
+) {
+  if (linked) return "已連結";
+  return configured === "available" ? "可連結" : "尚未完成設定";
+}
+
 export default function AccountPanel() {
   const auth = useAuth();
   const [email, setEmail] = useState("");
@@ -14,7 +36,7 @@ export default function AccountPanel() {
     return (
       <div className="settings-stack">
         <h3>帳號</h3>
-        <p className="muted">工作區模式。正式環境請設 CONSOLE_AUTH_MODE=required。</p>
+        <p className="muted">這次工作階段未要求登入。</p>
       </div>
     );
   }
@@ -78,41 +100,31 @@ export default function AccountPanel() {
         <div>
           <strong>{auth.user.name}</strong>
           <p>{auth.user.email || "尚未連結電子信箱"}</p>
-          <p className="muted">{auth.membership?.role}</p>
+          <p className="muted">
+            {ROLE_LABEL[auth.membership?.role || ""] || "成員"}
+          </p>
         </div>
       </div>
       <ul className="account-identities" aria-label="登入方式">
         <li data-linked={auth.providers.google ? "true" : "false"}>
           <span
             className="connection-state"
-            data-state={
-              auth.providers.google
-                ? "verified"
-                : auth.google === "available"
-                  ? "unconfigured"
-                  : "unknown"
-            }
+            data-state={providerState(auth.providers.google, auth.google)}
           >
             <i aria-hidden="true" />
           </span>
           <strong>Google</strong>
-          <span>{auth.providers.google ? "✓" : "○"}</span>
+          <span>{providerCaption(auth.providers.google, auth.google)}</span>
         </li>
         <li data-linked={auth.providers.tamkang ? "true" : "false"}>
           <span
             className="connection-state"
-            data-state={
-              auth.providers.tamkang
-                ? "verified"
-                : auth.tamkang === "available"
-                  ? "unconfigured"
-                  : "unknown"
-            }
+            data-state={providerState(auth.providers.tamkang, auth.tamkang)}
           >
             <i aria-hidden="true" />
           </span>
           <strong>淡江 SSO</strong>
-          <span>{auth.providers.tamkang ? "✓" : "○"}</span>
+          <span>{providerCaption(auth.providers.tamkang, auth.tamkang)}</span>
         </li>
         <li data-linked={auth.providers.email ? "true" : "false"}>
           <span
@@ -128,7 +140,13 @@ export default function AccountPanel() {
             <i aria-hidden="true" />
           </span>
           <strong>電子信箱</strong>
-          <span>{auth.providers.email ? "✓" : "○"}</span>
+          <span>
+            {auth.providers.email
+              ? auth.user.emailVerified
+                ? "已驗證"
+                : "未驗證"
+              : "尚未連結"}
+          </span>
         </li>
       </ul>
       <p className="muted">
