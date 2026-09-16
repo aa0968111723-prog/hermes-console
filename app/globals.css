@@ -2670,10 +2670,8 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
 .tool-result-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 44px; }
 .progress-trail { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; width: 100%; }
-.progress-trail li { color: var(--color-muted); font-size: 11px; }
-.progress-trail li[data-state="done"] { color: var(--color-success); }
-.progress-trail li[data-state="active"] { color: var(--color-primary); font-weight: 700; }
-.progress-trail li[data-state="failed"] { color: var(--color-error); }
+.progress-trail li { color: inherit; font-size: 12px; font-weight: 650; }
+.progress-trail li[data-state="active"] { text-decoration: underline; }
 .visual-concept-deck { display: grid; gap: 12px; }
 .visual-concept-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
 .visual-concept-format { margin: 0; font-weight: 700; }
