@@ -6,33 +6,22 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+import {
+  applySessionFetch,
+  EMPTY_SESSION_VIEW,
+  failClosedSession,
+  type AuthUser,
+  type SessionView,
+} from "@/lib/client/auth-session";
 
-export type AuthUser = {
-  id: string;
-  email: string | null;
-  emailVerified: boolean;
-  name: string;
-  avatar: string | null;
-};
+export type { AuthUser };
 
-export type AuthSnapshot = {
-  loading: boolean;
-  required: boolean;
-  mode: "required" | "workspace";
-  google: "available" | "unconfigured";
-  tamkang: "available" | "unconfigured";
-  tamkangProtocol: string | null;
-  email: "available" | "unconfigured";
-  magicLink: "available" | "unconfigured";
-  user: AuthUser | null;
-  membership: { role: string; workspaceId: string } | null;
-  providers: { google: boolean; tamkang: boolean; email: boolean };
-  sessionCount: number;
-  sessions: Array<{ expiresAt: string }>;
-  linkError: string;
+export type AuthSnapshot = SessionView & {
   refresh: () => Promise<void>;
+  retry: () => Promise<void>;
   logout: (all?: boolean) => Promise<void>;
 };
 
@@ -75,56 +64,30 @@ async function redeemHashToken() {
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [snapshot, setSnapshot] = useState<Omit<AuthSnapshot, "refresh" | "logout">>({
-    loading: true,
-    required: false,
-    mode: "workspace",
-    google: "unconfigured",
-    tamkang: "unconfigured",
-    tamkangProtocol: null,
-    email: "available",
-    magicLink: "unconfigured",
-    user: null,
-    membership: null,
-    providers: { google: false, tamkang: false, email: false },
-    sessionCount: 0,
-    sessions: [],
-    linkError: "",
-  });
+  const [snapshot, setSnapshot] = useState<SessionView>(EMPTY_SESSION_VIEW);
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
 
   const refresh = useCallback(async () => {
-    const response = await fetch("/api/auth/session", {
-      cache: "no-store",
-      credentials: "same-origin",
-      signal: AbortSignal.timeout(15_000),
-    });
-    const data = await response.json();
-    setSnapshot({
-      loading: false,
-      required: !!data.required,
-      mode: data.mode === "required" ? "required" : "workspace",
-      google: data.google === "available" ? "available" : "unconfigured",
-      tamkang: data.tamkang === "available" ? "available" : "unconfigured",
-      tamkangProtocol: data.tamkangProtocol || null,
-      email: "available",
-      magicLink: data.magicLink === "available" ? "available" : "unconfigured",
-      user: data.user || null,
-      membership: data.membership || null,
-      providers: data.providers || { google: false, tamkang: false, email: false },
-      sessionCount: Number(data.sessionCount) || 0,
-      sessions: Array.isArray(data.sessions)
-        ? data.sessions
-            .filter(
-              (item: { expiresAt?: string }) =>
-                typeof item?.expiresAt === "string",
-            )
-            .map((item: { expiresAt: string }) => ({
-              expiresAt: item.expiresAt,
-            }))
-        : [],
-      linkError: "",
-    });
+    try {
+      const response = await fetch("/api/auth/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: AbortSignal.timeout(15_000),
+      });
+      const data = await response.json().catch(() => ({}));
+      setSnapshot((current) => applySessionFetch(current, { ok: response.ok, data }));
+    } catch {
+      setSnapshot((current) => failClosedSession(current));
+    }
   }, []);
+
+  const retry = useCallback(async () => {
+    setSnapshot((current) =>
+      current.user ? current : { ...current, loading: true, unreachable: false },
+    );
+    await refresh();
+  }, [refresh]);
 
   const logout = useCallback(
     async (all = false) => {
@@ -164,16 +127,21 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     const onHashChange = () => {
       void consume(true);
     };
+    const onOnline = () => {
+      if (snapshotRef.current.unreachable) void refresh();
+    };
     window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("online", onOnline);
     return () => {
       cancelled = true;
       window.removeEventListener("hashchange", onHashChange);
+      window.removeEventListener("online", onOnline);
     };
   }, [refresh]);
 
   const value = useMemo(
-    () => ({ ...snapshot, refresh, logout }),
-    [snapshot, refresh, logout],
+    () => ({ ...snapshot, refresh, retry, logout }),
+    [snapshot, refresh, retry, logout],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

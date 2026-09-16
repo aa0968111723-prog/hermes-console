@@ -29,6 +29,9 @@ test("login is turtle-first with honest unconfigured providers", async () => {
   assert.match(gate, /next\/dynamic/);
   assert.match(gate, /載入工作區/);
   assert.match(gate, /確認身分/);
+  assert.match(gate, /離線/);
+  assert.match(gate, /再試一次/);
+  assert.match(gate, /auth\.unreachable && !auth\.user/);
   assert.doesNotMatch(gate, /import HermesConsole from/);
   assert.match(css, /\.login-stage/);
   assert.match(css, /\.login-turtle[\s\S]*breathe/);

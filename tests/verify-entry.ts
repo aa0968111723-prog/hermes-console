@@ -59,6 +59,29 @@ try {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  const offlinePage = await browser.newPage();
+  await offlinePage.route("**/api/auth/session", (route) =>
+    route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: { code: "internal_error", category: "UNKNOWN", message: "boom" },
+      }),
+    }),
+  );
+  await offlinePage.goto(base);
+  await expect(offlinePage.locator(".login-screen").getByRole("status")).toHaveText(
+    "離線",
+  );
+  await expect(offlinePage.getByRole("button", { name: "再試一次" })).toBeVisible();
+  await expect(offlinePage.getByRole("heading", { name: "今天想做什麼？" })).toHaveCount(0);
+  await expect(offlinePage.getByLabel("電子信箱")).toHaveCount(0);
+  await expect(offlinePage.getByText("boom")).toHaveCount(0);
+  await offlinePage.unroute("**/api/auth/session");
+  await offlinePage.getByRole("button", { name: "再試一次" }).click();
+  await expect(offlinePage.getByLabel("電子信箱")).toBeVisible();
+  await offlinePage.close();
+
   await page.goto(base);
   await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "淡江 SSO", exact: true })).toBeDisabled();
@@ -89,7 +112,7 @@ try {
   ])
     assert.ok(!text.includes(word), "invitation UI visible: " + word);
   assert.deepEqual(errors, []);
-  console.log("PASS: AuthGate root page, session-gated workspace APIs, origin-bound mutation, Hermes unconfigured UI. Not live Zeabur.");
+  console.log("PASS: AuthGate root page, fail-closed session errors, session-gated workspace APIs, origin-bound mutation, Hermes unconfigured UI. Not live Zeabur.");
 } finally {
   await browser?.close();
   child.kill();

@@ -2076,6 +2076,10 @@ summary .badge {
     radial-gradient(ellipse 70% 42% at 50% 22%, #f3faee 0%, var(--color-canvas) 68%);
   perspective: 900px;
 }
+.login-screen > .primary {
+  min-width: min(220px, 72vw);
+  margin-top: 8px;
+}
 .login-card {
   width: min(390px, 100%);
   text-align: center;
