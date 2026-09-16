@@ -65,5 +65,5 @@ export function continueCurrentDesign(
     .filter((row) => row.projectId === projectId)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
   if (current) return continueDesign(current.id);
-  return { text: "請接續我現有的設計。" };
+  return { text: "請接續我現有的設計。", focus: undefined };
 }
