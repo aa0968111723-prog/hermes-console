@@ -66,6 +66,15 @@ Browser → Console (this app)
 
 部署前備份 SQLite 檔或 Postgres。Vault key（`CONSOLE_VAULT_KEY` 或 dataDir `vault.key`）遺失會無法解密已存 OAuth token，必須當成新授權。
 
+本機／卷備份：
+
+```
+npm run backup
+npm run backup -- /secure/backups
+```
+
+腳本複製 `console.sqlite`、`vault.key`、`uploads/` 到時間戳目錄（權限 700）。有 `DATABASE_URL` 時會提示另做 `pg_dump`，**不會把連線字串寫進備份紀錄**。備份目錄含 vault key，視為秘密，不要提交 git。
+
 ## Rollback
 
 1. 改回上一版映像／commit。

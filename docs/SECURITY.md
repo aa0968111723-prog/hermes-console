@@ -25,7 +25,7 @@
 
 ## Authorization
 
-`authenticate()` 在 required 模式驗證 session。憑證寫入另需 owner／admin。UI 隱藏不是授權。
+`authenticate()` 在 required 模式驗證 session **與** workspace membership。憑證寫入、MCP 測試與 Zeabur 變更另需 owner／admin。UI 隱藏不是授權。Hermes 不收集校園帳號或密碼。淡江 SSO 只走校方 IdP。
 
 ## MCP / SSRF
 

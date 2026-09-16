@@ -16,7 +16,11 @@
 | 淡江 SSO | **partial**（OIDC 路徑 live） | issuer+client+secret 時跳轉校方 IdP（PKCE）。無校方 Client 時「淡江 SSO 尚未完成設定」。SAML／CAS 未接入。 |
 | Email / Argon2id / Magic Link / Reset | live 路徑 | 寄信未設時仍可密碼進出；驗證信 Partial。 |
 | Identity linking | live 契約 | 禁止 Email 相同自動合併。 |
-| Membership | live | owner／admin／member；憑證 POST 限 owner／admin。 |
+| Membership | live | owner／admin／member；工作區 API 需 session + membership。憑證 POST 限 owner／admin。 |
+| 設定寫入授權 | live 契約 | required 時僅 owner／admin 可改憑證／MCP 測試／Zeabur。 |
+| 淡江 MCP | live 契約 | 只接受 Bearer 權杖。不收集校園帳號或密碼。 |
+| 設定殼層 | live | `SettingsPanel`：帳號／外觀／連線／工作區／進階。 |
+| 資料備份 | live 契約 | `npm run backup` 複製 SQLite／vault／uploads；Postgres 提示 pg_dump，不印連線字串。 |
 | MCP 誠實狀態 | live 契約 | listTools=partial；安全讀取有內容=verified；無 token/endpoint=unconfigured；不可達=failed；探測中=verifying。 |
 | Atlas 進 integrations | live | `getMcp("atlas")`。 |
 | Artifacts | live 契約 | artifactId／revisionId／preview／restore／fork／compare UI。 |
@@ -71,3 +75,4 @@
 - 曾暴露金鑰必須 rotate
 - 公開站若閘道未設且誤用 `workspace` 模式，等同共用 owner
 - 設定頁可改 vault／Zeabur：僅 owner／admin，且仍等同能改後端，需受控網路
+- `npm run backup` 產出含 vault.key，視為秘密，不要提交 git

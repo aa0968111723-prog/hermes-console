@@ -46,7 +46,7 @@
 
 ## DB / Security
 
-- [ ] 備份 SQLite 或 Postgres
+- [ ] 備份 SQLite 或 Postgres（`npm run backup`；Postgres 另需 pg_dump）
 - [ ] 無 secret 進 git／log／health
 - [ ] Origin、SSRF、session cookie 仍在
 

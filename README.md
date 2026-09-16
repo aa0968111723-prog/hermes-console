@@ -46,7 +46,7 @@ Human → Hermes Console → Hermes Agent → Planner / Memory / Tools / MCP →
 - 淡江 SSO：`TamkangAuthProvider`。OIDC／OAuth 在有 issuer、client id、client secret 時走 Authorization Code + PKCE，並跳轉校方 IdP。SAML／CAS 仍顯示「淡江 SSO 尚未完成設定」。禁止收集校方密碼。
 - Email：註冊、登入、驗證、忘記密碼、重設、Magic Link。密碼 Argon2id。寄信未設時登入頁仍顯示忘記密碼／Magic Link，並標明尚未完成設定，不會假裝已寄出。
 
-登入成功不代表有權改連線設定。寫入憑證需 `owner`／`admin`。所有工作區 API 在 `required` 模式驗證 session。
+登入成功不代表有權改連線設定。寫入憑證需 `owner`／`admin`。所有工作區 API 在 `required` 模式驗證 session **與** workspace membership。
 
 ## MCP
 

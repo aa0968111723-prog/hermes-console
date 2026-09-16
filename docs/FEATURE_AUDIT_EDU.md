@@ -27,16 +27,16 @@
 
 | API | 評等 | 說明 |
 | --- | --- | --- |
-| `GET/POST /api/workspace` | live | 對話、專案、素材清單；固定 owner `workspace`。不要求成員 session。 |
+| `GET/POST /api/workspace` | live | 對話、專案、素材清單；固定 owner `workspace`。`required` 模式需 session + membership；`workspace` 模式為單一 owner。 |
 | `GET/POST/PUT /api/conversations` | live | 建立／讀取／匯入舊對話。可選 `assistantMode`: `creative` \| `research` \| `admin`。省略則 `creative`。`research` 會附上尚未執行的 `researchBundle`。 |
 | `GET/POST/PATCH /api/tasks` | live | 真實 Hermes 任務。`POST /api/chat` 同一條。可選 `mode`；省略則用對話已存模式，再否則創作提示。`mode=research` 時任務與對話會帶 `researchBundle`（`executed: false`）。 |
 | `GET/POST /api/materials` | live | 圖／文字／PDF 附件，綁專案。 |
 | `GET /api/health` | live | Hermes 連線與能力探測；未設定會誠實顯示未設定。`configSource` 標示 hermes 網址／金鑰來自 vault 或環境。另回 `backend`／`dataDir`／`storeReady`，不回傳秘密或連線字串。 |
 | `GET /api/ready` | live | 部署探測：`dataDir`、目前 `backend`（sqlite／postgres）、對該後端做 SELECT 1。可用 200、不可用 503。不需閘道或成員 session，不回傳 `DATABASE_URL` 或憑證。 |
 | `GET/POST /api/settings/credentials` | live | 登入後可讀寫連線設定；owner／admin 才能寫入。GET 只回 masked 狀態；POST 加密保存並覆寫 runtime env。 |
-| `POST /api/settings/tamkang` | live | `test` 探測 initialize／tools-list；`login` 僅在已設定 TKU 來源暴露已知交換端點時代為換權杖。 |
+| `POST /api/settings/tamkang` | live | 僅 `test` 探測 initialize／tools-list。不收集校園帳號或密碼，沒有 login 交換。 |
 | `GET/POST/DELETE /api/memory` | live | 共用記憶 CRUD。有 `DATABASE_URL` 時寫入 Console Postgres `console_records`（kind=`shared_memory`）；否則 SQLite 於 `CONSOLE_DATA_DIR`。Hermes 經 Workspace MCP 與任務指示讀同一庫。遠端 memory 同步未驗證，`synced` 為 false。 |
-| `POST /api/settings/zeabur` | live | Zeabur GraphQL：測試、列出專案、變數鍵名、寫入變數、推送 Console 金鑰、重新部署／重啟。公開站可改部署。 |
+| `POST /api/settings/zeabur` | live | Zeabur GraphQL：測試、列出專案、變數鍵名、寫入變數、推送 Console 金鑰、重新部署／重啟。`required` 模式限 owner／admin。 |
 | `GET/POST/DELETE /api/auth` | **dormant** | 邀請模組仍在，**不是**產品入口。沒有邀請 session 時 GET 為 401；POST／DELETE 仍是邀請連結／登出，**不是**「GET 回 `no-login`、登入／登出 410」。工作區 API 不依賴此路徑。 |
 
 ## 驗證與部署依賴
@@ -48,7 +48,7 @@
 | `CONSOLE_ALLOW_LOCAL_ACCESS` | live | 僅本機 loopback，且只在閘道檢查路徑上放行。 |
 | `CONSOLE_ORIGIN` | live | 變更請求驗 Origin。正式環境未設定必須 fail closed。 |
 | `HERMES_API_URL` / `HERMES_API_KEY` | live（環境或連線設定 UI） | 未設定則聊天不能送出。UI 寫入優先於環境變數。 |
-| `TKU_MCP_URL` / `TKU_MCP_TOKEN` | live 路徑／正式站常未設定 | 可從設定頁保存或交換權杖；未驗證前狀態為 Unconfigured／待驗證，不假裝 Connected。 |
+| `TKU_MCP_URL` / `TKU_MCP_TOKEN` | live 路徑／正式站常未設定 | 可從設定頁保存 Bearer 權杖；未驗證前狀態為 Unconfigured／待驗證，不假裝 Connected。不收集校園帳號或密碼。 |
 | Canva / IG / Pinterest / Vault | stub／未設定 | 創作管線用；教心所研究非必要。 |
 | 多使用者／研究者帳號 | **missing** | 所有紀錄寫入同一 `workspace`。沒有租戶隔離。 |
 
@@ -120,12 +120,12 @@ POST /api/tasks
 
 1. 開啟 `/` → 「設定與連線」→「連線」。
 2. 填 Hermes 網址與金鑰，按「儲存連線設定」。`GET /api/health` 應看到 `configSource.hermesKey=vault`（有有效金鑰時再驗證模型清單）。
-3. 淡江：填 MCP 網址與權杖後「測試連線」；若來源有已知帳密交換端點，可用「以校園憑證交換權杖」。
-4. **公開站任何人都可以覆寫這些欄位。** 這是明確的「不用保護」產品選擇。環境變數仍可當後備。
-5. 設定 → 連線也可保存 Zeabur API 權杖，並測試／寫入變數／推送 Console 金鑰／重新部署。公開站等同可改後端。
+3. 淡江 MCP：填網址與 Bearer 權杖後「測試連線」。**不收集校園帳號或密碼**。登入 Hermes 的淡江 SSO 在登入頁，需校方 OIDC Client。
+4. 正式 `CONSOLE_AUTH_MODE=required` 時，僅 owner／admin 可改連線。`workspace` 模式且無閘道時，能開啟網站的人都可以覆寫欄位。
+5. 設定 → 連線也可保存 Zeabur API 權杖，並測試／寫入變數／推送 Console 金鑰／重新部署。正式環境限 owner／admin。
 
 ## 共用記憶與 Zeabur
 
 - 設定 → 記憶：可新增／編輯／刪除共用記憶（Postgres 或 SQLite 後備）。Hermes 經 Workspace MCP 與任務指示讀同一批資料。
 - 遠端 Hermes memory API 未驗證時，畫面與 API 都寫「未宣稱已鏡像」。
-- 設定 → 連線：可保存 Zeabur API 權杖並操作該服務環境變數／重新部署。公開站等同可改後端。
+- 設定 → 連線：可保存 Zeabur API 權杖並操作該服務環境變數／重新部署。正式環境限 owner／admin。

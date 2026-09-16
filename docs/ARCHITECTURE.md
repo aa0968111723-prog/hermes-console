@@ -19,7 +19,7 @@ Human
 - Next.js App Router。`/` → `AuthProvider` → `AuthGate` → `LoginScreen` 或 `HermesConsole`。
 - 正式環境 `CONSOLE_AUTH_MODE=required`（`NODE_ENV=production` 預設）。契約測試可用 `workspace` 單一 owner。
 - 前端只渲染結構化事件與結果。不展示內部推理、tool JSON、credentialReference。
-- 對話殼層逐步拆出 `PreviewPanel`／`TaskSheet`；設定與 Composer 仍由 `HermesConsole` 組裝。
+- 對話殼層逐步拆出 `PreviewPanel`／`TaskSheet`／`SettingsPanel`；Composer 仍由 `HermesConsole` 組裝。
 - `GET /api/health` 在 required 且未登入時只回公開摘要，不含技能／模型目錄。
 - 手機：App Shell 鎖文件捲動；Chat 的唯一主捲動是 `.conversation-scroll`；其他頁用 `.secondary-page`／`.page-scroll`。鍵盤開啟時用 `visualViewport` 寫 `--app-height`，關閉時移除，避免殼層永久縮短。
 
