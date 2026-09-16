@@ -70,7 +70,13 @@ export default function AccountPanel() {
           連結 Google
         </a>
       )}
-      <p className="muted">淡江 SSO 尚未完成設定</p>
+      {auth.tamkang === "available" && !auth.providers.tamkang ? (
+        <a className="button-link" href="/api/auth/tamkang">
+          連結淡江 SSO
+        </a>
+      ) : auth.tamkang !== "available" ? (
+        <p className="muted">淡江 SSO 尚未完成設定</p>
+      ) : null}
       {!auth.providers.email && (
         <form
           onSubmit={(event) => {

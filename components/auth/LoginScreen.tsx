@@ -115,11 +115,15 @@ export default function LoginScreen() {
               Google 尚未完成設定
             </button>
           )}
-          <button type="button" disabled>
-            {auth.tamkang === "available"
-              ? "淡江 SSO"
-              : "淡江 SSO 尚未完成設定"}
-          </button>
+          {auth.tamkang === "available" ? (
+            <a className="primary" href="/api/auth/tamkang">
+              淡江 SSO
+            </a>
+          ) : (
+            <button type="button" disabled>
+              淡江 SSO 尚未完成設定
+            </button>
+          )}
         </div>
         <form
           onSubmit={(event) => {

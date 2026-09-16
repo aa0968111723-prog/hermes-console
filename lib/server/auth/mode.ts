@@ -30,17 +30,11 @@ export function tamkangProtocol(): TamkangProtocol | null {
 
 export function tamkangConfigured() {
   const protocol = tamkangProtocol();
-  if (!protocol) return false;
-  if (protocol === "oidc" || protocol === "oauth") {
-    return !!(
-      process.env.TAMKANG_CLIENT_ID?.trim() &&
-      (process.env.TAMKANG_OIDC_ISSUER?.trim() ||
-        process.env.TAMKANG_SSO_METADATA_URL?.trim())
-    );
-  }
+  if (protocol !== "oidc" && protocol !== "oauth") return false;
   return !!(
-    process.env.TAMKANG_SSO_METADATA_URL?.trim() &&
-    process.env.TAMKANG_CLIENT_ID?.trim()
+    process.env.TAMKANG_CLIENT_ID?.trim() &&
+    process.env.TAMKANG_CLIENT_SECRET?.trim() &&
+    process.env.TAMKANG_OIDC_ISSUER?.trim()
   );
 }
 
