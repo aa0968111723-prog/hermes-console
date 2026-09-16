@@ -9,6 +9,7 @@ import { randomUUID } from "node:crypto";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-cycle18-fork-audience-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3218";
 const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";

@@ -26,20 +26,21 @@ export function filePath(owner: string, id: string) {
   return join(dataDir(), "uploads", owner, id);
 }
 
-export function thumbPath(owner: string, id: string) {
+export function thumbnailPath(owner: string, id: string) {
   return filePath(owner, id) + ".thumb.webp";
 }
 
-export async function materialThumb(owner: string, id: string) {
-  const asset = material(owner, id);
-  if (asset.kind !== "image")
-    throw new ApiError(404, "not_found", "沒有縮圖。");
-  const dest = thumbPath(owner, id);
+async function ensureImageThumbnail(
+  owner: string,
+  id: string,
+  source?: Buffer,
+) {
+  const path = thumbnailPath(owner, id);
   try {
-    return await readFile(dest);
+    return { bytes: await readFile(path), mime: "image/webp" as const };
   } catch {
-    const source = await readFile(filePath(owner, id));
-    const thumb = await sharp(source, {
+    const input = source || (await readFile(filePath(owner, id)));
+    const bytes = await sharp(input, {
       limitInputPixels: 25_000_000,
       animated: false,
     })
@@ -53,16 +54,32 @@ export async function materialThumb(owner: string, id: string) {
       .webp({ quality: 72 })
       .toBuffer();
     try {
-      await writeFile(dest, thumb, { flag: "wx", mode: 0o600 });
+      await writeFile(path, bytes, { flag: "wx", mode: 0o600 });
     } catch {
       try {
-        return await readFile(dest);
+        return { bytes: await readFile(path), mime: "image/webp" as const };
       } catch {
-        return thumb;
+        /* serve the in-memory thumbnail if two writers raced */
       }
     }
-    return thumb;
+    return { bytes, mime: "image/webp" as const };
   }
+}
+
+export async function materialBytes(
+  owner: string,
+  id: string,
+  variant: "full" | "thumb" = "full",
+) {
+  const asset = material(owner, id);
+  if (asset.kind === "reference")
+    throw new ApiError(400, "not_a_file", "連結沒有可下載檔案。");
+  if (variant === "thumb" && asset.kind === "image")
+    return ensureImageThumbnail(owner, id);
+  return {
+    bytes: await readFile(filePath(owner, id)),
+    mime: asset.mime || "application/octet-stream",
+  };
 }
 
 export function includeDuplicatesQuery(url: URL) {
@@ -379,21 +396,7 @@ export async function saveUpload(
     mode: 0o700,
   });
   await writeFile(filePath(owner, id), content, { flag: "wx", mode: 0o600 });
-  if (kind === "image") {
-    const thumb = await sharp(content, {
-      limitInputPixels: 25_000_000,
-      animated: false,
-    })
-      .resize({
-        width: 480,
-        height: 480,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .webp({ quality: 72 })
-      .toBuffer();
-    await writeFile(thumbPath(owner, id), thumb, { flag: "wx", mode: 0o600 });
-  }
+  if (kind === "image") await ensureImageThumbnail(owner, id, content);
   const fingerprint = fingerprintBytes(content);
   return put(
     "material",
@@ -410,7 +413,7 @@ export async function saveUpload(
       createdAt: new Date().toISOString(),
       rights: "user_provided",
       license: "user_provided",
-      notes: "使用者上傳；公開發佈前仍需確認權利。",
+      notes: "使用者上傳；公開發佈前仍需确认權利。",
       source: { type: "upload", provider: "hermes_upload" },
       format: outputMime,
     }),
@@ -430,31 +433,37 @@ export async function attachmentParts(owner: string, ids: string[]) {
       });
       continue;
     }
-    const content = await readFile(filePath(owner, id));
     if (asset.kind === "image") {
-      if (process.env.HERMES_IMAGE_INPUT !== "true")
-        throw new ApiError(
-          409,
-          "images_unverified",
-          "圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。",
-        );
+      if (process.env.HERMES_IMAGE_INPUT !== "true") {
+        parts.push({
+          type: "text",
+          text: wrapUntrusted(
+            "image",
+            `圖片附件「${asset.title}」已保存。尚未驗證看圖，沒有像素資料。不得描述圖中細節或假裝已看圖。`,
+          ),
+        });
+        continue;
+      }
+      const content = await readFile(filePath(owner, id));
       parts.push({
         type: "image_url",
         image_url: {
           url: "data:image/png;base64," + content.toString("base64"),
         },
       });
-    } else
-      parts.push({
-        type: "text",
-        text:
-          asset.mime === "application/pdf"
-            ? wrapUntrusted(
-                "pdf",
-                `PDF 附件「${asset.title}」已保存；此部署不保證全文解析，不得把檔名當內容。`,
-              )
-            : wrapUntrusted("attachment", content.toString("utf8")),
-      });
+      continue;
+    }
+    const content = await readFile(filePath(owner, id));
+    parts.push({
+      type: "text",
+      text:
+        asset.mime === "application/pdf"
+          ? wrapUntrusted(
+              "pdf",
+              `PDF 附件「${asset.title}」已保存；此部署不保證全文解析，不得把檔名當內容。`,
+            )
+          : wrapUntrusted("attachment", content.toString("utf8")),
+    });
   }
   return parts;
 }

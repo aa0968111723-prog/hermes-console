@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import type { Task } from "../lib/contracts";
+import { seedSession } from "./session-fixture";
 
 /**
  * LOCAL_CONTRACT — acknowledge uncertain task unblocks conversation for retry.
@@ -13,6 +14,7 @@ import type { Task } from "../lib/contracts";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-uncertain-ack-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3213";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 

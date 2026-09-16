@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-memory-"));
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3240";
 const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
@@ -58,6 +59,8 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
     assert.equal(saved.importance, null);
     assert.equal(saved.confidence, null);
     assert.equal(saved.lastUsedAt, null);
+    assert.equal(saved.layer, "workspace");
+    assert.equal(saved.conversationId, null);
     const listed = await memoryApi.GET(request("memory?scope=all"));
     assert.equal(listed.status, 200);
     const body = await listed.json();
@@ -186,6 +189,7 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
     assert.match(digest, /src=operator/);
     assert.match(digest, /conf=0\.70/);
     assert.match(digest, /imp=0\.90/);
+    assert.match(digest, /layer=project/);
     const after = getMemory("workspace", item.id);
     assert.ok(after.lastUsedAt);
     assert.ok(Date.parse(after.lastUsedAt!) > 0);
@@ -210,6 +214,8 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
     assert.equal(item.importance, null);
     assert.equal(item.confidence, null);
     assert.equal(item.lastUsedAt, null);
+    assert.equal(item.layer, "workspace");
+    assert.equal(item.conversationId, null);
     deleteMemory("workspace", id);
   });
 
@@ -222,6 +228,10 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
       "importance",
       "lastUsedAt",
       "confidence",
+      "layer",
+      "createdAt",
+      "updatedAt",
+      "scope",
     ]);
   });
 

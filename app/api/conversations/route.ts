@@ -11,7 +11,7 @@ import {
 import { get, list, put, transaction } from "@/lib/server/store";
 import { conversation } from "@/lib/server/tasks";
 import {
-  health,
+  healthSnapshot,
   readJSON,
   sessionKeyFor,
   upstream,
@@ -31,8 +31,14 @@ export const GET = route(async (req) => {
   const owner = authenticate(req);
   const id = z.string().uuid().parse(new URL(req.url).searchParams.get("id"));
   const conv = conversation(owner, id);
-  const connection = await health(owner);
-  if (!conv.hermesSessionId || !connection.features.session_resources)
+  if (!conv.hermesSessionId)
+    return respond({
+      conversation: conv,
+      remoteHistory: null,
+      syncStatus: "unsupported",
+    });
+  const connection = healthSnapshot(owner);
+  if (connection.features.session_resources !== true)
     return respond({
       conversation: conv,
       remoteHistory: null,

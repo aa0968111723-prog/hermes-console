@@ -1,4 +1,4 @@
-import type { StructuredGoal } from "../../contracts";
+import type { StructuredGoal, TaskFocus } from "../../contracts";
 import { classifyIntent } from "./intent";
 
 const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
@@ -14,13 +14,25 @@ const IMAGE =
 const MAKING = /幫我做|做一張|製作|出圖/;
 const MAKING_VISUAL = /文宣|海報|網宣|宣傳|IG|限動|貼文/;
 
+export function wantsNewVisual(text: string): boolean {
+  return DESIGN.test(text.trim()) || (MAKING.test(text) && MAKING_VISUAL.test(text));
+}
+
 export function interpretGoal(
   input: string,
-  extras: { hasAttachments?: boolean } = {},
+  extras: {
+    hasAttachments?: boolean;
+    hasImage?: boolean;
+    focus?: TaskFocus | null;
+  } = {},
 ): StructuredGoal {
   const text = input.trim();
-  const intentTier = classifyIntent(text);
-  const hasAttachments = !!extras.hasAttachments;
+  const artifactFocused = !!(extras.focus?.copyId || extras.focus?.workflowId);
+  const focused = artifactFocused || !!extras.focus?.activityId;
+  let intentTier = classifyIntent(text);
+  if (focused && (intentTier === "chitchat" || intentTier === "continue"))
+    intentTier = "create";
+  const hasAttachments = !!(extras.hasAttachments || extras.hasImage);
   const requiresTamkang = TAMKANG.test(text);
   const requiresImageAnalysis =
     IMAGE.test(text) || (hasAttachments && !MAKING.test(text));
@@ -28,7 +40,7 @@ export function interpretGoal(
   const wantsVisual =
     DESIGN.test(text) || (MAKING.test(text) && MAKING_VISUAL.test(text));
   const requiresDesign =
-    wantsVisual && (MAKING.test(text) || !requiresImageAnalysis);
+    focused || (wantsVisual && (MAKING.test(text) || !requiresImageAnalysis));
   const requiresAudienceEvaluation =
     AUDIENCE.test(text) || requiresImageAnalysis;
   const requiresInspiration = INSPIRATION.test(text) || requiresDesign;
@@ -38,11 +50,15 @@ export function interpretGoal(
     : /受眾|學生/.test(text)
       ? "使用者提到的受眾（待確認）"
       : null;
-  const output = requiresImageAnalysis
-    ? "看圖、視覺層級與修改建議（受眾為模擬）"
-    : OUTPUT.test(text)
-      ? "可審查的創作方向與 Canva 接續草稿"
-      : null;
+  const output = artifactFocused
+    ? "同一作品的下一版，不是無關的新輸出"
+    : extras.focus?.activityId
+      ? "依此活動提出方向，不是無關的新企劃"
+      : requiresImageAnalysis
+        ? "看圖、視覺層級與修改建議（受眾為模擬）"
+        : OUTPUT.test(text)
+          ? "可審查的創作方向與 Canva 接續草稿"
+          : null;
   const constraints: string[] = [];
   if (requiresAudienceEvaluation)
     constraints.push("Audience Twin 只能標 SIMULATION。");

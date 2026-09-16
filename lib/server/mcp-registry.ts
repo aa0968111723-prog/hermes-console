@@ -13,10 +13,20 @@ import { runtimeEnv } from "./credentials";
 
 export type McpStatus =
   | "unconfigured"
-  | "connected"
+  | "verifying"
+  | "available"
   | "partial"
-  | "verified"
-  | "failed";
+  | "failed"
+  | "connected"
+  | "verified";
+
+export function publicMcpStatus(
+  status: McpStatus,
+): "unconfigured" | "verifying" | "available" | "partial" | "failed" {
+  if (status === "connected") return "verifying";
+  if (status === "verified") return "available";
+  return status;
+}
 export interface McpEntry {
   id: string;
   name: string;
@@ -44,6 +54,41 @@ export interface McpEntry {
   serverInfo?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
 }
+
+export type PublicMcpEntry = {
+  id: string;
+  name: string;
+  status: ReturnType<typeof publicMcpStatus>;
+  enabled: boolean;
+  readonly: boolean;
+  trustedLevel: McpEntry["trustedLevel"];
+  toolsCount: number;
+  lastError: string | null;
+};
+
+/** Student/member view: status only. No endpoint, env names, or tool schemas. */
+export function presentMcpEntry(entry: McpEntry, operator: boolean) {
+  const status = publicMcpStatus(entry.status);
+  const lastError = entry.lastError ? redact(entry.lastError) : null;
+  if (!operator) {
+    return {
+      id: entry.id,
+      name: entry.name,
+      status,
+      enabled: entry.enabled,
+      readonly: entry.readonly,
+      trustedLevel: entry.trustedLevel,
+      toolsCount: entry.tools.length,
+      lastError: null,
+    } satisfies PublicMcpEntry;
+  }
+  return {
+    ...entry,
+    status,
+    lastError,
+  };
+}
+
 const definition = z
   .object({
     id: z.string().regex(/^[a-zA-Z0-9_-]{2,40}$/),
@@ -234,7 +279,9 @@ export function seedRegistry(): McpEntry[] {
           : matches
             ? old.status === "verified"
               ? "partial"
-              : old.status
+              : old.status === "connected"
+                ? "verifying"
+                : old.status
             : "unconfigured",
       verifiedAt: matches ? old.verifiedAt : null,
       lastError:
@@ -303,16 +350,15 @@ export function interpretVerification(steps: {
   initialize: boolean;
   toolsList: boolean;
   safeRead: boolean;
-}): McpStatus {
+}): Exclude<McpStatus, "connected" | "verified"> {
   if (!steps.initialize) return "failed";
-  if (!steps.toolsList) return "connected";
-  return steps.safeRead ? "verified" : "partial";
+  if (!steps.toolsList) return "failed";
+  return steps.safeRead ? "available" : "partial";
 }
 export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
   const client = new Client({ name: "hermes-console-discovery", version: "2" });
-  let connected = false;
   const deadline = AbortSignal.timeout(20_000);
   const credential = config.credentialReference
     ? runtimeEnv(config.credentialReference)
@@ -352,11 +398,14 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     if (config.credentialReference) {
       const token = runtimeEnv(config.credentialReference);
       if (!token)
-        throw new ApiError(
-          503,
-          "mcp_credential_missing",
-          "此 MCP 缺少後端服务憑證。",
-        );
+        return put("mcp_registry", WORKSPACE_OWNER, {
+          ...entry,
+          ...config,
+          tools: [],
+          status: "unconfigured" as const,
+          verifiedAt: null,
+          lastError: "尚未設定權杖。",
+        });
       headers.Authorization = "Bearer " + token;
     }
     const target = new URL(config.endpoint);
@@ -396,7 +445,6 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       },
     });
     await client.connect(transport, { timeout: 10_000 });
-    connected = true;
     let cursor: string | undefined;
     const tools: McpEntry["tools"] = [];
     for (let page = 0; page < 10; page++) {
@@ -479,7 +527,7 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       ...entry,
       ...config,
       tools: [],
-      status: connected ? ("connected" as const) : ("failed" as const),
+      status: "failed" as const,
       verifiedAt: null,
       lastError:
         error instanceof ApiError

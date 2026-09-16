@@ -99,12 +99,14 @@ export async function verifyMobileSpatial(
   await expect(radial).toBeVisible();
   await expect(radial).toHaveCSS("transform", "none");
   const safeAreaSheetBounds = await radial.boundingBox();
+  const dock = page.locator(".mobile-bottom-dock");
+  const dockBox = await dock.boundingBox();
   assert.ok(
     safeAreaSheetBounds &&
       safeAreaSheetBounds.y >= 0 &&
-      safeAreaSheetBounds.y + safeAreaSheetBounds.height <=
-        360 - 90 - safeAreaBottom,
-    "large-text radial sheet must remain above the bottom safe area",
+      dockBox &&
+      safeAreaSheetBounds.y + safeAreaSheetBounds.height <= dockBox.y + 1,
+    "large-text radial sheet must remain above the bottom dock and safe area",
   );
   assert.equal(
     await radial.evaluate(

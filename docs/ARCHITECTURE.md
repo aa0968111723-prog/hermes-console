@@ -1,63 +1,42 @@
-# Hermes Console 架構
+# Architecture
 
 ```
 Human
-  ↓
-Hermes Console（AuthGate → Visual AI Agent Workspace）
-  ↓
-Hermes Agent
-  ↓
-Planner / Reasoning
-  ↓
-Memory（conversation / project / workspace / preference / runtime）
-  ↓
-Tools
-  ↓
-MCP Registry（Tamkang、GALLEY、訊核、Atlas、Lumen、FrameLab、Canva、Workspace、External）
-  ↓
-External Services
-  ↓
-Artifacts / Results
+  → Hermes Console (AuthGate + visual workspace)
+    → Hermes Agent
+      → Planner / reasoning
+        → Memory (conversation / project / workspace / preference / runtime)
+        → Tools
+          → MCP registry
+            → External services
+              → Artifacts / results
 ```
 
-## Console 的角色
+Hermes Console is the human interface to that runtime. It is not a tool directory, MCP dashboard, Canva clone, or ChatGPT clone.
 
-使用者與 Agent Runtime 互動的主介面。不是工具清單 App、不是 MCP Dashboard、不是 ChatGPT clone。
+## Console responsibilities
 
-一般模式只顯示高階進度（理解／研究／創作／完成）。Developer／進階才看 endpoint、schema、latency、receipts。
+- Authenticate the user (Google / Tamkang SSO / Email) and authorize workspace membership (`owner` / `admin` / `member`). Connection secrets require owner or admin.
+- Render conversations, projects, inspiration, artifacts, and turtle state.
+- Persist workspace data (SQLite or Console Postgres).
+- Expose Workspace MCP to Hermes. Probe external MCP. Never fake `available`.
+- Show high-level progress in the normal UI. Schema, endpoints, receipts, env-var requirements, and tool names stay in 進階 / Developer. Member GET `/api/integrations` and `/api/agents` return `view: normal` without those fields. Public `/api/health` is a liveness probe (`live` / `ready` / `agentReady`) that never waits on Hermes discovery. Task submit (`ensureHermesReady`) reuses a valid/unconfigured/failed cache, otherwise probes `/v1/models` only — not skills/toolsets. Student/member connection errors never name keys or env vars; owner/admin discovery keeps the probe wording. App live ≠ Agent ready (`GET /api/ready` is the store probe). Developer dumps (`/api/runtime/tools`, `/mcp`, `/agents`, `/bindings`, `/api/certification`, `/api/usage`) and `POST /api/health` require owner or admin. Planner picks Tamkang / GALLEY / Lumen / FrameLab / Planform from live availability; the student progress strip stays 理解／研究／靈感／客群／創作／完成.
 
-## 身份與授權
+## Hermes responsibilities
 
-```
-User
- ├ Google Identity
- ├ Tamkang Identity
- └ Email Identity
-      ↓
- Session
-      ↓
- WorkspaceMembership (owner | admin | member)
-      ↓
- Workspace APIs（固定 namespace `workspace`）
-```
+- Plan, call tools, write memory through Workspace MCP, create artifacts.
+- Respect confirmation, cancel, budget, and max-step limits.
+- After Console restart, orphaned chat tasks become `uncertain` and are never auto-resent.
+- Do not expose chain-of-thought.
 
-閘道 `X-Console-Gateway` 是部署邊界。工作區資料仍以 membership 為準。
+## Data
 
-## Runtime
+Records live in one store (`kind` + `owner` + `id`):
 
-- Hermes HTTP：models／capabilities／runs／chat／stop
-- Console MCP 橋：`/api/mcp` + `MCP_BRIDGE_TOKEN`
-- 背景 monitor 探索工具；離線來源會過期
-- 任務狀態：queued、running、waiting_user、waiting_authorization、stopping、completed、failed、cancelled、uncertain
-- 中斷的串流標 `uncertain`，不假裝遠端已停止
+User / Identity / Session / Membership / Project / Conversation / Message / Task / Tool receipt / Material / Artifact (copy revisions) / Memory.
 
-## 資料
+Memory rows have `scope`, `layer`, `source`, `confidence`, `updatedAt`. They are not a remote Hermes mirror unless separately verified.
 
-Store kinds 包含 user、identity、membership、session、conversation、message、task、material、artifact／creative revision、memory、mcp_registry、confirmation。SQLite 或 Postgres `console_records`。
+## Trust
 
-## 前端
-
-- `AuthGate`：未登入不載入工作區
-- `HermesConsole`：對話捲動區是 chat 的唯一主捲動；其他頁用 `.secondary-page`
-- 手機 Bottom Dock：對話／專案／靈感／Agent；設定在頂欄
-- 龜龜把 Agent 狀態視覺化，不是裝飾；點進去看進度與記憶，標題是 Hermes，不是工程「空間」
+Unconfigured integrations stay unconfigured. `tools/list` is `partial`. Empty HTTP 200 is not success. Interrupted tasks are `uncertain`, not still running.

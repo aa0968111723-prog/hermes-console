@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-pg-stale-"));
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3291";
 const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";

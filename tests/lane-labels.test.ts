@@ -9,6 +9,7 @@ import type { FunnelLane, Material, MaterialSource } from "../lib/contracts";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-lane-labels-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3261";
 const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";

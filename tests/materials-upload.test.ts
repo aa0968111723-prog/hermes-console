@@ -1,5 +1,4 @@
 import test from "node:test";
-import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { access, mkdtemp, readFile } from "node:fs/promises";
 import { constants } from "node:fs";
@@ -9,16 +8,19 @@ import sharp from "sharp";
 import type { Material } from "../lib/contracts";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-materials-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3261";
-const testAuthCookie = seedSession().cookie;
 
 const { ApiError } = await import("../lib/server/security");
 const {
   filePath,
   ingestDriveFact,
   listMaterials,
+  materialBytes,
   saveReference,
   saveUpload,
+  thumbnailPath,
 } = await import("../lib/server/materials");
 const { put, list } = await import("../lib/server/store");
 const { ingestUrl } = await import("../lib/server/inspiration");
@@ -82,7 +84,6 @@ function originRequest(path: string, init?: RequestInit) {
     ...init,
     headers: {
       Origin: process.env.CONSOLE_ORIGIN!,
-      Cookie: testAuthCookie,
       ...(init?.headers || {}),
     },
   });
@@ -117,12 +118,6 @@ test("uploading the same PNG twice marks the second as duplicate and keeps both 
   assert.equal(first.duplicateOf, null);
   assert.ok(first.contentSha256);
   assert.equal(first.people, undefined);
-  await access(filePath("workspace", first.id) + ".thumb.webp", constants.F_OK);
-  const thumb = await materialsRoute.GET(
-    originRequest("/api/materials?id=" + first.id + "&thumb=1"),
-  );
-  assert.equal(thumb.status, 200);
-  assert.equal(thumb.headers.get("content-type"), "image/webp");
   assert.equal(second.contentSha256, first.contentSha256);
   assert.equal(second.dedupeStatus, "duplicate");
   assert.equal(second.duplicateOf, first.id);
@@ -201,8 +196,7 @@ test("reference POST writes web_https source, format, fingerprint and dual-write
   const viaRoute = await materialsRoute.POST(
     originRequest("/api/materials", {
       method: "POST",
-      headers: { "Content-Type": "application/json",
-      Cookie: testAuthCookie },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: "外部海報複本",
         url: "https://example.com/poster.png?utm_source=other",
@@ -259,36 +253,32 @@ test("inspiration and Drive fact ingest write source types without member names"
   assert.equal(driveMaterials[0].people, undefined);
 });
 
-test("image covers use a webp thumbnail; PDF has no fake page cover", async () => {
+test("image uploads store a compressed thumbnail separately from the original", async () => {
   const png = await sharp({
-    create: { width: 640, height: 480, channels: 3, background: "#88aa77" },
+    create: { width: 1200, height: 800, channels: 3, background: "#356b45" },
   })
     .png()
     .toBuffer();
-  const image = await saveUpload(
+  const saved = await saveUpload(
     "workspace",
     "personal",
-    "cover.png",
+    "wide-poster.png",
     "image/png",
     png,
   );
-  const original = await readFile(filePath("workspace", image.id));
-  const thumb = await materialsRoute.GET(
-    originRequest("/api/materials?id=" + image.id + "&thumb=1"),
+  const full = await materialBytes("workspace", saved.id, "full");
+  const thumb = await materialBytes("workspace", saved.id, "thumb");
+  assert.equal(full.mime, "image/png");
+  assert.equal(thumb.mime, "image/webp");
+  assert.ok(thumb.bytes.length < full.bytes.length);
+  await access(thumbnailPath("workspace", saved.id), constants.F_OK);
+  const viaRoute = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + saved.id + "&variant=thumb"),
   );
-  assert.equal(thumb.status, 200);
-  assert.equal(thumb.headers.get("content-type"), "image/webp");
-  const thumbBytes = Buffer.from(await thumb.arrayBuffer());
-  assert.ok(thumbBytes.length < original.length);
-  const pdf = await saveUpload(
-    "workspace",
-    "personal",
-    "brief.pdf",
-    "application/pdf",
-    Buffer.from("%PDF-1.4\n% cover-test"),
+  assert.equal(viaRoute.status, 200);
+  assert.equal(viaRoute.headers.get("content-type"), "image/webp");
+  const rejected = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + saved.id + "&variant=original"),
   );
-  const pdfThumb = await materialsRoute.GET(
-    originRequest("/api/materials?id=" + pdf.id + "&thumb=1"),
-  );
-  assert.equal(pdfThumb.status, 404);
+  assert.equal(rejected.status, 400);
 });

@@ -5,7 +5,7 @@ import {
   defaultProfiles,
   listAgentsBestEffort,
 } from "@/lib/server/agents";
-import { health } from "@/lib/server/hermes";
+import { healthSnapshot } from "@/lib/server/hermes";
 export const runtime = "nodejs";
 
 const STORE_UNAVAILABLE = {
@@ -24,7 +24,7 @@ function rethrowUnlessStoreFailure(error: unknown) {
 export const GET = route(async (req) => {
   const owner = authenticate(req);
   try {
-    const connection = await health(owner);
+    const connection = healthSnapshot(owner);
     const snapshot = listAgentsBestEffort();
     const generalAgent =
       snapshot.agents.find((agent) => agent.id === "general") ||

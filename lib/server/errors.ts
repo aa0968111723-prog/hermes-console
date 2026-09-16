@@ -1,3 +1,13 @@
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 export type ErrorCategory =
   | "AUTH_ERROR"
   | "PERMISSION_ERROR"
@@ -97,3 +107,40 @@ export function errorCategory(code: string): ErrorCategory {
     return "INVALID_INPUT";
   return "UNKNOWN";
 }
+
+export type ErrorTaxonomy = ErrorCategory;
+
+export function taxonomyFor(code: string): ErrorCategory {
+  if (code === "empty_tool_result") return "TOOL_UNAVAILABLE";
+  if (code === "hermes_not_ready") return "UPSTREAM_ERROR";
+  if (code === "hermes_unconfigured") return "TOOL_UNAVAILABLE";
+  if (code === "store_unavailable") return "NETWORK_ERROR";
+  if (code === "permission_denied" || code === "membership_required")
+    return "PERMISSION_ERROR";
+  return errorCategory(code);
+}
+
+export const STUDENT_HERMES_UNCONFIGURED =
+  "Hermes 還沒連上。請到設定的連線頁。";
+export const STUDENT_HERMES_UNAVAILABLE = "現在沒辦法連到 Hermes。";
+
+const HERMES_ENGINEERING =
+  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization/i;
+
+export function studentHermesError(message: string, code?: string): string {
+  if (
+    code === "hermes_unconfigured" ||
+    code === "hermes_not_ready" ||
+    code === "invalid_credential_ref"
+  )
+    return STUDENT_HERMES_UNCONFIGURED;
+  if (
+    code &&
+    /^(connect_timeout|network_error|interrupted|upstream_)/.test(code)
+  )
+    return STUDENT_HERMES_UNAVAILABLE;
+  if (HERMES_ENGINEERING.test(message)) return STUDENT_HERMES_UNAVAILABLE;
+  return message;
+}
+
+export { isEmptyToolResult } from "./tool-result";

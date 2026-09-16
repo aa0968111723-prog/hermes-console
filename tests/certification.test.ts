@@ -12,6 +12,7 @@ import { classifyTruth, audienceTruth } from "../lib/server/truth";
 import { overallFromCapabilities, evidenceKindForUrl } from "../lib/server/certification/evidence";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-cert-"));
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3255";
 const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";

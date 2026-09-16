@@ -1,5 +1,5 @@
 import type { DiscoveryItem, Health } from "../contracts";
-import { ApiError, WORKSPACE_OWNER } from "./security";
+import { ApiError, WORKSPACE_OWNER, redact } from "./security";
 import { list, put } from "./store";
 import { runtimeEnv } from "./credentials";
 
@@ -124,7 +124,12 @@ export function capabilityFromHealth(
   const flag = (value: unknown, fallback: CapabilityState): CapabilityState =>
     value === true ? "available" : value === false ? "unsupported" : fallback;
   const states = emptyCapabilities();
-  if (health.status === "unconfigured") return states;
+  if (
+    health.status === "unconfigured" ||
+    health.status === "verifying" ||
+    health.status === "awaiting_authorization"
+  )
+    return states;
   if (health.status === "failed") {
     for (const key of Object.keys(states)) states[key] = "failed";
     return states;
@@ -198,6 +203,29 @@ export function publicProfile(profile: AgentProfile): AgentProfile {
     baseUrl = "";
   }
   return { ...profile, baseUrl };
+}
+
+/** Student/member view: status dots only. Tool names and env-var keys stay operator-only. */
+export function presentAgentProfile(
+  profile: AgentProfile,
+  operator: boolean,
+): AgentProfile {
+  const published = publicProfile(profile);
+  const lastError = published.lastError ? redact(published.lastError) : null;
+  if (operator) return { ...published, lastError };
+  return {
+    ...published,
+    credentialReference: "",
+    baseUrl: "",
+    profilePath: "",
+    model: null,
+    tools: [],
+    skills: [],
+    toolsets: [],
+    capabilities: {},
+    lastError: null,
+    usage: { totalTokens: null, durationMs: null },
+  };
 }
 
 export function listAgents(): AgentProfile[] {

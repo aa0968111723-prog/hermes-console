@@ -1,17 +1,22 @@
 import { z } from "zod";
 import {
   authenticate,
+  authenticateOperator,
+  isWorkspaceOperator,
   jsonBody,
   respond,
   route,
 } from "@/lib/server/security";
-import { canvaStatus, startCanvaAuth, verifyCanva } from "@/lib/server/canva";
+import { canvaStatus, presentCanvaStatus, startCanvaAuth, verifyCanva } from "@/lib/server/canva";
 export const runtime = "nodejs";
-export const GET = route(async (req) =>
-  respond(canvaStatus(authenticate(req))),
-);
+export const GET = route(async (req) => {
+  const owner = authenticate(req);
+  return respond(
+    presentCanvaStatus(canvaStatus(owner), isWorkspaceOperator(req)),
+  );
+});
 export const POST = route(async (req) => {
-  const owner = authenticate(req, true);
+  const owner = authenticateOperator(req, true);
   const body = z
     .object({ action: z.enum(["authorize", "verify"]) })
     .strict()

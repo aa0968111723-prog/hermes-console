@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import {
   ApiError,
@@ -9,11 +8,10 @@ import {
 } from "@/lib/server/security";
 import { get } from "@/lib/server/store";
 import {
-  filePath,
   includeDuplicatesQuery,
   listMaterials,
   material,
-  materialThumb,
+  materialBytes,
   saveReference,
   saveUpload,
 } from "@/lib/server/materials";
@@ -36,19 +34,17 @@ export const GET = route(async (req) => {
   const id = z.string().uuid().parse(rawId);
   const asset = material(owner, id);
   if (asset.kind === "reference") return respond({ material: asset });
-  if (url.searchParams.get("thumb") === "1") {
-    const thumb = await materialThumb(owner, id);
-    return new Response(new Uint8Array(thumb), {
-      headers: {
-        "Content-Type": "image/webp",
-        "Cache-Control": "private, no-store",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  }
-  return new Response(new Uint8Array(await readFile(filePath(owner, id))), {
+  const variant = url.searchParams.get("variant");
+  if (variant && variant !== "thumb")
+    throw new ApiError(400, "invalid_variant", "只支援縮圖或原檔。");
+  const file = await materialBytes(
+    owner,
+    id,
+    variant === "thumb" ? "thumb" : "full",
+  );
+  return new Response(new Uint8Array(file.bytes), {
     headers: {
-      "Content-Type": asset.mime || "application/octet-stream",
+      "Content-Type": file.mime,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(asset.title)}`,

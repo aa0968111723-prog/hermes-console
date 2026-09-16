@@ -29,10 +29,6 @@ test("recruitment truth notice copy is exact and wired to Inspiration + Help", a
     new URL("../components/HermesConsole.tsx", import.meta.url),
     "utf8",
   );
-  const settingsTabs = await readFile(
-    new URL("../components/settings/SettingsTabs.tsx", import.meta.url),
-    "utf8",
-  );
   const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
   assert.match(notice, /soft-info-notice/);
@@ -43,8 +39,7 @@ test("recruitment truth notice copy is exact and wired to Inspiration + Help", a
   assert.match(help, /help-recruitment-truth/);
   assert.match(board, /RecruitmentTruthNotice/);
   assert.match(consoleUi, /HelpPage/);
-  assert.match(consoleUi, /SettingsTabs/);
-  assert.match(settingsTabs, /"進階"/);
+  assert.match(consoleUi, /"進階"/);
   assert.ok(css.includes(".soft-info-notice"));
   assert.ok(css.includes("max-width: 430px"));
   // dismiss hit target >=44x44 (was 32)

@@ -9,6 +9,7 @@ import { join } from "node:path";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-parallel-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3220";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";

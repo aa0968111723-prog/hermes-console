@@ -128,8 +128,11 @@ export function readUser(id: string) {
   return get<UserRecord>("user", USER_OWNER, id);
 }
 
-function identitiesFor(userId: string) {
-  return list<IdentityRecord>("identity", userId);
+export function identitiesFor(userId: string) {
+  return list<IdentityRecord>("identity", userId).map((item) => ({
+    ...item,
+    providerId: item.subject,
+  }));
 }
 
 export function membershipFor(userId: string) {
@@ -353,10 +356,10 @@ export function registerEmail(input: {
     createdAt: nowIso(),
   });
   if (verified) grantMembership(user.id, email);
-  return { user, verified };
+  return { user, verified, first: true };
 }
 
-export function loginEmail(emailRaw: string, password: string) {
+function loginEmailUser(emailRaw: string, password: string) {
   const email = emailInput.parse(emailRaw);
   limited("login:global", 30, 15 * 60_000);
   limited("login:" + hash(email), 8, 15 * 60_000);
@@ -366,8 +369,21 @@ export function loginEmail(emailRaw: string, password: string) {
     !!user?.passwordHash && verifyPasswordHash(password, user.passwordHash);
   if (!ok)
     throw new ApiError(401, "invalid_login", "電子信箱或密碼不正確。");
-  if (user.emailVerified) grantMembership(user.id, user.email);
+  if (!user.emailVerified)
+    throw new ApiError(401, "email_unverified", "請先完成電子信箱驗證。");
+  grantMembership(user.id, user.email);
   return user;
+}
+
+export function loginEmail(emailRaw: string, password: string): UserRecord;
+export function loginEmail(input: { email: string; password: string }): string;
+export function loginEmail(
+  emailRaw: string | { email: string; password: string },
+  password?: string,
+) {
+  if (typeof emailRaw === "object")
+    return issueSession(loginEmailUser(emailRaw.email, emailRaw.password).id);
+  return loginEmailUser(emailRaw, password || "");
 }
 
 export function linkEmailIdentity(userId: string, emailRaw: string, password: string) {
@@ -408,7 +424,8 @@ export function linkEmailIdentity(userId: string, emailRaw: string, password: st
       updatedAt: nowIso(),
     });
     if (verified) grantMembership(userId, email);
-    return readUser(userId)!;
+    const next = readUser(userId)!;
+    return Object.assign(next, { verificationSent: !verified });
   });
 }
 
@@ -563,4 +580,63 @@ export function seedTestOwner(input?: {
   grantMembership(user.id, email);
   const token = issueSession(user.id);
   return { user, token, cookie: sessionCookie(token) };
+}
+
+
+export { hashPassword, verifyPasswordHash } from "./passwords";
+
+export function users() {
+  return list<UserRecord>("user", USER_OWNER);
+}
+
+export function loginWithIdentity(input: {
+  provider: AuthProvider;
+  providerId: string;
+  email?: string | null;
+  emailVerified?: boolean;
+  name?: string;
+  avatar?: string | null;
+  userId?: string;
+  actorId?: string;
+  mode?: "login" | "link";
+}) {
+  if (input.provider === "email")
+    throw new ApiError(400, "invalid_input", "電子信箱請走 password 流程。");
+  const user = completeExternalLogin({
+    provider: input.provider,
+    subject: input.providerId,
+    email: input.email || null,
+    emailVerified: !!input.emailVerified,
+    name: input.name || "使用者",
+    avatar: input.avatar || null,
+    linkUserId: input.userId || input.actorId,
+  });
+  return issueSession(user.id);
+}
+
+export function boundLinkActor(
+  mode: "login" | "link" | undefined,
+  stateUserId?: string | null,
+  sessionUserId?: string,
+) {
+  if (mode !== "link") return undefined;
+  if (!stateUserId || !sessionUserId || stateUserId !== sessionUserId)
+    throw new ApiError(
+      401,
+      "oauth_state",
+      "連結帳號時請使用原本的登入工作階段。",
+    );
+  return sessionUserId;
+}
+
+export function verifyEmail(token: string) {
+  const userId = consumeAuthToken("verify", token);
+  return markEmailVerified(userId);
+}
+
+export function requireWorkspaceRole(
+  request: Request,
+  roles: readonly MembershipRole[],
+) {
+  return requireRole(request, [...roles]);
 }

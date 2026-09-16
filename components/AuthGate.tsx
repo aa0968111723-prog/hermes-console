@@ -1,154 +1,118 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import Turtle from "./Turtle";
-import { applyAppViewport } from "@/lib/client/viewport";
 
 type Providers = {
-  google: boolean;
-  email: boolean;
-  tamkang: { configured: boolean; message: string };
+  google: { configured: boolean; label: string };
+  tamkang: { configured: boolean; label: string };
+  email: { configured: boolean; mail: boolean; label: string };
 };
 
-type Session = {
-  user: {
-    id: string;
-    name: string;
-    email: string | null;
-    avatar: string | null;
-    membership: string | null;
-    identities: Array<{ provider: string }>;
-  } | null;
-  membership: string | null;
-  providers: Providers;
-};
-
-const AUTH_ERRORS: Record<string, string> = {
-  google_unconfigured: "Google 登入尚未完成設定。",
-  tamkang_unconfigured: "淡江 SSO 尚未完成設定",
-  oauth_failed: "外部登入未完成。",
-  oauth_unconfigured: "此登入方式尚未完成設定。",
-};
+type Mode = "login" | "register" | "magic" | "forgot" | "reset" | "verify";
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [mode, setMode] = useState<"login" | "register" | "reset">("login");
+  const [ready, setReady] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
+  const [providers, setProviders] = useState<Providers | null>(null);
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [resetToken, setResetToken] = useState("");
+  const [token, setToken] = useState("");
+  const [tokenKind, setTokenKind] = useState<"redeem" | "verify" | "reset" | "">(
+    "",
+  );
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function load() {
-    const response = await fetch("/api/auth/session", {
-      cache: "no-store",
-      credentials: "same-origin",
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) throw new Error("無法確認登入狀態。");
-    setSession((await response.json()) as Session);
+  async function refresh() {
+    try {
+      const session = await fetch("/api/auth", {
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (session.ok) {
+        setSignedIn(true);
+        setReady(true);
+        return;
+      }
+      const listed = await fetch("/api/auth?view=providers", {
+        cache: "no-store",
+        credentials: "same-origin",
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (listed.ok) setProviders((await listed.json()).providers);
+      setSignedIn(false);
+    } catch {
+      setNotice("無法確認登入狀態，請檢查網路。");
+      setSignedIn(false);
+    } finally {
+      setReady(true);
+    }
   }
 
   useEffect(() => {
-    if (session?.user && session.membership) return;
-    const viewport = window.visualViewport;
-    const update = () => {
-      const active = document.activeElement;
-      const ownerFocused =
-        active instanceof HTMLElement &&
-        !!active.closest(".auth-gate, .auth-form");
-      applyAppViewport(ownerFocused);
-    };
-    update();
-    viewport?.addEventListener("resize", update);
-    viewport?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    document.addEventListener("focusin", update);
-    document.addEventListener("focusout", update);
-    return () => {
-      viewport?.removeEventListener("resize", update);
-      viewport?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-      document.removeEventListener("focusin", update);
-      document.removeEventListener("focusout", update);
-    };
-  }, [session?.user, session?.membership]);
-
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const authError = params.get("auth_error") || "";
-    if (authError)
-      setNotice(AUTH_ERRORS[authError] || "登入未完成。");
-    if (authError)
-      window.history.replaceState(null, "", window.location.pathname);
     const hash = new URLSearchParams(window.location.hash.slice(1));
+    const authError = params.get("auth_error");
+    if (authError) {
+      setNotice(authError);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
     const login = hash.get("login") || "";
     const verify = hash.get("verify") || "";
     const reset = hash.get("reset") || "";
+    if (/^[a-f0-9]{64}$/.test(login)) {
+      setMode("verify");
+      setTokenKind("redeem");
+      setToken(login);
+      setNotice("按下確認才會使用一次性登入連結。");
+    } else if (/^[a-f0-9]{64}$/.test(verify)) {
+      setMode("verify");
+      setTokenKind("verify");
+      setToken(verify);
+      setNotice("按下確認完成電子信箱驗證。");
+    } else if (/^[a-f0-9]{64}$/.test(reset)) {
+      setMode("reset");
+      setTokenKind("reset");
+      setToken(reset);
+      setNotice("設定新密碼。");
+    }
     if (login || verify || reset)
       window.history.replaceState(null, "", window.location.pathname);
-    if (reset) {
-      setResetToken(reset);
-      setMode("reset");
-    }
-    void (async () => {
-      try {
-        if (login) {
-          await fetch("/api/auth", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "redeem", token: login }),
-          });
-        } else if (verify) {
-          await fetch("/api/auth/email", {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "verify", token: verify }),
-          });
-        }
-        await load();
-      } catch {
-        setNotice("無法確認登入狀態，請檢查網路。");
-        setSession({
-          user: null,
-          membership: null,
-          providers: {
-            google: false,
-            email: true,
-            tamkang: { configured: false, message: "淡江 SSO 尚未完成設定" },
-          },
-        });
-      }
-    })();
+    void refresh();
   }, []);
 
-  async function submit(action: "login" | "register" | "magic" | "forgot" | "reset") {
+  async function submit(action: string) {
     if (busy) return;
     setBusy(true);
     setNotice("");
     try {
-      const body =
-        action === "register"
-          ? { action, email, password, name: name || "Hermes 使用者" }
-          : action === "login"
-            ? { action, email, password }
-            : action === "reset"
-              ? { action, token: resetToken, password }
-              : { action: action === "forgot" ? "forgot" : "magic", email };
-      const response = await fetch("/api/auth/email", {
+      const response = await fetch("/api/auth", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(
+          action === "register"
+            ? { action, email, password, name }
+            : action === "login"
+              ? { action, email, password }
+              : {
+                  action: action === "forgot" ? "forgot" : "request_link",
+                  email,
+                },
+        ),
         signal: AbortSignal.timeout(20_000),
       });
       const result = await response.json();
-      if (!response.ok)
-        throw new Error(result.error?.message || "無法完成登入。");
-      if (result.signedIn) await load();
-      else setNotice(result.message || "已提交。");
+      if (!response.ok) throw new Error(result.error?.message || "無法完成。");
+      if (result.signedIn) {
+        setSignedIn(true);
+        return;
+      }
+      setNotice(result.message || "請查看信箱。");
     } catch (error) {
       setNotice((error as Error).message);
     } finally {
@@ -156,161 +120,248 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }
 
-  if (!session)
+  async function confirmToken(kind: "redeem" | "verify" | "reset") {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          kind === "reset"
+            ? { action: "reset", token, password }
+            : { action: kind, token },
+        ),
+        signal: AbortSignal.timeout(20_000),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || "無法完成。");
+      if (result.signedIn) setSignedIn(true);
+      else setNotice(result.message || "請查看信箱。");
+    } catch (error) {
+      setNotice((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!ready)
     return (
-      <main className="auth-gate" aria-busy="true">
-        <p role="status">確認登入狀態</p>
+      <main className="login-screen">
+        <p role="status">正在確認身分…</p>
       </main>
     );
+  if (signedIn) return <>{children}</>;
 
-  if (session.user && session.membership) return <>{children}</>;
+  const google = providers?.google.configured;
+  const tamkang = providers?.tamkang.configured;
+  const mail = providers?.email.mail === true;
+  const mailNotice = "尚未設定寄件，無法寄送登入或重設連結";
 
-  if (session.user && !session.membership)
-    return (
-      <main className="auth-gate">
+  return (
+    <main className="login-screen" data-testid="login-screen">
+      <section className="login-card">
         <Turtle
-          offline={false}
           animation
           size={120}
+          offline={false}
           onClick={() => undefined}
           label="Hermes"
         />
-        <h1>尚未加入工作區</h1>
-        <p>登入成功，但這個帳號還沒有工作區權限。</p>
-      </main>
-    );
-
-  const providers = session.providers;
-  return (
-    <main className="auth-gate">
-      <Turtle
-        offline={false}
-        animation
-        size={140}
-        onClick={() => undefined}
-        label="Hermes 龜龜"
-      />
-      <h1>Hermes</h1>
-      {notice && (
-        <p role="status" className="auth-notice">
-          {notice}
-        </p>
-      )}
-      <a
-        className="auth-provider"
-        href={providers.google ? "/api/auth/google/start" : undefined}
-        aria-disabled={!providers.google}
-        onClick={(event) => {
-          if (!providers.google) {
-            event.preventDefault();
-            setNotice("Google 登入尚未完成設定。");
-          }
-        }}
-      >
-        {providers.google ? "Google" : "Google 登入尚未完成設定"}
-      </a>
-      <a
-        className="auth-provider"
-        href={providers.tamkang.configured ? "/api/auth/tamkang/start" : undefined}
-        aria-disabled={!providers.tamkang.configured}
-        onClick={(event) => {
-          if (!providers.tamkang.configured) {
-            event.preventDefault();
-            setNotice(providers.tamkang.message);
-          }
-        }}
-      >
-        {providers.tamkang.configured
-          ? "淡江 SSO"
-          : providers.tamkang.message}
-      </a>
-      <form
-        className="auth-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit(mode === "register" ? "register" : mode === "reset" ? "reset" : "login");
-        }}
-      >
-        {mode === "register" && (
-          <label>
-            稱呼
-            <input
-              value={name}
-              autoComplete="name"
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
+        <h1>登入 Hermes</h1>
+        <p className="muted">先登入，再把想法交給龜龜。</p>
+        {notice && (
+          <p className="error" role="alert">
+            {notice}
+          </p>
         )}
-        {mode !== "reset" && (
-          <label>
-            電子信箱
-            <input
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-          </label>
-        )}
-        {mode !== "reset" ? (
-          <label>
-            密碼
-            <input
-              type="password"
-              required
-              autoComplete={mode === "register" ? "new-password" : "current-password"}
-              minLength={mode === "register" ? 12 : 1}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
+        <div className="login-providers">
+          {google ? (
+            <a className="primary" href="/api/auth/google">
+              使用 Google 登入
+            </a>
+          ) : (
+            <p className="muted">{providers?.google.label || "Google 登入尚未完成設定"}</p>
+          )}
+          {tamkang ? (
+            <a href="/api/auth/tamkang">使用淡江 SSO</a>
+          ) : (
+            <p className="muted">
+              {providers?.tamkang.label || "淡江 SSO 尚未完成設定"}
+            </p>
+          )}
+          {!mail && <p className="muted">{mailNotice}</p>}
+        </div>
+        {mode === "register" ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit("register");
+            }}
+          >
+            <label>
+              名稱
+              <input
+                value={name}
+                autoComplete="name"
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              電子信箱
+              <input
+                type="email"
+                value={email}
+                autoComplete="email"
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              密碼
+              <input
+                type="password"
+                value={password}
+                autoComplete="new-password"
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={12}
+                required
+              />
+            </label>
+            <button className="primary" disabled={busy}>
+              {busy ? "處理中…" : "建立帳號"}
+            </button>
+          </form>
+        ) : mode === "magic" ? (
+          mail ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit("request_link");
+              }}
+            >
+              <label>
+                電子信箱
+                <input
+                  type="email"
+                  value={email}
+                  autoComplete="email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <button className="primary" disabled={busy}>
+                {busy ? "處理中…" : "寄送登入連結"}
+              </button>
+            </form>
+          ) : null
+        ) : mode === "forgot" ? (
+          mail ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit("forgot");
+              }}
+            >
+              <label>
+                電子信箱
+                <input
+                  type="email"
+                  value={email}
+                  autoComplete="email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <button className="primary" disabled={busy}>
+                {busy ? "處理中…" : "寄送重設連結"}
+              </button>
+            </form>
+          ) : null
+        ) : mode === "reset" ? (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void confirmToken("reset");
+            }}
+          >
+            <label>
+              新密碼
+              <input
+                type="password"
+                value={password}
+                autoComplete="new-password"
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={12}
+                required
+              />
+            </label>
+            <button className="primary" disabled={busy}>
+              {busy ? "處理中…" : "重設密碼"}
+            </button>
+          </form>
+        ) : mode === "verify" && token ? (
+          <button
+            className="primary"
+            disabled={busy}
+            onClick={() => void confirmToken(tokenKind === "verify" ? "verify" : "redeem")}
+          >
+            {busy
+              ? "處理中…"
+              : tokenKind === "verify"
+                ? "完成驗證"
+                : "確認登入"}
+          </button>
         ) : (
-          <label>
-            新密碼
-            <input
-              type="password"
-              required
-              autoComplete="new-password"
-              minLength={12}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </label>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit("login");
+            }}
+          >
+            <label>
+              電子信箱
+              <input
+                type="email"
+                value={email}
+                autoComplete="email"
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              密碼
+              <input
+                type="password"
+                value={password}
+                autoComplete="current-password"
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </label>
+            <button className="primary" disabled={busy}>
+              {busy ? "處理中…" : "登入"}
+            </button>
+          </form>
         )}
-        <button className="primary" disabled={busy}>
-          {mode === "register"
-            ? "建立新帳號"
-            : mode === "reset"
-              ? "重設密碼"
-              : "登入"}
-        </button>
-      </form>
-      <div className="auth-links">
-        <button
-          type="button"
-          className="text-button"
-          onClick={() => setMode(mode === "register" ? "login" : "register")}
-        >
-          {mode === "register" ? "已有帳號" : "還沒有帳號"}
-        </button>
-        <button
-          type="button"
-          className="text-button"
-          disabled={busy || !email}
-          onClick={() => void submit("magic")}
-        >
-          寄送登入連結
-        </button>
-        <button
-          type="button"
-          className="text-button"
-          disabled={busy || !email}
-          onClick={() => void submit("forgot")}
-        >
-          忘記密碼
-        </button>
-      </div>
+        <nav className="login-links" aria-label="其他登入方式">
+          <button className="text-button" type="button" onClick={() => setMode("login")}>
+            密碼登入
+          </button>
+          <button className="text-button" type="button" onClick={() => setMode("register")}>
+            建立帳號
+          </button>
+          <button className="text-button" type="button" onClick={() => setMode("magic")}>
+            登入連結
+          </button>
+          <button className="text-button" type="button" onClick={() => setMode("forgot")}>
+            忘記密碼
+          </button>
+        </nav>
+      </section>
     </main>
   );
 }

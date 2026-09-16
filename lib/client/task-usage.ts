@@ -17,6 +17,7 @@ const activeStates = new Set<TaskState>([
   "queued",
   "running",
   "waiting_user",
+  "waiting_authorization",
   "stopping",
 ]);
 

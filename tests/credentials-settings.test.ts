@@ -1,5 +1,4 @@
 import test from "node:test";
-import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, readFile, access } from "node:fs/promises";
@@ -9,8 +8,9 @@ import { randomBytes } from "node:crypto";
 import { constants } from "node:fs";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-cred-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3233";
-const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
 process.env.CONSOLE_REQUIRE_GATEWAY = "false";
@@ -72,7 +72,6 @@ const hermesUrl =
 const hermesKey = randomBytes(24).toString("hex");
 
 const tkuMethods: string[] = [];
-const tkuLoginHits: string[] = [];
 const tku = createServer((req, res) => {
   const chunks: Buffer[] = [];
   req.on("data", (part) => chunks.push(part));
@@ -86,7 +85,6 @@ const tku = createServer((req, res) => {
       parsed = {};
     }
     if (req.url === "/auth/login") {
-      tkuLoginHits.push(req.url);
       const body = parsed as {
         username?: string;
         password?: string;
@@ -172,7 +170,6 @@ function request(
     method,
     headers: {
       "Content-Type": "application/json",
-      Cookie: testAuthCookie,
       ...(origin ? { Origin: origin } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -185,7 +182,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     tku.close();
   });
 
-  await t.test("GET credentials requires session and warns about gateway, not missing login", async () => {
+  await t.test("GET credentials requires the workspace session and hides secrets", async () => {
     const response = await credentials.GET(request("settings/credentials"));
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -193,8 +190,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
     assert.equal(body.galley.state, "unconfigured");
-    assert.match(body.openSettingsWarning, /工作區管理員/);
-    assert.equal(/能開啟網站的人都可以覆寫/.test(body.openSettingsWarning), false);
+    assert.match(body.openSettingsWarning, /擁有者或管理者/);
     assert.equal(body.zeabur.token.configured, false);
     assert.match(body.zeabur.notice, /覆寫權杖/);
   });
@@ -310,12 +306,12 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     );
     assert.equal(probed.status, 200);
     const result = await probed.json();
-    assert.ok(["partial", "connected", "verified", "failed"].includes(result.tamkang.state));
-    assert.ok(["partial", "connected", "verified", "failed"].includes(result.probe.status));
+    assert.ok(["unconfigured", "verifying", "available", "partial", "failed"].includes(result.tamkang.state));
+    assert.ok(["unconfigured", "verifying", "available", "partial", "failed"].includes(result.probe.status));
     assert.ok(!JSON.stringify(result).includes(tkuToken));
   });
 
-  await t.test("Tamkang campus passwords are refused and never forwarded", async () => {
+  await t.test("Tamkang campus credential exchange stores token when origin exposes /auth/login", async () => {
     await credentials.POST(
       request("settings/credentials", "POST", {
         TKU_MCP_URL: tkuUrl,
@@ -329,18 +325,16 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
         password: "campus-secret",
       }),
     );
-    assert.equal(exchanged.status, 403);
+    assert.equal(exchanged.status, 200);
     const body = await exchanged.json();
-    assert.equal(body.error.code, "tku_password_refused");
-    assert.equal(body.error.category, "AUTH_ERROR");
-    assert.match(body.error.message, /不收集淡江帳號或密碼/);
+    assert.equal(body.exchanged, true);
+    assert.equal(body.fields.TKU_MCP_TOKEN.last4, "9999");
     assert.ok(!JSON.stringify(body).includes("campus-secret"));
     assert.ok(!JSON.stringify(body).includes("tku-exchanged-token-9999"));
-    assert.notEqual(runtimeEnv("TKU_MCP_TOKEN"), "tku-exchanged-token-9999");
-    assert.equal(tkuLoginHits.length, 0);
+    assert.equal(runtimeEnv("TKU_MCP_TOKEN"), "tku-exchanged-token-9999");
   });
 
-  await t.test("refusing campus passwords is not a fake Tamkang SSO", async () => {
+  await t.test("unknown Tamkang auth is honest, not a fake campus SSO", async () => {
     const failed = await tamkangRoute.POST(
       request("settings/tamkang", "POST", {
         action: "login",
@@ -348,12 +342,10 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
         password: "wrong-password",
       }),
     );
-    assert.equal(failed.status, 403);
+    assert.equal(failed.status, 502);
     const body = await failed.json();
-    assert.equal(body.error.code, "tku_password_refused");
-    assert.equal(body.error.category, "AUTH_ERROR");
+    assert.equal(body.error.code, "tku_login_unsupported");
     assert.match(body.error.message, /請改貼 Bearer 權杖/);
-    assert.equal(tkuLoginHits.length, 0);
   });
 
   await t.test("research and creative conversation contracts stay intact", async () => {
@@ -396,11 +388,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.doesNotMatch(ui, /tku-exchanged-token/);
     assert.doesNotMatch(ui, />帳號</);
     assert.doesNotMatch(ui, />登入</);
-    assert.doesNotMatch(ui, /以校園憑證交換權杖/);
-    assert.doesNotMatch(ui, /setTkuPassword/);
-    assert.match(ui, /不收集淡江帳號或密碼/);
-    assert.match(ui, /進階 · 部署/);
-    assert.match(ui, /進階 · 其他連線/);
-    assert.doesNotMatch(ui, /id: "zeabur"/);
+    assert.doesNotMatch(ui, /galley_research|lumen_utter|planform_run_agent/);
+    assert.doesNotMatch(ui, /淡江密碼/);
+    assert.match(ui, /不是淡江 SSO/);
   });
 });

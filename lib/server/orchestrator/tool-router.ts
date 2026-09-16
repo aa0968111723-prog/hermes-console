@@ -52,8 +52,11 @@ function mcpReady(status: string | undefined) {
 export function routeTools(
   goal: StructuredGoal,
   certifications: IntegrationCertification[],
-  mcp: McpHint[] = [],
+  mcp: McpHint[] | Record<string, string> = [],
 ): RoutedTool[] {
+  if (!Array.isArray(mcp)) {
+    mcp = Object.entries(mcp).map(([id, status]) => ({ id, status }));
+  }
   const tamkang = certifications.find((item) => item.id === "tamkang");
   const hermes = certifications.find((item) => item.id === "hermes");
   const canva = certifications.find((item) => item.id === "canva");

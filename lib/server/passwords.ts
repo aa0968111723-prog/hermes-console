@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
-import { argon2id } from "@noble/hashes/argon2";
-import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils";
+import { argon2id } from "@noble/hashes/argon2.js";
+import { bytesToHex, hexToBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 
 const ARGON_OPTS = { t: 2, m: 19_456, p: 1, dkLen: 32 };
 

@@ -17,9 +17,13 @@ const LOOKUP =
 const CREATE =
   /海報|網宣|Canva|canva|視覺|設計|稿|文宣|招新|茶會|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/;
 
-export function classifyIntent(input: string): IntentTier {
+export function classifyIntent(
+  input: string,
+  options?: { hasImage?: boolean },
+): IntentTier {
   const text = input.trim();
-  if (!text) return "chitchat";
+  if (!text && !options?.hasImage) return "chitchat";
+  if (options?.hasImage) return "create";
   if (LOOKUP.test(text)) return "lookup";
   if (CREATE.test(text)) return "create";
   if (CHITCHAT.test(text)) return "chitchat";
