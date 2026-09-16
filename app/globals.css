@@ -2653,7 +2653,7 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .visual-concept-overlay { position: absolute; display: grid; place-items: center; padding: 3px 5px; text-align: center; line-height: 1.15; overflow: hidden; color: #1f331f; background: rgba(255,255,255,.78); border-radius: 7px; }
 .visual-concept-overlay-stack { position: relative; left: auto; top: auto; width: auto; height: auto; }
 .visual-concept-overlay[data-zone="headline"] { font-weight: 800; font-size: clamp(10px, 2.8vw, 13px); background: rgba(255,255,255,.88); }
-.visual-concept-overlay[data-zone="info"] { font-size: clamp(9px, 2.3vw, 11px); font-variant-numeric: tabular-nums; }
+.visual-concept-overlay[data-zone="info"] { white-space: pre-line; font-size: clamp(10px, 2.4vw, 12px); font-variant-numeric: tabular-nums; }
 .visual-concept-overlay[data-zone="cta"] { font-weight: 700; font-size: 11px; color: #fff; background: #2f5d38; border-radius: 999px; }
 .visual-concept-overlay[data-zone="qr"] { font-size: 8px; background: #fff; box-shadow: inset 0 0 0 1px #c5d6c4; }
 .visual-concept-zone { position: absolute; display: grid; place-items: center; font-size: 9px; color: #3d5a40; background: rgba(255,255,255,.55); border: 1px dashed rgba(80,120,80,.45); border-radius: 6px; }
@@ -2694,6 +2694,22 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   .project-shelf { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
   .project-thumbnail { height: 110px; }
   .integration-picker { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .visual-concept-grid {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(78%, 240px);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    padding-bottom: 6px;
+  }
+  .visual-concept-card { scroll-snap-align: start; }
+  .visual-concept-frame { width: min(100%, 210px); }
+  .visual-concept-direction {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
 @media (max-width: 760px) {
   html[data-composer-keyboard="open"] .app-shell,

@@ -100,19 +100,26 @@ try {
     "data-overlay-date",
     "2026-09-30",
   );
-  await expect(page.getByText("2026-09-30").first()).toBeVisible();
+  await expect(page.locator(".visual-concept-facts")).toContainText("2026-09-30");
+  await expect(page.locator(".visual-concept-facts")).toContainText("留空");
   await expect(page.getByText("UNKNOWN：地點，畫面上留空。")).toBeVisible();
   await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
   await expect(page.getByText("概念 A")).toBeVisible();
   await expect(page.getByText("1 / 1 個工具完成")).toHaveCount(0);
   const chat = await page.locator("body").innerText();
   assert.equal(chat.includes("已搜尋整個 Instagram"), false);
-  await page.locator(".visual-concept-deck").screenshot({
+  await page.locator(".visual-concept-facts").scrollIntoViewIfNeeded();
+  await page.screenshot({
     path: join(output, "chat-visual-concepts-mobile.png"),
   });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await expect(page.locator(".visual-concept-facts")).toContainText("2026-09-30");
+  await page.screenshot({
+    path: join(output, "chat-visual-concepts-360.png"),
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: join(output, "chat-local-knowledge-mobile.png"),
-    fullPage: true,
   });
   const authed = await page.request.post(base + "/api/conversations", {
     headers: { Origin: base },

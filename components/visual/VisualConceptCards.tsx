@@ -29,10 +29,18 @@ function overlayCta(copy: string | null | undefined) {
   return httpsHref(copy) ? "報名" : copy;
 }
 
+function overlayTime(value?: string | null) {
+  if (!value) return null;
+  const short = value.split(/[（(]/)[0]?.trim() || value.trim();
+  return short || null;
+}
+
 function overlayInfo(overlay?: Record<string, string | null>) {
   if (!overlay) return null;
-  const parts = [overlay.date, overlay.time].filter(Boolean);
-  return parts.length ? parts.join(" · ") : null;
+  const date = overlay.date?.trim() || "";
+  const time = overlayTime(overlay.time) || "";
+  if (date && time) return `${date}\n${time}`;
+  return date || time || null;
 }
 
 function Frame({
