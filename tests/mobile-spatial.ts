@@ -285,7 +285,7 @@ export async function verifyMobileSpatial(
   await expect(
     space.getByText("其他專案的隱藏資料", { exact: true }),
   ).toHaveCount(0);
-  assert.ok((await space.locator(".orbit-node").count()) <= 5);
+  assert.equal(await space.locator(".orbit-node").count(), 0);
   await space
     .getByRole("button", { name: "空間測試偏好", exact: true })
     .click();

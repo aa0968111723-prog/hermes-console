@@ -2016,8 +2016,8 @@ export default function HermesConsole() {
               {error}
             </p>
           )}
-          {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
-            animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
+          {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask}
+            onTask={()=>openTask(currentTask)}
             onMemory={()=>{setSettingsTab("工作區");setPanel("settings");}}
             onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
             <>

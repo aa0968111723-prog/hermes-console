@@ -259,18 +259,6 @@ export default function RuntimeInspector({
         : statusLabel(mcpState);
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
-      <header>
-        <div className="runtime-actions">
-          <button onClick={() => void refresh()} disabled={busy}>
-            <RefreshCw size={15} />
-            {busy ? "同步中…" : "重新同步"}
-          </button>
-          <span className={`runtime-state ${state}`}>
-            <i aria-hidden="true" />
-            {snapshot ? statusLabel(state) : "尚未同步"}
-          </span>
-        </div>
-      </header>
       {error && (
         <p role="alert" className="error">
           <CircleAlert size={15} />
@@ -338,6 +326,16 @@ export default function RuntimeInspector({
       </div>
       <details className="runtime-advanced">
         <summary>進階</summary>
+        <div className="runtime-actions">
+          <button onClick={() => void refresh()} disabled={busy}>
+            <RefreshCw size={15} />
+            {busy ? "同步中…" : "重新同步"}
+          </button>
+          <span className={`runtime-state ${state}`}>
+            <i aria-hidden="true" />
+            {snapshot ? statusLabel(state) : "尚未同步"}
+          </span>
+        </div>
         <AgentOrbit
           snapshot={snapshot}
           task={task}

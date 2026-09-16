@@ -9,8 +9,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { Task } from "@/lib/contracts";
-import type { Integration } from "@/lib/server/integrations";
-import AgentOrbit from "./AgentOrbit";
 import AgentActivity from "./AgentActivity";
 type Memory = {
   id: string;
@@ -21,20 +19,14 @@ type Memory = {
   updatedAt: string;
 };
 export default function SpatialPanel({
-  integrations,
   task,
   projectId,
-  animation,
-  offline,
   onNavigate,
   onMemory,
   onTask,
 }: {
-  integrations: Integration[];
   task?: Task;
   projectId: string;
-  animation: boolean;
-  offline: boolean;
   onNavigate: (nav: "agents" | "projects" | "tasks") => void;
   onMemory: () => void;
   onTask: () => void;
@@ -73,17 +65,10 @@ export default function SpatialPanel({
   return (
     <div className="spatial-panel">
       <AgentActivity task={task} onInspect={onTask} />
-      <AgentOrbit
-        integrations={integrations}
-        task={task}
-        animation={animation}
-        stale={offline}
-        limit={5}
-      />
       <div className="spatial-shortcuts">
         <button onClick={() => onNavigate("agents")}>
           <Network size={22} />
-          全部能力
+          連線
         </button>
         <button onClick={() => onNavigate("projects")}>
           <Folder size={22} />

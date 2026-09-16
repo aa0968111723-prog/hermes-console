@@ -255,7 +255,7 @@ try {
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "重新同步", exact: true }),
-  ).toBeEnabled();
+  ).toHaveCount(0);
   await page.screenshot({
     path: join(output, "runtime-mobile-360.png"),
     fullPage: true,
@@ -269,6 +269,9 @@ try {
   });
   const advancedRuntime = page.locator(".runtime-advanced > summary");
   await advancedRuntime.click();
+  await expect(
+    page.getByRole("button", { name: "重新同步", exact: true }),
+  ).toBeEnabled();
   await page.screenshot({
     path: join(output, "runtime-advanced.png"),
     fullPage: true,

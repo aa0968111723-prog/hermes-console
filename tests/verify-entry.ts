@@ -177,6 +177,9 @@ try {
   await expect(page.locator(".runtime-state")).toHaveClass(/unconfigured/);
   await expect(page.locator(".runtime-state")).not.toHaveClass(/available/);
   await expect(page.locator(".runtime-advanced > summary")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "重新同步", exact: true }),
+  ).toHaveCount(0);
   await expect(page.locator(".runtime-inspector > .orbit-layout")).toHaveCount(0);
   await page.screenshot({
     path: join(output, "agent-status-dots-mobile.png"),
