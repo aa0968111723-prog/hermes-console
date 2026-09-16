@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   ArrowUp,
   Check,
@@ -31,25 +32,13 @@ import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
 import Turtle from "./Turtle";
-import AgentPanel from "./agents/AgentPanel";
-import RuntimeInspector from "./RuntimeInspector";
-import InspirationBoard from "./inspiration/InspirationBoard";
-import HelpPage from "./help/HelpPage";
-import KnowledgeArchive from "./knowledge/KnowledgeArchive";
-import ProjectWorkbench from "./ProjectWorkbench";
-import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
-import CapabilityCertification from "./settings/CapabilityCertification";
-import ConnectionSettings from "./settings/ConnectionSettings";
-import SharedMemory from "./settings/SharedMemory";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
 import AgentOrbit from "./visual/AgentOrbit";
 import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
-import SpatialPanel from "./visual/SpatialPanel";
-import { useSpatialMode } from "./visual/useSpatialMode";
 import ArtifactDeck from "./visual/ArtifactDeck";
 import ComposerMenu from "./visual/ComposerMenu";
 import ComposerTaskStatus, {
@@ -87,6 +76,27 @@ import {
 } from "@/lib/client/viewport";
 import AccountPanel from "./auth/AccountPanel";
 import { useAuthOptional } from "./auth/AuthProvider";
+import { useSpatialMode } from "./visual/useSpatialMode";
+
+const ProjectWorkbench = dynamic(() => import("./ProjectWorkbench"));
+const InspirationBoard = dynamic(
+  () => import("./inspiration/InspirationBoard"),
+);
+const KnowledgeArchive = dynamic(
+  () => import("./knowledge/KnowledgeArchive"),
+);
+const RuntimeInspector = dynamic(() => import("./RuntimeInspector"));
+const AgentPanel = dynamic(() => import("./agents/AgentPanel"));
+const SpatialPanel = dynamic(() => import("./visual/SpatialPanel"));
+const ConnectionSettings = dynamic(
+  () => import("./settings/ConnectionSettings"),
+);
+const CapabilityCertification = dynamic(
+  () => import("./settings/CapabilityCertification"),
+);
+const SharedMemory = dynamic(() => import("./settings/SharedMemory"));
+const LearningMap = dynamic(() => import("./LearningMap"));
+const HelpPage = dynamic(() => import("./help/HelpPage"));
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
