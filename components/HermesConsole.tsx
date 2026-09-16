@@ -1305,7 +1305,7 @@ export default function HermesConsole() {
               <X size={21} />
             </button>
           </header>
-          {error && (
+          {error && !error.includes("還沒連上") && (
             <p role="alert" className="error">
               {error}
             </p>

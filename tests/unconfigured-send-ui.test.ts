@@ -28,7 +28,8 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
     new URL("../components/settings/ConnectionSettings.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(connections, /focusId/);
+  assert.match(connections, /id="connection-hermes"/);
+  assert.match(connections, /scrollIntoView/);
   assert.ok(
     consoleUi.indexOf("health.credential !== \"valid\"") <
       consoleUi.indexOf("createConversation(text.trim())"),

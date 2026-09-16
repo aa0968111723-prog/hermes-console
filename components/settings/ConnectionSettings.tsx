@@ -173,6 +173,12 @@ export default function ConnectionSettings({
   useEffect(() => {
     if (focusId) setSelected(focusId);
   }, [focusId]);
+  useEffect(() => {
+    if (!focusId || selected !== focusId) return;
+    const node = document.getElementById("connection-" + focusId);
+    if (!node || node.hidden) return;
+    node.scrollIntoView({ block: "start", behavior: "auto" });
+  }, [focusId, selected, data]);
 
   const apply = useCallback((next: SettingsPayload) => {
     setData(next);
@@ -486,7 +492,11 @@ export default function ConnectionSettings({
             }
           }}
         >
-          <section hidden={selected !== "hermes"} aria-label="Hermes 憑證">
+          <section
+            hidden={selected !== "hermes"}
+            id="connection-hermes"
+            aria-label="Hermes 憑證"
+          >
             <h3>Hermes 憑證</h3>
             <label>
               Hermes API 網址

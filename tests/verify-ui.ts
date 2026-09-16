@@ -479,6 +479,8 @@ try {
     "true",
   );
   await expect(page.getByRole("heading", { name: "Hermes 憑證" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hermes 憑證" })).toBeInViewport();
+  await expect(page.getByLabel("Hermes API 網址")).toBeInViewport();
   await page.screenshot({
     path: join(output, "unconfigured-send-hermes-editor-mobile.png"),
   });
