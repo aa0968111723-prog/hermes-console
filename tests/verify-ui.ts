@@ -627,6 +627,18 @@ try {
     path: join(output, "login-mobile.png"),
     fullPage: true,
   });
+  await loginPage.goto(base + "/#reset=" + "a".repeat(64));
+  await expect(
+    loginPage.getByRole("heading", { name: "重設密碼" }),
+  ).toBeVisible();
+  await expect(loginPage.getByLabel("新密碼")).toBeVisible();
+  await expect(
+    loginPage.getByRole("button", { name: "儲存新密碼" }),
+  ).toBeVisible();
+  await loginPage.screenshot({
+    path: join(output, "reset-mobile.png"),
+    fullPage: true,
+  });
   await loginContext.close();
 
   // Storage may be denied by browser policy; it must not crash the workspace.

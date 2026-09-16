@@ -59,3 +59,4 @@
 17. 工具空結果（`{}`／空白字串）記為 `empty_tool_result`，不得當完成；啟動 monitor 立刻 reconcile 中斷任務為 `uncertain`
 18. 設定頁不再收集淡江學校密碼；連線密鑰變更限 owner／admin；附圖／「這張哪裡可以改」走讀圖 + 受眾模擬
 19. 已登入帳號可連結 Email；Google → 淡江 → Email 後用淡江回來仍是同一 User。淡江 OIDC 以本機 mock IdP 契約測試（discovery + PKCE）；SAML／CAS 誠實未設定
+20. 忘記密碼信件的 `/#reset=` 會打開重設密碼表單，不會把 token 當成登入／驗證一次用掉

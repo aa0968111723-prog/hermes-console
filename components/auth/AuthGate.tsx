@@ -9,6 +9,7 @@ export default function AuthGate() {
   const [session, setSession] = useState<PublicSession | null>(null);
   const [notice, setNotice] = useState("");
   const [failed, setFailed] = useState("");
+  const [resetToken, setResetToken] = useState<string | null>(null);
   async function load() {
     const response = await fetch("/api/auth/session", {
       cache: "no-store",
@@ -26,8 +27,13 @@ export default function AuthGate() {
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const login = hash.get("login");
     const verify = hash.get("verify");
-    if (login || verify)
+    const reset = hash.get("reset");
+    if (login || verify || reset)
       window.history.replaceState(null, "", window.location.pathname);
+    if (reset) {
+      if (/^[a-f0-9]{64}$/.test(reset)) setResetToken(reset);
+      else setNotice("重設連結無效或已使用。");
+    }
     void (async () => {
       try {
         if (login || verify) {
@@ -65,6 +71,19 @@ export default function AuthGate() {
       <main className="workspace-loading">
         <p role="status">正在確認身分…</p>
       </main>
+    );
+  if (resetToken)
+    return (
+      <LoginScreen
+        providers={session.providers}
+        notice={notice}
+        resetToken={resetToken}
+        onSignedIn={() => {
+          setResetToken(null);
+          void load();
+        }}
+        onAbandonReset={() => setResetToken(null)}
+      />
     );
   if (session.required && !session.user)
     return (
