@@ -119,6 +119,101 @@ test("forged session cannot enter workspace", () => {
   );
 });
 
+test("explicit Google and Tamkang link stay on the signed-in user", () => {
+  const emailUser = identity.findIdentity("email", "owner@test.local")!;
+  const google = identity.completeExternalLogin({
+    provider: "google",
+    subject: "google-link-same-user",
+    email: "google-link@test.local",
+    emailVerified: true,
+    name: "Google 連結",
+    avatar: null,
+    linkUserId: emailUser.userId,
+  });
+  assert.equal(google.id, emailUser.userId);
+  const tamkang = identity.completeExternalLogin({
+    provider: "tamkang",
+    subject: "tku-link-same-user",
+    email: "tku-link@test.local",
+    emailVerified: true,
+    name: "淡江連結",
+    avatar: null,
+    linkUserId: emailUser.userId,
+  });
+  assert.equal(tamkang.id, emailUser.userId);
+  const shown = identity.publicUser(google).identities.map((item) => item.provider);
+  assert.ok(shown.includes("email"));
+  assert.ok(shown.includes("google"));
+  assert.ok(shown.includes("tamkang"));
+});
+
+test("email can be linked to an existing Google user without auto-merge", async () => {
+  const googleOnly = identity.completeExternalLogin({
+    provider: "google",
+    subject: "google-needs-email",
+    email: "gonly@test.local",
+    emailVerified: true,
+    name: "G-only",
+    avatar: null,
+  });
+  const linked = await emailAuth.linkEmailToUser(
+    googleOnly.id,
+    "gonly-login@test.local",
+    "linked-password-12",
+  );
+  assert.equal(linked.linked, true);
+  const signed = emailAuth.signInWithEmail(
+    "gonly-login@test.local",
+    "linked-password-12",
+  );
+  const session = await (
+    await sessionRoute.GET(
+      request("auth/session", "GET", undefined, signed.cookie.split(";")[0]),
+    )
+  ).json();
+  assert.equal(session.user.id, googleOnly.id);
+  assert.ok(
+    session.user.identities.some((item: { provider: string }) => item.provider === "email"),
+  );
+  assert.throws(
+    () =>
+      identity.linkEmailIdentity(
+        googleOnly.id,
+        "owner@test.local",
+        "another-password-12",
+      ),
+    /已連結電子信箱/,
+  );
+  const otherGoogle = identity.completeExternalLogin({
+    provider: "google",
+    subject: "google-merge-blocked",
+    email: "blocked@test.local",
+    emailVerified: true,
+    name: "Blocked",
+    avatar: null,
+  });
+  assert.throws(
+    () =>
+      identity.linkEmailIdentity(
+        otherGoogle.id,
+        "owner@test.local",
+        "another-password-12",
+      ),
+    /自動合併/,
+  );
+});
+
+test("email link requires a session", async () => {
+  const response = await emailRoute.POST(
+    request("auth/email", "POST", {
+      action: "link",
+      email: "need-session@test.local",
+      password: "test-password-12",
+    }),
+  );
+  assert.equal(response.status, 401);
+});
+
 test("email API register is origin-bound", async () => {
   const response = await emailRoute.POST(
     new Request("http://localhost:3310/api/auth/email", {

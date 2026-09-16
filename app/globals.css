@@ -3063,6 +3063,22 @@ html, body {
   align-items: center;
   gap: 12px;
 }
+.identity-list a,
+.identity-list button {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.account-link-email {
+  display: grid;
+  gap: 10px;
+}
+.account-link-email input {
+  min-height: 44px;
+  width: 100%;
+}
 .page-heading-actions { display: flex; align-items: center; gap: 8px; }
 .turtle[data-state="offline"] span { background: #f4e6dc; color: #8a4b32; }
 @media (max-width: 760px) {

@@ -33,7 +33,14 @@
 | `MCP_BRIDGE_TOKEN` | Hermes → Console `/api/mcp` |
 | 各 MCP `*_URL` / `*_TOKEN` | 見 `.env.example` |
 
-啟動時 `instrumentation.ts` 在 production 檢查 `CONSOLE_ORIGIN`。不要等使用者操作才發現缺設定。
+啟動時 `instrumentation.ts` 在 production 檢查：
+
+- `CONSOLE_ORIGIN` 必須存在且可解析，不可含帳密
+- 非 loopback 必須 HTTPS
+- `CONSOLE_ALLOW_LOCAL_ACCESS=true` 只能用在 localhost／127.0.0.1
+- `CONSOLE_REQUIRE_GATEWAY=true` 時 `CONSOLE_GATEWAY_SECRET` ≥ 32 字元
+
+缺漏時直接啟動失敗，不要等使用者操作才發現。Google／淡江／Hermes／MCP 未設不阻擋啟動，但畫面與 health 必須顯示未設定／不可用。
 
 ## 資料庫
 

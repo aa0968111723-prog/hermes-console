@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { checkOrigin, jsonBody, respond, route } from "@/lib/server/security";
+import { requireUser } from "@/lib/server/identity";
 import {
+  linkEmailToUser,
   registerWithEmail,
   requestMagicLink,
   requestPasswordReset,
@@ -46,6 +48,13 @@ export const POST = route(async (req) => {
           password: z.string().min(12).max(200),
         })
         .strict(),
+      z
+        .object({
+          action: z.literal("link"),
+          email: z.string(),
+          password: z.string().min(12).max(200),
+        })
+        .strict(),
     ])
     .parse(await jsonBody(req, 4000));
   if (input.action === "register") {
@@ -68,6 +77,10 @@ export const POST = route(async (req) => {
   }
   if (input.action === "forgot")
     return respond(await requestPasswordReset(input.email), 202);
+  if (input.action === "link") {
+    const user = requireUser(req);
+    return respond(await linkEmailToUser(user.id, input.email, input.password));
+  }
   const result = resetPassword(input.token, input.password);
   return respond({ signedIn: true }, 200, { "Set-Cookie": result.cookie });
 });

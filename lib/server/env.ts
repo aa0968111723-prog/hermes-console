@@ -1,5 +1,9 @@
 const PRODUCTION_REQUIRED = ["CONSOLE_ORIGIN"] as const;
 
+function isLoopbackHost(hostname: string) {
+  return ["localhost", "127.0.0.1", "[::1]"].includes(hostname);
+}
+
 export function validateRuntimeEnv() {
   if (process.env.NODE_ENV !== "production") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
@@ -10,6 +14,28 @@ export function validateRuntimeEnv() {
     throw new Error(
       "正式環境缺少必要設定：" + missing.join(", ") + "。請在部署端補齊後再啟動。",
     );
+  }
+  let origin: URL;
+  try {
+    origin = new URL(process.env.CONSOLE_ORIGIN || "");
+  } catch {
+    throw new Error("CONSOLE_ORIGIN 不是有效的公開 origin。");
+  }
+  if (origin.username || origin.password)
+    throw new Error("CONSOLE_ORIGIN 不可包含帳號或密碼。");
+  const loopback = isLoopbackHost(origin.hostname);
+  if (!loopback && origin.protocol !== "https:")
+    throw new Error("正式環境的 CONSOLE_ORIGIN 必須是 HTTPS。");
+  if (process.env.CONSOLE_ALLOW_LOCAL_ACCESS === "true" && !loopback)
+    throw new Error(
+      "CONSOLE_ALLOW_LOCAL_ACCESS 只能用在 loopback，正式公開網域必須關閉。",
+    );
+  if (process.env.CONSOLE_REQUIRE_GATEWAY === "true") {
+    const secret = String(process.env.CONSOLE_GATEWAY_SECRET || "").trim();
+    if (secret.length < 32)
+      throw new Error(
+        "CONSOLE_REQUIRE_GATEWAY=true 時 CONSOLE_GATEWAY_SECRET 至少 32 字元。",
+      );
   }
 }
 

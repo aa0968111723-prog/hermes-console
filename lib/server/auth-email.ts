@@ -5,6 +5,7 @@ import {
   emailInput,
   findIdentity,
   issueSession,
+  linkEmailIdentity,
   loginEmail,
   markEmailVerified,
   putAuthToken,
@@ -99,6 +100,44 @@ export async function registerWithEmail(input: {
     signedIn: false,
     verified: false,
     message: "請查收驗證信。未設定寄信時無法完成驗證。",
+  };
+}
+
+export async function linkEmailToUser(
+  userId: string,
+  email: string,
+  password: string,
+) {
+  const user = linkEmailIdentity(userId, email, password);
+  if (localAuthConvenience())
+    return {
+      linked: true,
+      verified: true,
+      message: "本機開發已連結並驗證電子信箱。",
+    };
+  try {
+    const token = putAuthToken({
+      type: "verify",
+      userId,
+      ttlMs: 24 * 60 * 60_000,
+    });
+    const origin = new URL(process.env.CONSOLE_ORIGIN || "").origin;
+    await sendMail(
+      email,
+      "驗證 Hermes 電子信箱",
+      "請在 24 小時內開啟此連結完成驗證：\n" +
+        origin +
+        "/#verify=" +
+        token +
+        "\n若非你本人操作，請忽略此信。",
+    );
+  } catch {
+    /* Linking does not reveal whether mail was accepted. */
+  }
+  return {
+    linked: true,
+    verified: user.emailVerified,
+    message: "已連結電子信箱。未驗證前請查收驗證信。",
   };
 }
 

@@ -370,6 +370,48 @@ export function loginEmail(emailRaw: string, password: string) {
   return user;
 }
 
+export function linkEmailIdentity(userId: string, emailRaw: string, password: string) {
+  const email = emailInput.parse(emailRaw);
+  if (!passwordUsable(password))
+    throw new ApiError(400, "invalid_input", "密碼至少 12 個字元。");
+  limited("link-email:global", 20, 15 * 60_000);
+  limited("link-email:" + hash(userId), 5, 15 * 60_000);
+  return transaction(() => {
+    const user = readUser(userId);
+    if (!user) throw new ApiError(401, "sign_in_required", "請先登入再連結電子信箱。");
+    if (identitiesFor(userId).some((item) => item.provider === "email"))
+      throw new ApiError(409, "identity_conflict", "此帳號已連結電子信箱。");
+    const existing = findIdentity("email", email);
+    if (existing)
+      throw new ApiError(
+        409,
+        "identity_conflict",
+        "此電子信箱已連結到其他帳號，不會因為地址相同而自動合併。",
+      );
+    const verified = localAuthConvenience();
+    writeIdentity({
+      id: identityId("email", email),
+      userId,
+      provider: "email",
+      subject: email,
+      email,
+      emailVerified: verified,
+      name: user.name,
+      avatar: user.avatar,
+      createdAt: nowIso(),
+    });
+    put("user", USER_OWNER, {
+      ...user,
+      email: user.email || email,
+      passwordHash: hashPassword(password),
+      emailVerified: user.emailVerified || verified,
+      updatedAt: nowIso(),
+    });
+    if (verified) grantMembership(userId, email);
+    return readUser(userId)!;
+  });
+}
+
 export function setPassword(userId: string, password: string) {
   if (!passwordUsable(password))
     throw new ApiError(400, "invalid_input", "密碼至少 12 個字元。");
