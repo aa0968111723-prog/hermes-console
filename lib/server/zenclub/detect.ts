@@ -3,7 +3,7 @@ const CLUB_IDENTITY =
 
 const CLUB_LOCAL = /社博|期初茶會|期初演講|入社單|擺攤|文館左側|挑戰營/;
 
-const CLUB_EVENT = /茶會|社博|期初演講|入社|社課|社評|挑戰營|擺攤|招生/;
+const CLUB_EVENT = /茶會|社博|期初演講|入社|社課|社評|挑戰營|擺攤|攤位|招生|迎新/;
 
 const TAMKANG_CAMPUS = /淡江|淡大|tku/i;
 

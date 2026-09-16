@@ -119,6 +119,7 @@ test("knowledge routing is club-specific, not every tea party", () => {
   assert.equal(needsZenclubKnowledge("幫我做給淡江大一新生的期初茶會 IG"), true);
   assert.equal(needsZenclubKnowledge("禪學社社博攤位"), true);
   assert.equal(needsZenclubKnowledge("今天社博在哪"), true);
+  assert.equal(needsZenclubKnowledge("淡江迎新在哪"), true);
   assert.equal(needsZenclubKnowledge("國立臺灣大學新生茶會文宣海報"), false);
   assert.equal(needsZenclubKnowledge("淡江大一新生通勤"), false);
   const goal = interpretGoal("幫我做給淡江大一新生的期初茶會 IG");
@@ -138,6 +139,13 @@ test("knowledge routing is club-specific, not every tea party", () => {
   assert.equal(
     otherRoutes.find((item) => item.id === "club_knowledge"),
     undefined,
+  );
+});
+
+test("spoken 迎新 lookup still hits the 115-1 fair booth", () => {
+  const result = searchZenclubKnowledge("淡江迎新在哪");
+  assert.ok(
+    result.hits.some((hit) => hit.entity.id === "activity:115-1-fair"),
   );
 });
 

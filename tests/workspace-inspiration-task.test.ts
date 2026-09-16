@@ -33,6 +33,7 @@ const { interpretGoal, wantsWorkspaceInspiration } = await import(
 
 const TEA = "幫我找淡大禪學社茶會宣傳靈感";
 const SPOKEN_CREATE = "我想辦禪學社茶會";
+const SPOKEN_ORIENTATION = "我想辦迎新";
 
 function conv() {
   const id = randomUUID();
@@ -198,6 +199,48 @@ test("spoken create tea asks still return workspace inspiration", async () => {
   assert.ok(tool);
   assert.equal(tool?.status, "completed");
   assert.equal(isInspirationSearchPack(tool?.result), true);
+  const stored = get<{
+    messages: Array<{ role: string; provenance?: string }>;
+  }>("conversation", "workspace", conversationId);
+  const assistant = stored?.messages.filter((item) => item.role === "assistant");
+  assert.equal(assistant?.length, 1);
+  assert.equal(assistant?.[0].provenance, "workspace");
+  assert.equal(get("agent", "workspace", "verified"), null);
+});
+
+test("spoken orientation and booth layout still return workspace inspiration", async () => {
+  const spoken = interpretGoal(SPOKEN_ORIENTATION);
+  assert.equal(spoken.intentTier, "create");
+  assert.equal(wantsWorkspaceInspiration(spoken), true);
+  assert.equal(
+    wantsWorkspaceInspiration(interpretGoal("幫我場佈")),
+    true,
+  );
+  assert.equal(
+    wantsWorkspaceInspiration(interpretGoal("淡江迎新在哪")),
+    false,
+  );
+
+  const conversationId = conv();
+  const task = await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: SPOKEN_ORIENTATION,
+    attachments: [],
+  });
+  assert.equal(task.state, "completed");
+  assert.equal(task.remoteId, null);
+  assert.match(task.output, /不是 Hermes Agent 執行/);
+  const tool = task.events.find(
+    (event) => event.toolName === "workspace_search_inspiration",
+  );
+  assert.ok(tool);
+  assert.equal(tool?.status, "completed");
+  assert.equal(isInspirationSearchPack(tool?.result), true);
+  assert.equal(
+    task.events.some((event) => event.toolName === "zenclub_drive_index"),
+    false,
+  );
   const stored = get<{
     messages: Array<{ role: string; provenance?: string }>;
   }>("conversation", "workspace", conversationId);

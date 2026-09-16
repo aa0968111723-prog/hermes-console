@@ -36,10 +36,16 @@ const CUES = [
   "社課",
   "挑戰營",
   "攤位",
+  "迎新",
   "文館",
   "生命靈數",
   "淡大禪",
 ];
+
+/** Spoken 迎新 is club fair / 入社 in this snapshot, not a separate Drive title. */
+const RELATED_CUES: Record<string, string[]> = {
+  迎新: ["社博", "攤位", "入社"],
+};
 
 function tokens(query: string) {
   const parts = query
@@ -48,7 +54,10 @@ function tokens(query: string) {
     .map((item) => item.trim())
     .filter((item) => item.length >= 2);
   const cues = CUES.filter((cue) => query.includes(cue));
-  return [...new Set([...parts, ...cues])];
+  const related = Object.entries(RELATED_CUES).flatMap(([cue, extras]) =>
+    query.includes(cue) ? extras : [],
+  );
+  return [...new Set([...parts, ...cues, ...related])];
 }
 
 function relatedConflicts(entityIds: string[], all: KnowledgeConflict[]) {

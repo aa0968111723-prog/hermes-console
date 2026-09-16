@@ -58,6 +58,9 @@ test("unconfigured Hermes returns club index facts for spoken tea lookup", async
   );
   assert.equal(wantsWorkspaceKnowledge(interpretGoal("今天社博在哪")), true);
   assert.equal(wantsWorkspaceInspiration(interpretGoal("今天社博在哪")), false);
+  assert.equal(wantsWorkspaceKnowledge(interpretGoal("淡江迎新在哪")), true);
+  assert.equal(wantsWorkspaceInspiration(interpretGoal("淡江迎新在哪")), false);
+  assert.equal(wantsWorkspaceKnowledge(interpretGoal("我想辦迎新")), false);
 
   const conversationId = conv();
   const requestKey = randomUUID();
@@ -154,6 +157,35 @@ test("spoken club questions without 幫我查 still return the Drive index", asy
       hit.claims.some((claim) => claim.value.includes("文館左側")),
     ),
   );
+  assert.match(task.output, /不是 Hermes Agent 執行/);
+  assert.doesNotMatch(task.output, /UNKNOWN/);
+  assert.equal(
+    task.events.some((event) => event.toolName === "workspace_search_inspiration"),
+    false,
+  );
+});
+
+test("spoken orientation facts stay on the Drive index, not a poster mill", async () => {
+  const prompt = "淡江迎新在哪";
+  const goal = interpretGoal(prompt);
+  assert.equal(goal.intentTier, "lookup");
+  assert.equal(wantsWorkspaceInspiration(goal), false);
+  assert.equal(wantsWorkspaceKnowledge(goal), true);
+
+  const task = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: prompt,
+    attachments: [],
+  });
+  assert.equal(task.state, "completed");
+  const tool = task.events.find((event) => event.toolName === KNOWLEDGE_TOOL);
+  assert.ok(tool);
+  assert.equal(isClubKnowledgePack(tool?.result), true);
+  const pack = tool?.result as {
+    hits: Array<{ title: string; claims: Array<{ value: string }> }>;
+  };
+  assert.ok(pack.hits.some((hit) => /社博|攤位|入社/.test(hit.title)));
   assert.match(task.output, /不是 Hermes Agent 執行/);
   assert.doesNotMatch(task.output, /UNKNOWN/);
   assert.equal(
