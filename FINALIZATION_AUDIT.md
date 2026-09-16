@@ -41,7 +41,7 @@
 | 任務提交探測 | 可用（契約） | `ensureHermesReady` 只打 `/v1/models`，逾時用 `HERMES_CONNECT_TIMEOUT_MS`（契約 hanging 1s → ~1s failed）。不跑 skills／toolsets。學生 503 為「Hermes 還沒連上。請到設定的連線頁。」或「現在沒辦法連到 Hermes。」，不含環境變數字樣。 |
 | 長任務重啟 | 可用（契約） | 程序啟動立即 `recoverOrphanedTasks`。沒有 in-memory worker 的 chat 任務改 `uncertain`，訊息含「不會自動重送」。已完成任務不動。 |
 | 學生連線錯誤 | 可用（契約） | 公開 health、成員 health、`POST /api/tasks`、對話錯誤都不出現金鑰／後端／環境變數。401 金鑰 →「還沒連上」。Hanging POST `/api/tasks` ~1s 503。`hermes_unconfigured`→TOOL_UNAVAILABLE，`hermes_not_ready`→UPSTREAM_ERROR。Operator `POST /api/health` 仍保留探測原文。 |
-| 未驗證看圖 | 可用（契約） | `HERMES_IMAGE_INPUT` 未開時，圖片附件改送「已保存、沒有像素」文字，不 409 擋送出，也不把 base64 傳給 Hermes。Composer 提示不會假裝已看圖。開旗標後仍送 `image_url`。看圖任務結束時事件與回覆為「還沒驗證看圖」，學生 UI「還沒看圖」，不得綠勾完成或說已分析畫面。分析-only 不會被誤標成「規格已保留」。390×844 Playwright：提示可見、兩張 chip 與 44px 移除鈕都在 Composer 內、送出不被蓋住。 |
+| 未驗證看圖 | 可用（契約） | `HERMES_IMAGE_INPUT` 未開時，圖片附件改送「已保存、沒有像素」文字，不 409 擋送出，也不把 base64 傳給 Hermes。Composer 提示不會假裝已看圖。開旗標後仍送 `image_url`。看圖任務結束時事件與回覆為「還沒驗證看圖」，學生 UI「還沒看圖」，不得綠勾完成或說已分析畫面。分析-only 不會被誤標成「規格已保留」。390×844 Playwright：提示可見、兩張 chip 與 44px 移除鈕都在 Composer 內、送出不被蓋住。誠實未完成（規格已保留／還沒找到來源／還沒看圖）不得把 `health.agent` 標 `verified`，設定頁不得因此顯示「已有成功任務」。有 https 來源的研究完成仍可蓋章。 |
 | 連線狀態點 | 可用（契約） | 頂欄只顯示 44px 狀態點。文案在 `aria-label` 與 `.sr-only`。 |
 | OAuth 帳號連結 | 可用（契約） | `mode=link` 必須是啟動 OAuth 的同一個 session。State 的 userId 與當下登入不符則 401，不會把 Google 掛到別人帳號。未登入的 `?mode=link` 為 401。Login 302 不含 client secret。實機 Google／淡江 round-trip 仍 Partial。 |
 

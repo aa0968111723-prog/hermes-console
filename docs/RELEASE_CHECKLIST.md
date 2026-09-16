@@ -35,6 +35,7 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 - [ ] Research/campus completion without https sources is 「還沒找到來源」, not 「已回傳完成結果」
 - [ ] Missing-design assistant output includes the honesty sentence, not only a green chip
 - [ ] Unverified vision analysis is 「還沒看圖」, not green 「完成」/「過程完成」
+- [ ] Honesty-incomplete completions (規格已保留／還沒找到來源／還沒看圖) must not stamp `health.agent` `verified` or 「已有成功任務」
 - [ ] Composer image chips wrap on 390×844; local thumbnail while uploading
 - [ ] Empty tool output is not success, including `{}` behind `tool.completed`
 - [ ] Offline banner; reconnect does not drop the thread
