@@ -97,6 +97,53 @@ test("password hashing, identity linking and unconfigured SSO", async (t) => {
     );
   });
 
+  await t.test("revoke others keeps the current session", async () => {
+    const probe = loginEmail({
+      email: "owner@example.test",
+      password: "Test-Password-14",
+    });
+    await auth.POST(
+      request("auth", "POST", { action: "revoke_others" }, "hermes_session=" + probe),
+    );
+    const other = loginEmail({
+      email: "owner@example.test",
+      password: "Test-Password-14",
+    });
+    const listed = await (
+      await auth.GET(request("auth", "GET", undefined, "hermes_session=" + other))
+    ).json();
+    assert.equal(listed.sessions.length, 2);
+    assert.equal(
+      listed.sessions.filter((row: { current: boolean }) => row.current).length,
+      1,
+    );
+    const current = listed.sessions.find((row: { current: boolean }) => row.current);
+    assert.equal(current.id.length, 64);
+    const blocked = await auth.POST(
+      request(
+        "auth",
+        "POST",
+        { action: "revoke_session", sessionId: current.id },
+        "hermes_session=" + other,
+      ),
+    );
+    assert.equal(blocked.status, 400);
+    const revoked = await auth.POST(
+      request("auth", "POST", { action: "revoke_others" }, "hermes_session=" + other),
+    );
+    assert.equal(revoked.status, 200);
+    assert.equal(
+      (await auth.GET(request("auth", "GET", undefined, "hermes_session=" + probe)))
+        .status,
+      401,
+    );
+    const remaining = await (
+      await auth.GET(request("auth", "GET", undefined, "hermes_session=" + other))
+    ).json();
+    assert.equal(remaining.sessions.length, 1);
+    assert.equal(remaining.sessions[0].current, true);
+  });
+
   await t.test("logout clears the session cookie", async () => {
     const cookie = "hermes_session=" + loginEmail({
       email: "owner@example.test",

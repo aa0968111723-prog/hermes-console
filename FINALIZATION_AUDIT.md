@@ -27,8 +27,8 @@
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
 | 學生接續同一作品 | 可用（契約） | Composer 只放人話。copyId／workflowId／activityId 只走 `task.focus`。Canva 接續使用專案最新 workflow。 |
 | 回到最新訊息 | 可用（契約） | 右側 44px 圓鈕，不再蓋住作品標題中央。 |
-| 對話內長標題 | 可用（契約） | `.canva-result h3` `overflow-wrap` + `word-break`。手機 390 斷言 heading 不橫向溢出。Jump-to-latest 仍可能蓋住最底一行。 |
-| 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
+| 對話內長標題 | 可用（契約） | `.canva-result h3` wrap，並在手機預留右側 52px 給 jump 圓鈕。 |
+| 帳號工作階段 | 可用（契約） | 列出目前／其他裝置。結束其他登入需確認。目前這次只能登出。 |
 
 ## 本輪驗證（2026-09-16）
 
@@ -37,7 +37,8 @@
 - Playwright：`test:ui`、`test:entry`、`test:chat`、`test:workbench`、`test:gateway`、`test:runtime` 通過。`check:secrets` 647 files PASS。
 - `test:ui` 接續作品：composer 為「請接續修改這個作品。」，不含 `ui-fixture-artifact-B`。截圖 `continue-artifact-composer.png`。
 - `test:runtime` 選定方向：composer 為「已選定方向 2。請依此製作。」，不含 workflow id。
-- 首頁 360／390 為龜龜 + 六個短標籤 + composer + dock。axe 0。LCP 96ms、CLS 0.00008。
+- 首頁 360／390 為龜龜 + 六個短標籤 + composer + dock。axe 0。LCP 80ms、CLS 0.00008。
+- `test:ui` 離線頁：jump 在右側，寬高 ≥ 44px。`test:chat` 回到最新訊息仍用 accessible name。
 - Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
 - axe wcag2a/aa + 2.1：0 violations（`output/playwright/browser-report.json`）。
 - 登入 bootstrap：Node 註冊後用頁內 `fetch` 登入。`APIRequestContext` / CDP cookie 在 `127.0.0.1` 不會進 document jar。

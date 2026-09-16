@@ -2730,6 +2730,10 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   html[data-composer-keyboard="open"] .composer-area {
     padding-bottom: 8px;
   }
+  html[data-composer-keyboard="open"] .composer textarea {
+    padding-bottom: 16px;
+    scroll-padding-bottom: 16px;
+  }
 }
 
 /* P5: <=430 keyboard-open -> composer task pill shrinks to icon float (no full row). */

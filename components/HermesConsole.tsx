@@ -378,6 +378,11 @@ export default function HermesConsole() {
       textarea.style.height = Math.min(textarea.scrollHeight, limit) + "px";
       textarea.style.overflowY =
         textarea.scrollHeight > limit ? "auto" : "hidden";
+      if (
+        document.activeElement === textarea &&
+        textarea.selectionStart === textarea.value.length
+      )
+        textarea.scrollTop = textarea.scrollHeight;
     };
     resize();
     let previousWidth = textarea.parentElement?.clientWidth;

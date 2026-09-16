@@ -18,7 +18,7 @@ type Account = {
   };
   membership: { role: string } | null;
   identities: Identity[];
-  sessions: { id: string; createdAt: string; expiresAt: string }[];
+  sessions: { id: string; current?: boolean; createdAt: string; expiresAt: string }[];
   providers: {
     google: { configured: boolean; label: string };
     tamkang: { configured: boolean; label: string };
@@ -32,6 +32,7 @@ export default function AccountSettings() {
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmOthers, setConfirmOthers] = useState(false);
 
   async function load() {
     const response = await fetch("/api/auth", {
@@ -58,6 +59,49 @@ export default function AccountSettings() {
         body: "{}",
       });
       window.location.assign("/");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function postAuth(body: unknown) {
+    const response = await fetch("/api/auth", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error?.message || "無法完成。");
+    return result;
+  }
+
+  async function revokeOthers() {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      await postAuth({ action: "revoke_others" });
+      setConfirmOthers(false);
+      setNotice("已結束其他裝置的登入。");
+      await load();
+    } catch (error) {
+      setNotice((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function revokeSession(sessionId: string) {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      await postAuth({ action: "revoke_session", sessionId });
+      setNotice("已結束該工作階段。");
+      await load();
+    } catch (error) {
+      setNotice((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -174,14 +218,54 @@ export default function AccountSettings() {
       <ul className="session-list">
         {account.sessions.map((row) => (
           <li key={row.id}>
-            {new Date(row.createdAt).toLocaleString("zh-TW")}
-            <span className="muted">
-              {" "}
-              · 至 {new Date(row.expiresAt).toLocaleString("zh-TW")}
+            <span>
+              {row.current ? "目前這台" : "其他裝置"}
+              <span className="muted">
+                {" "}
+                · {new Date(row.createdAt).toLocaleString("zh-TW")}
+              </span>
             </span>
+            {!row.current && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void revokeSession(row.id)}
+              >
+                結束
+              </button>
+            )}
           </li>
         ))}
       </ul>
+      {account.sessions.some((row) => !row.current) &&
+        (confirmOthers ? (
+          <div className="artifact-confirm" role="alertdialog" aria-label="結束其他登入">
+            <p>結束其他裝置的登入？目前這次不會退出。</p>
+            <button
+              type="button"
+              className="primary"
+              disabled={busy}
+              onClick={() => void revokeOthers()}
+            >
+              確定結束
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setConfirmOthers(false)}
+            >
+              取消
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setConfirmOthers(true)}
+          >
+            結束其他工作階段
+          </button>
+        ))}
       <button onClick={() => void logout()} disabled={busy}>
         登出
       </button>

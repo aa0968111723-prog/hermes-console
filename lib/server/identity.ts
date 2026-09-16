@@ -241,6 +241,29 @@ export function destroySession(request: Request) {
     remove("auth_session", SCOPE, hash(token));
 }
 
+export function destroyOtherSessions(request: Request) {
+  const user = currentUser(request);
+  const token = readCookie(request, "hermes_session");
+  const currentId = hash(token);
+  limited("revoke-sessions:" + user.id, 8, 15 * 60_000);
+  for (const row of list<AuthSession>("auth_session", SCOPE))
+    if (row.userId === user.id && row.id !== currentId)
+      remove("auth_session", SCOPE, row.id);
+}
+
+export function destroyOwnedSession(request: Request, sessionId: string) {
+  const user = currentUser(request);
+  const token = readCookie(request, "hermes_session");
+  const currentId = hash(token);
+  if (sessionId === currentId)
+    throw new ApiError(400, "current_session", "目前這次登入請用登出。");
+  limited("revoke-sessions:" + user.id, 8, 15 * 60_000);
+  const row = get<AuthSession>("auth_session", SCOPE, sessionId);
+  if (!row || row.userId !== user.id || row.expires <= Date.now())
+    throw new ApiError(404, "not_found", "找不到這個工作階段。");
+  remove("auth_session", SCOPE, sessionId);
+}
+
 function ensureMembership(userId: string, role: MembershipRole) {
   const existing = membershipFor(userId);
   if (existing) return existing;
@@ -637,11 +660,16 @@ export function linkEmailIdentity(
   });
 }
 
-export function sessionsFor(userId: string) {
+export function sessionsFor(userId: string, currentToken = "") {
+  const currentId = /^[a-f0-9]{64}$/.test(currentToken)
+    ? hash(currentToken)
+    : "";
   return list<AuthSession>("auth_session", SCOPE)
     .filter((row) => row.userId === userId && row.expires > Date.now())
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map((row) => ({
-      id: row.id.slice(0, 8),
+      id: row.id,
+      current: row.id === currentId,
       createdAt: row.createdAt,
       expiresAt: new Date(row.expires).toISOString(),
     }));

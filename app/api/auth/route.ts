@@ -2,6 +2,8 @@ import { z } from "zod";
 import { checkOrigin, jsonBody, respond, route } from "@/lib/server/security";
 import {
   currentUser,
+  destroyOtherSessions,
+  destroyOwnedSession,
   destroySession,
   identitiesFor,
   linkEmailIdentity,
@@ -9,6 +11,7 @@ import {
   membershipFor,
   providerStatus,
   publicUser,
+  readCookie,
   redeemMagicLink,
   registerEmail,
   requestMagicLink,
@@ -35,7 +38,7 @@ export const GET = route(async (req) => {
       email: row.email,
       emailVerified: row.emailVerified,
     })),
-    sessions: sessionsFor(user.id),
+    sessions: sessionsFor(user.id, readCookie(req, "hermes_session")),
     providers: providerStatus(),
   });
 });
@@ -91,12 +94,27 @@ export const POST = route(async (req) => {
           password: z.string(),
         })
         .strict(),
+      z.object({ action: z.literal("revoke_others") }).strict(),
+      z
+        .object({
+          action: z.literal("revoke_session"),
+          sessionId: z.string().regex(/^[a-f0-9]{64}$/),
+        })
+        .strict(),
     ])
     .parse(await jsonBody(req, 4000));
   if (input.action === "link_email") {
     const user = currentUser(req);
     linkEmailIdentity(user.id, input.email, input.password);
     return respond({ linked: "email", user: publicUser(currentUser(req)) });
+  }
+  if (input.action === "revoke_others") {
+    destroyOtherSessions(req);
+    return respond({ revoked: "others" });
+  }
+  if (input.action === "revoke_session") {
+    destroyOwnedSession(req, input.sessionId);
+    return respond({ revoked: "session" });
   }
   if (input.action === "register") {
     const result = await registerEmail(input);
