@@ -128,6 +128,27 @@ function FactStrip({ pack }: { pack: VisualPackView }) {
   );
 }
 
+function Caption({
+  pack,
+  conceptId,
+}: {
+  pack: VisualPackView;
+  conceptId: "A" | "B" | "C";
+}) {
+  const caption = pack.captions?.[conceptId];
+  if (!caption) return null;
+  return (
+    <section className="visual-concept-caption" aria-label="貼文文案">
+      <h4>貼文文案</h4>
+      <p className="visual-concept-caption-hook">{caption.hook}</p>
+      <p className="visual-concept-caption-body">{caption.body}</p>
+      {caption.cta ? (
+        <p className="visual-concept-caption-cta">{caption.cta}</p>
+      ) : null}
+    </section>
+  );
+}
+
 export default function VisualConceptCards({
   pack,
   selectedDirection = null,
@@ -168,6 +189,17 @@ export default function VisualConceptCards({
         </p>
       )}
       <p className="visual-concept-notice">{pack.notice}</p>
+      {selected && (
+        <>
+          <p className="visual-concept-chosen" role="status">
+            已選定概念 {selected.id}
+            {" · "}
+            尚未出圖
+            {canvaReady ? "" : " · Canva 未授權"}
+          </p>
+          <Caption pack={pack} conceptId={selected.id} />
+        </>
+      )}
       <div className="visual-concept-grid">
         {pack.concepts.map((concept, index) => (
           <article
@@ -181,14 +213,6 @@ export default function VisualConceptCards({
               概念 {concept.id}
               <small>{concept.name}</small>
             </h3>
-            <Frame
-              aspect={pack.format.aspect}
-              zones={concept.layout?.zones}
-              overlay={pack.overlayText}
-              ctaCopy={concept.ctaPlacement?.copy}
-              includeQr={concept.qrPlacement?.include}
-            />
-            <p className="visual-concept-direction">{concept.creativeDirection}</p>
             {choosable && (
               <button
                 type="button"
@@ -199,17 +223,17 @@ export default function VisualConceptCards({
                 {selectedDirection === index ? "已選定" : "選這個"}
               </button>
             )}
+            <Frame
+              aspect={pack.format.aspect}
+              zones={concept.layout?.zones}
+              overlay={pack.overlayText}
+              ctaCopy={concept.ctaPlacement?.copy}
+              includeQr={concept.qrPlacement?.include}
+            />
+            <p className="visual-concept-direction">{concept.creativeDirection}</p>
           </article>
         ))}
       </div>
-      {selected && (
-        <p className="visual-concept-chosen" role="status">
-          已選定概念 {selected.id}
-          {" · "}
-          尚未出圖
-          {canvaReady ? "" : " · Canva 未授權"}
-        </p>
-      )}
     </section>
   );
 }

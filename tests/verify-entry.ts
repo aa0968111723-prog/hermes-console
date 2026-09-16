@@ -109,6 +109,9 @@ try {
   await page.getByRole("button", { name: "選這個" }).first().click();
   await expect(page.getByRole("button", { name: "已選定" })).toHaveCount(1);
   await expect(page.getByText("已選定概念 A")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "貼文文案" })).toBeVisible();
+  await expect(page.locator(".visual-concept-caption")).toContainText("2026-09-30");
+  await expect(page.locator(".visual-concept-caption")).toContainText("報名");
   await expect(page.getByText(/Canva 未授權/)).toBeVisible();
   await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
   const workflows = await page.request.get(base + "/api/workflows");
@@ -122,7 +125,7 @@ try {
   await expect(page.getByText("1 / 1 個工具完成")).toHaveCount(0);
   const chat = await page.locator("body").innerText();
   assert.equal(chat.includes("已搜尋整個 Instagram"), false);
-  await page.locator(".visual-concept-chosen").scrollIntoViewIfNeeded();
+  await page.locator(".visual-concept-caption").scrollIntoViewIfNeeded();
   await page.screenshot({
     path: join(output, "chat-visual-direction-selected.png"),
   });

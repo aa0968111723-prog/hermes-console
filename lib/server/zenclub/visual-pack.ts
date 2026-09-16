@@ -55,6 +55,37 @@ export function factsFromEntity(entity: KnowledgeEntity): Fact[] {
   return facts;
 }
 
+function shortTime(value: string | null | undefined) {
+  if (!value) return "";
+  return value.split(/[（(]/)[0]?.trim() || value;
+}
+
+function captionsFromCompiled(
+  compiled: ReturnType<typeof compileVisualConcepts>,
+): NonNullable<VisualPackView["captions"]> {
+  const overlay = compiled.overlayText;
+  const when = [overlay.date, shortTime(overlay.time)].filter(Boolean).join(" ");
+  return {
+    A: captionFor(compiled, "A", when),
+    B: captionFor(compiled, "B", when),
+    C: captionFor(compiled, "C", when),
+  };
+}
+
+function captionFor(
+  compiled: ReturnType<typeof compileVisualConcepts>,
+  id: "A" | "B" | "C",
+  when: string,
+) {
+  const concept = compiled.concepts.find((item) => item.id === id)!;
+  const overlay = compiled.overlayText;
+  return {
+    hook: (overlay.name || compiled.title).slice(0, 150),
+    body: [when, concept.creativeDirection].filter(Boolean).join("\n"),
+    cta: overlay.registration ? "報名" : null,
+  };
+}
+
 function viewFromCompiled(
   compiled: ReturnType<typeof compileVisualConcepts>,
   honesty: string,
@@ -76,6 +107,7 @@ function viewFromCompiled(
     unknownFields: compiled.unknownFields,
     overlayText: compiled.overlayText,
     workflowId,
+    captions: captionsFromCompiled(compiled),
     concepts: compiled.concepts.map((concept) => ({
       id: concept.id,
       name: concept.name,

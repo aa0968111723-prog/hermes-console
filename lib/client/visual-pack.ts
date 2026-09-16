@@ -31,6 +31,10 @@ export type VisualPackView = {
   unknownFields: string[];
   overlayText?: Record<string, string | null>;
   workflowId?: string;
+  captions?: Record<
+    "A" | "B" | "C",
+    { hook: string; body: string; cta: string | null }
+  >;
   concepts: VisualPackConcept[];
 };
 

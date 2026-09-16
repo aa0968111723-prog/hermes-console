@@ -36,6 +36,11 @@ test("club inspiration returns visual cards with overlay date, not a notes wall"
   assert.match(pack.notice, /Hermes Agent 尚未連線/);
   assert.match(pack.notice, /Drive 快照|不是即時/);
   assert.equal(pack.concepts.length, 3);
+  assert.equal(pack.captions?.A?.cta, "報名");
+  assert.match(pack.captions?.A?.body || "", /2026-09-30/);
+  assert.match(pack.captions?.A?.body || "", /19:00-21:30/);
+  assert.doesNotMatch(pack.captions?.A?.body || "", /宮燈|文館左側/);
+  assert.doesNotMatch(pack.captions?.A?.hook || "", /已出圖/);
   assert.doesNotMatch(text, / · place：/);
   assert.doesNotMatch(text, /索引沒有命中/);
   assert.doesNotMatch(text, /GALLEY 已/);
