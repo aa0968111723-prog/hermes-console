@@ -47,6 +47,7 @@ export function studentSpeechError(code?: string): string | null {
     return "無法使用麥克風。請允許這個頁面使用麥克風。";
   if (code === "audio-capture") return "找不到麥克風。";
   if (code === "network") return "語音辨識暫時無法使用。";
+  if (code === "no-speech") return "沒聽到語音。請靠近再試一次。";
   return null;
 }
 
@@ -62,7 +63,8 @@ export function createSpeechSession(options: {
   const rec = new Ctor();
   rec.lang = options.lang || "zh-TW";
   rec.interimResults = false;
-  rec.continuous = false;
+  // Android Chrome / zh-TW ends a non-continuous session at the first pause.
+  rec.continuous = true;
   rec.onresult = (event) => {
     const last = event.results[event.results.length - 1];
     if (!last?.isFinal) return;

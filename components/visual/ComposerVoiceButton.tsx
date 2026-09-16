@@ -28,6 +28,7 @@ export default function ComposerVoiceButton({
   const [listening, setListening] = useState(false);
   const session = useRef<SpeechSession | null>(null);
   const valueRef = useRef(value);
+  const heardRef = useRef(false);
   valueRef.current = value;
   useEffect(() => {
     setSupported(!!speechRecognitionCtor());
@@ -40,21 +41,25 @@ export default function ComposerVoiceButton({
       session.current?.stop();
       session.current = null;
       setListening(false);
+      if (heardRef.current) onReady?.();
       return;
     }
     if (isComposing()) return;
+    heardRef.current = false;
     const next = createSpeechSession({
       onFinal: (text) => {
+        heardRef.current = true;
         onChange(appendTranscript(valueRef.current, text));
-        onReady?.();
       },
       onError: (code) => {
+        if (code === "no-speech" && heardRef.current) return;
         const message = studentSpeechError(code);
         if (message) onDenied?.(message);
       },
       onEnd: () => {
         session.current = null;
         setListening(false);
+        if (heardRef.current) onReady?.();
       },
     });
     if (!next) return;

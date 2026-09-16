@@ -134,7 +134,12 @@ test("no-login entry contracts", async (t) => {
     assert.match(button, /說完後按送出/);
     assert.match(button, /onReady/);
     assert.match(button, /onDenied/);
+    assert.match(button, /heardRef/);
+    assert.match(button, /if \(heardRef\.current\) onReady/);
+    assert.doesNotMatch(button, /onFinal: \(text\) => \{\s*onChange[\s\S]*onReady/);
     assert.match(speech, /studentSpeechError/);
+    assert.match(speech, /rec\.continuous = true/);
+    assert.match(speech, /沒聽到語音。請靠近再試一次。/);
     const config = await readFile(
       new URL("../next.config.ts", import.meta.url),
       "utf8",
