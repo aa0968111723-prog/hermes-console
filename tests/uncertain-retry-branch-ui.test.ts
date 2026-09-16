@@ -12,6 +12,10 @@ test("uncertain UI offers acknowledge and retry branch alongside failed/cancelle
     new URL("../components/HermesConsole.tsx", import.meta.url),
     "utf8",
   );
+  const conversation = await readFile(
+    new URL("../components/console/Conversation.tsx", import.meta.url),
+    "utf8",
+  );
   const composer = await readFile(
     new URL("../components/console/Composer.tsx", import.meta.url),
     "utf8",
@@ -21,9 +25,9 @@ test("uncertain UI offers acknowledge and retry branch alongside failed/cancelle
     "utf8",
   );
   assert.match(ui, /function retryBranchFromTask/);
-  // composer / task-list path still gates failed|cancelled|uncertain together
+  // conversation live bubble still gates failed|cancelled|uncertain together
   assert.match(
-    ui,
+    conversation,
     /\["failed", "cancelled", "uncertain"\]\.includes\(\s*currentTask\.state/,
   );
   assert.match(ui, /acknowledgeTask/);
@@ -31,7 +35,7 @@ test("uncertain UI offers acknowledge and retry branch alongside failed/cancelle
   assert.match(composer, /composer-uncertain-actions/);
   assert.match(composer, /結果待確認/);
   assert.match(composer, /確認並可重試/);
-  assert.match(ui, /建立重試分支/);
+  assert.match(conversation, /建立重試分支/);
   assert.match(ui, /action:\s*"acknowledge"/);
   assert.match(sheet, /task\.state === "uncertain"/);
   assert.match(sheet, /onAcknowledge\(task\)/);

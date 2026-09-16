@@ -62,10 +62,16 @@ test("chat shows direction picks and Canva previews, not tool JSON", async () =>
     new URL("../components/visual/DirectionPick.tsx", import.meta.url),
     "utf8",
   );
+  const live = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
   assert.match(ui, /DirectionPick/);
   assert.match(ui, /ArtifactStage/);
   assert.match(pick, /用這個方向/);
   assert.match(pick, /選定後才會製作，不是已發佈/);
+  assert.match(live, /directionFollowUp/);
+  assert.match(live, /console\/Conversation/);
   assert.doesNotMatch(pick, /toolCallId|inputSchema|credentialReference/);
   assert.doesNotMatch(ui, /traceId|credentialReference/);
 });

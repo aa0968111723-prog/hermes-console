@@ -3,17 +3,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   Check,
-  ChevronDown,
-  Copy,
   Folder,
   Images,
   Leaf,
   ListTodo,
   Sparkles,
   Bot,
-  Menu,
   MessageSquare,
-  PanelLeftClose,
   Pencil,
   Plus,
   RefreshCw,
@@ -24,11 +20,6 @@ import {
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
-import MessageBody from "./MessageBody";
-import HermesCore from "./visual/HermesCore";
-import QuickActions from "./visual/QuickActions";
-import AgentOrbit from "./visual/AgentOrbit";
-import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
 import ArtifactDeck from "./visual/ArtifactDeck";
@@ -37,9 +28,12 @@ import {
   composerTaskPillAction,
 } from "./visual/ComposerTaskStatus";
 import Composer from "./console/Composer";
+import ConversationView from "./console/Conversation";
+import TopBar from "./console/TopBar";
+import MessageBody from "./MessageBody";
 import MaterialThumb from "./visual/MaterialThumb";
+import { directionFollowUp } from "@/lib/client/direction-result";
 import ProjectShelf from "./visual/ProjectShelf";
-import VisualMessage from "./visual/VisualMessage";
 import PreviewPanel from "./console/PreviewPanel";
 import TaskSheet from "./console/TaskSheet";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -66,7 +60,6 @@ import {
 import { consoleApi as api } from "@/lib/client/console-api";
 import { taskPollDelayMs } from "@/lib/client/task-poll";
 import {
-  connectionLabels,
   formatWorkspaceTime,
   isActiveTask,
   taskLabels,
@@ -608,15 +601,7 @@ export default function HermesConsole() {
     try {
       await api("workflows", "PATCH", { id: workflowId, selected: index });
       await refresh();
-      useDirection(
-        "已選定「" +
-          title.slice(0, 40) +
-          "」。請依這個方向製作草稿，沿用創作流程 " +
-          workflowId +
-          " 第 " +
-          (index + 1) +
-          " 個方向，不要另起無關作品。",
-      );
+      useDirection(directionFollowUp(workflowId, index, title));
     } catch (error) {
       setError((error as Error).message);
     }
@@ -917,100 +902,24 @@ export default function HermesConsole() {
         </div>
       </dialog>
       <main className="workspace-main">
-        <header className="topbar">
-          <button
-            className="icon-button desktop-toggle"
-            aria-label={sidebar ? "收合側欄" : "展開側欄"}
-            aria-expanded={sidebar}
-            onClick={() => setSidebar(!sidebar)}
-          >
-            {sidebar ? <PanelLeftClose size={20} /> : <Menu size={20} />}
-          </button>
-          <button
-            className="icon-button mobile-toggle"
-            aria-label="開啟導覽"
-            onClick={() => setDrawer(true)}
-          >
-            <Menu size={21} />
-          </button>
-          <div className="topbar-title">
-            {nav === "chat"
-              ? spatial.mobile ? "Hermes" : "創作對話"
-              : nav === "projects"
-                ? "專案與素材"
-                : nav === "inspiration"
-                  ? "靈感"
-                  : nav === "tasks"
-                    ? "任務"
-                    : "Agent"}
-            <span>
-              {data.projects.find((p) => p.id === project)?.name ||
-                "個人工作區"}
-            </span>
-          </div>
-          <button
-            className="icon-button"
-            aria-label="任務與成果"
-            title="任務與成果"
-            onClick={() => navigate("tasks")}
-          >
-            <ListTodo size={20} />
-          </button>
-          <button
-            className="connection-pill"
-            aria-label={
-              "連線狀態：" +
-              (offline
-                ? "離線"
-                : health
-                  ? connectionLabels[health.status]
-                  : "確認中")
-            }
-            onClick={() => {
-              setSettingsTab("連線");
-              setPanel("settings");
-            }}
-          >
-            <span
-              className={
-                "status-dot " + (health?.credential === "valid" ? "good" : "")
-              }
-            />
-            <span className="connection-label">
-              {offline
-                ? "離線"
-                : health
-                  ? connectionLabels[health.status]
-                  : "確認連線"}
-            </span>
-          </button>
-          <button
-            className="icon-button account-chip"
-            aria-label="帳號設定"
-            onClick={() => {
-              setSettingsTab("帳號");
-              setPanel("settings");
-            }}
-          >
-            {account?.user?.avatar ? (
-              <img src={account.user.avatar} alt="" width={28} height={28} />
-            ) : (
-              <span aria-hidden="true">
-                {(account?.user?.name || "H").slice(0, 1)}
-              </span>
-            )}
-          </button>
-          <button
-            className="icon-button"
-            aria-label="外觀設定"
-            onClick={() => {
-              setSettingsTab("外觀");
-              setPanel("settings");
-            }}
-          >
-            <Settings size={19} />
-          </button>
-        </header>
+        <TopBar
+          nav={nav}
+          mobile={spatial.mobile}
+          sidebar={sidebar}
+          projectName={
+            data.projects.find((p) => p.id === project)?.name || "個人工作區"
+          }
+          offline={offline}
+          health={health}
+          account={account}
+          onToggleSidebar={() => setSidebar(!sidebar)}
+          onOpenDrawer={() => setDrawer(true)}
+          onOpenTasks={() => navigate("tasks")}
+          onOpenSettings={(tab) => {
+            setSettingsTab(tab);
+            setPanel("settings");
+          }}
+        />
         {(error || notice || offline) && (
           <div
             className={"notice-bar " + (error || offline ? "warning" : "")}
@@ -1036,225 +945,45 @@ export default function HermesConsole() {
         )}
         {nav === "chat" ? (
           <>
-            <div
-              className="conversation-scroll"
-              ref={scroll}
-              onScroll={(e) => {
-                const el = e.currentTarget;
-                nearBottom.current =
-                  el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-                setJump(!nearBottom.current);
+            <ConversationView
+              scrollRef={scroll}
+              nearBottomRef={nearBottom}
+              onJumpChange={setJump}
+              activeId={activeId}
+              conversation={activeConv}
+              currentTask={currentTask}
+              tasks={tasks}
+              turtle={prefs.turtle}
+              animation={prefs.animation}
+              turtleSize={prefs.turtleSize}
+              offline={offline}
+              integrations={integrations}
+              mobile={spatial.mobile}
+              legacy={legacy}
+              materials={data.materials}
+              busy={busy}
+              onOpenSpatial={() => setPanel("spatial")}
+              onQuickAction={(prompt) => {
+                setText(prompt);
+                input.current?.focus();
               }}
-            >
-              <div className="conversation" key={activeId || "new"}>
-                {!activeConv?.messages.length ? (
-                  <section className="welcome" aria-labelledby="welcome-title">
-                    <div className="welcome-stage">
-                      {prefs.turtle && (
-                        <HermesCore
-                          task={currentTask}
-                          offline={offline}
-                          animation={prefs.animation}
-                          size={prefs.turtleSize * 1.8}
-                          onClick={() => setPanel("spatial")}
-                        />
-                      )}
-                      {prefs.turtle && (
-                        <AgentOrbit
-                          compact
-                          task={currentTask}
-                          integrations={integrations}
-                          stale={offline}
-                          animation={prefs.animation}
-                        />
-                      )}
-                    </div>
-                    <h1 id="welcome-title">今天想做什麼？</h1>
-                    <QuickActions
-                      mobile={spatial.mobile}
-                      onSelect={(prompt) => {
-                        setText(prompt);
-                        input.current?.focus();
-                      }}
-                    />
-                    {legacy && (
-                      <button className="text-button" onClick={importLegacy}>
-                        匯入這個瀏覽器中的舊對話（不覆蓋原資料）
-                      </button>
-                    )}
-                  </section>
-                ) : (
-                  <>
-                    {activeConv.parentId && (
-                      <p className="branch-note">
-                        此為獨立分支，原對話仍保留。
-                      </p>
-                    )}
-                    {currentTask && isActive(currentTask) && (
-                      <AgentActivity
-                        task={currentTask}
-                        onInspect={() => openTask(currentTask)}
-                      />
-                    )}
-                    {activeConv.messages.map((message) => (
-                      <article
-                        key={message.id}
-                        className={"message " + message.role}
-                      >
-                        <div className="message-byline">
-                          {message.role === "user" ? "你" : "Hermes"}
-                          <time dateTime={message.createdAt}>
-                            {time(message.createdAt)}
-                          </time>
-                          {message.provenance === "legacy_unverified" && (
-                            <span>舊資料 · 未驗證</span>
-                          )}
-                        </div>
-                        <div className="message-content">
-                          <MessageBody text={message.content} />
-                          {message.role === "assistant" && message.taskId && (
-                            <VisualMessage
-                              task={tasks.find((t) => t.id === message.taskId)}
-                              onInspect={() =>
-                                openTask(
-                                  tasks.find((t) => t.id === message.taskId),
-                                )
-                              }
-                              onUseDirection={useDirection}
-                              onOpenMaterial={openMaterial}
-                              onPickDirection={(id, index, title) => {
-                                void pickDirection(id, index, title);
-                              }}
-                              onContinueDesign={continueDesign}
-                            />
-                          )}
-                          {!!message.attachments?.length && (
-                            <div className="message-attachments">
-                              {message.attachments.map((id) => {
-                                const asset = data.materials.find(
-                                  (m) => m.id === id,
-                                );
-                                return asset ? (
-                                  <button
-                                    key={id}
-                                    onClick={() => {
-                                      setPreview(asset);
-                                      setPanel("preview");
-                                    }}
-                                  >
-                                    {asset.kind === "image" ||
-                                    asset.mime === "application/pdf" ||
-                                    asset.kind === "reference" ? (
-                                      <MaterialThumb
-                                        material={asset}
-                                        alt={asset.title}
-                                      />
-                                    ) : null}
-                                    <span>{asset.title}</span>
-                                  </button>
-                                ) : null;
-                              })}
-                            </div>
-                          )}
-                        </div>
-                        <div className="message-actions">
-                          <button
-                            aria-label="複製訊息"
-                            onClick={() => copy(message.content)}
-                          >
-                            <Copy size={15} />
-                          </button>
-                          {message.role === "user" && (
-                            <button
-                              aria-label="編輯並建立分支"
-                              onClick={() =>
-                                branch(message.id, message.content)
-                              }
-                              disabled={busy}
-                            >
-                              <Pencil size={15} />
-                            </button>
-                          )}
-                          {message.taskId && message.role === "assistant" && (
-                            <button
-                              onClick={() =>
-                                openTask(
-                                  tasks.find((t) => t.id === message.taskId),
-                                )
-                              }
-                            >
-                              執行紀錄
-                            </button>
-                          )}
-                        </div>
-                      </article>
-                    ))}
-                    {currentTask &&
-                      !activeConv.messages.some(
-                        (m) =>
-                          m.taskId === currentTask.id && m.role === "assistant",
-                      ) && (
-                        <article className="message assistant">
-                          <div className="message-byline">
-                            Hermes
-                            <span className="task-status">
-                              {taskLabels[currentTask.state]}
-                            </span>
-                          </div>
-                          {currentTask.output && (
-                            <MessageBody text={currentTask.output} />
-                          )}
-                          <VisualMessage
-                            task={currentTask}
-                            onInspect={() => openTask(currentTask)}
-                            onUseDirection={useDirection}
-                            onOpenMaterial={openMaterial}
-                            onPickDirection={(id, index, title) => {
-                              void pickDirection(id, index, title);
-                            }}
-                            onContinueDesign={continueDesign}
-                          />
-                          {currentTask.error && (
-                            <p className="error">{currentTask.error}</p>
-                          )}
-                          {currentTask.observationError && (
-                            <p className="error">
-                              {currentTask.observationError}
-                            </p>
-                          )}
-                          <button
-                            className="task-summary"
-                            onClick={() => openTask(currentTask)}
-                          >
-                            <ListTodo size={16} />
-                            {currentTask.events.at(-1)?.summary ||
-                              "查看已保存的任務"}
-                            <ChevronDown size={16} />
-                          </button>
-                          {["failed", "cancelled", "uncertain"].includes(
-                            currentTask.state,
-                          ) && (
-                            <button
-                              className="text-button"
-                              onClick={() => retryBranchFromTask(currentTask)}
-                            >
-                              建立重試分支（保留原紀錄）
-                            </button>
-                          )}
-                          {currentTask.state === "uncertain" && (
-                            <button
-                              className="text-button"
-                              onClick={() => void acknowledgeTask(currentTask)}
-                            >
-                              確認並可重試
-                            </button>
-                          )}
-                        </article>
-                      )}
-                  </>
-                )}
-              </div>
-            </div>
+              onImportLegacy={importLegacy}
+              onInspectTask={openTask}
+              onUseDirection={useDirection}
+              onOpenMaterial={openMaterial}
+              onPickDirection={(id, index, title) => {
+                void pickDirection(id, index, title);
+              }}
+              onContinueDesign={continueDesign}
+              onPreview={(asset) => {
+                setPreview(asset);
+                setPanel("preview");
+              }}
+              onCopy={(value) => void copy(value)}
+              onBranch={(messageId, content) => void branch(messageId, content)}
+              onRetryBranch={retryBranchFromTask}
+              onAcknowledge={(item) => void acknowledgeTask(item)}
+            />
             <Composer
               jump={jump}
               onJumpLatest={() => {
