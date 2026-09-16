@@ -56,8 +56,10 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.match(consoleUi, /onOpenMaterial=\{openMaterial\}/);
   assert.match(consoleUi, /directionFollowUp/);
   assert.match(consoleUi, /function pinConversation/);
+  assert.match(consoleUi, /function openPanel/);
   assert.match(consoleUi, /panelOpener/);
   assert.match(consoleUi, /if \(node && !node\.open\)/);
+  assert.match(consoleUi, /dialog\.current\?\.open/);
   assert.match(css, /\.jump-button \{[\s\S]*?position: relative/);
   assert.match(css, /\.jump-button \{[\s\S]*?min-height: 44px/);
   assert.doesNotMatch(css, /\.jump-button \{[\s\S]*?bottom: 100%/);

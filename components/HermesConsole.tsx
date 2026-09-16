@@ -367,13 +367,7 @@ export default function HermesConsole() {
     const was = previousPanel.current;
     previousPanel.current = panel;
     if (panel) {
-      if (node && !node.open) {
-        const active = document.activeElement;
-        if (active instanceof HTMLElement && !node.contains(active)) {
-          panelOpener.current = active;
-        }
-        node.showModal();
-      }
+      if (node && !node.open) node.showModal();
       return;
     }
     if (node?.open) node.close();
@@ -385,8 +379,15 @@ export default function HermesConsole() {
     const opener = panelOpener.current;
     panelOpener.current = null;
     if (opener && document.contains(opener)) {
-      const frame = requestAnimationFrame(() => opener.focus());
-      return () => cancelAnimationFrame(frame);
+      const restore = () => {
+        if (dialog.current?.open) return;
+        opener.focus();
+      };
+      restore();
+      const retries = [0, 50, 120, 250].map((ms) =>
+        window.setTimeout(restore, ms),
+      );
+      return () => retries.forEach((id) => window.clearTimeout(id));
     }
   }, [panel]);
   useEffect(() => {
@@ -601,7 +602,7 @@ export default function HermesConsole() {
   }
   function openTask(task?: Task) {
     setSelectedTask(task?.id || null);
-    setPanel("task");
+    openPanel("task");
   }
   function pinConversation() {
     nearBottom.current = true;
@@ -633,7 +634,19 @@ export default function HermesConsole() {
     const asset = data.materials.find((item) => item.id === materialId);
     if (!asset) return;
     setPreview(asset);
-    setPanel("preview");
+    openPanel("preview");
+  }
+  function openPanel(
+    next: "settings" | "task" | "preview" | "spatial",
+  ) {
+    const node = dialog.current;
+    if (!node?.open) {
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && active !== document.body) {
+        panelOpener.current = active;
+      }
+    }
+    setPanel(next);
   }
   function closePanel() {
     setPanel(null);
@@ -809,7 +822,7 @@ export default function HermesConsole() {
         <button
           aria-label="新增專案"
           onClick={() => {
-            setPanel("settings");
+            openPanel("settings");
             setSettingsTab("工作區");
             setDrawer(false);
           }}
@@ -869,7 +882,7 @@ export default function HermesConsole() {
         aria-label="設定與連線"
         title="設定與連線"
         onClick={() => {
-          setPanel("settings");
+          openPanel("settings");
           setDrawer(false);
         }}
       >
@@ -944,7 +957,7 @@ export default function HermesConsole() {
           onOpenSettings={(tab) => {
             setConnectionFocus(null);
             setSettingsTab(tab);
-            setPanel("settings");
+            openPanel("settings");
           }}
         />
         {(error || notice || offline) && (
@@ -964,7 +977,7 @@ export default function HermesConsole() {
                   onClick={() => {
                     setConnectionFocus("hermes");
                     setSettingsTab("連線");
-                    setPanel("settings");
+                    openPanel("settings");
                   }}
                 >
                   前往連線
@@ -1003,7 +1016,7 @@ export default function HermesConsole() {
               legacy={legacy}
               materials={data.materials}
               busy={busy}
-              onOpenSpatial={() => setPanel("spatial")}
+              onOpenSpatial={() => openPanel("spatial")}
               onQuickAction={(prompt) => {
                 setText(prompt);
                 input.current?.focus();
@@ -1018,7 +1031,7 @@ export default function HermesConsole() {
               onContinueDesign={continueDesign}
               onPreview={(asset) => {
                 setPreview(asset);
-                setPanel("preview");
+                openPanel("preview");
               }}
               onCopy={(value) => void copy(value)}
               onBranch={(messageId, content) => void branch(messageId, content)}
@@ -1070,7 +1083,7 @@ export default function HermesConsole() {
               }}
               onPreview={(material) => {
                 setPreview(material);
-                setPanel("preview");
+                openPanel("preview");
               }}
               onRetryUpload={(upload) => uploadFile(upload.file, upload.key)}
               onRemoveUpload={(key) => {
@@ -1104,7 +1117,7 @@ export default function HermesConsole() {
                 setActiveId(null);
               }}
               onCreate={() => {
-                setPanel("settings");
+                openPanel("settings");
                 setSettingsTab("工作區");
               }}
             />
@@ -1186,7 +1199,7 @@ export default function HermesConsole() {
                       aria-label={"預覽素材：" + m.title}
                       onClick={() => {
                         setPreview(m);
-                        setPanel("preview");
+                        openPanel("preview");
                       }}
                     >
                       {m.kind === "image" ||
@@ -1295,8 +1308,8 @@ export default function HermesConsole() {
       </main>
       <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
         onAction={action=>{
-          if(action==="spatial")setPanel("spatial");
-          else if(action==="memory"){setSettingsTab("進階");setPanel("settings");}
+          if(action==="spatial")openPanel("spatial");
+          else if(action==="memory"){setSettingsTab("進階");openPanel("settings");}
           else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
         }}
         onFiles={files=>{
@@ -1337,8 +1350,8 @@ export default function HermesConsole() {
           )}
           {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
             animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
-            onMemory={()=>{setSettingsTab("進階");setPanel("settings");}}
-            onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
+            onMemory={()=>{setSettingsTab("進階");openPanel("settings");}}
+            onNavigate={next=>{closePanel();navigate(next);}} /> : panel === "settings" ? (
             <SettingsPanel
               settingsTab={settingsTab}
               onTab={setSettingsTab}
@@ -1371,7 +1384,7 @@ export default function HermesConsole() {
               onWorkspaceChanged={loadWorkspace}
               onOpenTask={(id) => {
                 setSelectedTask(id);
-                setPanel("task");
+                openPanel("task");
               }}
               onError={setError}
               onNotice={setNotice}

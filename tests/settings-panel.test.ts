@@ -23,7 +23,7 @@ test("settings shell is extracted and still hosts Help plus five tabs", async ()
   assert.match(panel, /進階 · 工具、技能與驗證證據/);
   assert.doesNotMatch(panel, /Advanced ·/);
   assert.match(panel, /pendingTabFocus/);
-  assert.match(panel, /useLayoutEffect/);
+  assert.match(panel, /closest\("dialog\[open\]"\)/);
   assert.doesNotMatch(
     panel,
     /id="setting-panel"[\s\S]{0,80}tabIndex=\{0\}/,

@@ -122,7 +122,11 @@ export default function SettingsPanel({
   useLayoutEffect(() => {
     if (pendingTabFocus.current !== settingsTab) return;
     const tabId = "setting-tab-" + settingsTab;
-    const restore = () => document.getElementById(tabId)?.focus();
+    const restore = () => {
+      const tab = document.getElementById(tabId);
+      if (!tab?.closest("dialog[open]")) return;
+      tab.focus();
+    };
     restore();
     const retries = [0, 50, 200].map((ms) => window.setTimeout(restore, ms));
     const done = window.setTimeout(() => {
