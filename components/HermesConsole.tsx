@@ -28,6 +28,11 @@ import {
 } from "lucide-react";
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
+import {
+  applyComposerKeyboardStyle,
+  clearComposerKeyboardStyle,
+  isComposerKeyboardOpen,
+} from "@/lib/client/composer-keyboard";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
 import MessageBody from "./MessageBody";
@@ -419,27 +424,27 @@ export default function HermesConsole() {
         baseline = current;
       }
       previousWidth = current.width;
-      document.documentElement.style.setProperty(
-        "--app-height",
-        current.height + "px",
-      );
-      const keyboardOpen =
-        composerFocused &&
-        !widthChanged &&
-        Math.max(baseline.height, window.innerHeight) - current.height >= 96 &&
-        (viewport?.scale || 1) <= 1.01;
-      if (keyboardOpen) {
-        document.documentElement.dataset.composerKeyboard = "open";
-      } else {
-        delete document.documentElement.dataset.composerKeyboard;
-      }
+      const keyboardOpen = isComposerKeyboardOpen({
+        composerFocused,
+        widthChanged,
+        baselineHeight: baseline.height,
+        layoutHeight: window.innerHeight,
+        visualHeight: current.height,
+        scale: viewport?.scale || 1,
+      });
+      applyComposerKeyboardStyle(document.documentElement, {
+        keyboardOpen,
+        visualHeight: current.height,
+      });
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
     };
-    // Only follow visualViewport resize. The scroll event is iOS chrome
-    // panning and must not rewrite --app-height (it steals nested touch scroll).
+    // Only bind --app-height while the software keyboard is open. Tracking
+    // visualViewport at all times leaves Android Chrome at the keyboard-shrunk
+    // height after close (or after the URL bar returns). Nested scroll, not
+    // visualViewport scroll, owns conversation movement.
     update();
     viewport?.addEventListener("resize", schedule);
     window.addEventListener("resize", schedule);
@@ -451,7 +456,7 @@ export default function HermesConsole() {
       window.removeEventListener("resize", schedule);
       document.removeEventListener("focusin", schedule);
       document.removeEventListener("focusout", schedule);
-      delete document.documentElement.dataset.composerKeyboard;
+      clearComposerKeyboardStyle(document.documentElement);
     };
   }, []);
   useEffect(() => {
@@ -1106,7 +1111,6 @@ export default function HermesConsole() {
                     </div>
                     <h1 id="welcome-title">今天想做什麼？</h1>
                     <QuickActions
-                      mobile={spatial.mobile}
                       onSelect={(prompt) => {
                         setText(prompt);
                         input.current?.focus();
