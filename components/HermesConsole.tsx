@@ -70,6 +70,7 @@ import ComposerTaskStatus, {
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import DirectionBrief from "./visual/DirectionBrief";
+import VisualMessage from "./visual/VisualMessage";
 import { isDirectionBriefPack } from "@/lib/direction-brief";
 import TaskEventSummary from "./visual/TaskEventSummary";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
