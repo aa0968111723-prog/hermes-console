@@ -132,6 +132,7 @@ try {
       window as unknown as {
         __hermesSpeech?: {
           onresult: ((event: {
+            resultIndex?: number;
             results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
           }) => void) | null;
         };
