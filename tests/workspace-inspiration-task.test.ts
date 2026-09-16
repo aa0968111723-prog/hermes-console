@@ -366,3 +366,82 @@ test("unconfigured Hermes revises the same spec when asked to enlarge type", asy
   assert.equal(artifact?.revisions.length, 2);
   assert.equal(get("agent", "workspace", "verified"), null);
 });
+
+test("after a spec, spoken 出圖 stays on the same draft instead of a new poster mill", async () => {
+  const { isContinueSameWorkRequest, isMakeSelectedPosterRequest } = await import(
+    "../lib/server/inspiration/revise"
+  );
+  assert.equal(isMakeSelectedPosterRequest("幫我出圖"), true);
+  assert.equal(isContinueSameWorkRequest("幫我做一張網宣海報。"), true);
+  assert.equal(isContinueSameWorkRequest("幫我找網宣靈感。"), false);
+
+  const freshPoster = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: "幫我做一張網宣海報。",
+    attachments: [],
+  });
+  assert.equal(freshPoster.state, "completed");
+  assert.ok(
+    freshPoster.events.some(
+      (event) => event.toolName === "workspace_search_inspiration",
+    ),
+  );
+
+  const conversationId = conv();
+  await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: TEA,
+    attachments: [],
+  });
+  const picked = selectInspirationDirection({
+    owner: "workspace",
+    prompt: TEA,
+    projectId: "personal",
+    selected: "A",
+    conversationId,
+  });
+  const revisionBefore = picked.workflow.directionBrief?.revision;
+  const poster = await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: "幫我出圖",
+    attachments: [],
+  });
+  assert.equal(poster.state, "completed");
+  assert.match(poster.output, /同一件規格草稿/);
+  assert.match(poster.output, /還沒出圖/);
+  assert.equal(
+    poster.events.some(
+      (event) => event.toolName === "workspace_search_inspiration",
+    ),
+    false,
+  );
+  assert.ok(
+    poster.events.some(
+      (event) => event.toolName === "workspace_continue_direction_spec",
+    ),
+  );
+  const workflow = listWorkflows("workspace").find(
+    (item) => item.conversationId === conversationId,
+  );
+  assert.equal(workflow?.artifactId, picked.workflow.artifactId);
+  assert.equal(workflow?.directionBrief?.revision, revisionBefore);
+  assert.equal(workflow?.directionBrief?.rendered, false);
+
+  const chip = await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: "幫我做一張網宣海報。",
+    attachments: [],
+  });
+  assert.equal(chip.state, "completed");
+  assert.match(chip.output, /同一件規格草稿/);
+  assert.equal(
+    chip.events.some(
+      (event) => event.toolName === "workspace_search_inspiration",
+    ),
+    false,
+  );
+});

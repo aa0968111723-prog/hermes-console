@@ -341,6 +341,8 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   assert.match(entry, /社團資料/);
   assert.match(entry, /不是即時/);
   assert.match(entry, /clubFacts\)\.toBeInViewport/);
+  assert.match(entry, /幫我出圖/);
+  assert.match(entry, /未出圖/);
 });
 
 test("spoken lookup pins club facts above the trailing spec", async () => {
@@ -353,13 +355,20 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
     /FOLLOWUP_VISUAL_SELECTOR = "\.knowledge-result, \.image-review"/,
   );
   assert.match(visual, /preferredPinnedVisual/);
+  assert.match(visual, /preferBrief && pinBrief/);
   const consoleSource = await readFile(
     new URL("../components/HermesConsole.tsx", import.meta.url),
     "utf8",
   );
   assert.match(
     consoleSource,
-    /preferredPinnedVisual\(el, Boolean\(chatDirectionBrief\)\)/,
+    /preferredPinnedVisual\([\s\S]*visualPinKey/,
   );
   assert.doesNotMatch(consoleSource, /pinBriefAfterPick/);
+  const revise = await readFile(
+    new URL("../lib/server/inspiration/revise.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(revise, /isMakeSelectedPosterRequest/);
+  assert.match(revise, /出圖/);
 });

@@ -384,23 +384,6 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     focus: input.focus,
   });
   const delegated = input.input.includes("BEGIN_UNTRUSTED_DATA");
-  const localInspiration =
-    !delegated &&
-    canFulfillLocalInspiration(
-      connection.credential,
-      goal,
-      input.attachments,
-    );
-  const localKnowledge =
-    !delegated &&
-    canFulfillLocalKnowledge(
-      connection.credential,
-      goal,
-      input.attachments,
-    );
-  const localImageReview =
-    !delegated &&
-    canFulfillLocalImageReview(connection.credential, goal);
   const localSpecRevision =
     !delegated &&
     canFulfillLocalSpecRevision(
@@ -417,6 +400,25 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       conv,
       owner,
     );
+  const localInspiration =
+    !delegated &&
+    !localContinue &&
+    !localSpecRevision &&
+    canFulfillLocalInspiration(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
+  const localKnowledge =
+    !delegated &&
+    canFulfillLocalKnowledge(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
+  const localImageReview =
+    !delegated &&
+    canFulfillLocalImageReview(connection.credential, goal);
   const localAudience =
     !delegated &&
     canFulfillLocalAudience(
@@ -543,6 +545,18 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       reserved,
       conversation(owner, reserved.conversationId),
     );
+  if (localSpecRevision)
+    return fulfillSpecRevision(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localContinue)
+    return fulfillContinueSameWork(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
   if (localInspiration)
     return fulfillWorkspaceInspiration(
       owner,
@@ -557,18 +571,6 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     );
   if (localAudience)
     return fulfillWorkspaceAudience(
-      owner,
-      reserved,
-      conversation(owner, reserved.conversationId),
-    );
-  if (localSpecRevision)
-    return fulfillSpecRevision(
-      owner,
-      reserved,
-      conversation(owner, reserved.conversationId),
-    );
-  if (localContinue)
-    return fulfillContinueSameWork(
       owner,
       reserved,
       conversation(owner, reserved.conversationId),

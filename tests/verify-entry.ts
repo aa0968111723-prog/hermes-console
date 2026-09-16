@@ -229,6 +229,35 @@ try {
     const current = (
       window as unknown as {
         __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "幫我出圖" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "幫我出圖",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const specAfterRenderAsk = page.getByRole("region", { name: "已選方向規格" });
+  await expect(specAfterRenderAsk).toBeVisible({ timeout: 15_000 });
+  await expect(specAfterRenderAsk).toBeInViewport();
+  await expect(specAfterRenderAsk).toContainText("V1");
+  await expect(specAfterRenderAsk).toContainText("未出圖");
+  await expect(page.getByRole("region", { name: "靈感方向" })).toHaveCount(1);
+  await page.screenshot({ path: join(output, "spoken-make-poster.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
           onerror: ((event?: { error?: string }) => void) | null;
         };
       }

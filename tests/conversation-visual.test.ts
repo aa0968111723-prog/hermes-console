@@ -84,4 +84,5 @@ test("club facts after a spec win over the trailing direction brief", () => {
   assert.equal(preferredPinnedVisual(specOnly, true), brief);
   assert.equal(preferredPinnedVisual(inspirationOnly, false), inspiration);
   assert.notEqual(preferredPinnedVisual(inspirationOnly, false), twin);
+  assert.equal(preferredPinnedVisual(withClubFacts, true, true), brief);
 });

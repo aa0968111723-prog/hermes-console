@@ -577,7 +577,18 @@ export default function HermesConsole() {
       return true;
     };
     const frame = requestAnimationFrame(() => {
-      if (pin(preferredPinnedVisual(el, Boolean(chatDirectionBrief)))) return;
+      if (
+        pin(
+          preferredPinnedVisual(
+            el,
+            Boolean(chatDirectionBrief),
+            /workspace_continue_direction_spec|workspace_revise_direction_spec/.test(
+              visualPinKey,
+            ),
+          ),
+        )
+      )
+        return;
       if (!nearBottom.current) return;
       el.scrollTop = el.scrollHeight;
     });

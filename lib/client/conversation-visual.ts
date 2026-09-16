@@ -19,11 +19,21 @@ export function lastMatchingVisual(
   return nodes[nodes.length - 1] as HTMLElement;
 }
 
-/** Club facts / poster review, then the trailing spec, then inspiration, then twin. */
+/** Club facts / poster review, then the trailing spec, then inspiration, then twin.
+ *  After 出圖／接續／字放大, the spec wins even if an earlier 社團資料 card exists. */
 export function preferredPinnedVisual(
   root: { querySelectorAll: (selector: string) => ArrayLike<Element> },
   pinBrief: boolean,
+  preferBrief = false,
 ): HTMLElement | null {
+  if (preferBrief && pinBrief) {
+    return (
+      lastMatchingVisual(root, ".direction-brief") ||
+      lastMatchingVisual(root, FOLLOWUP_VISUAL_SELECTOR) ||
+      lastMatchingVisual(root, RESULT_VISUAL_SELECTOR) ||
+      lastMatchingVisual(root, AUDIENCE_VISUAL_SELECTOR)
+    );
+  }
   return (
     lastMatchingVisual(root, FOLLOWUP_VISUAL_SELECTOR) ||
     (pinBrief ? lastMatchingVisual(root, ".direction-brief") : null) ||
