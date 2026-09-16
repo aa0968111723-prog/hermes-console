@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, RESEARCH_WITHOUT_SOURCES, type Task, type TaskEvent } from "../lib/contracts";
 import {
   OFFLINE_NOTICE,
   OFFLINE_PILL_LABEL,
@@ -96,6 +96,26 @@ test("spec-only design completion is a warning, not a green check", () => {
   failedWithMark.events[0].summary = DESIGN_WITHOUT_PREVIEW;
   assert.equal(composerTaskStatus(failedWithMark, false).label, "失敗");
   assert.equal(composerTaskStatus(failedWithMark, false).tone, "error");
+});
+
+test("research without sources is a warning, not a green check", () => {
+  const missing = task("completed");
+  missing.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "galley_research",
+      status: "completed",
+      summary: RESEARCH_WITHOUT_SOURCES,
+    } as TaskEvent,
+  ];
+  missing.goal = { requiresResearch: true } as Task["goal"];
+  assert.deepEqual(composerTaskStatus(missing, false), {
+    label: "還沒找到來源",
+    tone: "warning",
+    tool: null,
+    toolName: null,
+    toolKind: null,
+  });
 });
 
 test("shortTaskError hides long stacks", () => {

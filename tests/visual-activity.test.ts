@@ -13,10 +13,16 @@ import {
   studentProcessDone,
   studentTaskLabel,
   taskKeptSpecOnly,
+  taskMissingSources,
   visualProcessCaption,
   workingEvent,
 } from "../lib/client/activity";
-import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../lib/contracts";
+import {
+  DESIGN_WITHOUT_PREVIEW,
+  RESEARCH_WITHOUT_SOURCES,
+  type Task,
+  type TaskEvent,
+} from "../lib/contracts";
 const event = (
   id: string,
   status: string,
@@ -190,6 +196,43 @@ test("spec-only design completion is not painted as visual success", () => {
   assert.equal(taskKeptSpecOnly(withPreview), false);
   assert.equal(studentTaskLabel(withPreview), "完成");
   assert.equal(visualProcessCaption(withPreview), "過程完成");
+});
+
+test("research without https sources is not painted as found", () => {
+  const missing = task("completed", [
+    {
+      ...event("research", "completed"),
+      summary: RESEARCH_WITHOUT_SOURCES,
+      sources: [],
+    },
+  ]);
+  missing.goal = { requiresResearch: true, requiresTamkang: true } as Task["goal"];
+  missing.plan = {
+    summary: "查資料",
+    budgetMode: "balanced",
+    fallbacks: [],
+    steps: [
+      { id: "a", title: "讀取專案上下文", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "completed" },
+      { id: "c", title: "查資料", purpose: "", dependencies: [], agent: "general", tool: "galley_research", fallback: null, status: "completed" },
+      { id: "d", title: "找靈感", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "pending" },
+    ],
+  };
+  assert.equal(taskMissingSources(missing), true);
+  assert.equal(studentTaskLabel(missing), "還沒找到來源");
+  const steps = progressSteps(missing);
+  assert.equal(steps.find((step) => step.label === "研究")?.state, "uncertain");
+  assert.equal(steps.find((step) => step.label === "靈感")?.state, "uncertain");
+  assert.equal(studentProcessDone(missing, steps), false);
+  assert.equal(visualProcessCaption(missing, steps), "還沒找到來源");
+  const sourced = task("completed", [
+    {
+      ...event("research", "completed"),
+      sources: ["https://www.tku.edu.tw/news"],
+    },
+  ]);
+  assert.equal(taskMissingSources(sourced), false);
+  assert.equal(studentTaskLabel(sourced), "完成");
+  assert.equal(visualProcessCaption(sourced), "過程完成");
 });
 
 test("creative tasks attach Canva designs as conversation artifacts", () => {

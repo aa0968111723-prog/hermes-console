@@ -2,7 +2,7 @@ import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { DESIGN_WITHOUT_PREVIEW } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, RESEARCH_WITHOUT_SOURCES } from "../lib/contracts";
 
 /** Real uploads/settings first; explicitly labelled UI response fixtures second.
  * The fixtures never configure credentials, publish, or contact external providers. */
@@ -632,6 +632,42 @@ export async function verifyVisualStates(
   ).toHaveCount(0);
   await page.screenshot({ path: join(output, "design-spec-only-honesty.png") });
   task.events = task.events.filter((event) => event.id !== "event-spec-only");
+  task.events[0].sources = [];
+  task.events.push({
+    id: "event-no-sources",
+    taskId: task.id,
+    toolCallId: null,
+    toolName: null,
+    status: "completed",
+    startedAt: now,
+    endedAt: now,
+    summary: RESEARCH_WITHOUT_SOURCES,
+    result: null,
+    sources: [],
+    error: null,
+    usage: null,
+  });
+  await page.reload();
+  await expect(page.locator(".composer-task-status")).toContainText(
+    "還沒找到來源",
+  );
+  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
+  await expect(page.locator(".composer-task-status")).toHaveAttribute(
+    "data-tone",
+    "warning",
+  );
+  await expect(page.locator(".visual-message")).toContainText("還沒找到來源");
+  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
+  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
+  await expect(page.locator(".turtle")).toHaveAttribute(
+    "aria-label",
+    /還沒找到來源/,
+  );
+  await page.screenshot({
+    path: join(output, "research-without-sources-honesty.png"),
+  });
+  task.events = task.events.filter((event) => event.id !== "event-no-sources");
+  task.events[0].sources = ["https://example.com/reference"];
   task.state = "failed";
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();

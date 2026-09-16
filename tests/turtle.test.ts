@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { turtleState } from "../components/Turtle";
-import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, RESEARCH_WITHOUT_SOURCES, type Task, type TaskEvent } from "../lib/contracts";
 
 function task(state: Task["state"], toolStatus?: string): Task {
   return {
@@ -53,6 +53,21 @@ test("turtle does not celebrate a design task that kept only the spec", () => {
   const finished = task("completed");
   assert.equal(turtleState(finished, false).id, "success");
   assert.equal(turtleState(finished, false).label, "完成了");
+});
+
+test("turtle does not celebrate research that found no sources", () => {
+  const missing = {
+    state: "completed",
+    events: [
+      {
+        toolName: "galley_research",
+        status: "completed",
+        summary: RESEARCH_WITHOUT_SOURCES,
+      },
+    ],
+  } as Task;
+  assert.equal(turtleState(missing, false).id, "waiting");
+  assert.equal(turtleState(missing, false).label, "還沒找到來源");
 });
 
 test("turtle student labels never name vendors or tools", () => {

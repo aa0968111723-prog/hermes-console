@@ -127,6 +127,7 @@ const {
   taskFor,
   hasCompletedToolEvents,
   DESIGN_WITHOUT_PREVIEW,
+  RESEARCH_WITHOUT_SOURCES,
 } = await import("../lib/server/tasks");
 const { saveMemory, memoryDigest } = await import("../lib/server/memory");
 const { assembleContext, formatContextForInstructions } = await import(
@@ -181,7 +182,11 @@ function fakeEvent(partial: Partial<TaskEvent>): TaskEvent {
   };
 }
 
-function seedRun(events: TaskEvent[], output = "") {
+function seedRun(
+  events: TaskEvent[],
+  output = "",
+  goal?: Task["goal"],
+) {
   const conversationId = conv();
   const id = randomUUID();
   put("task", "workspace", {
@@ -203,6 +208,7 @@ function seedRun(events: TaskEvent[], output = "") {
     events,
     usage: { ...EMPTY_USAGE },
     stopSupported: false,
+    goal,
   } satisfies Task);
   return id;
 }
@@ -375,6 +381,7 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
     toolsDone.events.some((event) => event.summary === "Hermes 已回傳完成結果。"),
     false,
   );
+  assert.match(toolsDone.output, /還沒有可預覽的作品/);
 
   mode = "thinking_tool";
   const both = await submit("workspace", {
@@ -403,9 +410,56 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
   );
   assert.ok(
     lookupDone.events.some(
-      (event) => event.summary === "Hermes 已回傳完成結果。",
+      (event) => event.summary === RESEARCH_WITHOUT_SOURCES,
     ),
   );
+  assert.equal(
+    lookupDone.events.some(
+      (event) => event.summary === "Hermes 已回傳完成結果。",
+    ),
+    false,
+  );
+  assert.match(lookupDone.output, /還沒找到可核對的來源/);
+});
+
+test("Cycle 19: research with https sources may complete as found", async () => {
+  runOutput = "已讀淡江公告。";
+  const id = seedRun(
+    [
+      fakeEvent({
+        kind: "tool",
+        toolName: "hermes_authorized_web",
+        status: "completed",
+        summary: "已讀官方頁",
+        result: "https://www.tku.edu.tw/news 茶會公告",
+        sources: ["https://www.tku.edu.tw/news"],
+      }),
+    ],
+    "已讀淡江公告。",
+    {
+      goal: "幫我查淡江新生茶會公告",
+      audience: "淡江大一新生（模擬，不是民調）",
+      output: null,
+      constraints: [],
+      requiresResearch: true,
+      requiresDesign: false,
+      requiresAudienceEvaluation: false,
+      requiresTamkang: true,
+      requiresInspiration: false,
+      requiresImageAnalysis: false,
+      intentTier: "lookup",
+    },
+  );
+  const done = await reconcile("workspace", id);
+  assert.equal(done.state, "completed");
+  assert.equal(
+    done.events.some((event) => event.summary === RESEARCH_WITHOUT_SOURCES),
+    false,
+  );
+  assert.ok(
+    done.events.some((event) => event.summary === "Hermes 已回傳完成結果。"),
+  );
+  assert.equal(done.output.includes(RESEARCH_WITHOUT_SOURCES), false);
 });
 
 test("Cycle 19: reconcile fails only when no output and no kind===tool completed events", async () => {
