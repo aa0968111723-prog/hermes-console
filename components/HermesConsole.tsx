@@ -2314,7 +2314,7 @@ export default function HermesConsole() {
               )}
               <small>保存時間：{time(preview.createdAt)}</small>
             </div>
-          ) : chosenTask ? (
+          ) : panel === "task" && chosenTask ? (
             <div className="settings-stack task-resume-sheet">
               <div className="task-resume-status">
                 <span
@@ -2510,7 +2510,7 @@ export default function HermesConsole() {
                 </details>
               ))}
             </div>
-          ) : (
+          ) : panel === "task" ? (
             <div className="empty-state">
               <ListTodo size={28} />
               <p>
@@ -2519,7 +2519,7 @@ export default function HermesConsole() {
                 龜龜只會顯示真實的執行狀態。
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </dialog>
     </div>
