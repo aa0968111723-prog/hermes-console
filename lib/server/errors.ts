@@ -28,6 +28,8 @@ const AUTH = new Set([
   "invalid_login",
   "sign_in_required",
   "session_expired",
+  "session_not_found",
+  "current_session",
   "gateway_required",
   "gateway_unconfigured",
   "email_unverified",
@@ -74,7 +76,8 @@ export function errorCategory(code: string): ErrorCategory {
   if (AUTH.has(code)) return ERROR_CATEGORY.AUTH_ERROR;
   if (PERMISSION.has(code)) return ERROR_CATEGORY.PERMISSION_ERROR;
   if (TIMEOUT.has(code)) return ERROR_CATEGORY.TOOL_TIMEOUT;
-  if (UNAVAILABLE.has(code)) return ERROR_CATEGORY.TOOL_UNAVAILABLE;
+  if (UNAVAILABLE.has(code) || /_unconfigured$/.test(code))
+    return ERROR_CATEGORY.TOOL_UNAVAILABLE;
   if (RATE.has(code)) return ERROR_CATEGORY.RATE_LIMIT;
   if (INPUT.has(code)) return ERROR_CATEGORY.INVALID_INPUT;
   if (NETWORK.has(code)) return ERROR_CATEGORY.NETWORK_ERROR;

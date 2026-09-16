@@ -224,6 +224,15 @@ try {
         dock && send && send.y + send.height <= dock.y,
         "bottom dock overlaps send at "+width+": "+JSON.stringify({send,dock}),
       );
+      assert.equal(
+        await page
+          .locator(".mobile-bottom-dock")
+          .evaluate(
+            (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
+          ),
+        5,
+        "mobile dock columns at " + width,
+      );
     }
     const composer = await page.locator(".composer").boundingBox();
     assert.ok(
@@ -259,15 +268,18 @@ try {
       await verifyScrollOwnership(page, name);
     }
   }
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  const mobileNavigation = page
-    .getByRole("dialog")
-    .filter({ has: page.getByRole("navigation") });
-  await expect(mobileNavigation).toBeVisible();
+  const dockNav = page.getByRole("navigation", { name: "快速導覽" });
+  await expect(dockNav).toBeVisible();
+  await expect(page.getByRole("button", { name: "對話列表" })).toBeVisible();
+  await page.getByRole("button", { name: "對話列表" }).click();
+  const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });
+  await expect(conversationDrawer).toBeVisible();
+  await expect(
+    conversationDrawer.getByRole("navigation", { name: "主要導覽" }),
+  ).toHaveCount(0);
   await page.screenshot({ path: join(output, "drawer.png"), fullPage: true });
-  await mobileNavigation
-    .getByRole("button", { name: "Agent", exact: true })
-    .click();
+  await conversationDrawer.getByRole("button", { name: "關閉導覽" }).click();
+  await dockNav.getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Agent Runtime", exact: true }),
   ).toBeVisible();
@@ -297,20 +309,14 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "任務", exact: true })
-    .click();
+  await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await expect(
-    page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
-  ).toBeVisible();
-  await mobileNavigation
-    .getByRole("button", { name: "靈感", exact: true })
-    .click();
+  await page.getByRole("button", { name: "對話列表" }).click();
+  await expect(conversationDrawer).toBeVisible();
+  await conversationDrawer.getByRole("button", { name: "關閉導覽" }).click();
+  await dockNav.getByRole("button", { name: "靈感", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
@@ -338,10 +344,7 @@ try {
   ).toContainText("測試來源暫時不可用");
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
+  await dockNav.getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
   await page.screenshot({ path: join(output, "project.png"), fullPage: true });
@@ -357,20 +360,14 @@ try {
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
+  await dockNav.getByRole("button", { name: "專案", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "對話", exact: true })
-    .click();
+  await dockNav.getByRole("button", { name: "對話", exact: true }).click();
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);

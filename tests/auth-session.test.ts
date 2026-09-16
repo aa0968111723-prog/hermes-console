@@ -21,6 +21,7 @@ delete process.env.RESEND_API_KEY;
 delete process.env.CONSOLE_EMAIL_FROM;
 
 const sessionRoute = await import("../app/api/auth/session/route");
+const sessionsRoute = await import("../app/api/auth/sessions/route");
 const emailRoute = await import("../app/api/auth/email/route");
 const googleRoute = await import("../app/api/auth/google/route");
 const tamkangRoute = await import("../app/api/auth/tamkang/route");
@@ -30,13 +31,14 @@ const security = await import("../lib/server/security");
 const identity = await import("../lib/server/auth/identity");
 const { hashPassword, verifyPassword } = await import("../lib/server/auth/passwords");
 
-function request(path: string, method = "GET", body?: unknown, cookie = "") {
+function request(path: string, method = "GET", body?: unknown, cookie = "", ua = "") {
   return new Request("http://localhost:3240/api/" + path, {
     method,
     headers: {
       "Content-Type": "application/json",
       Origin: "http://localhost:3240",
       ...(cookie ? { Cookie: cookie } : {}),
+      ...(ua ? { "User-Agent": ua } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -240,6 +242,99 @@ test("unified authentication is honest and session-backed", async (t) => {
     assert.match(encoded, /^argon2id:/);
     assert.equal(verifyPassword("correct-horse", encoded), true);
     assert.equal(verifyPassword("wrong", encoded), false);
+  });
+
+  await t.test("account sessions can be listed and revoked except the current one", async () => {
+    const created = await emailRoute.POST(
+      request(
+        "auth/email",
+        "POST",
+        {
+          action: "register",
+          email: "sessions@example.test",
+          password: "correct-horse",
+          name: "Sessions",
+        },
+        "",
+        "Mozilla/5.0 Safari/17",
+      ),
+    );
+    assert.equal(created.status, 201);
+    const firstCookie = created.headers.get("set-cookie") || "";
+    const second = await emailRoute.POST(
+      request(
+        "auth/email",
+        "POST",
+        {
+          action: "login",
+          email: "sessions@example.test",
+          password: "correct-horse",
+        },
+        "",
+        "Mozilla/5.0 Chrome/120.0.0.0",
+      ),
+    );
+    assert.equal(second.status, 200);
+    const secondCookie = second.headers.get("set-cookie") || "";
+    assert.equal(
+      (await sessionsRoute.GET(request("auth/sessions"))).status,
+      401,
+    );
+    const listed = await (
+      await sessionsRoute.GET(
+        request("auth/sessions", "GET", undefined, secondCookie),
+      )
+    ).json();
+    assert.equal(listed.sessions.length, 2);
+    const current = listed.sessions.find(
+      (item: { current: boolean }) => item.current,
+    );
+    const other = listed.sessions.find(
+      (item: { current: boolean }) => !item.current,
+    );
+    assert.equal(current.device, "Chrome");
+    assert.equal(other.device, "Safari");
+    assert.equal(
+      (
+        await sessionsRoute.DELETE(
+          request("auth/sessions", "DELETE", { id: current.id }, secondCookie),
+        )
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await sessionsRoute.DELETE(
+          new Request("http://localhost:3240/api/auth/sessions", {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Origin: "https://attacker.example",
+              Cookie: secondCookie,
+            },
+            body: JSON.stringify({ id: other.id }),
+          }),
+        )
+      ).status,
+      403,
+    );
+    const revoked = await sessionsRoute.DELETE(
+      request("auth/sessions", "DELETE", { id: other.id }, secondCookie),
+    );
+    assert.equal(revoked.status, 200);
+    const after = await (
+      await sessionsRoute.GET(
+        request("auth/sessions", "GET", undefined, secondCookie),
+      )
+    ).json();
+    assert.equal(after.sessions.length, 1);
+    assert.equal(after.sessions[0].current, true);
+    const stale = await (
+      await sessionRoute.GET(
+        request("auth/session", "GET", undefined, firstCookie),
+      )
+    ).json();
+    assert.equal(stale.user, null);
   });
 
   await t.test("workspace mutations still check origin", async () => {

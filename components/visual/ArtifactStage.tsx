@@ -20,13 +20,28 @@ export default function ArtifactStage({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
-  const current = artifact?.revisions.find(
-    (item) => item.revisionId === artifact.currentRevisionId,
+  const [compare, setCompare] = useState(false);
+  const revisions = artifact?.revisions || [];
+  const current = revisions.find(
+    (item) => item.revisionId === artifact?.currentRevisionId,
+  );
+  const previous =
+    revisions.find((item) => item.revisionId !== artifact?.currentRevisionId) ||
+    revisions[0];
+  const [leftId, setLeftId] = useState(previous?.revisionId || "");
+  const [rightId, setRightId] = useState(
+    artifact?.currentRevisionId || "",
   );
   useEffect(() => {
     if (open) dialog.current?.showModal();
     else dialog.current?.close();
   }, [open]);
+  useEffect(() => {
+    setLeftId(previous?.revisionId || "");
+    setRightId(artifact?.currentRevisionId || "");
+  }, [artifact?.currentRevisionId, previous?.revisionId]);
+  const left = revisions.find((item) => item.revisionId === leftId);
+  const right = revisions.find((item) => item.revisionId === rightId);
   return (
     <section className="artifact-stage" aria-label="設計成果預覽">
       <header>
@@ -54,6 +69,16 @@ export default function ArtifactStage({
                 ))}
               </select>
             </label>
+          )}
+          {revisions.length > 1 && (
+            <button
+              className="icon-button"
+              aria-pressed={compare}
+              aria-label="比較版本"
+              onClick={() => setCompare((value) => !value)}
+            >
+              比較
+            </button>
           )}
           {onFork && (
             <button
@@ -84,7 +109,49 @@ export default function ArtifactStage({
           )}
         </div>
       </header>
-      <CanvaResult design={design} onPreview={() => setOpen(true)} />
+      {compare && left && right ? (
+        <div className="artifact-compare" aria-label="版本並排預覽">
+          <p className="muted">並排預覽，不是像素差異。還原仍走版本選單。</p>
+          <div className="artifact-compare-panes">
+            <figure>
+              <label>
+                左側
+                <select
+                  aria-label="比較左側版本"
+                  value={leftId}
+                  onChange={(event) => setLeftId(event.target.value)}
+                >
+                  {revisions.map((item) => (
+                    <option key={item.revisionId} value={item.revisionId}>
+                      V{item.revision}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <CanvaResult design={left.design} />
+            </figure>
+            <figure>
+              <label>
+                右側
+                <select
+                  aria-label="比較右側版本"
+                  value={rightId}
+                  onChange={(event) => setRightId(event.target.value)}
+                >
+                  {revisions.map((item) => (
+                    <option key={item.revisionId} value={item.revisionId}>
+                      V{item.revision}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <CanvaResult design={right.design} />
+            </figure>
+          </div>
+        </div>
+      ) : (
+        <CanvaResult design={design} onPreview={() => setOpen(true)} />
+      )}
       <dialog
         ref={dialog}
         className="artifact-preview"

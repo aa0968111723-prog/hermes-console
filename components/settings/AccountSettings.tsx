@@ -1,11 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
+
+type AuthSessionRow = {
+  id: string;
+  current: boolean;
+  createdAt: string;
+  expiresAt: string;
+  device: string;
+};
 
 export default function AccountSettings() {
   const auth = useAuth();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [sessions, setSessions] = useState<AuthSessionRow[] | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const loadSessions = useCallback(async () => {
+    const response = await fetch("/api/auth/sessions", { cache: "no-store" });
+    if (!response.ok) {
+      setSessions([]);
+      return;
+    }
+    const body = await response.json();
+    setSessions(body.sessions || []);
+  }, []);
+  useEffect(() => {
+    if (auth?.user) void loadSessions();
+  }, [auth?.user, loadSessions]);
   if (!auth?.user)
     return (
       <div className="settings-stack">
@@ -32,6 +54,27 @@ export default function AccountSettings() {
       return;
     }
     window.location.href = result.url;
+  }
+  async function revoke(id: string) {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth/sessions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error?.message || "無法結束工作階段。");
+      setPending(null);
+      await loadSessions();
+    } catch (error) {
+      setNotice((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
   const tamkang = auth.providers.find((item) => item.id === "tamkang");
   return (
@@ -65,12 +108,43 @@ export default function AccountSettings() {
           {tamkang?.configured ? "連結淡江 SSO" : "淡江 SSO 尚未完成設定"}
         </button>
       )}
-      <p className="muted">
-        目前工作階段約 12 小時有效。登出只結束這個瀏覽器，不會列出其他裝置。
-      </p>
       {auth.membership && (
         <p className="muted">工作區角色：{auth.membership.role}</p>
       )}
+      <h3>工作階段</h3>
+      <ul className="session-list">
+        {(sessions || []).map((item) => (
+          <li key={item.id}>
+            <span>
+              <strong>{item.device}</strong>
+              <small>
+                {item.current ? "目前這個瀏覽器 · " : ""}
+                {new Date(item.createdAt).toLocaleString("zh-TW")}
+              </small>
+            </span>
+            {item.current ? (
+              <span className="muted">使用中</span>
+            ) : pending === item.id ? (
+              <span className="session-confirm">
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => void revoke(item.id)}
+                >
+                  確定結束
+                </button>
+                <button disabled={busy} onClick={() => setPending(null)}>
+                  取消
+                </button>
+              </span>
+            ) : (
+              <button disabled={busy} onClick={() => setPending(item.id)}>
+                結束
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
       {notice && <p role="status">{notice}</p>}
       <button className="primary" onClick={() => void logout()}>
         登出

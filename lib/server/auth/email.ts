@@ -58,11 +58,14 @@ function consumeToken(token: string, purpose: AuthToken["purpose"]) {
   return record;
 }
 
-export async function registerEmail(input: {
-  email: string;
-  password: string;
-  name?: string;
-}) {
+export async function registerEmail(
+  input: {
+    email: string;
+    password: string;
+    name?: string;
+  },
+  request?: Request,
+) {
   limited("auth:email:register", 8, 15 * 60_000);
   const email = emailInput.parse(input.email);
   limited("auth:email:register:" + email, 5, 15 * 60_000);
@@ -88,7 +91,10 @@ export async function registerEmail(input: {
     avatarUrl: null,
   });
   if (user.emailVerified)
-    return { message: "本機開發帳號已建立，可直接登入。", token: issueSession(user.id) };
+    return {
+      message: "本機開發帳號已建立，可直接登入。",
+      token: issueSession(user.id, request),
+    };
   if (!emailConfigured())
     throw new ApiError(503, "auth_unconfigured", "電子信箱驗證尚未完成寄信設定");
   const token = putToken("verify", { userId: user.id, email });
@@ -104,7 +110,11 @@ export async function registerEmail(input: {
   return { message: "若此信箱可使用，我們會寄出驗證信。" };
 }
 
-export function loginEmail(emailRaw: string, password: string) {
+export function loginEmail(
+  emailRaw: string,
+  password: string,
+  request?: Request,
+) {
   limited("auth:email:login", 20, 15 * 60_000);
   const email = emailInput.parse(emailRaw);
   limited("auth:email:login:" + email, 8, 15 * 60_000);
@@ -118,7 +128,7 @@ export function loginEmail(emailRaw: string, password: string) {
     throw new ApiError(401, "invalid_login", "帳號或密碼不正確。");
   if (!user.emailVerified && !localPasswordOnly())
     throw new ApiError(401, "email_unverified", "請先完成電子信箱驗證。");
-  return { token: issueSession(user.id) };
+  return { token: issueSession(user.id, request) };
 }
 
 export async function requestMagicLink(emailRaw: string) {
@@ -142,7 +152,7 @@ export async function requestMagicLink(emailRaw: string) {
   return { message };
 }
 
-export function redeemMagic(token: string) {
+export function redeemMagic(token: string, request?: Request) {
   const record = consumeToken(token, "magic");
   if (!record.userId) throw new ApiError(401, "invalid_login", "連結無效或已使用。");
   const user = getUser(record.userId);
@@ -151,16 +161,16 @@ export function redeemMagic(token: string) {
   if (!user.emailVerified) {
     saveUser({ ...user, emailVerified: true });
   }
-  return { token: issueSession(user.id) };
+  return { token: issueSession(user.id, request) };
 }
 
-export function verifyEmail(token: string) {
+export function verifyEmail(token: string, request?: Request) {
   const record = consumeToken(token, "verify");
   if (!record.userId) throw new ApiError(401, "invalid_login", "連結無效或已使用。");
   const user = getUser(record.userId);
   if (!user) throw new ApiError(401, "invalid_login", "連結無效或已使用。");
   saveUser({ ...user, emailVerified: true });
-  return { token: issueSession(user.id) };
+  return { token: issueSession(user.id, request) };
 }
 
 export async function requestReset(emailRaw: string) {
@@ -184,7 +194,11 @@ export async function requestReset(emailRaw: string) {
   return { message };
 }
 
-export function resetPassword(token: string, password: string) {
+export function resetPassword(
+  token: string,
+  password: string,
+  request?: Request,
+) {
   const policy = passwordPolicy(password);
   if (policy) throw new ApiError(400, "invalid_input", policy);
   const record = consumeToken(token, "reset");
@@ -192,5 +206,5 @@ export function resetPassword(token: string, password: string) {
   const user = getUser(record.userId);
   if (!user) throw new ApiError(401, "invalid_login", "連結無效或已使用。");
   saveUser({ ...user, passwordHash: hashPassword(password), emailVerified: true });
-  return { token: issueSession(user.id) };
+  return { token: issueSession(user.id, request) };
 }

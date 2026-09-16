@@ -2,7 +2,11 @@ import { createHash, randomBytes } from "node:crypto";
 import {
   createSession,
   deleteSession,
+  get,
+  list,
   lookupSession,
+  put,
+  remove,
 } from "../store";
 import { ApiError } from "../errors";
 import { getUser, membershipOf, publicUser } from "./identity";
@@ -47,9 +51,33 @@ export function cookieToken(request: Request, name = AUTH_COOKIE) {
   return "";
 }
 
-export function issueSession(userId: string) {
+export function describeUserAgent(raw: string) {
+  const value = raw.replace(/[\u0000-\u001f]/g, "").slice(0, 180);
+  if (/Edg\//.test(value)) return "Edge";
+  if (/Chrome\//.test(value)) return "Chrome";
+  if (/Firefox\//.test(value)) return "Firefox";
+  if (/Safari\//.test(value) && !/Chrome/.test(value)) return "Safari";
+  return "瀏覽器";
+}
+
+type SessionRecord = {
+  id: string;
+  createdAt: string;
+  expires: number;
+  device: string;
+};
+
+export function issueSession(userId: string, request?: Request) {
   const token = randomBytes(32).toString("hex");
-  createSession(hash(token), userId, Date.now() + SESSION_MS);
+  const digest = hash(token);
+  const expires = Date.now() + SESSION_MS;
+  createSession(digest, userId, expires);
+  put("auth_session", userId, {
+    id: digest,
+    createdAt: new Date().toISOString(),
+    expires,
+    device: describeUserAgent(request?.headers.get("user-agent") || ""),
+  });
   return token;
 }
 
@@ -83,7 +111,46 @@ export function requireMembership(userId: string) {
 
 export function clearRequestSession(request: Request) {
   const token = cookieToken(request);
-  if (/^[a-f0-9]{64}$/.test(token)) deleteSession(hash(token));
+  if (!/^[a-f0-9]{64}$/.test(token)) return;
+  const digest = hash(token);
+  const session = lookupSession(digest);
+  deleteSession(digest);
+  if (session) remove("auth_session", session.owner, digest);
+}
+
+export function currentSessionDigest(request: Request) {
+  const token = cookieToken(request);
+  if (!/^[a-f0-9]{64}$/.test(token)) return "";
+  return hash(token);
+}
+
+export function listAuthSessions(userId: string, currentDigest: string) {
+  const now = Date.now();
+  return list<SessionRecord>("auth_session", userId)
+    .filter((item) => item.expires > now && lookupSession(item.id))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((item) => ({
+      id: item.id,
+      current: item.id === currentDigest,
+      createdAt: item.createdAt,
+      expiresAt: new Date(item.expires).toISOString(),
+      device: item.device || "瀏覽器",
+    }));
+}
+
+export function revokeAuthSession(
+  userId: string,
+  digest: string,
+  currentDigest: string,
+) {
+  if (!/^[a-f0-9]{64}$/.test(digest))
+    throw new ApiError(400, "invalid_input", "工作階段識別無效。");
+  if (digest === currentDigest)
+    throw new ApiError(400, "current_session", "目前這個瀏覽器請用登出。");
+  const record = get<SessionRecord>("auth_session", userId, digest);
+  if (!record) throw new ApiError(404, "session_not_found", "找不到這個工作階段。");
+  deleteSession(digest);
+  remove("auth_session", userId, digest);
 }
 
 export function sessionSnapshot(request: Request): PublicSession {

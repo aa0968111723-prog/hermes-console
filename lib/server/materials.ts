@@ -26,6 +26,36 @@ export function filePath(owner: string, id: string) {
   return join(dataDir(), "uploads", owner, id);
 }
 
+export function thumbnailPath(owner: string, id: string) {
+  return filePath(owner, id) + ".thumb.webp";
+}
+
+export async function thumbnailBytes(owner: string, id: string) {
+  const asset = material(owner, id);
+  if (asset.kind !== "image")
+    throw new ApiError(400, "invalid_input", "只有圖片可以產生縮圖。");
+  const cached = thumbnailPath(owner, id);
+  try {
+    return await readFile(cached);
+  } catch {
+    const thumb = await sharp(await readFile(filePath(owner, id)), {
+      limitInputPixels: 25_000_000,
+      animated: false,
+    })
+      .rotate()
+      .resize({
+        width: 320,
+        height: 320,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 72 })
+      .toBuffer();
+    await writeFile(cached, thumb, { mode: 0o600 });
+    return thumb;
+  }
+}
+
 export function includeDuplicatesQuery(url: URL) {
   const value = url.searchParams.get("includeDuplicates");
   return value === "1" || value === "true";

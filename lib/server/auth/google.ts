@@ -113,7 +113,7 @@ export async function finishGoogle(request: Request) {
     return { token: null as string | null, userId: record.userId };
   }
   const user = resolveLoginIdentity(profile);
-  return { token: issueSession(user.id), userId: user.id };
+  return { token: issueSession(user.id, request), userId: user.id };
 }
 
 export function startGoogleFromRequest(request: Request, purpose: "login" | "link") {

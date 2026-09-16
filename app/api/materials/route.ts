@@ -15,6 +15,7 @@ import {
   material,
   saveReference,
   saveUpload,
+  thumbnailBytes,
 } from "@/lib/server/materials";
 export const runtime = "nodejs";
 const projectSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
@@ -35,6 +36,16 @@ export const GET = route(async (req) => {
   const id = z.string().uuid().parse(rawId);
   const asset = material(owner, id);
   if (asset.kind === "reference") return respond({ material: asset });
+  const thumb = url.searchParams.get("variant") === "thumb";
+  if (thumb) {
+    return new Response(new Uint8Array(await thumbnailBytes(owner, id)), {
+      headers: {
+        "Content-Type": "image/webp",
+        "Cache-Control": "private, max-age=3600",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+  }
   return new Response(new Uint8Array(await readFile(filePath(owner, id))), {
     headers: {
       "Content-Type": asset.mime || "application/octet-stream",

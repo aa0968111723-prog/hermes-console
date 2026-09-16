@@ -1,4 +1,4 @@
-export { isAuthEnforced, sessionSnapshot, requireUser, requireMembership, readSessionUser, authCookie, clearRequestSession, issueSession } from "./session";
+export { isAuthEnforced, sessionSnapshot, requireUser, requireMembership, readSessionUser, authCookie, clearRequestSession, issueSession, listAuthSessions, revokeAuthSession, currentSessionDigest } from "./session";
 export { providerStatus } from "./providers";
 export { startGoogleFromRequest, finishGoogle } from "./google";
 export { startTamkangFromRequest, finishTamkang } from "./tamkang";

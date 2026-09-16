@@ -173,3 +173,21 @@ test("runtime inspector hides schemas until developer view", async () => {
   assert.match(ui, /Hermes/);
   assert.match(ui, /MCP \{snapshot/);
 });
+
+test("artifact stage compare is side-by-side preview, not a pixel diff", async () => {
+  const ui = await readFile(
+    new URL("../components/visual/ArtifactStage.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(ui, /比較/);
+  assert.match(ui, /並排預覽，不是像素差異/);
+});
+
+test("idle task poll is slower than active poll", async () => {
+  const ui = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(ui, /POLL_ACTIVE_MS = 3000/);
+  assert.match(ui, /POLL_IDLE_MS = 8000/);
+});

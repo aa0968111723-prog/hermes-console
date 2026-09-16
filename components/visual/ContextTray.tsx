@@ -1,6 +1,7 @@
 "use client";
 import { Check, FileText, Link, RefreshCw, X } from "lucide-react";
 import type { Material } from "@/lib/contracts";
+import { materialImageSrc } from "@/lib/client/materials";
 import type { Upload } from "../useComposerDraft";
 export default function ContextTray({
   uploads,
@@ -35,8 +36,9 @@ export default function ContextTray({
           >
             {upload.material?.kind === "image" ? (
               <img
-                src={"/api/materials?id=" + upload.material.id}
+                src={materialImageSrc(upload.material.id, "thumb")}
                 alt={upload.file.name}
+                loading="lazy"
               />
             ) : (
               <FileText size={24} />
@@ -95,7 +97,11 @@ export default function ContextTray({
               onClick={() => material && onPreview(material)}
             >
               {material?.kind === "image" ? (
-                <img src={"/api/materials?id=" + id} alt={material.title} />
+                <img
+                  src={materialImageSrc(id, "thumb")}
+                  alt={material.title}
+                  loading="lazy"
+                />
               ) : (
                 <Link size={24} />
               )}

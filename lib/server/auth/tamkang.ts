@@ -147,7 +147,7 @@ export async function finishTamkang(request: Request) {
     return { token: null as string | null, userId: record.userId };
   }
   const user = resolveLoginIdentity(identity);
-  return { token: issueSession(user.id), userId: user.id };
+  return { token: issueSession(user.id, request), userId: user.id };
 }
 
 export async function startTamkangFromRequest(request: Request, purpose: "login" | "link") {

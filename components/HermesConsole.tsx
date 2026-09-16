@@ -33,6 +33,7 @@ import {
   clearComposerKeyboardStyle,
   isComposerKeyboardOpen,
 } from "@/lib/client/composer-keyboard";
+import { materialImageSrc } from "@/lib/client/materials";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
 import MessageBody from "./MessageBody";
@@ -144,6 +145,8 @@ const connectionLabels: Record<string, string> = {
 };
 const isActive = (task: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
+const POLL_ACTIVE_MS = 3000;
+const POLL_IDLE_MS = 8000;
 const time = (value: string) =>
   new Date(value).toLocaleString("zh-TW", {
     month: "numeric",
@@ -262,6 +265,7 @@ export default function HermesConsole() {
   const blocked = currentTasks.some(
     (t) => isActive(t) || t.state === "uncertain",
   );
+  const hasActiveTask = tasks.some(isActive);
 
   const loadWorkspace = useCallback(async () => {
     const result = await api<Workspace>("workspace");
@@ -351,7 +355,7 @@ export default function HermesConsole() {
       }
     };
     void poll();
-    const timer = setInterval(poll, 3000);
+    const timer = setInterval(poll, hasActiveTask ? POLL_ACTIVE_MS : POLL_IDLE_MS);
     const disconnected = () => setOffline(true);
     window.addEventListener("online", poll);
     window.addEventListener("offline", disconnected);
@@ -363,7 +367,7 @@ export default function HermesConsole() {
       window.removeEventListener("offline", disconnected);
       document.removeEventListener("visibilitychange", poll);
     };
-  }, [auth, refresh]);
+  }, [auth, refresh, hasActiveTask]);
   useEffect(() => {
     const textarea = input.current;
     if (!textarea) return;
@@ -954,7 +958,7 @@ export default function HermesConsole() {
       <dialog
         ref={mobileNav}
         className="mobile-nav"
-        aria-label="工作區導覽"
+        aria-label="對話列表"
         onCancel={() => setDrawer(false)}
         onClick={(e) => {
           if (e.target === e.currentTarget) setDrawer(false);
@@ -983,7 +987,8 @@ export default function HermesConsole() {
           </button>
           <button
             className="icon-button mobile-toggle"
-            aria-label="開啟導覽"
+            aria-label="對話列表"
+            title="對話列表"
             onClick={() => setDrawer(true)}
           >
             <Menu size={21} />
@@ -1177,8 +1182,9 @@ export default function HermesConsole() {
                                   >
                                     {asset.kind === "image" && (
                                       <img
-                                        src={"/api/materials?id=" + asset.id}
+                                        src={materialImageSrc(asset.id, "thumb")}
                                         alt={asset.title}
+                                        loading="lazy"
                                       />
                                     )}
                                     <span>{asset.title}</span>
@@ -1586,7 +1592,11 @@ export default function HermesConsole() {
                       }}
                     >
                       {m.kind === "image" ? (
-                        <img src={"/api/materials?id=" + m.id} alt={m.title} />
+                        <img
+                          src={materialImageSrc(m.id, "thumb")}
+                          alt={m.title}
+                          loading="lazy"
+                        />
                       ) : (
                         <LinkIcon size={28} />
                       )}
@@ -2300,7 +2310,7 @@ export default function HermesConsole() {
               {preview.kind === "image" && (
                 <img
                   className="full-preview"
-                  src={"/api/materials?id=" + preview.id}
+                  src={materialImageSrc(preview.id, "full")}
                   alt={preview.title}
                 />
               )}

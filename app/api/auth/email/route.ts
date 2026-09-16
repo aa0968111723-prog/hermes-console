@@ -57,7 +57,7 @@ export const POST = route(async (req) => {
     ])
     .parse(await jsonBody(req, 4000));
   if (input.action === "register") {
-    const result = await registerEmail(input);
+    const result = await registerEmail(input, req);
     return respond(
       { message: result.message, signedIn: !!result.token },
       result.token ? 201 : 202,
@@ -65,7 +65,7 @@ export const POST = route(async (req) => {
     );
   }
   if (input.action === "login") {
-    const result = loginEmail(input.email, input.password);
+    const result = loginEmail(input.email, input.password, req);
     return respond({ signedIn: true }, 200, {
       "Set-Cookie": authCookie(result.token),
     });
@@ -76,10 +76,10 @@ export const POST = route(async (req) => {
     return respond(await requestReset(input.email), 202);
   const result =
     input.action === "redeem"
-      ? redeemMagic(input.token)
+      ? redeemMagic(input.token, req)
       : input.action === "verify"
-        ? verifyEmail(input.token)
-        : resetPassword(input.token, input.password);
+        ? verifyEmail(input.token, req)
+        : resetPassword(input.token, input.password, req);
   return respond({ signedIn: true }, 200, {
     "Set-Cookie": authCookie(result.token),
   });
