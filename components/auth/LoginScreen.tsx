@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "./AuthProvider";
+import {
+  attachKeyboardShell,
+  isLoginKeyboardTarget,
+} from "@/lib/client/viewport";
 
 export function LoginMascot({ alt }: { alt: string }) {
   return (
@@ -38,6 +42,21 @@ export default function LoginScreen() {
       setResetToken(token);
       setMode("reset");
     }
+  }, []);
+
+  useEffect(() => {
+    return attachKeyboardShell({
+      isFocused: isLoginKeyboardTarget,
+      onOpen: () => {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement) {
+          active.scrollIntoView({ block: "center", inline: "nearest" });
+        }
+        document
+          .querySelector<HTMLElement>(".login-card button.primary")
+          ?.scrollIntoView({ block: "nearest" });
+      },
+    });
   }, []);
 
   async function submit() {

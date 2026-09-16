@@ -2071,13 +2071,32 @@ summary .badge {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  min-height: 100dvh;
+  min-height: var(--app-height);
   overflow-y: auto;
   padding: max(24px, env(safe-area-inset-top, 0px)) 20px
     max(24px, env(safe-area-inset-bottom, 0px));
   background:
     radial-gradient(ellipse 70% 42% at 50% 22%, #f3faee 0%, var(--color-canvas) 68%);
   perspective: 900px;
+}
+html[data-composer-keyboard="open"] .login-screen {
+  height: var(--app-height);
+  max-height: var(--app-height);
+  justify-content: flex-start;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+html[data-composer-keyboard="open"] .login-stage,
+html[data-composer-keyboard="open"] .login-providers,
+html[data-composer-keyboard="open"] .login-alt {
+  display: none;
+}
+html[data-composer-keyboard="open"] .login-card h1 {
+  font-size: 22px;
+  margin: 0;
+}
+html[data-composer-keyboard="open"] .login-card form {
+  margin-top: 8px;
 }
 .login-screen > .primary {
   min-width: min(220px, 72vw);

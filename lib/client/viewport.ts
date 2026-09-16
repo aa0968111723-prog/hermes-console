@@ -143,3 +143,67 @@ export function applyShellMetrics(
   root.style.removeProperty("--app-height");
   root.style.setProperty("--app-offset-top", "0px");
 }
+
+export function isLoginKeyboardTarget(active: Element | null) {
+  return (
+    !!active &&
+    (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) &&
+    !!active.closest(".login-screen")
+  );
+}
+
+export function attachKeyboardShell(options: {
+  isFocused: (active: Element | null) => boolean;
+  onOpen?: () => void;
+}): () => void {
+  const viewport = window.visualViewport;
+  let baselineHeight = viewport?.height || window.innerHeight;
+  let previousWidth = viewport?.width || window.innerWidth;
+  let frame = 0;
+  const update = () => {
+    const current = readViewportFrame(viewport, window);
+    const inputFocused = options.isFocused(document.activeElement);
+    const rotated = widthChanged(previousWidth, current.width);
+    if (!inputFocused || rotated || current.height > baselineHeight) {
+      baselineHeight = current.innerHeight;
+    }
+    previousWidth = current.width;
+    const metrics = shellMetrics(
+      current,
+      detectComposerKeyboard({
+        composerFocused: inputFocused,
+        widthChanged: rotated,
+        frame: current,
+        baselineHeight,
+      }),
+    );
+    const justOpened =
+      metrics.keyboardOpen &&
+      document.documentElement.dataset.composerKeyboard !== "open";
+    applyShellMetrics(document.documentElement, metrics);
+    if (justOpened) options.onOpen?.();
+  };
+  const schedule = () => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(update);
+  };
+  update();
+  viewport?.addEventListener("resize", schedule);
+  viewport?.addEventListener("scroll", schedule);
+  window.addEventListener("resize", schedule);
+  document.addEventListener("focusin", schedule);
+  document.addEventListener("focusout", schedule);
+  return () => {
+    cancelAnimationFrame(frame);
+    viewport?.removeEventListener("resize", schedule);
+    viewport?.removeEventListener("scroll", schedule);
+    window.removeEventListener("resize", schedule);
+    document.removeEventListener("focusin", schedule);
+    document.removeEventListener("focusout", schedule);
+    applyShellMetrics(document.documentElement, {
+      height: null,
+      offsetTop: 0,
+      keyboardOpen: false,
+    });
+  };
+}

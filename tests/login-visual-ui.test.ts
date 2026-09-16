@@ -33,7 +33,17 @@ test("login is turtle-first with honest unconfigured providers", async () => {
   assert.match(gate, /再試一次/);
   assert.match(gate, /auth\.unreachable && !auth\.user/);
   assert.doesNotMatch(gate, /import HermesConsole from/);
+  assert.match(screen, /attachKeyboardShell/);
+  assert.match(screen, /isLoginKeyboardTarget/);
   assert.match(css, /\.login-stage/);
   assert.match(css, /\.login-turtle[\s\S]*breathe/);
   assert.match(css, /\.login-screen \{[\s\S]*flex-direction: column/);
+  assert.match(
+    css,
+    /data-composer-keyboard="open"\] \.login-stage/,
+  );
+  assert.match(
+    css,
+    /data-composer-keyboard="open"\] \.login-screen/,
+  );
 });

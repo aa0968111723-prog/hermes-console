@@ -5,6 +5,7 @@ import {
   applyStickyReveal,
   composerHeightLimit,
   detectComposerKeyboard,
+  isLoginKeyboardTarget,
   readViewportFrame,
   shellMetrics,
   stickyRevealDelta,
@@ -70,6 +71,10 @@ test("keyboard closed restores CSS 100dvh instead of a stuck short height", () =
   assert.equal(properties["--app-height"], undefined);
   assert.equal(properties["--app-offset-top"], "0px");
   assert.equal(dataset.composerKeyboard, undefined);
+});
+
+test("login keyboard target only matches fields inside the login screen", () => {
+  assert.equal(isLoginKeyboardTarget(null), false);
 });
 
 test("sticky reveal leaves content already below the header in place", () => {

@@ -145,6 +145,49 @@ try {
     path: join(output, "login-mobile.png"),
     fullPage: true,
   });
+  await page.getByLabel("電子信箱").click();
+  await page.evaluate(() => {
+    if (!window.visualViewport) throw new Error("visualViewport unavailable");
+    Object.defineProperty(window.visualViewport, "height", {
+      configurable: true,
+      value: 420,
+    });
+    Object.defineProperty(window.visualViewport, "offsetTop", {
+      configurable: true,
+      value: 80,
+    });
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
+  await expect(page.locator(".login-turtle")).toBeHidden();
+  await expect(page.getByRole("button", { name: "淡江 SSO", exact: true })).toBeHidden();
+  await expect(page.getByRole("button", { name: "進入工作區" })).toBeVisible();
+  const loginSend = await page
+    .getByRole("button", { name: "進入工作區" })
+    .boundingBox();
+  assert.ok(
+    loginSend && loginSend.y + loginSend.height <= 420,
+    "login submit must stay above the software keyboard",
+  );
+  await page.screenshot({
+    path: join(output, "login-keyboard-390x420.png"),
+    clip: { x: 0, y: 0, width: 390, height: 420 },
+  });
+  await page.evaluate(() => {
+    if (!window.visualViewport) return;
+    Reflect.deleteProperty(window.visualViewport, "height");
+    Reflect.deleteProperty(window.visualViewport, "offsetTop");
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
+  await expect(page.locator(".login-turtle")).toBeVisible();
+  await expect(page.getByRole("button", { name: "進入工作區" })).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForLoadState("networkidle");
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveCount(0);
