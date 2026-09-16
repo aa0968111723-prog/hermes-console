@@ -25,16 +25,20 @@
 | 首頁 | 可用（契約） | 龜龜 + 今天想做什麼？ + 六個短標籤。手機與桌面同一組。無 MCP 軌道、無英文 welcome overlay。 |
 | Drive 知識 | 可用（契約） | 靈感頁預設折疊「社團知識」；不顯示 `live=`。 |
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
+| 學生接續同一作品 | 可用（契約） | Composer 只放人話（請接續修改這個作品／已選定方向 n）。copyId／workflowId／activityId 只走 `task.focus`。專案「接續創作／寫 A／B／C／三個方向」不再露出 `workspace_*` 或活動 UUID。 |
+| 對話內長標題 | 可用（契約） | `.canva-result h3` `overflow-wrap` + `word-break`。手機 390 斷言 heading 不橫向溢出。Jump-to-latest 仍可能蓋住最底一行。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 
 ## 本輪驗證（2026-09-16）
 
-- `npm test`：391 tests, 389 pass, 2 skipped, 0 fail。
+- `npm test`：393 tests, 391 pass, 2 skipped, 0 fail。
 - `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 239 kB（shared 103 kB）。
-- Playwright Chromium：`test:ui` 本輪重跑通過。首頁 360／390 為龜龜 + 六個短標籤 + composer + dock。附件 chip 為縮圖 + 已保存，不是檔名。axe 0。LCP 92ms、CLS 0.00008。
+- Playwright：`test:ui`、`test:entry`、`test:chat`、`test:workbench`、`test:gateway`、`test:runtime` 通過。`check:secrets` 647 files PASS。
+- `test:ui` 接續作品：composer 為「請接續修改這個作品。」，不含 `ui-fixture-artifact-B`。截圖 `continue-artifact-composer.png`。
+- `test:runtime` 選定方向：composer 為「已選定方向 2。請依此製作。」，不含 workflow id。
+- 首頁 360／390 為龜龜 + 六個短標籤 + composer + dock。axe 0。LCP 96ms、CLS 0.00008。
 - Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
 - axe wcag2a/aa + 2.1：0 violations（`output/playwright/browser-report.json`）。
-- 本機 Chromium LCP 136ms、CLS 0.00008。不是 field 裝置實驗室。
 - 登入 bootstrap：Node 註冊後用頁內 `fetch` 登入。`APIRequestContext` / CDP cookie 在 `127.0.0.1` 不會進 document jar。
 
 ## 仍是 Partial（禁止標綠）
