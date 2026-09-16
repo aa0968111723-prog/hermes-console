@@ -310,9 +310,10 @@ try {
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
   await expect(page.getByText(/Hermes 尚未連線/)).toBeVisible();
-  await page.screenshot({
+  const chatBrief = page.getByRole("region", { name: "已選方向規格" });
+  await chatBrief.locator(".direction-format-frame").first().scrollIntoViewIfNeeded();
+  await chatBrief.screenshot({
     path: join(output, "chat-direction-brief-mobile.png"),
-    fullPage: true,
   });
   await page.getByRole("button", { name: "對話列表" }).click();
   const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });
@@ -450,9 +451,10 @@ try {
   ).toContainText("茶會來坐一下");
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
-  await page.screenshot({
+  const boardBrief = page.getByRole("region", { name: "已選方向規格" });
+  await boardBrief.locator(".direction-format-frame").first().scrollIntoViewIfNeeded();
+  await boardBrief.screenshot({
     path: join(output, "direction-brief-mobile.png"),
-    fullPage: true,
   });
   await dockNav.getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();

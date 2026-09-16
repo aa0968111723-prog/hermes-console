@@ -35,7 +35,6 @@ export default function DirectionBrief({
               <div
                 className="direction-format-frame"
                 data-aspect={format.aspect}
-                style={{ aspectRatio: format.aspect.replace(":", " / ") }}
               >
                 <span>
                   {format.aspect} · {COPY_LABEL[id]}
