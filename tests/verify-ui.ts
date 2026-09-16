@@ -304,6 +304,12 @@ try {
     path: join(output, "chat-direction-brief-mobile.png"),
     fullPage: true,
   });
+  await page.getByRole("button", { name: "對話列表" }).click();
+  const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });
+  await expect(conversationDrawer).toBeVisible();
+  await conversationDrawer.getByRole("button", { name: "開啟新對話" }).click();
+  await conversationDrawer.getByRole("button", { name: "關閉導覽" }).click();
+  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   const poster = await readFile("public/mascot/turtle.png");
   await page.locator('#composer input[type="file"]').setInputFiles({
     name: "茶會海報.png",
@@ -315,27 +321,24 @@ try {
   });
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("這張哪裡可以改？");
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();
-  await expect(page.getByRole("region", { name: "畫面審查" })).toBeVisible({
-    timeout: 15_000,
-  });
-  await expect(page.getByRole("region", { name: "畫面審查" })).toContainText(
-    "沒有讀取像素",
-  );
+  const imageReview = page.getByRole("region", { name: "畫面審查" });
+  await expect(imageReview).toBeVisible({ timeout: 15_000 });
+  await expect(imageReview).toContainText("沒有讀取像素");
+  await expect(imageReview).toContainText("未讀像素");
   await expect(
     page.getByRole("region", { name: "新生第一眼模擬" }),
   ).toBeVisible();
   await expect(page.getByText(/個工具完成/)).toHaveCount(0);
   await expect(page.getByText(/已讀取像素/)).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "畫面審查" })).toContainText(
-    "未讀像素",
-  );
-  await page.screenshot({
-    path: join(output, "chat-image-review-mobile.png"),
-    fullPage: true,
-  });
+  await imageReview.scrollIntoViewIfNeeded();
+  await page
+    .locator(".conversation-scroll .message.assistant")
+    .last()
+    .screenshot({
+      path: join(output, "chat-image-review-mobile.png"),
+    });
   await expect(page.getByRole("button", { name: "對話列表" })).toBeVisible();
   await page.getByRole("button", { name: "對話列表" }).click();
-  const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });
   await expect(conversationDrawer).toBeVisible();
   await expect(
     conversationDrawer.getByRole("navigation", { name: "主要導覽" }),
