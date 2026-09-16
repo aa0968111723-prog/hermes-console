@@ -339,6 +339,7 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   const entry = await readFile(new URL("./verify-entry.ts", import.meta.url), "utf8");
   assert.match(entry, /今天社博在哪/);
   assert.match(entry, /社團資料/);
+  assert.match(entry, /不是即時/);
   assert.match(entry, /clubFacts\)\.toBeInViewport/);
 });
 
