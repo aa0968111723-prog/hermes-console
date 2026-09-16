@@ -4,10 +4,12 @@ import { emailInput } from "@/lib/server/invitations";
 import {
   authCookie,
   loginEmail,
+  linkEmail,
   redeemMagic,
   registerEmail,
   requestMagicLink,
   requestReset,
+  requireUser,
   resetPassword,
   verifyEmail,
 } from "@/lib/server/auth";
@@ -54,6 +56,13 @@ export const POST = route(async (req) => {
           password: z.string().min(10).max(200),
         })
         .strict(),
+      z
+        .object({
+          action: z.literal("link"),
+          email: emailInput,
+          password: z.string().min(10).max(200),
+        })
+        .strict(),
     ])
     .parse(await jsonBody(req, 4000));
   if (input.action === "register") {
@@ -74,6 +83,8 @@ export const POST = route(async (req) => {
     return respond(await requestMagicLink(input.email), 202);
   if (input.action === "forgot")
     return respond(await requestReset(input.email), 202);
+  if (input.action === "link")
+    return respond(await linkEmail(requireUser(req).id, input));
   const result =
     input.action === "redeem"
       ? redeemMagic(input.token, req)

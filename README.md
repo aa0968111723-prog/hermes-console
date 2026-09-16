@@ -14,7 +14,7 @@
 
 ## 登入
 
-正式環境設定 `GOOGLE_CLIENT_ID`／`GOOGLE_CLIENT_SECRET`（Authorization Code + PKCE）或 Email 寄信（`RESEND_API_KEY`、`CONSOLE_EMAIL_FROM`）。淡江 SSO 需要校方 issuer／client／protocol；沒有正式 metadata 時畫面顯示「淡江 SSO 尚未完成設定」，不會假裝成功。密碼只存 Argon2id（舊 scrypt 雜湊仍可驗證）。秘密只留後端。
+正式環境設定 `GOOGLE_CLIENT_ID`／`GOOGLE_CLIENT_SECRET`（Authorization Code + PKCE）或 Email 寄信（`RESEND_API_KEY`、`CONSOLE_EMAIL_FROM`）。淡江 SSO 需要校方 issuer／client／protocol；沒有正式 metadata 時畫面顯示「淡江 SSO 尚未完成設定」，不會假裝成功。已登入後可在設定頁連結 Google／淡江／Email；相同信箱不會自動合併。密碼只存 Argon2id（舊 scrypt 雜湊仍可驗證）。秘密只留後端。
 
 ## 重要安全操作
 

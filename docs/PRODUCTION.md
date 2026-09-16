@@ -41,7 +41,7 @@
 
 - Google：Authorization Code + PKCE。Secret 只在伺服器。
 - 淡江 SSO：需要 `TAMKANG_SSO_ISSUER`、`TAMKANG_SSO_CLIENT_ID`、`TAMKANG_SSO_CLIENT_SECRET`、`TAMKANG_SSO_PROTOCOL=oidc|oauth`。沒有校方 metadata 時畫面為「淡江 SSO 尚未完成設定」。SAML／CAS 僅預留，未實作。Console **不**收集學校密碼。設定頁 Tamkang MCP 只接受網址與 Bearer 權杖；帳號登入走 SSO 跳轉。
-- Email：註冊、登入、驗證、magic link、忘記／重設密碼。密碼為 Argon2id。
+- Email：註冊、登入、驗證、magic link、忘記／重設密碼。已登入可連結電子信箱。密碼為 Argon2id。相同信箱不會自動合併帳號。
 
 ## Domain / HTTPS
 

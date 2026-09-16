@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../auth/AuthProvider";
 
 type AuthSessionRow = {
@@ -16,6 +16,8 @@ export default function AccountSettings() {
   const [notice, setNotice] = useState("");
   const [sessions, setSessions] = useState<AuthSessionRow[] | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkPassword, setLinkPassword] = useState("");
   const loadSessions = useCallback(async () => {
     const response = await fetch("/api/auth/sessions", { cache: "no-store" });
     if (!response.ok) {
@@ -55,6 +57,30 @@ export default function AccountSettings() {
     }
     window.location.href = result.url;
   }
+  async function attachEmail(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "link",
+          email: linkEmail,
+          password: linkPassword,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error?.message || "無法連結電子信箱。");
+      window.location.reload();
+    } catch (error) {
+      setNotice((error as Error).message);
+      setBusy(false);
+    }
+  }
   async function revoke(id: string) {
     if (busy) return;
     setBusy(true);
@@ -76,6 +102,7 @@ export default function AccountSettings() {
       setBusy(false);
     }
   }
+  const google = auth.providers.find((item) => item.id === "google");
   const tamkang = auth.providers.find((item) => item.id === "tamkang");
   return (
     <div className="settings-stack account-settings">
@@ -98,7 +125,12 @@ export default function AccountSettings() {
         <li>電子信箱 {linked.has("email") ? "✓" : "○"}</li>
       </ul>
       {!linked.has("google") && (
-        <button onClick={() => void link("google")}>連結 Google</button>
+        <button
+          onClick={() => void link("google")}
+          disabled={!google?.configured}
+        >
+          {google?.configured ? "連結 Google" : "Google 登入尚未完成設定"}
+        </button>
       )}
       {!linked.has("tamkang") && (
         <button
@@ -107,6 +139,34 @@ export default function AccountSettings() {
         >
           {tamkang?.configured ? "連結淡江 SSO" : "淡江 SSO 尚未完成設定"}
         </button>
+      )}
+      {!linked.has("email") && (
+        <form className="email-link-form" onSubmit={(event) => void attachEmail(event)}>
+          <label>
+            電子信箱
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={linkEmail}
+              onChange={(event) => setLinkEmail(event.target.value)}
+            />
+          </label>
+          <label>
+            密碼
+            <input
+              type="password"
+              required
+              minLength={10}
+              autoComplete="new-password"
+              value={linkPassword}
+              onChange={(event) => setLinkPassword(event.target.value)}
+            />
+          </label>
+          <button className="primary" disabled={busy}>
+            連結電子信箱
+          </button>
+        </form>
       )}
       {auth.membership && (
         <p className="muted">工作區角色：{auth.membership.role}</p>

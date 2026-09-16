@@ -119,8 +119,14 @@ export function grantMembership(userId: string, role: MembershipRole) {
   return record;
 }
 
+export function emailSubject(email: string) {
+  return hash("email:" + email.trim().toLowerCase());
+}
+
 export function findUserByEmail(email: string) {
   const normalized = email.trim().toLowerCase();
+  const identity = identityOf("email", emailSubject(normalized));
+  if (identity) return getUser(identity.userId);
   return (
     list<AuthUser>("user", SCOPE).find((user) => user.email === normalized) ||
     null
@@ -189,8 +195,4 @@ export function publicUser(user: AuthUser) {
     avatarUrl: user.avatarUrl,
     identities: identitiesFor(user.id).map((item) => item.provider),
   };
-}
-
-export function emailSubject(email: string) {
-  return hash("email:" + email.trim().toLowerCase());
 }

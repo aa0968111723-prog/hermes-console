@@ -10,5 +10,6 @@ export {
   verifyEmail,
   requestReset,
   resetPassword,
+  linkEmail,
 } from "./email";
 export { publicUser, membershipOf, identitiesFor, grantMembership } from "./identity";

@@ -9,6 +9,8 @@ export default function AccountMenu() {
   const [notice, setNotice] = useState("");
   if (!auth?.user) return null;
   const linked = new Set(auth.user.identities);
+  const google = auth.providers.find((item) => item.id === "google");
+  const tamkang = auth.providers.find((item) => item.id === "tamkang");
   async function logout() {
     if (busy) return;
     setBusy(true);
@@ -57,10 +59,20 @@ export default function AccountMenu() {
             <li>電子信箱 {linked.has("email") ? "✓" : "○"}</li>
           </ul>
           {!linked.has("google") && (
-            <button onClick={() => void link("google")}>連結 Google</button>
+            <button
+              onClick={() => void link("google")}
+              disabled={!google?.configured}
+            >
+              {google?.configured ? "連結 Google" : "Google 登入尚未完成設定"}
+            </button>
           )}
           {!linked.has("tamkang") && (
-            <button onClick={() => void link("tamkang")}>連結淡江 SSO</button>
+            <button
+              onClick={() => void link("tamkang")}
+              disabled={!tamkang?.configured}
+            >
+              {tamkang?.configured ? "連結淡江 SSO" : "淡江 SSO 尚未完成設定"}
+            </button>
           )}
           {notice && <p role="status">{notice}</p>}
           <button className="primary" onClick={() => void logout()}>

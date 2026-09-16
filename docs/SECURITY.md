@@ -12,8 +12,8 @@
 - AuthGate 先驗證，再載入工作區。
 - Google：Authorization Code + PKCE + server-side state。Cookie `hermes_auth`：HttpOnly、SameSite=Lax、HTTPS 時 Secure。
 - 淡江：只跳轉校方 IdP。沒有 metadata 就顯示尚未完成設定。禁止保存學校密碼、禁止 Playwright 自動登入學校。
-- Email：Argon2id；舊 scrypt 仍可驗證。Rate limit、單次 token、驗證／重設過期。
-- 相同 email **不會**自動合併帳號。連結身份必須已登入。
+- Email：Argon2id；舊 scrypt 仍可驗證。Rate limit、單次 token、驗證／重設過期。已登入帳號可在設定頁連結電子信箱（密碼登入）；不可只因 email 相同而合併。
+- 相同 email **不會**自動合併帳號。連結 Google／淡江／Email 必須已登入。未設定的 provider 顯示尚未完成設定，不提供可點的成功按鈕。
 - 登入成功 ≠ 進入私人工作區。需要 `owner`／`admin`／`member` membership。API 在 `CONSOLE_ALLOW_LOCAL_ACCESS` 以外會檢查 session + membership。
 
 ## Sessions

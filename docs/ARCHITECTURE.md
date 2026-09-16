@@ -18,7 +18,7 @@ Console 是使用者與 Hermes Agent Runtime 的主介面。它不是工具清�
 
 - 工具在 Hermes 執行。Console 保存專案、對話、任務、素材、記憶與活動。
 - 前端只渲染結構化事件與高階進度，不顯示內部推理、toolCallId、endpoint、JSON schema（進階／Developer 除外）。
-- 工作區資料列的 store owner 仍是單一 `workspace`。授權層是 User → Identity（Google／Tamkang／Email）→ WorkspaceMembership。
+- 工作區資料列的 store owner 仍是單一 `workspace`。授權層是 User → Identity（Google／Tamkang／Email）→ WorkspaceMembership。已登入才能連結第二種登入方式；相同 email 不會自動合併。
 
 ## 主要路徑
 

@@ -3043,6 +3043,17 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .account-settings .account-identity small {
   display: block;
 }
+.email-link-form {
+  display: grid;
+  gap: 10px;
+}
+.email-link-form input,
+.email-link-form button {
+  min-height: 44px;
+}
+.email-link-form button {
+  width: fit-content;
+}
 .account-panel button {
   width: 100%;
   margin-top: 8px;

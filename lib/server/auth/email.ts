@@ -9,6 +9,7 @@ import {
   emailSubject,
   findUserByEmail,
   getUser,
+  identitiesFor,
   identityOf,
   saveUser,
 } from "./identity";
@@ -192,6 +193,66 @@ export async function requestReset(emailRaw: string) {
       "\n若不是你本人，請忽略此信。",
   );
   return { message };
+}
+
+export async function linkEmail(
+  userId: string,
+  input: { email: string; password: string },
+) {
+  limited("auth:email:link", 8, 15 * 60_000);
+  const email = emailInput.parse(input.email);
+  limited("auth:email:link:" + email, 5, 15 * 60_000);
+  const policy = passwordPolicy(input.password);
+  if (policy) throw new ApiError(400, "invalid_input", policy);
+  const user = getUser(userId);
+  if (!user || user.disabled)
+    throw new ApiError(401, "session_expired", "請重新登入。");
+  if (identitiesFor(userId).some((item) => item.provider === "email"))
+    throw new ApiError(409, "identity_conflict", "這個帳號已連結電子信箱。");
+  const existing = identityOf("email", emailSubject(email));
+  if (existing && existing.userId !== userId)
+    throw new ApiError(
+      409,
+      "identity_conflict",
+      "這個登入方式已連結到另一個帳號，未自動合併。",
+    );
+  const other = findUserByEmail(email);
+  if (other && other.id !== userId)
+    throw new ApiError(
+      409,
+      "identity_conflict",
+      "這個電子信箱已用於另一個帳號，未自動合併。",
+    );
+  if (!emailConfigured() && !localPasswordOnly())
+    throw new ApiError(503, "auth_unconfigured", "電子信箱驗證尚未完成寄信設定");
+  attachIdentity({
+    userId,
+    provider: "email",
+    providerSubject: emailSubject(email),
+    email,
+    emailVerified: localPasswordOnly() || user.email === email,
+    name: user.displayName,
+    avatarUrl: user.avatarUrl,
+  });
+  saveUser({
+    ...user,
+    email: user.email || email,
+    emailVerified: localPasswordOnly() ? true : user.emailVerified,
+    passwordHash: hashPassword(input.password),
+  });
+  if (localPasswordOnly())
+    return { message: "已連結電子信箱，可用密碼登入。", verified: true };
+  const token = putToken("verify", { userId, email });
+  await sendAuthMail(
+    email,
+    "驗證 Hermes 電子信箱",
+    "請在 24 小時內開啟此連結完成驗證：\n" +
+      process.env.CONSOLE_ORIGIN +
+      "/#verify=" +
+      token +
+      "\n若不是你本人，請忽略此信。",
+  );
+  return { message: "若此信箱可使用，我們會寄出驗證信。", verified: false };
 }
 
 export function resetPassword(
