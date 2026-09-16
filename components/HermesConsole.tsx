@@ -75,6 +75,7 @@ import {
   shellMetrics,
   widthChanged,
 } from "@/lib/client/viewport";
+import { taskPollDelayMs } from "@/lib/client/task-poll";
 import { materialSrc, referenceHost } from "@/lib/client/material-src";
 import AccountPanel from "./auth/AccountPanel";
 import { useAuthOptional } from "./auth/AuthProvider";
@@ -276,6 +277,7 @@ export default function HermesConsole() {
   const currentTask = currentTasks[0];
   const pending = currentTasks.find(isActive);
   const uncertain = currentTasks.find((t) => t.state === "uncertain");
+  const hasActiveTask = busy || currentTasks.some(isActive);
   const chosenTask = tasks.find((t) => t.id === selectedTask) || currentTask;
   const blocked = currentTasks.some(
     (t) => isActive(t) || t.state === "uncertain",
@@ -368,19 +370,27 @@ export default function HermesConsole() {
       }
     };
     void poll();
-    const timer = setInterval(poll, 3000);
+    let timer = 0 as unknown as ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      timer = setTimeout(() => {
+        void poll().finally(() => {
+          if (!stopped) schedule();
+        });
+      }, taskPollDelayMs(hasActiveTask));
+    };
+    schedule();
     const disconnected = () => setOffline(true);
     window.addEventListener("online", poll);
     window.addEventListener("offline", disconnected);
     document.addEventListener("visibilitychange", poll);
     return () => {
       stopped = true;
-      clearInterval(timer);
+      clearTimeout(timer);
       window.removeEventListener("online", poll);
       window.removeEventListener("offline", disconnected);
       document.removeEventListener("visibilitychange", poll);
     };
-  }, [auth, refresh]);
+  }, [auth, refresh, hasActiveTask]);
   useEffect(() => {
     const textarea = input.current;
     if (!textarea) return;
