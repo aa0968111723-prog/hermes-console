@@ -461,6 +461,8 @@ test("invited workspace, confirmation, discovery and creative intelligence", asy
     );
     assert.equal(permissions.permissionClass("instagram_publish"), "publish");
     assert.equal(permissions.permissionClass("delete_material"), "destructive");
+    assert.equal(permissions.permissionClass("galley_research"), "read");
+    assert.equal(permissions.permissionClass("galley_intel"), "read");
     assert.equal(permissions.autoAllowed("web_search"), true);
     assert.equal(permissions.confirmationRequired("instagram_publish"), true);
     const wrapped = untrusted.sanitizeForModel(

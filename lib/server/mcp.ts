@@ -28,6 +28,7 @@ import { VISUAL_FORMAT_IDS } from "./creative/formats";
 import { auditEventCopy } from "./qa";
 import { z } from "zod";
 import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
+import { withSafeRetry, isTransientToolError, safeToRetry } from "./retry";
 import { runtimeEnv } from "./credentials";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest, canvaStatus } from "./canva";
@@ -870,7 +871,7 @@ async function finishToolCall(
         "canva_authorization_required",
         "Canva 尚未通過授權驗證。請先保存進度並等待使用者授權；沒有執行設計操作。",
       );
-    const result = await run();
+    const result = await withSafeRetry(run, { toolName: name });
     if (
       !usableToolPayload(result) ||
       typeof result !== "object" ||
@@ -920,10 +921,7 @@ async function finishToolCall(
       error instanceof ApiError
         ? redact(error.message)
         : "工具執行失敗，沒有產生替代成果。";
-    receipt.retryable =
-      error instanceof ApiError &&
-      [429, 503].includes(error.status) &&
-      error.code !== "tool_budget_exceeded";
+    receipt.retryable = safeToRetry(name) && isTransientToolError(error);
     if (
       /authorization_required|token_expired|canva_unauthorized/.test(
         receipt.errorCode,
