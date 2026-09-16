@@ -36,7 +36,7 @@
 | Production auth | live 契約 | 正式環境禁止 `CONSOLE_AUTH_MODE=workspace`。 |
 | GALLEY 路由 | live 契約 | 僅 registry 為 partial／verified／connected 才走 `galley_research`；未設定不假裝。 |
 | Lumen 路由 | live 契約 | 僅 registry 可用才走 `lumen_utter`；未設定／failed 不假裝已開畫板。 |
-| 圖片評論 | live 契約 | 「這張哪裡可以改？」不走 fast path；有圖才 `workspace_read_material` 並標受眾模擬。原生 `image_url` 僅在 `HERMES_IMAGE_INPUT=true`；否則仍可送出任務並要求讀素材，不假裝 Hermes 已看圖。 |
+| 圖片評論 | live 契約 | 「這張哪裡可以改？」不走 fast path；有圖才 `workspace_read_material` 並標受眾模擬。對話顯示已讀取海報預覽、UNKNOWN 層級與模擬修改方向；原生 `image_url` 僅在 `HERMES_IMAGE_INPUT=true`，不把檔名或空分數當成已看圖。 |
 | Email 連結 | live 契約 | 已登入使用者可連結 Email 到同一 User；不得因信箱相同合併他人。無效 `#verify`／`#login` 顯示錯誤。 |
 | 第 N 版 | live 契約 | 「第二版字放大」鎖定 `v2`，不得另開無關作品。 |
 | Email 找回 | live 契約 | 登入頁一律顯示 Magic Link／忘記密碼；寄信未設標「寄信尚未完成設定」。 |
@@ -49,6 +49,7 @@
 | 任務追蹤 | live 契約 | 新任務有 taskId／traceId／workspaceId／projectId；工具事件有 latencyMs。只在技術資訊展開。 |
 | 專案上下文 | live 契約 | 組裝上下文與 `workspace_project_context` 含專案名稱與 artifactId／revisionId；不含 preview JSON。 |
 | 靈感結果 UI | live 契約 | 對話用 keep／avoid 卡片選方向；標已保存來源，不把 JSON 或全站搜尋當成成功。 |
+| 圖片評論 UI | live 契約 | 讀圖結果用海報預覽＋視覺層級＋模擬修改方向；進行中任務也會掛上同一畫面。 |
 | 輸入列 | live | `Composer` 從 `HermesConsole` 拆出；IME／鍵盤／龜龜 compact 狀態仍接同一 refs。 |
 | 記憶時效 | live 契約 | `confidence * recencyScore(updatedAt)`；超過 30 天降至 0.3 倍，不永遠沿用舊偏好。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |

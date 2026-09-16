@@ -32,7 +32,7 @@ Human
 - Runtime Inspector：一般只看 Hermes／Memory／Tools／MCP 狀態；Developer 才看工具清單、schema、latency。
 - 只對 `read` 工具自動重試 429／短暫 503／504（exponential backoff + jitter）。發佈、刪除、寫入、空結果、未設定端點不重試。
 - 每次 Tool：`toolCallId`／tool／start／end／status／latency／error category。latency 來自實際起訖，不是估算成功。
-- 一般 UI 任務進度是 理解／研究／創作／完成。靈感工具結果以 keep／avoid 卡片顯示，不是 tool JSON。工具名稱、計數、schema、traceId 只在 Developer／任務詳情「技術資訊」。
+- 一般 UI 任務進度是 理解／研究／創作／完成。靈感工具結果以 keep／avoid 卡片顯示；讀圖結果以海報預覽與模擬修改方向顯示，不是 tool JSON。工具名稱、計數、schema、traceId 只在 Developer／任務詳情「技術資訊」。
 - 閒置工作區 20s 輪詢；有進行中任務才 3s。隱藏分頁不打。重連只拉狀態。
 
 ## MCP
