@@ -1721,9 +1721,24 @@ export default function HermesConsole() {
                 projectId={project}
                 materials={data.materials}
                 workflows={workflows}
-                onCompose={(text) => {
+                onCompose={(text, conversationId) => {
                   if (busy) {
                     setError("請先等目前任務結束或停止，再接續其他作品。");
+                    return;
+                  }
+                  const conv = conversationId
+                    ? data.conversations.find((item) => item.id === conversationId)
+                    : undefined;
+                  if (conv) {
+                    setActiveId(conv.id);
+                    setProject(conv.projectId);
+                    writePreference("hermes.active.v2", conv.id);
+                    pinBriefAfterPick.current = true;
+                    setNav("chat");
+                    replaceDraft("conversation:" + conv.id, {
+                      ...emptyDraft(),
+                      text,
+                    });
                     return;
                   }
                   fresh();

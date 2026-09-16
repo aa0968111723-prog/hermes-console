@@ -12,6 +12,7 @@ import type { Material } from "@/lib/contracts";
 import type { Workflow } from "@/lib/server/workflows";
 import type { CopyReview } from "@/lib/server/copywriting";
 import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
+import { CONTINUE_SAME_WORK_PROMPT } from "@/lib/server/inspiration/revise";
 type Data = {
   activities: Activity[];
   copies: Array<CopyDocument & { check: CopyCheck }>;
@@ -45,7 +46,7 @@ export default function ProjectWorkbench({
   projectId: string;
   materials: Material[];
   workflows: Workflow[];
-  onCompose: (text: string) => void;
+  onCompose: (text: string, conversationId?: string) => void;
 }) {
   const [data, setData] = useState<Data>({ activities: [], copies: [] });
   const [editing, setEditing] = useState<Activity | null>(null);
@@ -166,7 +167,11 @@ export default function ProjectWorkbench({
         <button
           onClick={() =>
             onCompose(
-              "請先用 workspace_project_context 查回這個專案的活動、來源及已有文案；核對必要資訊後，接續網宣草稿。缺少日期或地點先詢問我，不要捏造。",
+              CONTINUE_SAME_WORK_PROMPT,
+              [...workflows]
+                .filter((item) => item.projectId === projectId && item.conversationId)
+                .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+                .at(-1)?.conversationId || undefined,
             )
           }
         >
@@ -174,9 +179,7 @@ export default function ProjectWorkbench({
         </button>
         <button
           onClick={() =>
-            onCompose(
-              "請先查回活動日期與地點；未確認標 UNKNOWN，不要捏造。產出 IG caption A 最自然、B 最有梗、C 最溫暖三版，順序 HOOK→生活場景→活動→為什麼來→時間地點→CTA。不要宗教宣傳。寫完用 workspace_review_copy 做新生視角審核，不要發佈。",
-            )
+            onCompose("請寫三版文案：最自然、最有梗、最溫暖。日期地點未確認先問我，不要發佈。")
           }
         >
           請 Hermes 寫 A／B／C
@@ -357,9 +360,7 @@ export default function ProjectWorkbench({
           <button onClick={() => editActivity(a)}>修改活動</button>
           <button
             onClick={() =>
-              onCompose(
-                `請讀取活動 ${a.id}（專案 ${projectId}），依已確認資訊提出三個方向，保存後等待我選擇；私人資訊不得用於公開文宣。`,
-              )
+              onCompose("請依已確認的活動資料提出三個方向。")
             }
           >
             請 Hermes 整理三個方向
@@ -678,7 +679,9 @@ export default function ProjectWorkbench({
                 <button
                   onClick={() =>
                     onCompose(
-                      `請用 workspace_get_copy 讀取文案 ${d.id}，以 v${r.revision} 為修改基礎。先問我要改哪一頁或語氣，再沿用相同 id 保存新版本；不要重新搜尋或重建無關作品。`,
+                      CONTINUE_SAME_WORK_PROMPT,
+                      workflows.find((item) => item.id === r.workflowId)
+                        ?.conversationId || undefined,
                     )
                   }
                 >
@@ -686,7 +689,9 @@ export default function ProjectWorkbench({
                 </button>
                 {d.selectedRevision === r.revision && r.workflowId && <button
                   onClick={() => onCompose(
-                    `請用 workspace_get_copy 查回文案 ${d.id} 已選版本 v${r.revision}，並查回方向流程 ${r.workflowId}。確認日期地點與素材後，依真實 Canva 範本欄位製作；若未授權請保留進度，不要宣稱完成。已有設計時先查回，不要重複建立。`
+                    CONTINUE_SAME_WORK_PROMPT,
+                    workflows.find((item) => item.id === r.workflowId)
+                      ?.conversationId || undefined,
                   )}>交給 Hermes 接續製作</button>}
               </div>
             </details>

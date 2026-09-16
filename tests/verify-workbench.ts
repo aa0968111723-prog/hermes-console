@@ -65,6 +65,9 @@ try {
   assert.equal(exported.status(),200);
   assert.match(await exported.text(),/一起看看春日創作/);
   await page.screenshot({path:join(output,"workbench-mobile-390.png"),fullPage:true});
+  await page.getByRole("button",{name:"在對話接續修改",exact:true}).last().click();
+  await expect(page.getByRole("textbox",{name:"訊息",exact:true})).toHaveValue("請接續修改同一作品。");
+  await expect(page.getByRole("textbox",{name:"訊息",exact:true})).not.toContainText("workspace_get_copy");
   await page.getByRole("button",{name:"外觀設定"}).click();
   await page.getByRole("tab",{name:"工作區",exact:true}).click();
   const map = page.getByRole("region",{name:"記憶與學習地圖"});
