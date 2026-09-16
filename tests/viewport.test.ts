@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   applyShellMetrics,
   applyStickyReveal,
+  composerHeightLimit,
   detectComposerKeyboard,
   readViewportFrame,
   shellMetrics,
@@ -113,6 +114,11 @@ test("sticky reveal brings a below-the-fold editor just under the header", () =>
     scrollerBottom: 700,
   });
   assert.equal(delta, 820 - 76);
+});
+
+test("keyboard-open composer stays short enough to keep the caret on screen", () => {
+  assert.equal(composerHeightLimit(true, 420), 92);
+  assert.ok(composerHeightLimit(false, 420) > composerHeightLimit(true, 420));
 });
 
 test("rotation is not treated as a keyboard", () => {

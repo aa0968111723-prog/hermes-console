@@ -10,6 +10,7 @@ import {
 } from "react";
 import { ArrowUp, ChevronDown, RefreshCw, Square } from "lucide-react";
 import type { Material, Task } from "@/lib/contracts";
+import { composerHeightLimit } from "@/lib/client/viewport";
 import { taskLabels } from "@/lib/client/workspace-ui";
 import Turtle from "../Turtle";
 import ComposerMenu from "../visual/ComposerMenu";
@@ -87,18 +88,21 @@ export default function Composer({
     if (!textarea) return;
     const resize = () => {
       textarea.style.height = "auto";
-      const limit = Math.max(
-        66,
-        Math.min(
-          190,
-          Math.floor(
-            (window.visualViewport?.height || window.innerHeight) * 0.28,
-          ),
-        ),
+      const keyboardOpen =
+        document.documentElement.dataset.composerKeyboard === "open";
+      const limit = composerHeightLimit(
+        keyboardOpen,
+        window.visualViewport?.height || window.innerHeight,
       );
       textarea.style.height = Math.min(textarea.scrollHeight, limit) + "px";
       textarea.style.overflowY =
         textarea.scrollHeight > limit ? "auto" : "hidden";
+      if (
+        document.activeElement === textarea &&
+        textarea.selectionEnd >= textarea.value.length
+      ) {
+        textarea.scrollTop = textarea.scrollHeight;
+      }
     };
     resize();
     let previousWidth = textarea.parentElement?.clientWidth;

@@ -316,18 +316,22 @@ export default function HermesConsole() {
         baselineHeight = current.innerHeight;
       }
       previousWidth = current.width;
-      applyShellMetrics(
-        document.documentElement,
-        shellMetrics(
-          current,
-          detectComposerKeyboard({
-            composerFocused,
-            widthChanged: rotated,
-            frame: current,
-            baselineHeight,
-          }),
-        ),
+      const metrics = shellMetrics(
+        current,
+        detectComposerKeyboard({
+          composerFocused,
+          widthChanged: rotated,
+          frame: current,
+          baselineHeight,
+        }),
       );
+      const keyboardJustOpened =
+        metrics.keyboardOpen &&
+        document.documentElement.dataset.composerKeyboard !== "open";
+      applyShellMetrics(document.documentElement, metrics);
+      if (keyboardJustOpened && scroll.current) {
+        scroll.current.scrollTop = scroll.current.scrollHeight;
+      }
     };
     const schedule = () => {
       cancelAnimationFrame(frame);

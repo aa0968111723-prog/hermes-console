@@ -15,6 +15,8 @@ test("composer dock is extracted from HermesConsole", async () => {
   assert.doesNotMatch(consoleUi, /className="composer-area"/);
   assert.match(composer, /className="composer-area"/);
   assert.match(composer, /placeholder="想做什麼？"/);
+  assert.match(composer, /composerHeightLimit/);
+  assert.match(composer, /textarea.scrollTop = textarea.scrollHeight/);
   assert.match(composer, /ComposerMenu/);
   const menu = await readFile(
     new URL("../components/visual/ComposerMenu.tsx", import.meta.url),

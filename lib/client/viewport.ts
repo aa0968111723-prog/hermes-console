@@ -54,6 +54,16 @@ export function detectComposerKeyboard(input: {
   );
 }
 
+export function composerHeightLimit(
+  keyboardOpen: boolean,
+  viewHeight: number,
+) {
+  const cap = keyboardOpen ? 96 : 190;
+  const min = keyboardOpen ? 44 : 66;
+  const ratio = keyboardOpen ? 0.22 : 0.28;
+  return Math.max(min, Math.min(cap, Math.floor(viewHeight * ratio)));
+}
+
 export function shellMetrics(
   frame: ViewportFrame,
   keyboardOpen: boolean,

@@ -2973,6 +2973,13 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   html[data-composer-keyboard="open"] .composer-area {
     padding-bottom: max(8px, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)));
   }
+  html[data-composer-keyboard="open"] .welcome {
+    display: none;
+  }
+  html[data-composer-keyboard="open"] .composer textarea {
+    min-height: 44px;
+    max-height: min(96px, 22dvh);
+  }
 }
 
 /* P5: <=430 keyboard-open -> composer task pill shrinks to icon float (no full row). */

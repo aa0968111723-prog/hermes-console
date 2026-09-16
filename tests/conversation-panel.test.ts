@@ -40,6 +40,10 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
     css,
     /connection-pill\[data-ready="true"\] \.connection-label \{ display: none/,
   );
+  assert.match(
+    css,
+    /data-composer-keyboard="open"\] \.welcome \{\s*display: none/,
+  );
   assert.doesNotMatch(
     css,
     /\.connection-label \{ display: none; \}\.connection-pill \{ width: 44px/,

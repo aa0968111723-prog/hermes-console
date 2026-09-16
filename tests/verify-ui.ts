@@ -713,6 +713,7 @@ try {
     "open",
   );
   await expect(page.locator(".mobile-bottom-dock")).toBeHidden();
+  await expect(page.locator(".welcome")).toBeHidden();
   await expect
     .poll(() =>
       page
@@ -727,6 +728,14 @@ try {
     keyboardSend && keyboardSend.y + keyboardSend.height <= 420,
     "software keyboard must not cover the send button",
   );
+  await expect
+    .poll(() =>
+      textarea.evaluate((el) => {
+        const box = el as HTMLTextAreaElement;
+        return box.scrollHeight - box.scrollTop - box.clientHeight <= 2;
+      }),
+    )
+    .toBe(true);
   await page.screenshot({
     path: join(output, "composer-keyboard-390x420.png"),
     clip: { x: 0, y: 0, width: 390, height: 420 },
@@ -742,6 +751,7 @@ try {
     "open",
   );
   await expect(page.locator(".mobile-bottom-dock")).toBeVisible();
+  await expect(page.locator(".welcome")).toBeVisible();
   await textarea.fill("重新整理前仍保留的草稿");
   assert.ok((await textarea.boundingBox())!.height < 100);
   await page.setViewportSize({ width: 1440, height: 1000 });
