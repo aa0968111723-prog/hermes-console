@@ -23,7 +23,7 @@ export type ErrorTaxonomy = (typeof ErrorTaxonomy)[number];
 
 const AUTH = /^(sign_in_required|session_expired|invalid_login|invalid_link|auth_|oauth_|unverified_email|invalid_password)/i;
 const PERMISSION = /^(admin_required|permission|forbidden|membership|confirmation_|mcp_target)/i;
-const TOOL = /^(tool_unavailable|mcp_|github_is_not_mcp)/i;
+const TOOL = /^(tool_unavailable|empty_tool_result|mcp_|github_is_not_mcp)/i;
 const TIMEOUT = /(timeout|timed_out)/i;
 const RATE = /^(rate_limited|too_many)/i;
 const INPUT = /^(invalid_|content_type|too_large|invalid_json|invalid_body|invalid_url|invalid_id)/i;
@@ -41,4 +41,20 @@ export function taxonomyFor(code: string): ErrorTaxonomy {
   if (NETWORK.test(code)) return "NETWORK_ERROR";
   if (UPSTREAM.test(code)) return "UPSTREAM_ERROR";
   return "UNKNOWN";
+}
+
+/** HTTP 200 with no readable payload is not success. */
+export function isEmptyToolResult(value: unknown): boolean {
+  if (value == null) return true;
+  if (typeof value === "string") return !value.trim();
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record);
+  if (!keys.length) return true;
+  if (keys.length === 1 && "content" in record)
+    return isEmptyToolResult(record.content);
+  if (keys.length === 1 && "result" in record)
+    return isEmptyToolResult(record.result);
+  return false;
 }

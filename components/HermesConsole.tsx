@@ -1671,10 +1671,10 @@ export default function HermesConsole() {
         ) : nav === "agents" ? (
           <section className="secondary-page">
             <div className="page-heading-row">
-              <div>
-                <p className="eyebrow">能力</p>
-                <h1>Agent Runtime</h1>
-              </div>
+            <div>
+              <p className="eyebrow">連線</p>
+              <h1>能力</h1>
+            </div>
               <VisualStatus health={health} offline={offline} />
             </div>
             <RuntimeInspector
@@ -1683,7 +1683,7 @@ export default function HermesConsole() {
               animation={prefs.animation}
             />
             <details className="agent-profiles">
-              <summary>Agent OS · 設定檔</summary>
+              <summary>Developer · Agent 設定檔</summary>
               <AgentPanel
                 agents={agents.filter(
                   (agent) =>

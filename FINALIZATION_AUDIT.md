@@ -18,6 +18,8 @@
 | 設定分頁 | 可用 | 帳號 / 外觀 / 連線 / 工作區 / 進階。 |
 | Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
 | 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。工具 JSON 只在「原始結果」。創作回覆帶 ArtifactStage 大圖，不是工具計數。 |
+| Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。 |
+| 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。 |
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 
