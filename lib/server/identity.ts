@@ -439,7 +439,11 @@ export function loginEmail(input: { email: string; password: string }) {
   limited("login:" + hash(email), 8, 15 * 60_000);
   const identity = findIdentity("email", email);
   const user = identity ? get<User>("user", SCOPE, identity.userId) : null;
-  if (!user?.passwordHash || !verifyPasswordHash(input.password, user.passwordHash))
+  if (
+    !identity ||
+    !user?.passwordHash ||
+    !verifyPasswordHash(input.password, user.passwordHash)
+  )
     throw new ApiError(401, "invalid_login", "帳號或密碼不正確。");
   if (!identity.emailVerified)
     throw new ApiError(403, "unverified_email", "請先完成電子信箱驗證。");
