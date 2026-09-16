@@ -97,6 +97,7 @@ import {
   removeLegacyPreference,
 } from "@/lib/client/storage";
 import {
+  AUDIENCE_VISUAL_SELECTOR,
   CONVERSATION_VISUAL_SELECTOR,
   RESULT_VISUAL_SELECTOR,
   conversationVisualInView,
@@ -588,6 +589,7 @@ export default function HermesConsole() {
       if (chatDirectionBrief && pin(lastMatchingVisual(el, ".direction-brief")))
         return;
       if (pin(lastMatchingVisual(el, RESULT_VISUAL_SELECTOR))) return;
+      if (pin(lastMatchingVisual(el, AUDIENCE_VISUAL_SELECTOR))) return;
       if (!nearBottom.current) return;
       el.scrollTop = el.scrollHeight;
     });

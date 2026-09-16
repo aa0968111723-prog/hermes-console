@@ -20,13 +20,15 @@ test("jump chip hides when a later spec card is in view even if inspiration is a
 test("later image review wins over an earlier knowledge card", () => {
   const knowledge = { id: "knowledge" } as unknown as HTMLElement;
   const review = { id: "review" } as unknown as HTMLElement;
+  const twin = { id: "twin" } as unknown as HTMLElement;
   const root = {
     querySelectorAll: (selector: string) => {
-      assert.equal(selector, RESULT_VISUAL_SELECTOR);
-      return [knowledge, review];
+      if (selector === RESULT_VISUAL_SELECTOR) return [knowledge, review];
+      return [twin];
     },
   };
   assert.equal(lastMatchingVisual(root, RESULT_VISUAL_SELECTOR), review);
+  assert.notEqual(lastMatchingVisual(root, RESULT_VISUAL_SELECTOR), twin);
   assert.equal(
     lastMatchingVisual({ querySelectorAll: () => [] }, RESULT_VISUAL_SELECTOR),
     null,

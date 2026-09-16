@@ -1,8 +1,11 @@
 export const CONVERSATION_VISUAL_SELECTOR =
   ".inspiration-result, .image-review, .direction-brief, .knowledge-result, .first-reaction-board";
 
+/** Pin these first. Twin boards sit under 畫面審查 and must not steal the scroll. */
 export const RESULT_VISUAL_SELECTOR =
-  ".inspiration-result, .image-review, .knowledge-result, .first-reaction-board";
+  ".inspiration-result, .image-review, .knowledge-result";
+
+export const AUDIENCE_VISUAL_SELECTOR = ".first-reaction-board";
 
 export function lastMatchingVisual(
   root: { querySelectorAll: (selector: string) => ArrayLike<Element> },
