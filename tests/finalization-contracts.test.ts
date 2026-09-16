@@ -375,6 +375,8 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   assert.match(entry, /not\.toBeFocused/);
   assert.match(entry, /api\/workflows/);
   assert.match(entry, /已選方向規格/);
+  assert.match(entry, /Hermes 尚未連線，沒有出圖/);
+  assert.match(entry, /工作區讀取失敗/);
 });
 
 test("spoken lookup pins club facts above the trailing spec", async () => {
@@ -410,8 +412,13 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   );
   assert.match(sendPrompt, /const spokenSend = voiceReady/);
   assert.match(sendPrompt, /shouldFocusComposerAfterSend\(spokenSend\)/);
+  assert.match(sendPrompt, /applyDirectionBriefFromTask/);
   assert.match(sendPrompt, /setBusy\(false\);[\s\S]*await refresh\("user"\)/);
   assert.doesNotMatch(sendPrompt, /await refresh\("user"\)[\s\S]*input\.current\?\.focus/);
+  assert.match(
+    sendPrompt,
+    /applyDirectionBriefFromTask[\s\S]*await refresh\("user"\)/,
+  );
   const pick = consoleSource.slice(
     consoleSource.indexOf("async function pickInspirationDirection"),
     consoleSource.indexOf("async function stopTask"),
@@ -421,6 +428,13 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   assert.match(pick, /void refresh\(\)/);
   assert.doesNotMatch(pick, /await refresh\(\)/);
   assert.doesNotMatch(consoleSource, /pinBriefAfterPick/);
+  assert.match(consoleSource, /studentNoticeBarText/);
+  assert.match(consoleSource, /shouldShowWorkspaceLoadNotice/);
+  assert.match(consoleSource, /hasDirectionSpec/);
+  assert.doesNotMatch(
+    consoleSource,
+    /error \|\|\s*\(offline \? OFFLINE_NOTICE : notice\)/,
+  );
   const revise = await readFile(
     new URL("../lib/server/inspiration/revise.ts", import.meta.url),
     "utf8",

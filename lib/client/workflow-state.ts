@@ -1,5 +1,6 @@
+import type { Task } from "@/lib/contracts";
 import type { Workflow } from "@/lib/server/workflows";
-import { isDirectionBriefPack } from "@/lib/direction-brief";
+import { isDirectionBriefPack, type DirectionBriefPack } from "@/lib/direction-brief";
 
 export type SelectedDirectionContext = {
   projectId: string;
@@ -7,8 +8,46 @@ export type SelectedDirectionContext = {
   brief?: unknown;
 };
 
+const DIRECTION_SPEC_TOOLS = new Set([
+  "workspace_revise_direction_spec",
+  "workspace_continue_direction_spec",
+]);
+
 function selectedIndex(letter: "A" | "B" | "C") {
   return letter === "B" ? 1 : letter === "C" ? 2 : 0;
+}
+
+function briefRevision(brief: unknown): number {
+  if (!isDirectionBriefPack(brief)) return 0;
+  return typeof brief.revision === "number" && Number.isFinite(brief.revision)
+    ? brief.revision
+    : 0;
+}
+
+function workflowStamp(item: Workflow): number {
+  const value = Date.parse(item.updatedAt);
+  return Number.isFinite(value) ? value : 0;
+}
+
+/** Keep the newer spec when GET and local POST disagree. */
+export function preferDirectionWorkflow(
+  prior: Workflow,
+  incoming: Workflow,
+): Workflow {
+  const priorPack = isDirectionBriefPack(prior.directionBrief)
+    ? prior.directionBrief
+    : null;
+  const nextPack = isDirectionBriefPack(incoming.directionBrief)
+    ? incoming.directionBrief
+    : null;
+  if (priorPack && !nextPack) return prior;
+  if (!priorPack) return incoming;
+  if (!nextPack) return prior;
+  const priorRev = briefRevision(priorPack);
+  const nextRev = briefRevision(nextPack);
+  if (priorRev > nextRev) return prior;
+  if (nextRev > priorRev) return incoming;
+  return workflowStamp(prior) > workflowStamp(incoming) ? prior : incoming;
 }
 
 /** Turn a select POST body into a chat-ready workflow. */
@@ -68,8 +107,68 @@ export function upsertWorkflow(
   return [workflow, ...workflows.filter((item) => item.id !== workflow.id)];
 }
 
+export function hasDirectionSpec(workflows: Workflow[]): boolean {
+  return workflows.some((item) => isDirectionBriefPack(item.directionBrief));
+}
+
+export function readDirectionBriefFromTask(
+  task: Pick<Task, "events"> | { events?: Task["events"] },
+): DirectionBriefPack | null {
+  const events = Array.isArray(task.events) ? task.events : [];
+  for (let i = events.length - 1; i >= 0; i -= 1) {
+    const event = events[i];
+    if (
+      event.toolName &&
+      DIRECTION_SPEC_TOOLS.has(event.toolName) &&
+      isDirectionBriefPack(event.result)
+    ) {
+      return event.result;
+    }
+  }
+  return null;
+}
+
 /**
- * A later GET must not drop a spec the student already has from select POST.
+ * 出圖 / 改暖 land on POST /api/tasks. Apply that pack now so the trailing
+ * spec does not wait on (or get wiped by) workflows GET.
+ */
+export function applyDirectionBriefFromTask(
+  workflows: Workflow[],
+  task: Pick<Task, "conversationId" | "updatedAt" | "endedAt" | "events">,
+): Workflow[] {
+  const pack = readDirectionBriefFromTask(task);
+  if (!pack) return workflows;
+  const match =
+    workflows.find(
+      (item) =>
+        item.conversationId === task.conversationId &&
+        isDirectionBriefPack(item.directionBrief),
+    ) || workflows.find((item) => isDirectionBriefPack(item.directionBrief));
+  if (!match) return workflows;
+  if (
+    isDirectionBriefPack(match.directionBrief) &&
+    briefRevision(match.directionBrief) > briefRevision(pack)
+  ) {
+    return workflows;
+  }
+  const stamp =
+    (typeof task.updatedAt === "string" && task.updatedAt) ||
+    (typeof task.endedAt === "string" && task.endedAt) ||
+    new Date().toISOString();
+  return upsertWorkflow(workflows, {
+    ...match,
+    brief: pack.summary,
+    selected: selectedIndex(pack.selected),
+    directionBrief: pack,
+    copyId: typeof pack.copyId === "string" ? pack.copyId : match.copyId,
+    updatedAt: stamp,
+    conversationId: match.conversationId || task.conversationId,
+  });
+}
+
+/**
+ * A later GET must not drop a spec the student already has from select POST
+ * or from a later revise/continue task.
  */
 export function mergeWorkflows(
   previous: Workflow[],
@@ -90,12 +189,7 @@ export function mergeWorkflows(
       if (isDirectionBriefPack(prior.directionBrief)) byId.set(prior.id, prior);
       continue;
     }
-    if (
-      isDirectionBriefPack(prior.directionBrief) &&
-      !isDirectionBriefPack(next.directionBrief)
-    ) {
-      byId.set(prior.id, prior);
-    }
+    byId.set(prior.id, preferDirectionWorkflow(prior, next));
   }
   return [...byId.values()];
 }

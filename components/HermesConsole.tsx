@@ -112,11 +112,15 @@ import {
   mergeTasks,
   mergeWorkspaceSnapshot,
   readWorkspaceSnapshot,
+  shouldShowWorkspaceLoadNotice,
+  studentNoticeBarText,
   studentSafeApiMessage,
   upsertConversation,
   type WorkspaceSnapshot,
 } from "@/lib/client/workspace-state";
 import {
+  applyDirectionBriefFromTask,
+  hasDirectionSpec,
   mergeWorkflows,
   readSelectedDirectionWorkflow,
   upsertWorkflow,
@@ -229,6 +233,8 @@ export default function HermesConsole() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const workflowsRef = useRef<Workflow[]>([]);
+  workflowsRef.current = workflows;
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [canvaConfigured, setCanvaConfigured] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -395,9 +401,14 @@ export default function HermesConsole() {
           failed = true;
         }
         if (workflowResult.status === "fulfilled") {
-          setWorkflows((previous) =>
-            mergeWorkflows(previous, workflowResult.value.workflows),
-          );
+          setWorkflows((previous) => {
+            const next = mergeWorkflows(
+              previous,
+              workflowResult.value.workflows,
+            );
+            workflowsRef.current = next;
+            return next;
+          });
           if (Array.isArray(workflowResult.value.artifacts)) {
             setArtifacts(workflowResult.value.artifacts);
           }
@@ -406,7 +417,13 @@ export default function HermesConsole() {
         }
         if (failed) {
           setOffline(true);
-          setError(WORKSPACE_LOAD_NOTICE);
+          if (
+            shouldShowWorkspaceLoadNotice(
+              hasDirectionSpec(workflowsRef.current),
+            )
+          ) {
+            setError(WORKSPACE_LOAD_NOTICE);
+          }
         } else {
           setOffline(false);
           setError((current) =>
@@ -490,7 +507,13 @@ export default function HermesConsole() {
       } catch {
         if (!stopped) {
           setOffline(true);
-          setError(WORKSPACE_LOAD_NOTICE);
+          if (
+            shouldShowWorkspaceLoadNotice(
+              hasDirectionSpec(workflowsRef.current),
+            )
+          ) {
+            setError(WORKSPACE_LOAD_NOTICE);
+          }
         }
       } finally {
         loading = false;
@@ -795,6 +818,11 @@ export default function HermesConsole() {
         result.task,
         ...previous.filter((t) => t.id !== result.task.id),
       ]);
+      setWorkflows((previous) => {
+        const next = applyDirectionBriefFromTask(previous, result.task);
+        workflowsRef.current = next;
+        return next;
+      });
       setData((previous) => {
         const existing =
           previous.conversations.find((item) => item.id === conv.id) || conv;
@@ -820,7 +848,13 @@ export default function HermesConsole() {
       } catch (error) {
         if (!isAbortLike(error)) {
           setOffline(true);
-          setError(WORKSPACE_LOAD_NOTICE);
+          if (
+            shouldShowWorkspaceLoadNotice(
+              hasDirectionSpec(workflowsRef.current),
+            )
+          ) {
+            setError(WORKSPACE_LOAD_NOTICE);
+          }
         }
       }
     } catch (e) {
@@ -866,7 +900,11 @@ export default function HermesConsole() {
         brief: selected.brief,
       });
       if (workflow) {
-        setWorkflows((previous) => upsertWorkflow(previous, workflow));
+        setWorkflows((previous) => {
+          const next = upsertWorkflow(previous, workflow);
+          workflowsRef.current = next;
+          return next;
+        });
       }
       setPickedDirection(id);
       if (source === "chat" && activeId) {
@@ -1377,8 +1415,7 @@ export default function HermesConsole() {
             role={error ? "alert" : "status"}
           >
             <span>
-              {error ||
-                (offline ? OFFLINE_NOTICE : notice)}
+              {studentNoticeBarText(error, notice, offline, OFFLINE_NOTICE)}
             </span>
             {!offline && (
               <button

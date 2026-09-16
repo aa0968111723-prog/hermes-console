@@ -249,9 +249,10 @@ try {
   await expect(page.getByRole("region", { name: "已選方向規格" })).toBeInViewport();
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
+  await expect(page.getByText("Hermes 尚未連線，沒有出圖。")).toBeVisible();
+  await expect(page.getByText("工作區讀取失敗")).toHaveCount(0);
   await expect(page.locator(".conversation-scroll")).not.toContainText("210:297");
   await expect(page.locator(".conversation-scroll")).not.toContainText("HERMES_API");
-  await page.unroute("**/api/workflows");
   await page.screenshot({ path: join(output, "spoken-goal-spec.png") });
   const dismiss = page.getByRole("button", { name: "關閉提示" });
   if ((await dismiss.count()) > 0) await dismiss.click();
@@ -351,7 +352,12 @@ try {
     "warm",
   );
   await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
+  await expect(page.getByText("工作區讀取失敗")).toHaveCount(0);
   await page.screenshot({ path: join(output, "spoken-warm-revision.png") });
+  await page.unroute("**/api/workflows");
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  const recover = page.getByRole("button", { name: "關閉提示" });
+  if ((await recover.count()) > 0) await recover.click();
   await voice.click();
   await page.evaluate(() => {
     const current = (

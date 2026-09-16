@@ -5,6 +5,22 @@ import { taskHasWorkspaceResult } from "@/lib/client/activity";
 export const WORKSPACE_LOAD_NOTICE =
   "工作區讀取失敗。請重新載入頁面；連線未確認時仍可使用此工作區。";
 
+/** After a spec exists, 「沒有出圖」 must not be replaced by the load notice. */
+export function studentNoticeBarText(
+  error: string,
+  notice: string,
+  offline: boolean,
+  offlineNotice: string,
+): string {
+  if (error) return error;
+  if (notice) return notice;
+  return offline ? offlineNotice : "";
+}
+
+export function shouldShowWorkspaceLoadNotice(hasDirectionSpec: boolean): boolean {
+  return !hasDirectionSpec;
+}
+
 const SECRETISH =
   /HERMES_API|Bearer\s|sk-[a-zA-Z0-9_-]{8,}|postgres(?:ql)?:\/\/|vault\.key|環境變數|CONSOLE_GATEWAY|x-console-gateway/i;
 

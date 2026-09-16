@@ -10,6 +10,8 @@ import {
   mergeWorkspaceSnapshot,
   readWorkspaceSnapshot,
   studentSafeApiMessage,
+  shouldShowWorkspaceLoadNotice,
+  studentNoticeBarText,
   upsertConversation,
 } from "../lib/client/workspace-state";
 
@@ -120,6 +122,25 @@ test("student-safe workspace notice never echoes secrets", () => {
     studentSafeApiMessage("請稍後再試，請求次數已達限制。"),
     "請稍後再試，請求次數已達限制。",
   );
+  assert.equal(
+    studentNoticeBarText(
+      WORKSPACE_LOAD_NOTICE,
+      "Hermes 尚未連線，沒有出圖。",
+      true,
+      "離線 · 顯示上次資料。",
+    ),
+    WORKSPACE_LOAD_NOTICE,
+  );
+  assert.equal(
+    studentNoticeBarText("", "Hermes 尚未連線，沒有出圖。", true, "離線 · 顯示上次資料。"),
+    "Hermes 尚未連線，沒有出圖。",
+  );
+  assert.equal(
+    studentNoticeBarText("", "", true, "離線 · 顯示上次資料。"),
+    "離線 · 顯示上次資料。",
+  );
+  assert.equal(shouldShowWorkspaceLoadNotice(false), true);
+  assert.equal(shouldShowWorkspaceLoadNotice(true), false);
 });
 
 test("aborted fetches are not treated as a fatal empty workspace", () => {

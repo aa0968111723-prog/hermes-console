@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import type { DirectionBriefPack } from "../lib/direction-brief";
 import type { Workflow } from "../lib/server/workflows";
 import {
+  applyDirectionBriefFromTask,
+  hasDirectionSpec,
   mergeWorkflows,
+  readDirectionBriefFromTask,
   readSelectedDirectionWorkflow,
   upsertWorkflow,
 } from "../lib/client/workflow-state";
@@ -86,7 +89,75 @@ test("empty or stale workflow GET keeps the local spec", () => {
   assert.ok(dropped.some((item) => item.id === "wf-select"));
   const stripped = mergeWorkflows([local], [{ ...local, directionBrief: null }]);
   assert.equal(stripped.find((item) => item.id === "wf-select")?.directionBrief?.selected, "A");
+  const staleV1 = mergeWorkflows(
+    [{ ...local, directionBrief: { ...pack(), revision: 2, visualNote: "配色偏暖。規則修訂，不是出圖。" }, updatedAt: "2026-01-01T00:00:05.000Z" }],
+    [{ ...local, directionBrief: { ...pack(), revision: 1 }, updatedAt: "2026-01-01T00:00:06.000Z" }],
+  );
+  assert.equal(staleV1[0].directionBrief?.revision, 2);
+  assert.match(staleV1[0].directionBrief?.visualNote || "", /配色偏暖/);
   const upserted = upsertWorkflow([], local);
   assert.equal(upserted[0].id, "wf-select");
   assert.equal(upsertWorkflow(upserted, { ...local, updatedAt: "later" })[0].updatedAt, "later");
+});
+
+test("task POST events update the trailing spec without waiting on GET", () => {
+  const local: Workflow = {
+    id: "wf-select",
+    projectId: "personal",
+    brief: "規格草稿",
+    directions: [],
+    selected: 0,
+    state: "draft_ready",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:01.000Z",
+    canvaJobId: null,
+    design: null,
+    error: null,
+    directionBrief: { ...pack(), revision: 1 },
+    conversationId: "conv-1",
+  };
+  const warmer = {
+    ...pack(),
+    revision: 2,
+    visualNote: "配色偏暖。規則修訂，不是出圖。",
+  };
+  const task = {
+    conversationId: "conv-1",
+    updatedAt: "2026-01-01T00:00:08.000Z",
+    endedAt: "2026-01-01T00:00:08.000Z",
+    events: [
+      {
+        id: "e1",
+        taskId: "t1",
+        toolName: "workspace_revise_direction_spec",
+        status: "completed",
+        startedAt: "2026-01-01T00:00:08.000Z",
+        endedAt: "2026-01-01T00:00:08.000Z",
+        summary: "配色偏暖",
+        result: warmer,
+        sources: [],
+        error: null,
+        usage: null,
+      },
+    ],
+  };
+  assert.equal(readDirectionBriefFromTask(task)?.revision, 2);
+  const applied = applyDirectionBriefFromTask([local], task);
+  assert.equal(applied[0].directionBrief?.revision, 2);
+  assert.match(applied[0].directionBrief?.visualNote || "", /配色偏暖/);
+  const continueTask = {
+    ...task,
+    events: [
+      {
+        ...task.events[0],
+        toolName: "workspace_continue_direction_spec",
+        result: { ...pack(), revision: 1, rendered: false },
+      },
+    ],
+  };
+  const kept = applyDirectionBriefFromTask(applied, continueTask);
+  assert.equal(kept[0].directionBrief?.revision, 2);
+  assert.equal(hasDirectionSpec(applied), true);
+  assert.equal(hasDirectionSpec([]), false);
+  assert.equal(applyDirectionBriefFromTask([], task).length, 0);
 });
