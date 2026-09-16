@@ -2563,8 +2563,9 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
 .inspiration-result { display: grid; gap: 12px; margin: 12px 0 18px; }
-.inspiration-direction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
-.inspiration-direction-card { min-height: 44px; width: 100%; padding: 14px; border: 1px solid #dce9d8; border-radius: 20px; background: linear-gradient(160deg, #fff, #f3f8ef); box-shadow: var(--depth-card); text-align: left; color: inherit; cursor: pointer; }
+.inspiration-direction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.inspiration-direction-grid > li { min-width: 0; }
+.inspiration-direction-card { display: flex; flex-direction: column; align-items: flex-start; min-height: 44px; width: 100%; box-sizing: border-box; padding: 14px; border: 1px solid #dce9d8; border-radius: 20px; background: linear-gradient(160deg, #fff, #f3f8ef); box-shadow: var(--depth-card); text-align: left; color: inherit; cursor: pointer; }
 button.inspiration-direction-card:disabled { opacity: .6; cursor: not-allowed; }
 button.inspiration-direction-card.selected { border-color: var(--color-primary); box-shadow: var(--depth-floating, 0 8px 24px rgba(40,70,40,.08)); }
 .inspiration-pick { display: inline-flex; align-items: center; min-height: 44px; margin-top: 8px; color: var(--color-primary); font-size: 13px; font-weight: 650; }
