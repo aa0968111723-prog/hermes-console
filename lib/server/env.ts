@@ -10,4 +10,9 @@ export function validateProductionEnv() {
   } catch {
     throw new Error("CONSOLE_ORIGIN must be an absolute URL.");
   }
+  if (process.env.CONSOLE_AUTH_MODE?.trim() === "workspace") {
+    throw new Error(
+      "CONSOLE_AUTH_MODE=workspace is not allowed in production. Use required.",
+    );
+  }
 }
