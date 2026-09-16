@@ -111,8 +111,8 @@ try {
   await expect(failPage.getByRole("textbox", { name: "訊息", exact: true })).toBeEnabled();
   await failPage.getByRole("textbox", { name: "訊息", exact: true }).fill("先問一句");
   await expect(failPage.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled();
-  const failBanner = failPage.getByRole("alert");
-  await expect(failBanner).toContainText("工作區讀取失敗");
+  const failBanner = failPage.getByRole("alert").filter({ hasText: "工作區讀取失敗" });
+  await expect(failBanner).toBeVisible();
   await expect(failBanner).toContainText("連線未確認時仍可使用此工作區");
   await expect(failBanner).not.toContainText("Bearer");
   await expect(failBanner).not.toContainText("sk-live");
