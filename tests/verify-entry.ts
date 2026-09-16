@@ -86,6 +86,20 @@ try {
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
   });
+  await context.addInitScript(`
+    class FakeSpeechRecognition {
+      lang = "";
+      interimResults = false;
+      continuous = false;
+      onresult = null;
+      onerror = null;
+      onend = null;
+      start() { window.__hermesSpeech = this; }
+      stop() { if (this.onend) this.onend(); }
+    }
+    window.SpeechRecognition = FakeSpeechRecognition;
+    window.webkitSpeechRecognition = FakeSpeechRecognition;
+  `);
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -99,11 +113,62 @@ try {
   await expect(page.getByText("正在確認身分")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
   const voice = page.getByRole("button", { name: "語音輸入" });
-  if ((await voice.count()) > 0) {
-    const box = await voice.boundingBox();
-    assert.ok(box && box.width >= 44 && box.height >= 44);
-  }
+  await expect(voice).toBeVisible();
+  const box = await voice.boundingBox();
+  assert.ok(box && box.width >= 44 && box.height >= 44);
+  await voice.click();
+  const rec = await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: { lang: string; continuous: boolean };
+      }
+    ).__hermesSpeech;
+    return current ? { lang: current.lang, continuous: current.continuous } : null;
+  });
+  assert.equal(rec?.lang, "zh-TW");
+  assert.equal(rec?.continuous, true);
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      results: [{ isFinal: true, 0: { transcript: "我想辦茶會" } }],
+    });
+    current?.onresult?.({
+      results: [
+        { isFinal: true, 0: { transcript: "我想辦茶會" } },
+        { isFinal: true, 0: { transcript: "再幫我看場佈" } },
+      ],
+    });
+  });
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "我想辦茶會 再幫我看場佈",
+  );
+  await expect(page.getByText("說完了，請按送出")).toHaveCount(0);
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByText("說完了，請按送出")).toBeVisible();
   await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
+  await page.screenshot({ path: join(output, "voice-ready-hint.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onerror: ((event?: { error?: string }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onerror?.({ error: "no-speech" });
+  });
+  await expect(page.locator(".notice-bar.warning")).toContainText("沒聽到語音");
+  await page.screenshot({ path: join(output, "voice-no-speech.png") });
+  await page.getByRole("button", { name: "關閉提示" }).click();
 
   await page.locator(".connection-pill").click();
   await expect(page.getByRole("heading", { name: "能力", exact: true })).toBeVisible();
