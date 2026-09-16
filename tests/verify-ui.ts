@@ -357,6 +357,15 @@ try {
   ).toContainText("測試來源暫時不可用");
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
+  await pickA.click();
+  await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible();
+  await expect(page.getByText("最自然")).toBeVisible();
+  await expect(page.getByText(/不是已出圖/)).toBeVisible();
+  await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
+  await page.screenshot({
+    path: join(output, "direction-brief-mobile.png"),
+    fullPage: true,
+  });
   await dockNav.getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });

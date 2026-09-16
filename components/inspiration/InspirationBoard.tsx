@@ -11,6 +11,8 @@ import RecruitmentTruthNotice from "@/components/help/RecruitmentTruthNotice";
 import { RecruitmentFunnelFold } from "@/components/help/RecruitmentFunnelCard";
 import type { InspirationSearchPack } from "@/lib/inspiration-pack";
 import InspirationResult from "@/components/visual/InspirationResult";
+import DirectionBrief from "@/components/visual/DirectionBrief";
+import type { DirectionBriefPack } from "@/lib/direction-brief";
 
 const KIND_LABEL: Record<VisualPattern["kind"], string> = {
   design: "畫面",
@@ -29,6 +31,7 @@ export default function InspirationBoard({
   onSelectDirection,
   selectedDirection,
   selecting = false,
+  brief = null,
 }: {
   items: InspirationItem[];
   notice: string;
@@ -38,6 +41,7 @@ export default function InspirationBoard({
   onSelectDirection?: (id: "A" | "B" | "C", pack: InspirationSearchPack) => void;
   selectedDirection?: "A" | "B" | "C" | null;
   selecting?: boolean;
+  brief?: DirectionBriefPack | null;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -75,6 +79,7 @@ export default function InspirationBoard({
           busy={selecting}
         />
       )}
+      {brief && <DirectionBrief brief={brief} />}
 
       <details className="language-fold">
         <summary>社團視覺語言</summary>

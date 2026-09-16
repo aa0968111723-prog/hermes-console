@@ -5,6 +5,7 @@ import { get, list, put, transaction } from "./store";
 import { canvaRequest } from "./canva";
 import { activity } from "./creative";
 import { recordDesignRevision } from "./artifacts";
+import type { DirectionBriefPack } from "../direction-brief";
 const url = z
   .string()
   .url()
@@ -60,6 +61,7 @@ export interface Workflow {
   artifactId?: string | null;
   revisionId?: string | null;
   error: string | null;
+  directionBrief?: DirectionBriefPack | null;
 }
 export function saveDirections(
   owner: string,
@@ -122,6 +124,20 @@ export function chooseDirection(owner: string, id: string, selected: number) {
       ...record,
       selected,
       state: "ready",
+      updatedAt: new Date().toISOString(),
+    } satisfies Workflow);
+  });
+}
+export function attachDirectionBrief(
+  owner: string,
+  id: string,
+  directionBrief: DirectionBriefPack,
+) {
+  return transaction(() => {
+    const record = workflow(owner, id);
+    return put("workflow", owner, {
+      ...record,
+      directionBrief,
       updatedAt: new Date().toISOString(),
     } satisfies Workflow);
   });

@@ -15,7 +15,8 @@ import type {
   InspirationSearchPack,
 } from "../../inspiration-pack";
 import { ApiError } from "../security";
-import { saveDirections, chooseDirection, type Workflow } from "../workflows";
+import { saveDirections, chooseDirection, attachDirectionBrief, type Workflow } from "../workflows";
+import { compileDirectionBrief } from "./brief";
 
 export function analyzeReference(input: {
   caption?: string;
@@ -359,9 +360,17 @@ export function selectInspirationDirection(input: {
       sources: httpsSources(item.evidenceUrls).slice(0, 20),
     })),
   });
-  const workflow =
+  const chosen =
     saved.selected === index
       ? saved
       : chooseDirection(input.owner, saved.id, index);
+  const workflow = attachDirectionBrief(
+    input.owner,
+    chosen.id,
+    compileDirectionBrief({
+      pack,
+      selected: input.selected,
+    }),
+  );
   return { workflow, pack };
 }

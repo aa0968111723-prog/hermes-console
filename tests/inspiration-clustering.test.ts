@@ -163,6 +163,23 @@ test("selecting a direction saves a workflow and is visible in project context",
   };
   assert.ok(context.workflows?.some((item) => item.selected === 1));
   assert.ok(context.workflows?.some((item) => item.selectedTitle));
+  assert.equal(first.workflow.directionBrief?.kind, "direction_brief");
+  assert.equal(first.workflow.directionBrief?.hermesGenerated, false);
+  assert.equal(first.workflow.directionBrief?.rendered, false);
+  assert.equal(first.workflow.directionBrief?.generatedImage, false);
+  assert.equal(first.workflow.directionBrief?.publish, false);
+  assert.equal(first.workflow.directionBrief?.formats.length, 3);
+  assert.ok(first.workflow.directionBrief?.copy.a);
+  assert.ok(first.workflow.directionBrief?.copy.b);
+  assert.ok(first.workflow.directionBrief?.copy.c);
+  assert.match(first.workflow.directionBrief?.notice || "", /不是 Hermes 生成/);
+  assert.match(first.workflow.directionBrief?.notice || "", /不是已出圖/);
+  assert.equal(switched.workflow.directionBrief?.selected, "B");
+  assert.match(JSON.stringify(first.workflow.directionBrief), /UNKNOWN/);
+  assert.doesNotMatch(
+    JSON.stringify(first.workflow.directionBrief),
+    /已搜尋整個 Instagram/,
+  );
 });
 
 test("picking a direction locks copy and visual without re-searching inspiration", () => {

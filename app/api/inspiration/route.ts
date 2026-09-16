@@ -77,12 +77,14 @@ export const POST = route(async (req) => {
             ? null
             : result.workflow.directions[result.workflow.selected]?.title ||
               null,
+        directionBrief: result.workflow.directionBrief || null,
       },
       pack: {
         kind: result.pack.kind,
         fullSiteSearch: false,
         itemCount: result.pack.itemCount,
       },
+      brief: result.workflow.directionBrief || null,
     });
   }
   if (!body.url)

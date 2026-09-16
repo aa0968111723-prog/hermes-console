@@ -69,7 +69,8 @@ import ComposerTaskStatus, {
 } from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
-import VisualMessage from "./visual/VisualMessage";
+import DirectionBrief from "./visual/DirectionBrief";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
 import TaskEventSummary from "./visual/TaskEventSummary";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
@@ -151,6 +152,10 @@ const isActive = (task: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
 const POLL_ACTIVE_MS = 3000;
 const POLL_IDLE_MS = 8000;
+const DIRECTION_LETTERS = ["A", "B", "C"] as const;
+function hermesCanContinue(health: Health | null) {
+  return health?.credential === "valid" && health.reachable === true;
+}
 const time = (value: string) =>
   new Date(value).toLocaleString("zh-TW", {
     month: "numeric",
@@ -275,6 +280,19 @@ export default function HermesConsole() {
     (t) => isActive(t) || t.state === "uncertain",
   );
   const hasActiveTask = tasks.some(isActive);
+  const directionWorkflow = [...workflows]
+    .filter((item) => item.projectId === project && item.directionBrief)
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+    .at(-1);
+  const rawBrief = directionWorkflow?.directionBrief;
+  const directionBrief = isDirectionBriefPack(rawBrief) ? rawBrief : null;
+  const selectedInspiration =
+    pickedDirection ||
+    (directionWorkflow &&
+    directionWorkflow.selected !== null &&
+    DIRECTION_LETTERS[directionWorkflow.selected]
+      ? DIRECTION_LETTERS[directionWorkflow.selected]
+      : directionBrief?.selected || null);
 
   const loadWorkspace = useCallback(async () => {
     const result = await api<Workspace>("workspace");
@@ -643,7 +661,18 @@ export default function HermesConsole() {
       setPickedDirection(id);
       await refresh();
       setNav("chat");
-      await sendPrompt(directionPickFollowUp(id, title), []);
+      if (hermesCanContinue(health)) {
+        try {
+          await sendPrompt(directionPickFollowUp(id, title), []);
+        } catch (cause) {
+          setNotice(
+            "規格已整理。Hermes 這次沒有接上，沒有假裝已查資料或已出圖。",
+          );
+          setError((cause as Error).message);
+        }
+      } else {
+        setNotice("規格已整理。Hermes 尚未連線，沒有假裝已查資料或已出圖。");
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1190,6 +1219,7 @@ export default function HermesConsole() {
                         匯入這個瀏覽器中的舊對話（不覆蓋原資料）
                       </button>
                     )}
+                    {directionBrief && <DirectionBrief brief={directionBrief} />}
                   </section>
                 ) : (
                   <>
@@ -1230,7 +1260,7 @@ export default function HermesConsole() {
                               }
                               onPickInspiration={pickInspirationDirection}
                               pickingInspiration={pickingInspiration}
-                              selectedInspiration={pickedDirection}
+                              selectedInspiration={selectedInspiration}
                             />
                           )}
                           {!!message.attachments?.length && (
@@ -1345,6 +1375,7 @@ export default function HermesConsole() {
                           )}
                         </article>
                       )}
+                    {directionBrief && <DirectionBrief brief={directionBrief} />}
                   </>
                 )}
               </div>
@@ -1713,8 +1744,9 @@ export default function HermesConsole() {
               pack={inspirationPack}
               syncStatus={sheetsSync}
               onSelectDirection={pickInspirationDirection}
-              selectedDirection={pickedDirection}
+              selectedDirection={selectedInspiration}
               selecting={pickingInspiration}
+              brief={directionBrief}
               onSync={async () => {
                 const result = await api<{ sheetsSync: SheetSyncResult }>(
                   "inspiration",

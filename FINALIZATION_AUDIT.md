@@ -64,3 +64,4 @@
 22. Planner 不再指向不存在的 `project_inspiration_then_web`／`creative_directions`／`audience_simulation`。找靈感走 `workspace_search_inspiration`（已收藏分群＋三個方向）；受眾走 `workspace_simulate_audience`；方向保存走 `workspace_save_directions`。`淡大` 視為淡江。對話與靈感板顯示方向卡，不丟連結清單或 JSON
 23. 方向卡可點選：寫入既有 workflow、`chooseDirection`，並自動送出「我選方向 A/B/C」接續整理文案。`workspace_project_context` 帶出已選定方向，不必叫使用者貼流程 ID
 24. 選定方向後 `directionLocked`：不再找靈感、不再 `workspace_save_directions`；計畫改為專案上下文 → 視覺規格 → 文案 → Canva 規格。即使跟進句含「文案／視覺／淡大」也不重跑靈感搜尋。token 裁切後仍保留鎖定指示，不會退回「再找靈感」
+25. 選定方向後立刻編譯可見的文案 A／B／C 與 4:5／9:16／A4 規格卡（規則草稿）。不是 Hermes 生成、不是已出圖。Hermes 未連線時仍可看到規格，並誠實提示尚未連線
