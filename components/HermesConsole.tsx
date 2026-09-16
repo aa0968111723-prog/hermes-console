@@ -360,17 +360,32 @@ export default function HermesConsole() {
       });
     };
   }, []);
-  useEffect(() => {
-    if (panel) dialog.current?.showModal();
-    else dialog.current?.close();
-  }, [panel]);
+  const panelOpener = useRef<HTMLElement | null>(null);
   const previousPanel = useRef(panel);
   useEffect(() => {
+    const node = dialog.current;
     const was = previousPanel.current;
     previousPanel.current = panel;
-    if (was === "task" && !panel) {
-      // Chat-first: closing task sheet returns focus to composer.
+    if (panel) {
+      if (node && !node.open) {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && !node.contains(active)) {
+          panelOpener.current = active;
+        }
+        node.showModal();
+      }
+      return;
+    }
+    if (node?.open) node.close();
+    if (was === "task") {
+      panelOpener.current = null;
       const frame = requestAnimationFrame(() => input.current?.focus());
+      return () => cancelAnimationFrame(frame);
+    }
+    const opener = panelOpener.current;
+    panelOpener.current = null;
+    if (opener && document.contains(opener)) {
+      const frame = requestAnimationFrame(() => opener.focus());
       return () => cancelAnimationFrame(frame);
     }
   }, [panel]);
