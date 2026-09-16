@@ -43,11 +43,11 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`npm run rehearse`、`test:entry`、`test:ui`、`test:chat`、`test:workbench`、`test:runtime`、`test:gateway` 通過。
-- `npm test`：409 tests, 407 pass, 2 skipped, 0 fail。含 health GET 不等 hanging Hermes、store 掛掉仍 live、backup 不印 vault key、記憶／本地對話讀取不等 Hermes。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:ui`、`test:gateway` 通過。
+- `npm test`：412 tests, 410 pass, 2 skipped, 0 fail。含 hanging Hermes `ensureHermesReady` ~1s failed（不是 20s catalog）、POST `/api/tasks` 學生 503「Hermes 還沒連上。請到設定的連線頁。」。
 - `/` First Load JS 109 kB（shared 103 kB；登入頁 6.13 kB）。
-- Playwright 六套契約全過。`test:ui` 本機 Chrome LCP 376ms／CLS ~0.00008（不是實機）。
-- `npm run rehearse`：local `ok: true`，Hermes／Google／Tamkang／mail／gateway 皆未設定並寫入 warnings。不是 Zeabur。
+- Playwright：`test:ui` 本機 Chrome LCP 368ms／CLS 0（不是實機）。連線控制 `aria-label="連線狀態：未設定"`，畫面只顯示狀態點。
+- `check:secrets`：676 files，無偵測到的 secret literal。History/deployment rotation 未驗證。
 
 ## 仍是 Partial（禁止標綠）
 
