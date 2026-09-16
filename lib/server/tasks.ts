@@ -267,8 +267,6 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   for (const id of input.attachments)
     if (material(owner, id).projectId !== conv.projectId)
       throw new ApiError(403, "scope_mismatch", "附件不屬於此專案。");
-  // Validate actual attachment support before reserving a task or transmitting anything.
-  await attachmentParts(owner, input.attachments);
   const payloadHash = hash(JSON.stringify(input));
   const existing = list<Task>("task", owner).find(
     (t) => t.requestKey === input.requestKey,
@@ -294,6 +292,8 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       throw new ApiError(503, "hermes_not_ready", connection.message);
     return submitLocalWorkspace(owner, conv, input, payloadHash, local);
   }
+  // Hermes will receive parts: only then require verified image input.
+  await attachmentParts(owner, input.attachments);
   const native =
     connection.features.run_submission &&
     connection.features.run_status &&

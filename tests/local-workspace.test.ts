@@ -4,6 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { seedSession } from "./session-fixture";
 import type { Conversation } from "../lib/contracts";
 import { parseVisualConceptPack } from "../lib/client/visual-pack";
@@ -166,4 +167,44 @@ test("unconfigured Hermes answers poster critique without fake vision", async ()
   assert.match(task.output, /請先上傳海報/);
   assert.match(task.output, /假裝已看圖/);
   assert.doesNotMatch(task.output, /視覺層級：/);
+});
+
+test("unconfigured Hermes with a saved image still does not fake vision", async () => {
+  const bytes = await sharp({
+    create: { width: 2, height: 2, channels: 3, background: "#90c070" },
+  })
+    .png()
+    .toBuffer();
+  const { saveUpload } = await import("../lib/server/materials");
+  const asset = await saveUpload(
+    "workspace",
+    "personal",
+    "poster.png",
+    "image/png",
+    bytes,
+  );
+  const conv = put("conversation", "workspace", {
+    id: randomUUID(),
+    title: "看圖附件",
+    projectId: "personal",
+    messages: [],
+    hermesSessionId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  const task = await submit("workspace", {
+    conversationId: conv.id,
+    requestKey: randomUUID(),
+    input: "這張哪裡可以改？",
+    attachments: [asset.id],
+  });
+  assert.equal(task.state, "completed");
+  assert.match(task.output, /圖片已保存/);
+  assert.match(task.output, /不能讀取像素/);
+  assert.doesNotMatch(task.output, /視覺層級：/);
+  const stored = get<Conversation>("conversation", "workspace", conv.id);
+  assert.equal(
+    stored?.messages.filter((m) => m.role === "assistant")[0]?.provenance,
+    "workspace",
+  );
 });
