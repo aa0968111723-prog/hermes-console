@@ -17,6 +17,7 @@ test("home quick actions keep all six labels on mobile", async () => {
   assert.doesNotMatch(source, /actions\.slice\(0,\s*4\)/);
   assert.doesNotMatch(source, /幫我找 IG/);
   assert.match(source, /只用可取得的公開來源/);
+  assert.match(conversation, /<QuickActions onSelect=\{onQuickAction\} \/>/);
   const css = await readFile(
     new URL("../app/mobile-spatial.css", import.meta.url),
     "utf8",
