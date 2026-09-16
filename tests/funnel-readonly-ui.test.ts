@@ -122,6 +122,7 @@ test("funnel readonly UI wired to Help + Inspiration fold; no headcount/PII rend
     "utf8",
   );
   assert.match(consoleUi, /className="knowledge-fold"/);
+  assert.match(consoleUi, /className="secondary-page" key=\{nav\}/);
   assert.doesNotMatch(consoleUi, /請查回創作流程 /);
   assert.match(consoleUi, /請接續修改同一作品/);
   // Fold sits below soft notice — not a permanent main-column card body

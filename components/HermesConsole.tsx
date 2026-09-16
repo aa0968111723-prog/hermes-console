@@ -1697,7 +1697,7 @@ export default function HermesConsole() {
             </div>
           </>
         ) : nav === "projects" ? (
-          <section className="secondary-page">
+          <section className="secondary-page" key={nav}>
             <h1>素材與靈感</h1>
             <ProjectShelf
               projects={data.projects}
@@ -1842,7 +1842,7 @@ export default function HermesConsole() {
             )}
           </section>
         ) : nav === "inspiration" ? (
-          <section className="secondary-page">
+          <section className="secondary-page" key={nav}>
             <InspirationBoard
               items={inspiration}
               pack={inspirationPack}
@@ -1876,7 +1876,7 @@ export default function HermesConsole() {
             </details>
           </section>
         ) : nav === "agents" ? (
-          <section className="secondary-page">
+          <section className="secondary-page" key={nav}>
             <div className="page-heading-row">
               <div>
                 <p className="eyebrow">能力</p>
@@ -1901,7 +1901,7 @@ export default function HermesConsole() {
             </details>
           </section>
         ) : (
-          <section className="secondary-page">
+          <section className="secondary-page" key={nav}>
             <h1>任務</h1>
             <ArtifactDeck
               items={workflows.filter((w) => w.projectId === project)}

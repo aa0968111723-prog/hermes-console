@@ -478,8 +478,15 @@ try {
   assert.equal(inspirationJson.pack.fullSiteSearch, false);
   assert.equal(inspirationJson.pack.kind, "inspiration_search");
   assert.ok(inspirationJson.pack.directions.length >= 1);
-  const pickA = page.getByRole("button", { name: /選方向 A/ });
+  const pickA = page
+    .locator(".inspiration-board")
+    .getByRole("button", { name: /選方向 A/ });
   await expect(pickA).toBeVisible();
+  assert.equal(
+    await page.locator(".secondary-page").evaluate((el) => el.scrollTop),
+    0,
+    "切到靈感必須從頁頂開始，不能沿用任務頁捲動",
+  );
   await expect(pickA).toBeInViewport();
   const pickBox = await pickA.boundingBox();
   assert.ok(pickBox && pickBox.height >= 44);
