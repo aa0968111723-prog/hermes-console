@@ -185,8 +185,42 @@ export async function verifyVisualStates(
       },
     }),
   );
-  await page.route("**/api/workflows", (route) =>
-    route.fulfill({
+  let lastWorkflowPatch: { id?: string; selected?: number } | null = null;
+  await page.route("**/api/workflows", async (route) => {
+    if (route.request().method() === "PATCH") {
+      const body = (route.request().postDataJSON() || {}) as {
+        id?: string;
+        selected?: number;
+      };
+      lastWorkflowPatch = { id: body.id, selected: body.selected };
+      for (const event of task.events) {
+        const payload = event.result as
+          | { id?: string; selected?: number | null; state?: string }
+          | null;
+        if (payload && payload.id === body.id) {
+          payload.selected = body.selected ?? null;
+          payload.state = "ready";
+        }
+      }
+      return route.fulfill({
+        json: {
+          workflow: {
+            id: body.id,
+            projectId: "personal",
+            brief: "[介面測試] 已選定方向，尚未製作",
+            directions: [],
+            selected: body.selected ?? null,
+            state: "ready",
+            createdAt: now,
+            updatedAt: now,
+            canvaJobId: null,
+            error: null,
+            design: null,
+          },
+        },
+      });
+    }
+    return route.fulfill({
       json: {
         workflows: [
           {
@@ -214,8 +248,8 @@ export async function verifyVisualStates(
           },
         ],
       },
-    }),
-  );
+    });
+  });
   await page.route("https://www.canva.com/ui-fixture-preview.png", (route) =>
     route.fulfill({ contentType: "image/png", body: image }),
   );
@@ -591,6 +625,26 @@ export async function verifyVisualStates(
   await picks.scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(output, "chat-directions-mobile.png") });
   await audit("chat-directions");
+  lastWorkflowPatch = null;
+  await picks.getByRole("button", { name: "用這個方向" }).first().click();
+  await expect.poll(() => lastWorkflowPatch).toEqual({
+    id: "ui-fixture-artifact-B",
+    selected: 0,
+  });
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toContainText("已選定「校園生活」");
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toContainText("不要另起無關作品");
+  await expect(picks).toContainText("已選定方向。製作結果會出現在下方預覽。");
+  await expect(picks.getByRole("button", { name: "用這個方向" })).toHaveCount(0);
+  await expect(page.locator(".conversation .artifact-stage")).toHaveCount(0);
+  await expect(picks).not.toContainText("已發佈");
+  await expect(picks).not.toContainText("toolCallId");
+  await picks.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(output, "chat-direction-pick-mobile.png") });
+  await audit("chat-direction-pick");
   task.output = "[介面測試] 草稿已回來。";
   task.events = [
     {
