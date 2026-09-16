@@ -29,7 +29,7 @@
 - 正式 Auth：Google／Email 需部署端密鑰；淡江 SSO 缺校方 metadata。帳號頁可列出／結束其他工作階段；目前這個瀏覽器只能登出
 - MCP 真實探測需各服務 URL／TOKEN
 - Artifact 比較是並排預覽，不是像素 diff；PDF／連結沒有偽造封面
-- Inspiration／Audience Twin／研究 Markdown 檢索
+- Inspiration／Audience Twin／研究 Markdown 檢索。靈感已接到 `workspace_search_inspiration`：分群＋三個方向，不假裝 IG 全站搜尋
 
 ## 危險／誠實限制
 
@@ -61,3 +61,4 @@
 19. 已登入帳號可連結 Email；Google → 淡江 → Email 後用淡江回來仍是同一 User。淡江 OIDC 以本機 mock IdP 契約測試（discovery + PKCE）；SAML／CAS 誠實未設定
 20. 忘記密碼信件的 `/#reset=` 會打開重設密碼表單，不會把 token 當成登入／驗證一次用掉
 21. 未設 `HERMES_IMAGE_INPUT=true` 時，附圖顯示「尚未驗證讀圖」，送出前拒絕，不假裝已分析。Runtime 開發者檢視的讀圖狀態跟 env 走，不是 unknown
+22. Planner 不再指向不存在的 `project_inspiration_then_web`／`creative_directions`／`audience_simulation`。找靈感走 `workspace_search_inspiration`（已收藏分群＋三個方向）；受眾走 `workspace_simulate_audience`；方向保存走 `workspace_save_directions`。`淡大` 視為淡江。對話與靈感板顯示方向卡，不丟連結清單或 JSON

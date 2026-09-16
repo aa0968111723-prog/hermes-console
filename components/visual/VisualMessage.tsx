@@ -3,6 +3,8 @@ import type { Task } from "@/lib/contracts";
 import { eventState, safeSource } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
+import { isInspirationSearchPack } from "@/lib/inspiration-pack";
+import InspirationResult from "./InspirationResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
 export default function VisualMessage({
@@ -25,10 +27,15 @@ export default function VisualMessage({
     (state) => state === "completed",
   ).length;
   const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
-  if (!sources.length && !calls.size && !twinPanel && !layout) return null;
+  const inspiration = task.events
+    .map((event) => event.result)
+    .find(isInspirationSearchPack);
+  if (!sources.length && !calls.size && !twinPanel && !layout && !inspiration)
+    return null;
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
+      {inspiration && <InspirationResult pack={inspiration} />}
       {!!calls.size && (
         <button className="tool-result-summary" onClick={onInspect}>
           {completed === calls.size ? (

@@ -1,7 +1,7 @@
 import type { StructuredGoal } from "../../contracts";
 import { classifyIntent } from "./intent";
 
-const TAMKANG = /淡江|淡水|克難坡|TKU|tku|教心所/;
+const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
 const DESIGN = /海報|網宣|Canva|canva|視覺|設計|稿/;
 const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會/;

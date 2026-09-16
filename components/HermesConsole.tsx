@@ -75,6 +75,7 @@ import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
+import type { InspirationSearchPack } from "@/lib/inspiration-pack";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
 import {
   emptyDraft,
@@ -194,6 +195,7 @@ export default function HermesConsole() {
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
+  const [inspirationPack, setInspirationPack] = useState<InspirationSearchPack | null>(null);
   const [sheetsSync, setSheetsSync] = useState<SheetSyncResult | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(false);
@@ -794,12 +796,15 @@ export default function HermesConsole() {
         .then((result) => setAgents(result.agents))
         .catch(() => {});
     if (next === "inspiration")
-      api<{ items: InspirationItem[]; sheetsSync: SheetSyncResult | null }>(
-        "inspiration",
-      )
+      api<{
+        items: InspirationItem[];
+        sheetsSync: SheetSyncResult | null;
+        pack?: InspirationSearchPack;
+      }>("inspiration")
         .then((result) => {
           setInspiration(result.items);
           setSheetsSync(result.sheetsSync);
+          setInspirationPack(result.pack || null);
         })
         .catch(() => {});
   };
@@ -1656,6 +1661,7 @@ export default function HermesConsole() {
           <section className="secondary-page">
             <InspirationBoard
               items={inspiration}
+              pack={inspirationPack}
               syncStatus={sheetsSync}
               onSync={async () => {
                 const result = await api<{ sheetsSync: SheetSyncResult }>(
@@ -1665,10 +1671,11 @@ export default function HermesConsole() {
                 );
                 setSheetsSync(result.sheetsSync);
                 const [updated, workspace] = await Promise.all([
-                  api<{ items: InspirationItem[] }>("inspiration"),
+                  api<{ items: InspirationItem[]; pack?: InspirationSearchPack }>("inspiration"),
                   api<Workspace>("workspace"),
                 ]);
                 setInspiration(updated.items);
+                setInspirationPack(updated.pack || null);
                 setData(workspace);
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"

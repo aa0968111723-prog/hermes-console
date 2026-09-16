@@ -85,18 +85,25 @@ export function buildPlan(
     );
   }
   if (goal.requiresInspiration) {
+    const inspiration = routes.find((item) => item.id === "inspiration");
     steps.push(
-      step("找靈感", "先讀已收藏靈感，再搜尋已授權來源。", "project_inspiration_then_web", "ask_user"),
+      step(
+        "找靈感",
+        "查已收藏來源、分群與創作方向；不假裝 IG 全站搜尋。",
+        inspiration?.tool || "workspace_search_inspiration",
+        inspiration?.fallback || "ask_user",
+      ),
     );
   }
   if (goal.requiresAudienceEvaluation) {
+    const audience = routes.find((item) => item.id === "audience");
     steps.push(
       step(
         "受眾模擬",
         goal.requiresTamkang
           ? "以淡江新生假設做 SIMULATION，不是真實轉換率。"
           : `以${goal.audience || "目標受眾"}假設做 SIMULATION，不是真實轉換率。`,
-        "audience_simulation",
+        audience?.tool || "workspace_simulate_audience",
         null,
       ),
     );
@@ -112,7 +119,12 @@ export function buildPlan(
       ),
     );
     steps.push(
-      step("提出創作方向", "給出策略層不同的方向並排序。", "creative_directions", null),
+      step(
+        "提出創作方向",
+        "給出策略層不同的方向並排序，等待使用者選擇。",
+        "workspace_save_directions",
+        null,
+      ),
     );
     steps.push(
       step(

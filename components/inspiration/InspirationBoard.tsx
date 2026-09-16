@@ -9,6 +9,8 @@ import {
 import { Ban, ExternalLink, Image, Link2, Sparkles } from "lucide-react";
 import RecruitmentTruthNotice from "@/components/help/RecruitmentTruthNotice";
 import { RecruitmentFunnelFold } from "@/components/help/RecruitmentFunnelCard";
+import type { InspirationSearchPack } from "@/lib/inspiration-pack";
+import InspirationResult from "@/components/visual/InspirationResult";
 
 const KIND_LABEL: Record<VisualPattern["kind"], string> = {
   design: "畫面",
@@ -22,11 +24,13 @@ export default function InspirationBoard({
   items,
   notice,
   syncStatus,
+  pack,
   onSync,
 }: {
   items: InspirationItem[];
   notice: string;
   syncStatus: SheetSyncResult | null;
+  pack?: InspirationSearchPack | null;
   onSync: () => Promise<void>;
 }) {
   const [busy, setBusy] = useState(false);
@@ -55,7 +59,10 @@ export default function InspirationBoard({
 
       <RecruitmentTruthNotice />
       <RecruitmentFunnelFold />
+      {pack && <InspirationResult pack={pack} />}
 
+      <details className="language-fold">
+        <summary>社團視覺語言</summary>
       <article className="language-problem">
         <p className="eyebrow">目前最大問題</p>
         <h2>{language.biggestProblem}</h2>
@@ -140,6 +147,7 @@ export default function InspirationBoard({
           </p>
         </article>
       </div>
+      </details>
 
       <button type="button" disabled={busy} onClick={sync} style={{ minHeight: 44 }}>
         {busy ? "讀取中…" : "匯入已設定來源"}
@@ -170,6 +178,9 @@ export default function InspirationBoard({
       {!items.length && (
         <p className="quiet">貼上 IG／Pinterest／網址，或直接在對話說「幫我找靈感」。</p>
       )}
+      {items.length > 0 && (
+        <details className="inspiration-links">
+          <summary>已收藏連結 {items.length}</summary>
       <ul>
         {items.map((item) => (
           <li key={item.id} className="inspiration-card">
@@ -197,6 +208,8 @@ export default function InspirationBoard({
           </li>
         ))}
       </ul>
+        </details>
+      )}
     </section>
   );
 }

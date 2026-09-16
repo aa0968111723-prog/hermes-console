@@ -2562,6 +2562,20 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .connection-storage > summary { font-size: var(--type-caption); color: var(--color-muted); }
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
+.inspiration-result { display: grid; gap: 12px; margin: 12px 0 18px; }
+.inspiration-direction-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.inspiration-direction-card { min-height: 44px; padding: 14px; border: 1px solid #dce9d8; border-radius: 20px; background: linear-gradient(160deg, #fff, #f3f8ef); box-shadow: var(--depth-card); }
+.inspiration-direction-id { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary); font-size: 12px; font-weight: 700; }
+.inspiration-direction-card strong { display: block; margin: 8px 0 6px; font-size: 15px; }
+.inspiration-direction-card p { margin: 0 0 8px; font-size: 13px; line-height: 1.4; }
+.inspiration-direction-card small { color: var(--muted); font-size: 11px; }
+.inspiration-cluster-rail, .inspiration-thumb-rail { display: flex; gap: 8px; overflow-x: auto; margin: 0; padding: 0 0 4px; list-style: none; }
+.inspiration-cluster-rail li, .inspiration-thumb-rail a { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 999px; background: #eef4ea; font-size: 12px; white-space: nowrap; }
+.inspiration-cluster-rail span { color: var(--muted); }
+.inspiration-thumb-rail a { color: var(--ink); text-decoration: none; }
+.inspiration-thumb-rail img { width: 28px; height: 28px; object-fit: cover; border-radius: 8px; }
+.language-fold, .inspiration-links { margin: 12px 0 18px; }
+.language-fold > summary, .inspiration-links > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--color-primary); font-weight: 650; }
 .visual-concept-deck { display: grid; gap: 12px; }
 .visual-concept-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
 .visual-concept-format { margin: 0; font-weight: 700; }

@@ -76,8 +76,8 @@ export function routeTools(
   if (goal.requiresInspiration) {
     routes.push({
       id: "inspiration",
-      tool: "project_inspiration_then_web",
-      reason: "先讀專案已收藏靈感，再請 Hermes 使用已授權搜尋；不假裝 IG 全站搜尋。",
+      tool: "workspace_search_inspiration",
+      reason: "先讀專案已收藏靈感並分群，不假裝 IG 全站搜尋。",
       fallback: "ask_user",
     });
   }
@@ -106,7 +106,7 @@ export function routeTools(
   if (goal.requiresAudienceEvaluation) {
     routes.push({
       id: "audience",
-      tool: "audience_simulation",
+      tool: "workspace_simulate_audience",
       reason: "受眾評估是規則／模擬，不是真實市場調查。",
       fallback: null,
     });

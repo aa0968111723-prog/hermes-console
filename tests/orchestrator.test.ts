@@ -43,6 +43,14 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     const campus = routes.find((item) => item.id === "campus")!;
     assert.equal(campus.tool, "hermes_authorized_web");
     const plan = buildPlan(goal, routes, "balanced");
+    assert.equal(
+      plan.steps.find((step) => step.title === "找靈感")?.tool,
+      "workspace_search_inspiration",
+    );
+    assert.equal(
+      plan.steps.find((step) => step.title === "受眾模擬")?.tool,
+      "workspace_simulate_audience",
+    );
     assert.ok(plan.steps.some((step) => step.title.includes("查資料")));
     assert.ok(plan.steps.some((step) => step.title.includes("靈感")));
     assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
@@ -77,7 +85,7 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
       const campus = routeTools(goal, [tamkang]).find((item) => item.id === "campus");
       assert.equal(campus, undefined, prompt);
     }
-    for (const prompt of ["淡江新生茶會", "淡江大一新生", "教心所研究倫理"]) {
+    for (const prompt of ["淡江新生茶會", "淡江大一新生", "教心所研究倫理", "淡大禪學社茶會"]) {
       const goal = interpretGoal(prompt);
       assert.equal(goal.requiresTamkang, true, prompt);
       assert.equal(goal.audience, "淡江大一新生（模擬，不是民調）");

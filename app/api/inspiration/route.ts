@@ -6,7 +6,7 @@ import {
   listInspiration,
   pinterestResearchLimits,
 } from "@/lib/server/inspiration";
-import { searchInspiration, resolveInspirationUrl } from "@/lib/server/inspiration/engine";
+import { searchInspiration, resolveInspirationUrl, toInspirationPack } from "@/lib/server/inspiration/engine";
 import { providerHealth } from "@/lib/server/inspiration/providers";
 import { syncSheetsInspiration, sheetsSyncStatus } from "@/lib/server/inspiration/sheets-sync";
 import { tkuVisualLanguage } from "@/lib/server/inspiration/visual-language";
@@ -16,8 +16,14 @@ export const runtime = "nodejs";
 export const GET = route(async (req) => {
   authenticate(req);
   const projectId = new URL(req.url).searchParams.get("projectId") || undefined;
+  const items = listInspiration(projectId);
   return respond({
-    items: listInspiration(projectId),
+    items,
+    pack: toInspirationPack({
+      prompt: "靈感板",
+      projectId: projectId || "personal",
+      items,
+    }),
     instagram: instagramResearchLimits(),
     pinterest: pinterestResearchLimits(),
     plan: inspirationSearchPlan("幫我找靈感"),
