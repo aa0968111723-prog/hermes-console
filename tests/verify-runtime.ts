@@ -195,6 +195,9 @@ try {
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toHaveValue(/第 2 個方向/);
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).not.toHaveValue(new RegExp(workflow.id));
   const saved = await (
     await context.request.get(base + "/api/workflows")
   ).json();

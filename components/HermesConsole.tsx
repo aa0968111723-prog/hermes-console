@@ -64,6 +64,10 @@ import ComposerTaskStatus, {
   shortTaskError,
 } from "./visual/ComposerTaskStatus";
 import { taskProgressLabel } from "@/lib/client/activity";
+import {
+  continueArtifactPrompt,
+  continueDirectionPrompt,
+} from "@/lib/client/continue-prompts";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
@@ -1548,13 +1552,9 @@ export default function HermesConsole() {
             />
             <ArtifactDeck
               items={workflows.filter((w) => w.projectId === project)}
-              onContinue={(id) => {
+              onContinue={() => {
                 setNav("chat");
-                setText(
-                  "請查回創作流程 " +
-                    id +
-                    " 的現有設計，接續修改同一作品，不要另建無關作品。",
-                );
+                setText(continueArtifactPrompt());
               }}
               onRestore={async (id, revision) => {
                 try {
@@ -1766,13 +1766,9 @@ export default function HermesConsole() {
             <h1>任務</h1>
             <ArtifactDeck
               items={workflows.filter((w) => w.projectId === project)}
-              onContinue={(id) => {
+              onContinue={() => {
                 setNav("chat");
-                setText(
-                  "請查回創作流程 " +
-                    id +
-                    " 的現有設計，接續修改同一作品，不要另建無關作品。",
-                );
+                setText(continueArtifactPrompt());
               }}
               onRestore={async (id, revision) => {
                 try {
@@ -1850,13 +1846,7 @@ export default function HermesConsole() {
                                 selected: index,
                               });
                               await refresh();
-                              setText(
-                                "已在 Console 選定創作流程 " +
-                                  w.id +
-                                  " 的第 " +
-                                  (index + 1) +
-                                  " 個方向。請查詢可用 Canva 範本欄位，依此方向製作草稿；如缺授權請保留阻塞點。",
-                              );
+                              setText(continueDirectionPrompt(index));
                               setNav("chat");
                             } catch (e) {
                               setError((e as Error).message);
@@ -1888,7 +1878,7 @@ export default function HermesConsole() {
                       }}
                     >
                       <RefreshCw size={16} />
-                      查回 Canva 製作結果
+                      查看製作結果
                     </button>
                   )}
 

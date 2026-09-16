@@ -135,7 +135,7 @@ export default function SpatialPanel({
             加入想讓 Hermes 記住的事
           </button>
         )}
-        <small>工作區記憶 · 不代表遠端已同步</small>
+        <small>工作區記憶</small>
       </section>
     </div>
   );

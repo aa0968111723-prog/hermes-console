@@ -166,7 +166,7 @@ export default function ProjectWorkbench({
         <button
           onClick={() =>
             onCompose(
-              "請先用 workspace_project_context 查回這個專案的活動、來源及已有文案；核對必要資訊後，接續網宣草稿。缺少日期或地點先詢問我，不要捏造。",
+              "請接續這個專案的網宣草稿；缺日期或地點先問我，不要捏造。",
             )
           }
         >
@@ -175,7 +175,7 @@ export default function ProjectWorkbench({
         <button
           onClick={() =>
             onCompose(
-              "請先查回活動日期與地點；未確認標 UNKNOWN，不要捏造。產出 IG caption A 最自然、B 最有梗、C 最溫暖三版，順序 HOOK→生活場景→活動→為什麼來→時間地點→CTA。不要宗教宣傳。寫完用 workspace_review_copy 做新生視角審核，不要發佈。",
+              "請寫三版貼文：自然、有梗、溫暖。缺資料先問我，不要發佈。",
             )
           }
         >
@@ -677,17 +677,22 @@ export default function ProjectWorkbench({
                 </a>
                 <button
                   onClick={() =>
-                    onCompose(
-                      `請用 workspace_get_copy 讀取文案 ${d.id}，以 v${r.revision} 為修改基礎。先問我要改哪一頁或語氣，再沿用相同 id 保存新版本；不要重新搜尋或重建無關作品。`,
-                    )
+                    onCompose("請接續修改這則文案，不要另做無關的。")
                   }
                 >
                   在對話接續修改
                 </button>
-                {d.selectedRevision === r.revision && r.workflowId && <button
-                  onClick={() => onCompose(
-                    `請用 workspace_get_copy 查回文案 ${d.id} 已選版本 v${r.revision}，並查回方向流程 ${r.workflowId}。確認日期地點與素材後，依真實 Canva 範本欄位製作；若未授權請保留進度，不要宣稱完成。已有設計時先查回，不要重複建立。`
-                  )}>交給 Hermes 接續製作</button>}
+                {d.selectedRevision === r.revision && r.workflowId && (
+                  <button
+                    onClick={() =>
+                      onCompose(
+                        "請依已選方向接續製作；還沒授權就先保留進度，不要宣稱完成。",
+                      )
+                    }
+                  >
+                    交給 Hermes 接續製作
+                  </button>
+                )}
               </div>
             </details>
           ))}
