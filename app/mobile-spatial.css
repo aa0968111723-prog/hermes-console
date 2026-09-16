@@ -17,10 +17,10 @@
 }
 .app-shell > main {
   transform-origin: center 20%;
-  transition: transform var(--motion-standard) var(--ease-spatial);
+  min-height: 0;
 }
 .app-shell[data-sheet-open="true"] > main {
-  transform: translateY(-3px) scale(0.985);
+  filter: brightness(0.985);
 }
 .spatial-panel {
   min-width: 0;
@@ -310,7 +310,7 @@
   transform: none !important;
 }
 [data-spatial="static"][data-sheet-open="true"] > main {
-  transform: none;
+  filter: none;
 }
 [data-spatial="reduced"] .topbar,
 [data-spatial="reduced"] .mobile-bottom-dock {
@@ -327,10 +327,11 @@
 @media (max-width: 760px) {
   .app-shell,
   .app-shell.sidebar-closed {
-    padding-bottom: calc(90px + var(--safe-area-bottom));
+    --dock-clearance: calc(90px + var(--safe-area-bottom));
+    padding-bottom: var(--dock-clearance);
   }
   .topbar {
-    padding: 8px 12px;
+    padding: max(8px, var(--safe-area-top)) 12px 8px;
     min-height: 60px;
     flex: none;
   }
@@ -437,7 +438,7 @@
     background: var(--color-primary-soft);
   }
   .composer-area {
-    padding: 6px 12px 4px;
+    padding: 6px 12px max(4px, var(--safe-area-bottom));
     background: transparent;
   }
   .composer {

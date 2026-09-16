@@ -5,7 +5,6 @@ import {
   Images,
   MessageSquare,
   Sparkles,
-  ListTodo,
   ImagePlus,
   FileText,
   Palette,
@@ -62,12 +61,12 @@ export default function AppDock({
           <span>對話</span>
         </button>
         <button
-          aria-label="靈感"
-          aria-current={nav === "inspiration" ? "page" : undefined}
-          onClick={() => onNavigate("inspiration")}
+          aria-label="專案"
+          aria-current={nav === "projects" ? "page" : undefined}
+          onClick={() => onNavigate("projects")}
         >
-          <Sparkles size={21} />
-          <span>靈感</span>
+          <Images size={21} />
+          <span>專案</span>
         </button>
         <button
         className="dock-core"
@@ -86,20 +85,20 @@ export default function AppDock({
           <span className="sr-only">Hermes</span>
         </button>
         <button
-          aria-label="專案"
-          aria-current={nav === "projects" ? "page" : undefined}
-          onClick={() => onNavigate("projects")}
+          aria-label="靈感"
+          aria-current={nav === "inspiration" ? "page" : undefined}
+          onClick={() => onNavigate("inspiration")}
         >
-          <Images size={21} />
-          <span>專案</span>
+          <Sparkles size={21} />
+          <span>靈感</span>
         </button>
         <button
-          aria-label="任務"
-          aria-current={nav === "tasks" ? "page" : undefined}
-          onClick={() => onNavigate("tasks")}
+          aria-label="Agent"
+          aria-current={nav === "agents" ? "page" : undefined}
+          onClick={() => onNavigate("agents")}
         >
-          <ListTodo size={21} />
-          <span>任務</span>
+          <Bot size={21} />
+          <span>Agent</span>
         </button>
       </nav>
       <input
