@@ -1,0 +1,21 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+test("settings shell is extracted and still hosts Help plus five tabs", async () => {
+  const consoleUi = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  const panel = await readFile(
+    new URL("../components/settings/SettingsPanel.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(consoleUi, /settings\/SettingsPanel/);
+  assert.doesNotMatch(consoleUi, /<h3>說明<\/h3>/);
+  assert.match(panel, /HelpPage/);
+  assert.match(panel, /<h3>說明<\/h3>/);
+  assert.match(panel, /["']帳號["'], ["']外觀["'], ["']連線["'], ["']工作區["'], ["']進階["']/);
+  assert.doesNotMatch(panel, /校園密碼|以校園憑證|tkuPassword/);
+  assert.match(panel, /conversations\?id=" \+ conversationId/);
+});

@@ -23,14 +23,12 @@ import {
   Square,
   X,
   Link as LinkIcon,
-  ExternalLink,
 } from "lucide-react";
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
 import Turtle from "./Turtle";
-import IntegrationHealth from "./settings/IntegrationHealth";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
 import AgentOrbit from "./visual/AgentOrbit";
@@ -47,7 +45,6 @@ import ContextTray from "./visual/ContextTray";
 import MaterialThumb from "./visual/MaterialThumb";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
-import TaskUsageSummary from "./visual/TaskUsageSummary";
 import PreviewPanel from "./console/PreviewPanel";
 import TaskSheet from "./console/TaskSheet";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -71,6 +68,7 @@ import {
   shellMetrics,
   widthChanged,
 } from "@/lib/client/viewport";
+import { consoleApi as api } from "@/lib/client/console-api";
 import { taskPollDelayMs } from "@/lib/client/task-poll";
 import {
   connectionLabels,
@@ -78,7 +76,6 @@ import {
   isActiveTask,
   taskLabels,
 } from "@/lib/client/workspace-ui";
-import AccountPanel from "./auth/AccountPanel";
 import { useAuthOptional } from "./auth/AuthProvider";
 import { useSpatialMode } from "./visual/useSpatialMode";
 
@@ -92,15 +89,7 @@ const KnowledgeArchive = dynamic(
 const RuntimeInspector = dynamic(() => import("./RuntimeInspector"));
 const AgentPanel = dynamic(() => import("./agents/AgentPanel"));
 const SpatialPanel = dynamic(() => import("./visual/SpatialPanel"));
-const ConnectionSettings = dynamic(
-  () => import("./settings/ConnectionSettings"),
-);
-const CapabilityCertification = dynamic(
-  () => import("./settings/CapabilityCertification"),
-);
-const SharedMemory = dynamic(() => import("./settings/SharedMemory"));
-const LearningMap = dynamic(() => import("./LearningMap"));
-const HelpPage = dynamic(() => import("./help/HelpPage"));
+const SettingsPanel = dynamic(() => import("./settings/SettingsPanel"));
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -140,30 +129,6 @@ const EMPTY: Workspace = {
 };
 const isActive = isActiveTask;
 const time = formatWorkspaceTime;
-async function api<T>(
-  path: string,
-  method = "GET",
-  body?: unknown,
-): Promise<T> {
-  const response = await fetch("/api/" + path, {
-    method,
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(30_000),
-  }).catch(() => {
-    throw new Error(
-      method === "GET"
-        ? "暫時無法取得資料，請檢查連線後重試。"
-        : "未收到操作結果。請先查看已保存的任務或素材，再決定是否重試。",
-    );
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(data.error?.message || "操作失敗，請稍後重試。");
-  return data as T;
-}
 export default function HermesConsole() {
   const account = useAuthOptional();
   const [auth, setAuth] = useState<"loading" | "ready">("loading");
@@ -1867,405 +1832,42 @@ export default function HermesConsole() {
             animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
             onMemory={()=>{setSettingsTab("進階");setPanel("settings");}}
             onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
-            <>
-              <div
-                className="setting-tabs"
-                role="tablist"
-                aria-label="設定分類"
-                onKeyDown={(event) => {
-                  if (
-                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
-                      event.key,
-                    )
-                  )
-                    return;
-                  const tabs = Array.from(
-                    event.currentTarget.querySelectorAll<HTMLButtonElement>(
-                      '[role="tab"]',
-                    ),
-                  );
-                  const index = tabs.indexOf(
-                    document.activeElement as HTMLButtonElement,
-                  );
-                  const next =
-                    event.key === "Home"
-                      ? 0
-                      : event.key === "End"
-                        ? tabs.length - 1
-                        : (index +
-                            (event.key === "ArrowRight" ? 1 : -1) +
-                            tabs.length) %
-                          tabs.length;
-                  event.preventDefault();
-                  tabs[next]?.focus();
-                  tabs[next]?.click();
-                }}
-              >
-                {["帳號", "外觀", "連線", "工作區", "進階"].map((tab) => (
-                  <button
-                    key={tab}
-                    role="tab"
-                    id={"setting-tab-" + tab}
-                    aria-controls="setting-panel"
-                    aria-selected={settingsTab === tab}
-                    tabIndex={settingsTab === tab ? 0 : -1}
-                    onClick={() => setSettingsTab(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-              <div
-                role="tabpanel"
-                id="setting-panel"
-                aria-labelledby={"setting-tab-" + settingsTab}
-                tabIndex={0}
-              >
-                {settingsTab === "帳號" ? (
-                  <AccountPanel />
-                ) : settingsTab === "外觀" ? (
-                  <div className="settings-stack">
-                    <p className="muted">
-                      固定明亮介面。外觀偏好只儲存在此瀏覽器。
-                    </p>
-                    <label>
-                      文字大小
-                      <select
-                        value={prefs.font}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, font: Number(e.target.value) })
-                        }
-                      >
-                        {[14, 16, 18, 20].map((n) => (
-                          <option key={n} value={n}>
-                            {n} px
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      閱讀寬度
-                      <select
-                        value={prefs.width}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, width: Number(e.target.value) })
-                        }
-                      >
-                        {[680, 780, 920].map((n) => (
-                          <option key={n} value={n}>
-                            {n} px
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={prefs.compact}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, compact: e.target.checked })
-                        }
-                      />
-                      緊湊訊息間距
-                    </label>
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={prefs.turtle}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, turtle: e.target.checked })
-                        }
-                      />
-                      顯示龜龜
-                    </label>
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={prefs.animation}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, animation: e.target.checked })
-                        }
-                      />
-                      輕柔動畫（尊重系統減少動畫設定）
-                    </label>
-                    <label>
-                      龜龜大小
-                      <select
-                        value={prefs.turtleSize}
-                        onChange={(e) =>
-                          setPrefs({
-                            ...prefs,
-                            turtleSize: Number(e.target.value),
-                          })
-                        }
-                      >
-                        {[72, 100, 128].map((n) => (
-                          <option key={n} value={n}>
-                            {n} px
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button onClick={() => setPrefs(DEFAULT_PREFS)}>
-                      重設外觀
-                    </button>
-                  </div>
-                ) : settingsTab === "連線" ? (
-                  <div className="settings-stack">
-                    <details className="connection-storage">
-                      <summary>Hermes · 健康與驗證</summary>
-                      <p>{health?.message || "尚未取得狀態。"}</p>
-                      <dl className="facts">
-                        <dt>服務可達</dt>
-                        <dd>
-                          {health?.reachable === null || !health
-                            ? "未知"
-                            : health.reachable
-                              ? "是"
-                              : "否"}
-                        </dd>
-                        <dt>憑證驗證</dt>
-                        <dd>
-                          {health?.credential === "valid"
-                            ? "有效"
-                            : health?.credential === "invalid"
-                              ? "無效"
-                              : "尚未確認"}
-                        </dd>
-                        <dt>Agent 執行</dt>
-                        <dd>
-                          {health?.agent === "verified"
-                            ? "已有成功任務"
-                            : "未驗證"}
-                        </dd>
-                        <dt>最後連線檢查</dt>
-                        <dd>{health ? time(health.checkedAt) : "未知"}</dd>
-                      </dl>
-                      <button
-                        onClick={async () => {
-                          setBusy(true);
-                          try {
-                            setHealth(await api<Health>("health", "POST", {}));
-                            const result = await api<{
-                              integrations: Integration[];
-                            }>("integrations");
-                            setIntegrations(result.integrations);
-                          } catch (e) {
-                            setError((e as Error).message);
-                          } finally {
-                            setBusy(false);
-                          }
-                        }}
-                        disabled={busy}
-                      >
-                        <RefreshCw size={16} />
-                        {busy ? "驗證中…" : "重新驗證連線"}
-                      </button>
-                    </details>
-                    <ConnectionSettings
-                      canvaState={
-                        integrations.find((item) => item.id === "canva")
-                          ?.state || "unknown"
-                      }
-                      canva={
-                        <section
-                          className="canva-connection"
-                          aria-label="Canva 授權"
-                        >
-                          <h3>Canva · 授權</h3>
-                          <p>
-                            {canvaConfigured
-                              ? "後端已設定 OAuth；請前往 Canva 授權並確認所需權限。此授權只用於 Canva。"
-                              : "後端尚未設定 Canva OAuth。也可沿用 Hermes 已有的 Canva 設計 MCP。"}
-                          </p>
-                          <button
-                            disabled={!canvaConfigured}
-                            onClick={async () => {
-                              try {
-                                const result = await api<{ url: string }>(
-                                  "canva",
-                                  "POST",
-                                  { action: "authorize" },
-                                );
-                                window.location.assign(result.url);
-                              } catch (e) {
-                                setError((e as Error).message);
-                              }
-                            }}
-                          >
-                            前往 Canva 授權 <ExternalLink size={16} />
-                          </button>
-                        </section>
-                      }
-                      onChanged={async () => {
-                        try {
-                          setHealth(await api<Health>("health", "POST", {}));
-                          const result = await api<{
-                            integrations: Integration[];
-                          }>("integrations");
-                          setIntegrations(result.integrations);
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    />
-
-                    <details className="connection-advanced">
-                      <summary>Advanced · 工具、技能與驗證證據</summary>
-                      <IntegrationHealth items={integrations} />
-                      <CapabilityCertification />
-                      <label>
-                        尋找工具與技能
-                        <input
-                          value={search}
-                          onChange={(e) => setSearch(e.target.value)}
-                          placeholder="搜尋名稱或用途"
-                        />
-                      </label>
-                      {integrations
-                        .filter((i) =>
-                          (i.name + " " + i.detail + " " + i.tools.join(" "))
-                            .toLowerCase()
-                            .includes(search.toLowerCase()),
-                        )
-                        .map((i) => (
-                          <details className="integration" key={i.id}>
-                            <summary>
-                              <strong>{i.name}</strong>
-                              <span className="badge">
-                                {connectionLabels[i.state]}
-                              </span>
-                            </summary>
-                            <p>{i.detail}</p>
-                            <p>{i.evidence || "尚無執行驗證證據。"}</p>
-                            <small>
-                              最後驗證：
-                              {i.verifiedAt ? time(i.verifiedAt) : "未驗證"}
-                            </small>
-                            <ul>
-                              {i.requirements.map((value) => (
-                                <li key={value}>{value}</li>
-                              ))}
-                            </ul>
-                            {!!i.tools.length && (
-                              <p>已宣告工具：{i.tools.join("、")}</p>
-                            )}
-                          </details>
-                        ))}
-                      {(health?.skills || [])
-                        .filter((s) =>
-                          (s.name + s.description)
-                            .toLowerCase()
-                            .includes(search.toLowerCase()),
-                        )
-                        .map((s) => (
-                          <details key={s.name}>
-                            <summary>{s.name}</summary>
-                            <p>{s.description}</p>
-                          </details>
-                        ))}
-                    </details>
-                  </div>
-                ) : settingsTab === "進階" ? (
-                  <div className="settings-stack">
-                    <h3>記憶</h3>
-                    <SharedMemory projectId={project} />
-                    <LearningMap
-                      key={project}
-                      projectId={project}
-                      skills={health?.skills || []}
-                      materials={data.materials}
-                      onTask={(id) => {
-                        setSelectedTask(id);
-                        setPanel("task");
-                      }}
-                    />
-                    <p>{data.memory.scope}</p>
-                    <p className="muted">
-                      Console 持久化記憶，不是 Hermes 遠端鏡像。未驗證前不宣稱已同步。
-                    </p>
-                    <button
-                      disabled={!activeConv?.hermesSessionId}
-                      onClick={async () => {
-                        try {
-                          const result = await api<{
-                            remoteHistory: typeof remoteHistory;
-                          }>("conversations?id=" + activeId);
-                          setRemoteHistory(result.remoteHistory);
-                          if (!result.remoteHistory)
-                            setNotice("部署版本不支援會話歷史查詢。");
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      讀取目前 Hermes 會話歷史
-                    </button>
-                    {remoteHistory?.map((m, i) => (
-                      <details key={i}>
-                        <summary>
-                          {m.role}
-                          {m.name ? " · " + m.name : ""}
-                        </summary>
-                        <MessageBody text={m.content} />
-                      </details>
-                    ))}
-                    {legacy && (
-                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
-                    )}
-                    <h3>使用量</h3>
-                    <p className="muted">僅顯示 Hermes 回傳的統計。未知費用不是零。</p>
-                    {tasks.map((t) => (
-                      <details key={t.id}>
-                        <summary>{t.input.slice(0, 40)}</summary>
-                        <TaskUsageSummary task={t} />
-                      </details>
-                    ))}
-                    {!tasks.length && (
-                      <p className="muted">尚無任務使用量資料。</p>
-                    )}
-                    <h3>說明</h3>
-                    <HelpPage />
-                  </div>
-                ) : (
-                  <div className="settings-stack">
-                    <p>
-                      目前有 {data.projects.length}{" "}
-                      個自訂專案；不包含預設個人工作區。
-                    </p>
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        try {
-                          await api("workspace", "POST", { name: newProject });
-                          setNewProject("");
-                          await loadWorkspace();
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      <label>
-                        新增專案
-                        <input
-                          required
-                          maxLength={80}
-                          value={newProject}
-                          onChange={(e) => setNewProject(e.target.value)}
-                        />
-                      </label>
-                      <button className="primary">
-                        <Plus size={16} />
-                        建立專案
-                      </button>
-                    </form>
-                  </div>
-                )}
-              </div>
-              <footer className="settings-footer">
-                <p className="muted">單一工作區 · 秘密只存在後端</p>
-              </footer>
-            </>
+            <SettingsPanel
+              settingsTab={settingsTab}
+              onTab={setSettingsTab}
+              prefs={prefs}
+              onPrefs={setPrefs}
+              onResetPrefs={() => setPrefs(DEFAULT_PREFS)}
+              health={health}
+              onHealth={setHealth}
+              busy={busy}
+              onBusy={setBusy}
+              integrations={integrations}
+              onIntegrations={setIntegrations}
+              canvaConfigured={canvaConfigured}
+              search={search}
+              onSearch={setSearch}
+              project={project}
+              materials={data.materials}
+              memoryScope={data.memory.scope}
+              conversationId={activeId}
+              hermesSessionId={activeConv?.hermesSessionId || null}
+              remoteHistory={remoteHistory}
+              onRemoteHistory={setRemoteHistory}
+              legacy={legacy}
+              onImportLegacy={importLegacy}
+              tasks={tasks}
+              projectCount={data.projects.length}
+              newProject={newProject}
+              onNewProject={setNewProject}
+              onWorkspaceChanged={loadWorkspace}
+              onOpenTask={(id) => {
+                setSelectedTask(id);
+                setPanel("task");
+              }}
+              onError={setError}
+              onNotice={setNotice}
+            />
           ) : panel === "preview" && preview ? (
             <PreviewPanel preview={preview} />
           ) : chosenTask ? (
