@@ -91,13 +91,25 @@ try {
   );
   await page.getByRole("button", { name: "送出訊息" }).click();
   await expect(page.locator("article.message.assistant")).toHaveCount(1);
+  await expect(page.locator("article.message.assistant .visual-concept-deck")).toHaveCount(1);
+  await expect(page.locator("article.message.assistant .markdown")).toHaveCount(0);
   await expect(page.getByText("Hermes Agent 尚未連線")).toHaveCount(1);
   await expect(page.getByText("本地索引", { exact: true })).toHaveCount(1);
   await expect(page.getByText(/Drive 快照/).first()).toBeVisible();
+  await expect(page.locator(".visual-concept-deck")).toHaveAttribute(
+    "data-overlay-date",
+    "2026-09-30",
+  );
   await expect(page.getByText("2026-09-30").first()).toBeVisible();
+  await expect(page.getByText("UNKNOWN：地點，畫面上留空。")).toBeVisible();
+  await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
+  await expect(page.getByText("概念 A")).toBeVisible();
   await expect(page.getByText("1 / 1 個工具完成")).toHaveCount(0);
   const chat = await page.locator("body").innerText();
   assert.equal(chat.includes("已搜尋整個 Instagram"), false);
+  await page.locator(".visual-concept-deck").screenshot({
+    path: join(output, "chat-visual-concepts-mobile.png"),
+  });
   await page.screenshot({
     path: join(output, "chat-local-knowledge-mobile.png"),
     fullPage: true,

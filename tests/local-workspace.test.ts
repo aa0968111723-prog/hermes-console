@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { seedSession } from "./session-fixture";
 import type { Conversation } from "../lib/contracts";
+import { parseVisualConceptPack } from "../lib/client/visual-pack";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-local-ws-"));
 process.env.CONSOLE_ORIGIN = "http://localhost:3344";
@@ -21,19 +22,34 @@ const { get, put } = await import("../lib/server/store");
 const { submit } = await import("../lib/server/tasks");
 const { ApiError } = await import("../lib/server/security");
 
-test("club queries return indexed snapshot, not fake GALLEY or Hermes", () => {
+test("club inspiration returns visual cards with overlay date, not a notes wall", () => {
   const text = localWorkspaceReply("幫我找淡大禪學社茶會宣傳靈感");
   assert.ok(text);
-  assert.match(text, /Hermes Agent 尚未連線/);
-  assert.match(text, /Drive 快照|不是即時/);
-  assert.match(text, /2026-09-30/);
-  assert.match(text, /日期/);
-  assert.match(text, /地點：UNKNOWN/);
+  const pack = parseVisualConceptPack(text);
+  assert.ok(pack);
+  assert.equal(pack.generatedImage, false);
+  assert.equal(pack.rendered, false);
+  assert.equal(pack.publish, false);
+  assert.equal(pack.overlayText?.date, "2026-09-30");
+  assert.equal(pack.overlayText?.location, null);
+  assert.ok(pack.unknownFields.includes("地點"));
+  assert.match(pack.notice, /Hermes Agent 尚未連線/);
+  assert.match(pack.notice, /Drive 快照|不是即時/);
+  assert.equal(pack.concepts.length, 3);
   assert.doesNotMatch(text, / · place：/);
   assert.doesNotMatch(text, /索引沒有命中/);
   assert.doesNotMatch(text, /GALLEY 已/);
   assert.doesNotMatch(text, /已搜尋整個 Instagram/);
   assert.doesNotMatch(text, /Inspiration Engine/);
+});
+
+test("factual club query stays a short card, not a visual pack", () => {
+  const text = localWorkspaceReply("禪學社期初茶會地點");
+  assert.ok(text);
+  assert.equal(parseVisualConceptPack(text), null);
+  assert.match(text, /尚未連線/);
+  assert.match(text, /2026-09-30/);
+  assert.match(text, /地點：UNKNOWN/);
 });
 
 test("generic chat without Hermes still fails closed", () => {
@@ -59,7 +75,11 @@ test("unconfigured Hermes still answers club questions from local index", async 
   });
   assert.equal(task.state, "completed");
   assert.equal(task.remoteId, null);
-  assert.match(task.output, /尚未連線/);
+  const pack = parseVisualConceptPack(task.output);
+  assert.ok(pack);
+  assert.equal(pack.overlayText?.date, "2026-09-30");
+  assert.equal(pack.overlayText?.location, null);
+  assert.match(pack.notice, /尚未連線/);
   assert.equal(task.stopSupported, false);
   assert.ok(task.events.some((event) => event.toolName === "zenclub_drive_index"));
   const stored = get<Conversation>("conversation", "workspace", conv.id);

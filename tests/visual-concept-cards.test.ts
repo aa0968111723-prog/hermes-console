@@ -19,6 +19,13 @@ const pack = {
     aspect: "4:5",
   },
   unknownFields: ["日期", "地點"],
+  overlayText: {
+    name: "迎新茶會",
+    date: null,
+    time: null,
+    location: null,
+    registration: null,
+  },
   concepts: [
     { id: "A" as const, name: "攝影感校園生活", creativeDirection: "光影", background: "白天", visualHierarchy: ["場景"], generatedImage: false as const, rendered: false as const },
     { id: "B" as const, name: "物件敘事", creativeDirection: "小物", background: "桌面", visualHierarchy: ["物件"], generatedImage: false as const, rendered: false as const },
@@ -32,6 +39,7 @@ test("visual pack guard rejects fake renders and incomplete concepts", () => {
   assert.equal(isVisualConceptPack({ ...pack, publish: true }), false);
   assert.equal(isVisualConceptPack({ ...pack, concepts: pack.concepts.slice(0, 2) }), false);
   assert.equal(parseVisualConceptPack(JSON.stringify(pack))?.format.width, 1080);
+  assert.equal(parseVisualConceptPack(JSON.stringify(pack))?.overlayText?.name, "迎新茶會");
   assert.equal(parseVisualConceptPack("請幫我做海報"), null);
   assert.equal(parseVisualConceptPack("{not json"), null);
 });

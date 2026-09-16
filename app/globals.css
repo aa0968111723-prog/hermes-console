@@ -2628,18 +2628,34 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
 .visual-concept-deck { display: grid; gap: 12px; }
-.visual-concept-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
-.visual-concept-format { margin: 0; font-weight: 700; }
-.visual-concept-format span { margin-left: 8px; color: var(--color-muted); font-weight: 500; }
+.visual-concept-meta { display: grid; gap: 4px; }
+.visual-concept-title { margin: 0; font-size: 1.05rem; font-weight: 700; letter-spacing: -.02em; }
+.visual-concept-format { margin: 0; font-weight: 600; font-size: var(--type-caption); color: var(--color-muted); }
+.visual-concept-format span { margin-left: 8px; font-weight: 500; }
 .visual-concept-status, .visual-concept-unknown, .visual-concept-notice, .visual-concept-flags { margin: 0; font-size: var(--type-caption); color: var(--color-muted); }
 .visual-concept-unknown { color: var(--color-warning, #9a6b00); }
+.visual-concept-facts { display: grid; gap: 2px; margin: 0; }
+.visual-concept-fact { display: grid; grid-template-columns: 3.2rem 1fr; gap: 8px; align-items: center; }
+.visual-concept-facts dt { margin: 0; color: var(--color-muted); font-size: var(--type-caption); }
+.visual-concept-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.visual-concept-facts dd[data-empty] { font-weight: 500; color: var(--color-muted); }
+.visual-concept-facts a { display: inline-flex; align-items: center; min-height: 44px; }
 .visual-concept-grid { display: grid; gap: 12px; }
-.visual-concept-card { min-height: 44px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: #fff; box-shadow: var(--depth-floating, 0 8px 24px rgba(40,70,40,.08)); }
+.visual-concept-card { min-height: 44px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: #fff; box-shadow: var(--depth-floating, 0 8px 24px rgba(40,70,40,.08)), inset 0 1px 0 rgba(255,255,255,.85); transform: translateZ(0); }
 .visual-concept-card h3 { display: flex; flex-direction: column; gap: 2px; margin: 0 0 10px; font-size: 1rem; }
 .visual-concept-card h3 small { color: var(--color-muted); font-weight: 500; }
-.visual-concept-card p { margin: 8px 0 0; }
+.visual-concept-direction { margin: 8px 0 0; color: var(--color-muted); font-size: var(--type-caption); }
 .visual-concept-card ul { margin: 8px 0 0; padding-left: 1.1em; }
-.visual-concept-frame { position: relative; width: 100%; max-width: 220px; margin: 0 auto; border-radius: 14px; background: linear-gradient(160deg,#f4f8f1,#fff); box-shadow: inset 0 0 0 1px #d9e8d4, 0 10px 20px rgba(40,70,40,.08); overflow: hidden; }
+.visual-concept-frame { position: relative; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; width: min(100%, 280px); margin: 0 auto; padding: 10px; border-radius: 16px; background:
+  radial-gradient(120% 70% at 50% 12%, rgba(255,255,255,.9) 0%, transparent 58%),
+  linear-gradient(165deg, #eef6ea 0%, #d7e4d2 46%, #f7faf4 100%);
+  box-shadow: inset 0 0 0 1px #d9e8d4, 0 12px 22px rgba(40,70,40,.1); overflow: hidden; }
+.visual-concept-overlay { position: absolute; display: grid; place-items: center; padding: 3px 5px; text-align: center; line-height: 1.15; overflow: hidden; color: #1f331f; background: rgba(255,255,255,.78); border-radius: 7px; }
+.visual-concept-overlay-stack { position: relative; left: auto; top: auto; width: auto; height: auto; }
+.visual-concept-overlay[data-zone="headline"] { font-weight: 800; font-size: clamp(10px, 2.8vw, 13px); background: rgba(255,255,255,.88); }
+.visual-concept-overlay[data-zone="info"] { font-size: clamp(9px, 2.3vw, 11px); font-variant-numeric: tabular-nums; }
+.visual-concept-overlay[data-zone="cta"] { font-weight: 700; font-size: 11px; color: #fff; background: #2f5d38; border-radius: 999px; }
+.visual-concept-overlay[data-zone="qr"] { font-size: 8px; background: #fff; box-shadow: inset 0 0 0 1px #c5d6c4; }
 .visual-concept-zone { position: absolute; display: grid; place-items: center; font-size: 9px; color: #3d5a40; background: rgba(255,255,255,.55); border: 1px dashed rgba(80,120,80,.45); border-radius: 6px; }
 @media (min-width: 761px) {
   .visual-concept-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

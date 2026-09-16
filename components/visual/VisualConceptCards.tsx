@@ -2,40 +2,133 @@
 
 import type { VisualPackView } from "@/lib/client/visual-pack";
 
+const FACT_ROWS: Array<{
+  key: "date" | "time" | "location" | "registration";
+  label: string;
+}> = [
+  { key: "date", label: "日期" },
+  { key: "time", label: "時間" },
+  { key: "location", label: "地點" },
+  { key: "registration", label: "報名" },
+];
+
+function httpsHref(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password
+      ? url.href
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function overlayCta(copy: string | null | undefined) {
+  if (!copy) return null;
+  return httpsHref(copy) ? "報名" : copy;
+}
+
+function overlayInfo(overlay?: Record<string, string | null>) {
+  if (!overlay) return null;
+  const parts = [overlay.date, overlay.time].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
 function Frame({
   aspect,
   zones,
+  overlay,
+  ctaCopy,
+  includeQr,
 }: {
   aspect: string;
   zones?: Record<string, { xPct: number; yPct: number; wPct: number; hPct: number }>;
+  overlay?: Record<string, string | null>;
+  ctaCopy?: string | null;
+  includeQr?: boolean;
 }) {
   const [w, h] = aspect.split(/[:/]/).map(Number);
   const ratio = w && h ? `${w} / ${h}` : "4 / 5";
+  const info = overlayInfo(overlay);
+  const cta = overlayCta(ctaCopy ?? overlay?.registration);
+  const layers: Array<{ zone: string; text: string }> = [];
+  if (overlay?.name) layers.push({ zone: "headline", text: overlay.name });
+  if (info) layers.push({ zone: "info", text: info });
+  if (cta) layers.push({ zone: "cta", text: cta });
+  if (includeQr) layers.push({ zone: "qr", text: "QR" });
   return (
     <div className="visual-concept-frame" style={{ aspectRatio: ratio }} aria-hidden="true">
-      {Object.entries(zones || {}).map(([name, zone]) => (
-        <span
-          key={name}
-          className="visual-concept-zone"
-          data-zone={name}
-          style={{
-            left: zone.xPct + "%",
-            top: zone.yPct + "%",
-            width: zone.wPct + "%",
-            height: zone.hPct + "%",
-          }}
-        >
-          {name}
-        </span>
-      ))}
+      {layers.map((layer) => {
+        const zone = zones?.[layer.zone];
+        const style = zone
+          ? {
+              left: zone.xPct + "%",
+              top: zone.yPct + "%",
+              width: zone.wPct + "%",
+              height: zone.hPct + "%",
+            }
+          : undefined;
+        return (
+          <span
+            key={layer.zone}
+            className={
+              zone
+                ? "visual-concept-overlay"
+                : "visual-concept-overlay visual-concept-overlay-stack"
+            }
+            data-zone={layer.zone}
+            style={style}
+          >
+            {layer.text}
+          </span>
+        );
+      })}
     </div>
+  );
+}
+
+function FactStrip({ pack }: { pack: VisualPackView }) {
+  const overlay = pack.overlayText || {};
+  return (
+    <dl className="visual-concept-facts">
+      {FACT_ROWS.map((row) => {
+        const value = overlay[row.key];
+        const href = row.key === "registration" ? httpsHref(value) : null;
+        const empty =
+          !value &&
+          (pack.unknownFields.includes(row.label) || row.key === "location");
+        if (!value && !empty) return null;
+        return (
+          <div key={row.key} className="visual-concept-fact">
+            <dt>{row.label}</dt>
+            <dd data-empty={empty || undefined}>
+              {href ? (
+                <a href={href} target="_blank" rel="noopener noreferrer">
+                  公開表單
+                </a>
+              ) : value ? (
+                value
+              ) : (
+                "留空"
+              )}
+            </dd>
+          </div>
+        );
+      })}
+    </dl>
   );
 }
 
 export default function VisualConceptCards({ pack }: { pack: VisualPackView }) {
   return (
-    <section className="visual-concept-deck" aria-label="視覺概念規格">
+    <section
+      className="visual-concept-deck"
+      aria-label="視覺概念"
+      data-overlay-date={pack.overlayText?.date || undefined}
+    >
       <header className="visual-concept-meta">
+        <p className="visual-concept-title">{pack.title}</p>
         <p className="visual-concept-format">
           {pack.format.label}
           <span>
@@ -44,6 +137,7 @@ export default function VisualConceptCards({ pack }: { pack: VisualPackView }) {
         </p>
         <p className="visual-concept-status">尚未出圖 · 未發佈</p>
       </header>
+      <FactStrip pack={pack} />
       {pack.unknownFields.length > 0 && (
         <p className="visual-concept-unknown">
           UNKNOWN：{pack.unknownFields.join("、")}，畫面上留空。
@@ -57,18 +151,14 @@ export default function VisualConceptCards({ pack }: { pack: VisualPackView }) {
               概念 {concept.id}
               <small>{concept.name}</small>
             </h3>
-            <Frame aspect={pack.format.aspect} zones={concept.layout?.zones} />
-            <p>{concept.creativeDirection}</p>
-            <ul>
-              {concept.visualHierarchy.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-            <p className="visual-concept-flags">
-              {concept.qrPlacement?.include ? "可放 QR" : "省略 QR"}
-              {" · "}
-              {concept.ctaPlacement?.copy ? "CTA 已有文案" : "CTA 留空"}
-            </p>
+            <Frame
+              aspect={pack.format.aspect}
+              zones={concept.layout?.zones}
+              overlay={pack.overlayText}
+              ctaCopy={concept.ctaPlacement?.copy}
+              includeQr={concept.qrPlacement?.include}
+            />
+            <p className="visual-concept-direction">{concept.creativeDirection}</p>
           </article>
         ))}
       </div>
