@@ -160,7 +160,9 @@ try {
   ).toHaveCount(0);
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
   await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
+  await page.locator("article.message.assistant .visual-concept-choose").first().click();
   await expect(page.getByText(/Canva 未授權/)).toBeVisible();
+  await expect(page.locator(".visual-concept-caption")).toContainText("2026-09-30");
   await expect(page.getByText("已搜尋整個 Instagram")).toHaveCount(0);
   await page.screenshot({
     path: join(output, "chat-make-poster-mobile.png"),
