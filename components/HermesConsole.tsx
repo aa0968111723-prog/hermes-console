@@ -246,6 +246,7 @@ export default function HermesConsole() {
   const tasksRef = useRef(tasks);
   const pokePoll = useRef<() => void>(() => {});
   const hadActiveTask = useRef(false);
+  const sending = useRef(false);
   tasksRef.current = tasks;
   const activeConv = data.conversations.find((c) => c.id === activeId);
   const currentTasks = tasks.filter((t) => t.conversationId === activeId);
@@ -579,8 +580,15 @@ export default function HermesConsole() {
     return result.conversation;
   }
   async function send() {
-    if (busy || blocked || !text.trim() || uploads.some((u) => !u.material))
+    if (
+      sending.current ||
+      busy ||
+      blocked ||
+      !text.trim() ||
+      uploads.some((u) => !u.material)
+    )
       return;
+    sending.current = true;
     setBusy(true);
     setError("");
     nearBottom.current = true;
@@ -612,6 +620,7 @@ export default function HermesConsole() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   }
