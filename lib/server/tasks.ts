@@ -57,6 +57,7 @@ import {
   interpretGoal,
   userFacingGoalText,
   wantsNewVisual,
+  wantsWorkspaceInspiration,
 } from "./orchestrator/goal";
 import { listArtifacts } from "./artifacts";
 import {
@@ -552,9 +553,7 @@ function canFulfillLocalInspiration(
 ) {
   return (
     credential !== "valid" &&
-    goal.requiresInspiration &&
-    !goal.directionLocked &&
-    !goal.requiresImageReview &&
+    wantsWorkspaceInspiration(goal) &&
     attachments.length === 0
   );
 }

@@ -1,6 +1,6 @@
 import type { StructuredGoal, TaskFocus } from "../../contracts";
 import { isDirectionPick } from "../../inspiration-pack";
-import { classifyIntent } from "./intent";
+import { classifyIntent, hasCreateCue } from "./intent";
 
 const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
@@ -103,4 +103,12 @@ export function interpretGoal(
     directionLocked,
     intentTier,
   };
+}
+
+/** Spoken create/Tamkang asks still get workspace cards when Hermes is unconfigured. */
+export function wantsWorkspaceInspiration(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.requiresInspiration || goal.requiresDesign) return true;
+  if (!hasCreateCue(goal.goal)) return false;
+  return goal.intentTier === "create" || goal.requiresTamkang;
 }
