@@ -33,7 +33,6 @@ const { interpretGoal, wantsWorkspaceInspiration } = await import(
 
 const TEA = "幫我找淡大禪學社茶會宣傳靈感";
 const SPOKEN_CREATE = "我想辦禪學社茶會";
-const SPOKEN_LOOKUP = "幫我查淡大禪學社茶會";
 
 function conv() {
   const id = randomUUID();
@@ -167,65 +166,45 @@ test("non-inspiration chat still refuses when Hermes is unconfigured", async () 
   );
 });
 
-test("spoken create and Tamkang tea asks still return workspace inspiration", async () => {
+test("spoken create tea asks still return workspace inspiration", async () => {
   const spokenCreate = interpretGoal(SPOKEN_CREATE);
   assert.equal(spokenCreate.requiresInspiration, false);
   assert.equal(spokenCreate.requiresDesign, false);
   assert.equal(spokenCreate.requiresTamkang, false);
   assert.equal(spokenCreate.intentTier, "create");
   assert.equal(wantsWorkspaceInspiration(spokenCreate), true);
-
-  const spokenLookup = interpretGoal(SPOKEN_LOOKUP);
-  assert.equal(spokenLookup.requiresInspiration, false);
-  assert.equal(spokenLookup.requiresDesign, false);
-  assert.equal(spokenLookup.requiresTamkang, true);
-  assert.equal(spokenLookup.intentTier, "lookup");
-  assert.equal(wantsWorkspaceInspiration(spokenLookup), true);
-
-  const paper = interpretGoal("幫我查論文");
-  assert.equal(paper.requiresTamkang, false);
-  assert.equal(wantsWorkspaceInspiration(paper), false);
   assert.equal(
-    wantsWorkspaceInspiration(interpretGoal("教心所研究倫理")),
+    wantsWorkspaceInspiration(interpretGoal("幫我查淡大禪學社茶會")),
     false,
   );
-  assert.equal(
-    wantsWorkspaceInspiration(interpretGoal("只是打個招呼，今天好嗎")),
-    false,
-  );
+  assert.equal(wantsWorkspaceInspiration(interpretGoal("幫我查論文")), false);
 
-  for (const prompt of [SPOKEN_CREATE, SPOKEN_LOOKUP]) {
-    const conversationId = conv();
-    const task = await submit("workspace", {
-      conversationId,
-      requestKey: randomUUID(),
-      input: prompt,
-      attachments: [],
-    });
-    assert.equal(task.state, "completed", prompt);
-    assert.equal(task.remoteId, null, prompt);
-    assert.match(task.output, /不是 Hermes Agent 執行/, prompt);
-    assert.match(task.output, /沒有搜尋整個 Instagram/, prompt);
-    assert.doesNotMatch(task.output, /已搜尋整個 Instagram/, prompt);
-    if (prompt === SPOKEN_LOOKUP) {
-      assert.match(task.output, /沒有連到淡江資料源/, prompt);
-    } else {
-      assert.doesNotMatch(task.output, /沒有連到淡江資料源/, prompt);
-    }
-    const tool = task.events.find(
-      (event) => event.toolName === "workspace_search_inspiration",
-    );
-    assert.ok(tool, prompt);
-    assert.equal(tool?.status, "completed", prompt);
-    assert.equal(isInspirationSearchPack(tool?.result), true, prompt);
-    const stored = get<{
-      messages: Array<{ role: string; provenance?: string }>;
-    }>("conversation", "workspace", conversationId);
-    const assistant = stored?.messages.filter((item) => item.role === "assistant");
-    assert.equal(assistant?.length, 1, prompt);
-    assert.equal(assistant?.[0].provenance, "workspace", prompt);
-    assert.equal(get("agent", "workspace", "verified"), null, prompt);
-  }
+  const conversationId = conv();
+  const task = await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: SPOKEN_CREATE,
+    attachments: [],
+  });
+  assert.equal(task.state, "completed");
+  assert.equal(task.remoteId, null);
+  assert.match(task.output, /不是 Hermes Agent 執行/);
+  assert.match(task.output, /沒有搜尋整個 Instagram/);
+  assert.doesNotMatch(task.output, /已搜尋整個 Instagram/);
+  assert.doesNotMatch(task.output, /沒有連到淡江資料源/);
+  const tool = task.events.find(
+    (event) => event.toolName === "workspace_search_inspiration",
+  );
+  assert.ok(tool);
+  assert.equal(tool?.status, "completed");
+  assert.equal(isInspirationSearchPack(tool?.result), true);
+  const stored = get<{
+    messages: Array<{ role: string; provenance?: string }>;
+  }>("conversation", "workspace", conversationId);
+  const assistant = stored?.messages.filter((item) => item.role === "assistant");
+  assert.equal(assistant?.length, 1);
+  assert.equal(assistant?.[0].provenance, "workspace");
+  assert.equal(get("agent", "workspace", "verified"), null);
 });
 
 test("unconfigured Hermes revises the same spec when asked to enlarge type", async () => {

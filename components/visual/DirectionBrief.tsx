@@ -1,6 +1,7 @@
 "use client";
 import type { DirectionBriefPack } from "@/lib/direction-brief";
 import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
+import { studentFormatLabel } from "@/lib/client/visual-pack";
 
 const COPY_LABEL = {
   a: "最自然",
@@ -37,7 +38,7 @@ export default function DirectionBrief({
                 data-aspect={format.aspect}
               >
                 <span>{COPY_LABEL[id]}</span>
-                <strong>{format.label}</strong>
+                <strong>{studentFormatLabel(format.label)}</strong>
                 <p
                   className="direction-format-copy preserve-lines"
                   data-emphasis={

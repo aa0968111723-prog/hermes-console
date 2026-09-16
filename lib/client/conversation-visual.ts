@@ -1,5 +1,5 @@
 export const CONVERSATION_VISUAL_SELECTOR =
-  ".inspiration-result, .image-review, .direction-brief";
+  ".inspiration-result, .image-review, .direction-brief, .knowledge-result";
 
 export function visualIntersectsScrollport(
   root: { top: number; bottom: number },

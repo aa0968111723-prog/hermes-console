@@ -86,6 +86,7 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("galley_research"), "research");
   assert.equal(activityKind("canva_create_design"), "creative");
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
+  assert.equal(activityKind("zenclub_drive_index"), "research");
   assert.equal(activityKind("planform_run_agent"), "creative");
   assert.equal(activityKind("unrecognized_tool"), "tool");
   assert.equal(eventPhaseLabel(event("g", "running")), "研究");

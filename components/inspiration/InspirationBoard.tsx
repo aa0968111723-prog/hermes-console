@@ -88,7 +88,7 @@ export default function InspirationBoard({
         <p className="eyebrow">目前最大問題</p>
         <h2>{language.biggestProblem}</h2>
         <p className="muted">
-          已讀 {language.imageReadCount} 張 tku_zc 封面。未連接 Instagram。限動、Reels 動態與完整格狀仍是 UNKNOWN。
+          已讀 {language.imageReadCount} 張 tku_zc 封面。未連接 Instagram。限動、Reels 動態與完整格狀仍尚未確認。
         </p>
         <ol>
           {language.improvements.map((item) => (

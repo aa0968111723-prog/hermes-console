@@ -557,7 +557,8 @@ export default function HermesConsole() {
           name === "workspace_search_inspiration" ||
           name === "workspace_simulate_audience" ||
           name === "workspace_revise_direction_spec" ||
-          name === "workspace_continue_direction_spec",
+          name === "workspace_continue_direction_spec" ||
+          name === "zenclub_drive_index",
       )
       .join(",") || "";
   useEffect(() => {
@@ -586,7 +587,7 @@ export default function HermesConsole() {
       }
       if (!nearBottom.current) return;
       if (chatDirectionBrief && pin(".direction-brief")) return;
-      if (pin(".inspiration-result") || pin(".image-review")) return;
+      if (pin(".inspiration-result") || pin(".image-review") || pin(".knowledge-result")) return;
       el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);

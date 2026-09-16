@@ -149,13 +149,18 @@
   color: #23623a;
 }
 .knowledge-card em[data-status="UNKNOWN"],
-.knowledge-card em[data-status="UNVERIFIED"] {
+.knowledge-card em[data-status="UNVERIFIED"],
+.knowledge-card em[data-status="unconfirmed"] {
   background: #eef1ec;
   color: var(--muted);
 }
-.knowledge-card em[data-status="CONFLICTING"] {
+.knowledge-card em[data-status="CONFLICTING"],
+.knowledge-card em[data-status="conflict"] {
   background: #fff0e5;
   color: #9a441d;
+}
+.knowledge-result {
+  margin: 12px 0 18px;
 }
 .knowledge-conflict {
   border: 1px solid #f0d3b8;

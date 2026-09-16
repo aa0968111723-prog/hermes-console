@@ -1,5 +1,6 @@
 import type { StructuredGoal, TaskFocus } from "../../contracts";
 import { isDirectionPick } from "../../inspiration-pack";
+import { needsZenclubKnowledge } from "../zenclub/detect";
 import { classifyIntent, hasCreateCue } from "./intent";
 
 const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
@@ -105,10 +106,17 @@ export function interpretGoal(
   };
 }
 
-/** Spoken create/Tamkang asks still get workspace cards when Hermes is unconfigured. */
+/** Spoken create asks still get workspace cards when Hermes is unconfigured. */
 export function wantsWorkspaceInspiration(goal: StructuredGoal): boolean {
   if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.intentTier === "lookup") return false;
   if (goal.requiresInspiration || goal.requiresDesign) return true;
-  if (!hasCreateCue(goal.goal)) return false;
-  return goal.intentTier === "create" || goal.requiresTamkang;
+  return goal.intentTier === "create" && hasCreateCue(goal.goal);
+}
+
+/** Club lookups use the Drive index snapshot instead of a poster mill. */
+export function wantsWorkspaceKnowledge(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.intentTier !== "lookup") return false;
+  return needsZenclubKnowledge(goal.goal);
 }

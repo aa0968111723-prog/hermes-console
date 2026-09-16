@@ -64,7 +64,7 @@ export type ActivityKind = keyof typeof activityLabels;
 export function activityKind(name: string | null): ActivityKind {
   if (!name) return "request";
   if (
-    /galley|xunhe|訊核|tku|tamkang|search|research|browse|fetch|pinterest|instagram/i.test(
+    /galley|xunhe|訊核|tku|tamkang|search|research|browse|fetch|pinterest|instagram|zenclub|drive_index/i.test(
       name,
     )
   )
@@ -84,7 +84,7 @@ export function toolDisplayLabel(name: string | null): string | null {
   if (!name) return null;
   if (/galley/i.test(name)) return "研究 · GALLEY";
   if (/xunhe|訊核/i.test(name)) return "研究 · 訊核";
-  if (/tku|tamkang|tamsui/i.test(name)) return "查詢 · 淡江";
+  if (/tku|tamkang|tamsui|zenclub/i.test(name)) return "查詢 · 淡江";
   if (/instagram/i.test(name)) return "參考 · Instagram";
   if (/pinterest/i.test(name)) return "參考 · Pinterest";
   if (/visual_concepts/i.test(name)) return "視覺 · 概念規格";

@@ -72,6 +72,13 @@ test("115-1 tea party facts stay verified and venue stays unknown", () => {
   assert.equal(stale?.entity.semester, "114-2");
 });
 
+test("spoken tea lookup still hits the 115-1 tea entity", () => {
+  const result = searchZenclubKnowledge("幫我查淡大禪學社茶會");
+  assert.ok(
+    result.hits.some((hit) => hit.entity.id.includes("115-1-tea")),
+  );
+});
+
 test("lecture speaker is from the plan; location is not invented", () => {
   const result = searchZenclubKnowledge("生命靈數 期初演講");
   const lecture = result.hits.find((hit) =>

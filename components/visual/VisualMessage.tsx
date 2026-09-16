@@ -14,8 +14,10 @@ import {
   type InspirationSearchPack,
 } from "@/lib/inspiration-pack";
 import { isImageReviewPack, twinPanelFromResults } from "@/lib/image-review";
+import { isClubKnowledgePack } from "@/lib/knowledge-pack";
 import InspirationResult from "./InspirationResult";
 import ImageReviewResult from "./ImageReviewResult";
+import KnowledgeResult from "./KnowledgeResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
 import ArtifactStage from "./ArtifactStage";
@@ -56,6 +58,7 @@ export default function VisualMessage({
   const results = task.events.map((event) => event.result);
   const twinPanel = twinPanelFromResults(results);
   const imageReview = results.find(isImageReviewPack);
+  const knowledge = results.find(isClubKnowledgePack);
   const inspiration = task.events
     .map((event) => event.result)
     .find(isInspirationSearchPack);
@@ -71,7 +74,8 @@ export default function VisualMessage({
     !layout &&
     !steps.length &&
     !inspiration &&
-    !imageReview
+    !imageReview &&
+    !knowledge
   )
     return null;
   const honesty = studentHonestyLabel(task);
@@ -92,7 +96,8 @@ export default function VisualMessage({
         />
       )}
       {imageReview && <ImageReviewResult pack={imageReview} />}
-      {!!steps.length && !inspiration && !imageReview && (
+      {knowledge && <KnowledgeResult pack={knowledge} />}
+      {!!steps.length && !inspiration && !imageReview && !knowledge && (
         <button className="tool-result-summary" onClick={onInspect}>
           {done ? (
             <Check size={15} />

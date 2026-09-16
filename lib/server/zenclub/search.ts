@@ -26,12 +26,29 @@ function haystack(entity: KnowledgeEntity) {
     .toLowerCase();
 }
 
+const CUES = [
+  "禪學社",
+  "茶會",
+  "社博",
+  "期初演講",
+  "演講",
+  "入社",
+  "社課",
+  "挑戰營",
+  "攤位",
+  "文館",
+  "生命靈數",
+  "淡大禪",
+];
+
 function tokens(query: string) {
-  return query
+  const parts = query
     .toLowerCase()
     .split(/[\s,，。！？、；;:：/\\|()\-【】\[\]]+/)
     .map((item) => item.trim())
     .filter((item) => item.length >= 2);
+  const cues = CUES.filter((cue) => query.includes(cue));
+  return [...new Set([...parts, ...cues])];
 }
 
 function relatedConflicts(entityIds: string[], all: KnowledgeConflict[]) {

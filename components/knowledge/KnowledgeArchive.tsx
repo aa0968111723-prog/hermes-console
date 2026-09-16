@@ -39,7 +39,7 @@ const STATUS_LABEL: Record<string, string> = {
   LIKELY: "大致如此",
   UNVERIFIED: "未核對",
   CONFLICTING: "衝突",
-  UNKNOWN: "未知",
+  UNKNOWN: "尚未確認",
 };
 
 export default function KnowledgeArchive({
@@ -100,8 +100,8 @@ export default function KnowledgeArchive({
         </div>
       ) : null}
       <p className="muted">
-        {result?.notice ||
-          "先查禪學社 Drive 索引。沒寫進索引的日期與地點是未知，不會用 IG 補。"}
+        {result?.notice?.replace(/UNKNOWN/g, "未確認") ||
+          "先查禪學社 Drive 索引。沒寫進索引的日期與地點是未確認，不會用 IG 補。"}
       </p>
       <form
         className="knowledge-search"
@@ -128,8 +128,8 @@ export default function KnowledgeArchive({
       {error && <p role="alert">{error}</p>}
       {payload?.source && (
         <p className="quiet">
-          快照 {new Date(payload.source.snapshotAt).toLocaleString("zh-TW")} ·
-          live={String(payload.source.live)}
+          快照 {new Date(payload.source.snapshotAt).toLocaleString("zh-TW")}
+          {payload.source.live ? "" : " · 不是即時"}
         </p>
       )}
       {result?.conflicts?.length ? (
@@ -155,7 +155,7 @@ export default function KnowledgeArchive({
                 <div key={claim.field}>
                   <dt>{claim.field}</dt>
                   <dd>
-                    <span>{claim.value || "UNKNOWN"}</span>
+                    <span>{claim.value || "未提供"}</span>
                     <em data-status={claim.status}>
                       {STATUS_LABEL[claim.status] || claim.status}
                     </em>
@@ -167,7 +167,7 @@ export default function KnowledgeArchive({
         ))}
       </ul>
       {result && result.hits.length === 0 && (
-        <p className="quiet">沒有命中。標 UNKNOWN，不要自行補活動資料。</p>
+        <p className="quiet">沒有命中。缺的資料標未確認，不會自己補活動資料。</p>
       )}
     </section>
   );

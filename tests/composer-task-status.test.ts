@@ -29,6 +29,7 @@ test("composer exposes observed task state and only active tool evidence", () =>
 
 test("composer shows student phases, not vendor tool names", () => {
   for (const [name, label] of Object.entries({
+    zenclub_drive_index: "研究",
     tamkang_lookup: "研究",
     instagram_search: "靈感",
     pinterest_fetch: "靈感",
