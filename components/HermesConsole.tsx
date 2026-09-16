@@ -94,15 +94,6 @@ import {
   removeLegacyPreference,
 } from "@/lib/client/storage";
 
-function pinScrollerTo(scroller: HTMLElement, target: HTMLElement) {
-  const top =
-    target.getBoundingClientRect().top -
-    scroller.getBoundingClientRect().top +
-    scroller.scrollTop -
-    8;
-  scroller.scrollTo({ top: Math.max(0, top) });
-}
-
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
 type Workspace = {
@@ -278,7 +269,7 @@ export default function HermesConsole() {
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
   const pinBriefAfterPick = useRef(false);
-  const suppressJump = useRef(false);
+  const pinnedScrollTop = useRef<number | null>(null);
   const composing = useRef(false);
   const sending = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
@@ -545,15 +536,15 @@ export default function HermesConsole() {
     const pin = (selector: string) => {
       const target = el.querySelector<HTMLElement>(selector);
       if (!target) return false;
-      pinScrollerTo(el, target);
+      const top =
+        target.getBoundingClientRect().top -
+        el.getBoundingClientRect().top +
+        el.scrollTop -
+        8;
+      pinnedScrollTop.current = Math.max(0, top);
       nearBottom.current = false;
-      suppressJump.current = true;
       setJump(false);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          suppressJump.current = false;
-        });
-      });
+      el.scrollTo({ top: pinnedScrollTop.current });
       return true;
     };
     if (pinBriefAfterPick.current && chatDirectionBrief) {
@@ -1221,7 +1212,15 @@ export default function HermesConsole() {
                 const el = e.currentTarget;
                 nearBottom.current =
                   el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-                if (!suppressJump.current) setJump(!nearBottom.current);
+                if (
+                  pinnedScrollTop.current != null &&
+                  Math.abs(el.scrollTop - pinnedScrollTop.current) < 40
+                ) {
+                  setJump(false);
+                  return;
+                }
+                pinnedScrollTop.current = null;
+                setJump(!nearBottom.current);
               }}
             >
               <div className="conversation" key={activeId || "new"}>
