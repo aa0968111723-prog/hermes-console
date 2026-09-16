@@ -10,8 +10,13 @@ const INSPIRATION = /靈感|參考|IG|Pinterest|instagram/i;
 const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA/;
 const IMAGE_REVIEW = /這張(圖|海報|稿|設計)?|哪裡可以改|視覺層級|分析這[張個]/;
 
+export function userFacingGoalText(input: string) {
+  const index = input.indexOf("BEGIN_UNTRUSTED_DATA");
+  return (index >= 0 ? input.slice(0, index) : input).trim();
+}
+
 export function interpretGoal(input: string): StructuredGoal {
-  const text = input.trim();
+  const text = userFacingGoalText(input);
   const intentTier = classifyIntent(text);
   const directionLocked = isDirectionPick(text);
   const imageReview = !directionLocked && IMAGE_REVIEW.test(text);

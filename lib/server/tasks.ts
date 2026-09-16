@@ -41,7 +41,7 @@ import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
 import { classifyResume, resumeNotice } from "./orchestrator/recovery";
 import { toolEventHasUsableOutput } from "./tool-result";
-import { interpretGoal } from "./orchestrator/goal";
+import { interpretGoal, userFacingGoalText } from "./orchestrator/goal";
 import {
   searchInspiration,
   toInspirationPack,
@@ -333,12 +333,13 @@ function fulfillWorkspaceInspiration(
 ) {
   const goal = interpretGoal(task.input);
   task.goal = goal;
+  const prompt = userFacingGoalText(task.input);
   const found = searchInspiration({
-    prompt: task.input,
+    prompt,
     projectId: conv.projectId,
   });
   const pack = toInspirationPack({
-    prompt: task.input,
+    prompt,
     projectId: conv.projectId,
     items: found.items,
     query: found.query,

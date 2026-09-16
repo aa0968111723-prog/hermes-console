@@ -164,4 +164,20 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.match(composed.instructions, /SIMULATION/);
     assert.equal(composed.instructions.includes("chain-of-thought"), false);
   });
+
+  await t.test("untrusted Instagram URLs do not flip inspiration routing", async () => {
+    const { wrapUntrusted } = await import("../lib/server/untrusted");
+    const goal = interpretGoal(
+      "台大大一新生攝影社\n\n" +
+        wrapUntrusted(
+          "saved_project_references",
+          JSON.stringify([
+            { sourceUrl: "https://www.instagram.com/p/NotAUserGoal/" },
+          ]),
+        ),
+    );
+    assert.equal(goal.requiresInspiration, false);
+    assert.equal(goal.requiresDesign, false);
+    assert.equal(goal.goal.startsWith("台大大一新生攝影社"), true);
+  });
 });
