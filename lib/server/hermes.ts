@@ -499,6 +499,7 @@ export const WORKSPACE_INSTRUCTION_PACK = [
   "使用 workspace_list_references 取得專案素材。網宣視覺用 workspace_get_visual_concepts 編譯 4:5／9:16／A4 三概念，缺資料標 UNKNOWN，不得補造或假裝已出圖。使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
   "保存或修改文案後呼叫 workspace_audit_copy。claim 不是 VERIFIED 就不得當成已確認事實。",
   "Console MCP 呼叫必須帶目前 taskId，可附 toolCallId；工具上限或停止錯誤不可自行繞過。用 workspace_read_material 取得真實圖片或文字後才分析內容；只有來源網址不代表已讀圖。",
+  "只有使用者問模型、Runtime、MCP 或記憶研究時，才用 workspace_search_research 查工作區筆記快照。招新、茶會、海報不要拿那些報告當靈感。沒有命中就說沒有。",
 ].join("\n");
 
 export const PLANFORM_INSTRUCTION_PACK =

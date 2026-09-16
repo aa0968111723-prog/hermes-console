@@ -215,6 +215,12 @@ const schemas = {
   workspace_delete_memory: z
     .object({ memoryId: z.string().uuid(), ...context })
     .strict(),
+  workspace_search_research: z
+    .object({
+      query: z.string().trim().min(2).max(200),
+      ...context,
+    })
+    .strict(),
   canva_search_designs: z
     .object({ query: z.string().max(150).default(""), ...context })
     .strict(),
@@ -305,6 +311,8 @@ const descriptions: Record<ToolName, string> = {
   workspace_save_memory:
     "寫入或更新共用記憶，與 Console 設定 → 記憶使用同一資料表。禁止寫入金鑰。",
   workspace_delete_memory: "刪除一筆共用記憶。只刪指定識別，不得批次清空。",
+  workspace_search_research:
+    "檢索工作區已保存的 AI Agent／Runtime 研究筆記快照。命中不是即時文獻，也不是網宣靈感；沒有命中就回空，不得編造。一般招新／茶會任務不要呼叫。",
   canva_search_designs:
     "使用已授權 Canva Connect API 查找設計；權限不足時回傳錯誤，不模擬結果。",
   canva_get_design: "讀取 Canva 設計中繼資料、預览與編輯連結。",
@@ -329,6 +337,12 @@ const descriptions: Record<ToolName, string> = {
   workspace_simulate_audience:
     "用十個淡江新生人格模擬看到海報／IG／表單／活動／攤位／場佈／文案的第一眼反應。規則式 SIMULATION，分數只是比較工具，不是轉換率。沒有視覺描述時標 UNKNOWN，不得假裝已看圖。",
 };
+export function usableToolPayload(value: unknown) {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value !== "object") return true;
+  return Object.keys(value as object).length > 0;
+}
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
   const local = Object.entries(schemas)
@@ -590,6 +604,10 @@ async function execute(
     }
     case "workspace_delete_memory":
       return deleteMemory(owner, schemas[name].parse(args).memoryId);
+    case "workspace_search_research": {
+      const { searchResearch } = await import("./research/notes");
+      return searchResearch(schemas[name].parse(args).query);
+    }
     case "canva_search_designs":
       return canvaRequest(
         owner,
@@ -853,6 +871,16 @@ async function finishToolCall(
         "Canva 尚未通過授權驗證。請先保存進度並等待使用者授權；沒有執行設計操作。",
       );
     const result = await run();
+    if (
+      !usableToolPayload(result) ||
+      typeof result !== "object" ||
+      Array.isArray(result)
+    )
+      throw new ApiError(
+        502,
+        "empty_output",
+        "工具沒有回傳可使用的內容。",
+      );
     const object = z.record(z.string(), z.unknown()).parse(result);
     const imageData =
       name === "workspace_read_material" && typeof object.imageData === "string"
