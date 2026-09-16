@@ -1536,7 +1536,7 @@ export default function HermesConsole() {
           </>
         ) : nav === "projects" ? (
           <section className="secondary-page">
-            <h1>素材與靈感</h1>
+            <h1>專案</h1>
             <ProjectShelf
               projects={data.projects}
               materials={data.materials}
@@ -1668,12 +1668,8 @@ export default function HermesConsole() {
             {!data.materials.some((m) => m.projectId === project) && (
               <div className="empty-state">
                 <Images size={30} />
-                <h2>靈感板還是一張白紙</h2>
-                <p>
-                  收藏 Instagram、Pinterest 或其他 HTTPS 來源，
-                  <br />
-                  也可以從對話輸入區上傳圖片。
-                </p>
+                <h2>還沒有素材</h2>
+                <p>從對話＋上傳，或收藏連結。</p>
               </div>
             )}
           </section>

@@ -316,7 +316,7 @@ try {
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
   await page.locator(".mobile-bottom-dock").getByRole("button", { name: "專案", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
   await expect(page.locator(".app-shell")).toHaveAttribute("data-scroll-mode", "page");
   assert.ok(
     await page.locator(".workspace-main").evaluate((el) => {
