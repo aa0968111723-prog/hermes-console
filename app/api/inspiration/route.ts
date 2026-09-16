@@ -70,17 +70,7 @@ export const POST = route(async (req) => {
       conversationId: body.conversationId,
     });
     return respond({
-      workflow: {
-        id: result.workflow.id,
-        state: result.workflow.state,
-        selected: result.workflow.selected,
-        selectedTitle:
-          result.workflow.selected === null
-            ? null
-            : result.workflow.directions[result.workflow.selected]?.title ||
-              null,
-        directionBrief: result.workflow.directionBrief || null,
-      },
+      workflow: result.workflow,
       pack: {
         kind: result.pack.kind,
         fullSiteSearch: false,

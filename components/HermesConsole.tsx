@@ -116,6 +116,11 @@ import {
   upsertConversation,
   type WorkspaceSnapshot,
 } from "@/lib/client/workspace-state";
+import {
+  mergeWorkflows,
+  readSelectedDirectionWorkflow,
+  upsertWorkflow,
+} from "@/lib/client/workflow-state";
 
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
 type Workspace = WorkspaceSnapshot;
@@ -390,8 +395,12 @@ export default function HermesConsole() {
           failed = true;
         }
         if (workflowResult.status === "fulfilled") {
-          setWorkflows(workflowResult.value.workflows || []);
-          setArtifacts(workflowResult.value.artifacts || []);
+          setWorkflows((previous) =>
+            mergeWorkflows(previous, workflowResult.value.workflows),
+          );
+          if (Array.isArray(workflowResult.value.artifacts)) {
+            setArtifacts(workflowResult.value.artifacts);
+          }
         } else if (!isAbortLike(workflowResult.reason)) {
           failed = true;
         }
@@ -839,16 +848,27 @@ export default function HermesConsole() {
     setPickingInspiration(true);
     setError("");
     try {
-      await api("inspiration", "POST", {
-        action: "select",
-        selected: id,
-        prompt: pack.query.primary,
+      const selected = await api<{ workflow?: unknown; brief?: unknown }>(
+        "inspiration",
+        "POST",
+        {
+          action: "select",
+          selected: id,
+          prompt: pack.query.primary,
+          projectId: project,
+          conversationId:
+            source === "chat" ? activeId || undefined : undefined,
+        },
+      );
+      const workflow = readSelectedDirectionWorkflow(selected.workflow, {
         projectId: project,
-        conversationId:
-          source === "chat" ? activeId || undefined : undefined,
+        conversationId: source === "chat" ? activeId : undefined,
+        brief: selected.brief,
       });
+      if (workflow) {
+        setWorkflows((previous) => upsertWorkflow(previous, workflow));
+      }
       setPickedDirection(id);
-      await refresh();
       if (source === "chat" && activeId) {
         setNav("chat");
       }
@@ -857,13 +877,24 @@ export default function HermesConsole() {
           await sendPrompt(directionPickFollowUp(id, title), []);
         } catch (cause) {
           setNotice("Hermes 尚未連線，沒有出圖。");
-          setError((cause as Error).message);
+          setError(
+            studentSafeApiMessage(
+              (cause as Error).message,
+              "操作失敗，請稍後重試。",
+            ),
+          );
         }
       } else if (source === "chat" && activeId) {
         setNotice("Hermes 尚未連線，沒有出圖。");
       }
+      void refresh();
     } catch (e) {
-      setError((e as Error).message);
+      setError(
+        studentSafeApiMessage(
+          (e as Error).message,
+          "操作失敗，請稍後重試。",
+        ),
+      );
     } finally {
       setPickingInspiration(false);
     }

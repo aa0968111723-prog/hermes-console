@@ -373,6 +373,8 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   assert.match(entry, /onerror\?\.\(\{ error: "no-speech" \}\)/);
   assert.match(entry, /getByText\("說完了，請按送出"\)\)\.toBeVisible/);
   assert.match(entry, /not\.toBeFocused/);
+  assert.match(entry, /api\/workflows/);
+  assert.match(entry, /已選方向規格/);
 });
 
 test("spoken lookup pins club facts above the trailing spec", async () => {
@@ -410,6 +412,14 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   assert.match(sendPrompt, /shouldFocusComposerAfterSend\(spokenSend\)/);
   assert.match(sendPrompt, /setBusy\(false\);[\s\S]*await refresh\("user"\)/);
   assert.doesNotMatch(sendPrompt, /await refresh\("user"\)[\s\S]*input\.current\?\.focus/);
+  const pick = consoleSource.slice(
+    consoleSource.indexOf("async function pickInspirationDirection"),
+    consoleSource.indexOf("async function stopTask"),
+  );
+  assert.match(pick, /readSelectedDirectionWorkflow/);
+  assert.match(pick, /upsertWorkflow/);
+  assert.match(pick, /void refresh\(\)/);
+  assert.doesNotMatch(pick, /await refresh\(\)/);
   assert.doesNotMatch(consoleSource, /pinBriefAfterPick/);
   const revise = await readFile(
     new URL("../lib/server/inspiration/revise.ts", import.meta.url),

@@ -231,6 +231,17 @@ try {
   await expect(page.getByText("連線頁")).toHaveCount(0);
   await expect(page.getByText("環境變數")).toHaveCount(0);
   await page.screenshot({ path: join(output, "spoken-goal-results.png") });
+  await page.route("**/api/workflows", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: { message: "HERMES_API workflows leak" } }),
+      });
+      return;
+    }
+    await route.continue();
+  });
   await page.getByRole("button", { name: /選方向 A/ }).click();
   await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible({
     timeout: 15_000,
@@ -239,6 +250,8 @@ try {
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
   await expect(page.locator(".conversation-scroll")).not.toContainText("210:297");
+  await expect(page.locator(".conversation-scroll")).not.toContainText("HERMES_API");
+  await page.unroute("**/api/workflows");
   await page.screenshot({ path: join(output, "spoken-goal-spec.png") });
   const dismiss = page.getByRole("button", { name: "關閉提示" });
   if ((await dismiss.count()) > 0) await dismiss.click();
