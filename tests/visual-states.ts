@@ -136,7 +136,7 @@ export async function verifyVisualStates(
         startedAt: now,
         endedAt: null as string | null,
         summary: "[介面測試事件] 研究來源",
-        result: null,
+        result: null as unknown,
         sources: ["https://example.com/reference"],
         error: null,
         usage: null,
