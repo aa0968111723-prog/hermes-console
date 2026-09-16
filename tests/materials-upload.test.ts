@@ -17,8 +17,10 @@ const {
   filePath,
   ingestDriveFact,
   listMaterials,
+  materialBytes,
   saveReference,
   saveUpload,
+  thumbnailPath,
 } = await import("../lib/server/materials");
 const { put, list } = await import("../lib/server/store");
 const { ingestUrl } = await import("../lib/server/inspiration");
@@ -249,4 +251,34 @@ test("inspiration and Drive fact ingest write source types without member names"
   assert.equal(driveMaterials[0].source?.provider, "google_drive");
   assert.equal(driveMaterials[0].source?.locator, "abcDriveFactFile01");
   assert.equal(driveMaterials[0].people, undefined);
+});
+
+test("image uploads store a compressed thumbnail separately from the original", async () => {
+  const png = await sharp({
+    create: { width: 1200, height: 800, channels: 3, background: "#356b45" },
+  })
+    .png()
+    .toBuffer();
+  const saved = await saveUpload(
+    "workspace",
+    "personal",
+    "wide-poster.png",
+    "image/png",
+    png,
+  );
+  const full = await materialBytes("workspace", saved.id, "full");
+  const thumb = await materialBytes("workspace", saved.id, "thumb");
+  assert.equal(full.mime, "image/png");
+  assert.equal(thumb.mime, "image/webp");
+  assert.ok(thumb.bytes.length < full.bytes.length);
+  await access(thumbnailPath("workspace", saved.id), constants.F_OK);
+  const viaRoute = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + saved.id + "&variant=thumb"),
+  );
+  assert.equal(viaRoute.status, 200);
+  assert.equal(viaRoute.headers.get("content-type"), "image/webp");
+  const rejected = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + saved.id + "&variant=original"),
+  );
+  assert.equal(rejected.status, 400);
 });

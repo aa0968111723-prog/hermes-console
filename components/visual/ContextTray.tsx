@@ -1,7 +1,9 @@
 "use client";
-import { Check, FileText, Link, RefreshCw, X } from "lucide-react";
+import { Check, RefreshCw, X } from "lucide-react";
 import type { Material } from "@/lib/contracts";
+import { materialKindLabel } from "@/lib/client/media";
 import type { Upload } from "../useComposerDraft";
+import MaterialCover from "./MaterialCover";
 export default function ContextTray({
   uploads,
   references,
@@ -33,17 +35,13 @@ export default function ContextTray({
             aria-label={"預覽附件：" + upload.file.name}
             onClick={() => upload.material && onPreview(upload.material)}
           >
-            {upload.material?.kind === "image" ? (
-              <img
-                src={"/api/materials?id=" + upload.material.id}
-                alt={upload.file.name}
-              />
-            ) : (
-              <FileText size={24} />
-            )}
+            <MaterialCover
+              material={upload.material}
+              fileName={upload.file.name}
+            />
           </button>
           <span title={upload.file.name}>
-            {upload.file.name}
+            {materialKindLabel(upload.material, upload.file.name)}
             <small role={upload.error ? "alert" : "status"}>
               {upload.error ||
                 (upload.material ? (
@@ -94,14 +92,10 @@ export default function ContextTray({
               aria-label={"預覽參考：" + (material?.title || "素材已移除")}
               onClick={() => material && onPreview(material)}
             >
-              {material?.kind === "image" ? (
-                <img src={"/api/materials?id=" + id} alt={material.title} />
-              ) : (
-                <Link size={24} />
-              )}
+              <MaterialCover material={material} />
             </button>
-            <span>
-              {material?.title || "素材已移除"}
+            <span title={material?.title || ""}>
+              {materialKindLabel(material)}
               <small>
                 {material?.rights === "reference_only"
                   ? "僅供參考"

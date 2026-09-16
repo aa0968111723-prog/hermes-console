@@ -7,6 +7,14 @@ import { ApiError, hash } from "./security";
 
 export type ArtifactSource = "copy" | "material";
 
+export type ArtifactRevisionView = {
+  revisionId: string;
+  revision: number;
+  title: string;
+  createdAt: string;
+  excerpt: string | null;
+};
+
 export type Artifact = {
   artifactId: string;
   revisionId: string;
@@ -17,13 +25,33 @@ export type Artifact = {
   title: string;
   revision: number;
   previewUrl: string | null;
+  expectedRevision: number;
+  selectedRevision: number | null;
+  excerpt: string | null;
+  revisions: ArtifactRevisionView[];
 };
+
+function excerptOf(revision: CopyRevision) {
+  const first = revision.pages[0];
+  if (!first) return null;
+  return (first.title + "\n" + first.body).trim().slice(0, 280);
+}
 
 function latestCopy(record: CopyDocument) {
   const selected =
     record.revisions.find((row) => row.revision === record.selectedRevision) ||
     record.revisions.at(-1);
   return selected || null;
+}
+
+function copyRevisions(record: CopyDocument): ArtifactRevisionView[] {
+  return record.revisions.map((row) => ({
+    revisionId: String(row.revision),
+    revision: row.revision,
+    title: row.title,
+    createdAt: row.at,
+    excerpt: excerptOf(row),
+  }));
 }
 
 export function listArtifacts(owner: string, projectId?: string): Artifact[] {
@@ -42,6 +70,10 @@ export function listArtifacts(owner: string, projectId?: string): Artifact[] {
       title: revision.title,
       revision: revision.revision,
       previewUrl: null,
+      expectedRevision: row.revisions.at(-1)?.revision || revision.revision,
+      selectedRevision: row.selectedRevision,
+      excerpt: excerptOf(revision),
+      revisions: copyRevisions(row),
     });
   }
   const materials: Artifact[] = listMaterials(owner, { projectId }).map(
@@ -49,12 +81,27 @@ export function listArtifacts(owner: string, projectId?: string): Artifact[] {
       artifactId: row.id,
       revisionId: "1",
       projectId: row.projectId,
-      source: "material",
+      source: "material" as const,
       createdBy: "owner",
       createdAt: row.createdAt,
       title: row.title,
       revision: 1,
-      previewUrl: row.kind === "image" ? "/api/materials?id=" + row.id : null,
+      previewUrl:
+        row.kind === "image"
+          ? "/api/materials?id=" + row.id + "&variant=thumb"
+          : null,
+      expectedRevision: 1,
+      selectedRevision: 1,
+      excerpt: null,
+      revisions: [
+        {
+          revisionId: "1",
+          revision: 1,
+          title: row.title,
+          createdAt: row.createdAt,
+          excerpt: null,
+        },
+      ],
     }),
   );
   return [...copies, ...materials].sort((a, b) =>

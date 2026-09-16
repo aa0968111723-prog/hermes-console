@@ -91,6 +91,59 @@ test("magic link is email auth; invitation APIs stay dormant behind a session", 
     assert.ok(
       !JSON.stringify(list("user", "identity")).includes(process.env.RESEND_API_KEY!),
     );
+
+    const unknownReset = await auth.POST(
+      req("POST", { action: "forgot", email: "ghost@example.test" }),
+    );
+    assert.equal(unknownReset.status, 202);
+    assert.equal(emails.length, 1);
+    const forgot = await auth.POST(
+      req("POST", { action: "forgot", email: "owner@example.test" }),
+    );
+    assert.equal(forgot.status, 202);
+    assert.equal(emails.length, 2);
+    const resetToken = emails[1].text.match(/#reset=([a-f0-9]{64})/)![1];
+    assert.ok(!JSON.stringify(list("auth_token", "identity")).includes(resetToken));
+    const reset = await auth.POST(
+      req("POST", {
+        action: "reset",
+        token: resetToken,
+        password: "New-Password-14",
+      }),
+    );
+    assert.equal(reset.status, 200);
+    assert.equal(
+      (
+        await auth.POST(
+          req("POST", {
+            action: "reset",
+            token: resetToken,
+            password: "Other-Password-14",
+          }),
+        )
+      ).status,
+      401,
+    );
+    assert.equal(
+      (
+        await auth.POST(
+          req("POST", {
+            action: "login",
+            email: "owner@example.test",
+            password: "Test-Password-14",
+          }),
+        )
+      ).status,
+      401,
+    );
+    const relogin = await auth.POST(
+      req("POST", {
+        action: "login",
+        email: "owner@example.test",
+        password: "New-Password-14",
+      }),
+    );
+    assert.equal(relogin.status, 200);
   } finally {
     globalThis.fetch = original;
   }

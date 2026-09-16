@@ -27,7 +27,7 @@ export default function VisualMessage({
     design: Record<string, unknown> | null;
   }[];
   projectId?: string;
-  onContinue?: (id: string) => void;
+  onContinue?: (text: string) => void;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
@@ -70,7 +70,8 @@ export default function VisualMessage({
         <ArtifactStage
           key={item.id}
           design={item.design}
-          onContinue={onContinue ? () => onContinue(item.id) : undefined}
+          continueId={item.id}
+          onContinue={onContinue}
         />
       ))}
       {!!sources.length && (

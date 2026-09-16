@@ -61,8 +61,10 @@ import ComposerTaskStatus, {
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
+import MaterialCover from "./visual/MaterialCover";
 import TaskEventSummary, { EventResult } from "./visual/TaskEventSummary";
 import { progressSteps } from "@/lib/client/activity";
+import { materialFileSrc } from "@/lib/client/media";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -1148,12 +1150,8 @@ export default function HermesConsole() {
                               }
                               workflows={workflows}
                               projectId={activeConv.projectId}
-                              onContinue={(id) => {
-                                setText(
-                                  "請查回創作流程 " +
-                                    id +
-                                    " 的現有設計，接續修改同一作品。",
-                                );
+                              onContinue={(text) => {
+                                setText(text);
                               }}
                             />
                           )}
@@ -1166,18 +1164,13 @@ export default function HermesConsole() {
                                 return asset ? (
                                   <button
                                     key={id}
+                                    aria-label={"預覽素材：" + asset.title}
                                     onClick={() => {
                                       setPreview(asset);
                                       setPanel("preview");
                                     }}
                                   >
-                                    {asset.kind === "image" && (
-                                      <img
-                                        src={"/api/materials?id=" + asset.id}
-                                        alt={asset.title}
-                                      />
-                                    )}
-                                    <span>{asset.title}</span>
+                                    <MaterialCover material={asset} />
                                   </button>
                                 ) : null;
                               })}
@@ -1510,6 +1503,14 @@ export default function HermesConsole() {
                 setSettingsTab("工作區");
               }}
             />
+            <ArtifactDeck
+              projectId={project}
+              items={workflows.filter((item) => item.projectId === project)}
+              onContinue={(text) => {
+                setNav("chat");
+                setText(text);
+              }}
+            />
             <details className="workbench-disclosure">
               <summary>活動與文案</summary>
               <ProjectWorkbench
@@ -1591,11 +1592,7 @@ export default function HermesConsole() {
                         setPanel("preview");
                       }}
                     >
-                      {m.kind === "image" ? (
-                        <img src={"/api/materials?id=" + m.id} alt={m.title} />
-                      ) : (
-                        <LinkIcon size={28} />
-                      )}
+                      <MaterialCover material={m} />
                     </button>
                     <h3>{m.title}</h3>
                     <p>
@@ -1685,7 +1682,14 @@ export default function HermesConsole() {
         ) : (
           <section className="secondary-page">
             <h1>任務</h1>
-            <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} />
+            <ArtifactDeck
+              projectId={project}
+              items={workflows.filter((w) => w.projectId === project)}
+              onContinue={(text) => {
+                setNav("chat");
+                setText(text);
+              }}
+            />
             {workflows
               .filter((w) => w.projectId === project)
               .map((w) => (
@@ -2273,7 +2277,7 @@ export default function HermesConsole() {
               {preview.kind === "image" && (
                 <img
                   className="full-preview"
-                  src={"/api/materials?id=" + preview.id}
+                  src={materialFileSrc(preview.id)}
                   alt={preview.title}
                 />
               )}
@@ -2295,7 +2299,7 @@ export default function HermesConsole() {
               ) : (
                 <a
                   className="button-link"
-                  href={"/api/materials?id=" + preview.id}
+                  href={materialFileSrc(preview.id)}
                   download={preview.title}
                 >
                   下載素材 <Download size={16} />
