@@ -1,5 +1,10 @@
 import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
-import { credentialsInput, publicSettings, saveCredentials } from "@/lib/server/settings";
+import { requireRole } from "@/lib/server/identity";
+import {
+  credentialsInput,
+  publicSettings,
+  saveCredentials,
+} from "@/lib/server/settings";
 
 export const runtime = "nodejs";
 
@@ -10,6 +15,7 @@ export const GET = route(async (request) => {
 
 export const POST = route(async (request) => {
   authenticate(request, true);
+  requireRole(request, ["owner", "admin"]);
   const body = credentialsInput.parse(await jsonBody(request));
   return respond(saveCredentials(body));
 });

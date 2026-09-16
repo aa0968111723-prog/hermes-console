@@ -7,6 +7,7 @@ import {
   respond,
   route,
 } from "@/lib/server/security";
+import { requireRole } from "@/lib/server/identity";
 import {
   listZeaburProjects,
   listZeaburVariables,
@@ -70,6 +71,7 @@ function requireMutationConfirmation(body: {
 
 export const POST = route(async (req) => {
   authenticate(req, true);
+  requireRole(req, ["owner", "admin"]);
   const body = z
     .discriminatedUnion("action", [
       z.object({ action: z.literal("test"), ...target }).strict(),

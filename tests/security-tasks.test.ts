@@ -156,15 +156,24 @@ async function settle(id: string) {
   throw new Error("Fixture task did not settle");
 }
 test("security, honest health, durable tasks, uploads and ownership", async (t) => {
-  await t.test("workspace APIs are no-login single workspace", async () => {
+  await t.test("workspace APIs require session; health stays public", async () => {
     assert.equal(
       (await healthRoute.GET(request("health", "GET", undefined, false)))
         .status,
       200,
     );
+    assert.throws(
+      () =>
+        security.authenticate(
+          new Request("http://localhost:3210/api/workspace"),
+        ),
+      /請先登入/,
+    );
     assert.equal(
       security.authenticate(
-        new Request("http://localhost:3210/api/workspace"),
+        new Request("http://localhost:3210/api/workspace", {
+          headers: { Cookie: cookie },
+        }),
       ),
       "workspace",
     );
@@ -203,13 +212,14 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         ),
       /來源/,
     );
-    assert.equal(
-      security.authenticate(
-        new Request("http://localhost:3210/api/tasks", {
-          headers: { Cookie: "hermes_session=forged" },
-        }),
-      ),
-      "workspace",
+    assert.throws(
+      () =>
+        security.authenticate(
+          new Request("http://localhost:3210/api/tasks", {
+            headers: { Cookie: "hermes_session=forged" },
+          }),
+        ),
+      /請先登入/,
     );
   });
   await t.test("client destinations and credentials rejected", async () => {

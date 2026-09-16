@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -8,6 +9,7 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-funnel-ro-"),
 );
 process.env.CONSOLE_ORIGIN = "http://localhost:3261";
+const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
 
@@ -23,6 +25,7 @@ const STAGE_IDS = ["forms", "sheets", "roster", "funnel", "attendance"] as const
 function request(path = "recruitment/funnel", origin = true) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+      Cookie: testAuthCookie,
   };
   if (origin) headers.Origin = process.env.CONSOLE_ORIGIN!;
   return new Request("http://localhost:3261/api/" + path, {

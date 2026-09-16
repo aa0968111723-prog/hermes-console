@@ -83,9 +83,9 @@ function request(path: string, method = "GET", body?: unknown, origin = true) {
 }
 
 test("invited workspace, confirmation, discovery and creative intelligence", async (t) => {
-  await t.test("workspace APIs work without a member session", async () => {
+  await t.test("workspace APIs require a session", async () => {
     const anonymous = new Request("http://localhost:3211/api/workspace");
-    assert.equal((await workspace.GET(anonymous)).status, 200);
+    assert.equal((await workspace.GET(anonymous)).status, 401);
     assert.equal((await workspace.GET(request("workspace"))).status, 200);
     assert.equal((await healthRoute.GET(request("health"))).status, 200);
     assert.equal(

@@ -576,6 +576,36 @@ export function createSession(digest: string, owner: string, expires: number) {
     .run(digest, owner, expires);
 }
 
+export function readSession(digest: string) {
+  const now = Date.now();
+  if (storeBackend() === "postgres") {
+    pg().query("DELETE FROM console_sessions WHERE expires < $1", [now]);
+    const row = pg().query(
+      "SELECT owner, expires FROM console_sessions WHERE digest=$1",
+      [digest],
+    ).rows[0] as { owner?: string; expires?: number } | undefined;
+    return row
+      ? { owner: String(row.owner), expires: Number(row.expires) }
+      : null;
+  }
+  const database = sqlite();
+  database.prepare("DELETE FROM sessions WHERE expires < ?").run(now);
+  const row = database
+    .prepare("SELECT owner, expires FROM sessions WHERE digest=?")
+    .get(digest) as { owner?: string; expires?: number } | undefined;
+  return row
+    ? { owner: String(row.owner), expires: Number(row.expires) }
+    : null;
+}
+
+export function deleteSession(digest: string) {
+  if (storeBackend() === "postgres") {
+    pg().query("DELETE FROM console_sessions WHERE digest=$1", [digest]);
+    return;
+  }
+  sqlite().prepare("DELETE FROM sessions WHERE digest=?").run(digest);
+}
+
 export function resetStoreForTests() {
   if (!process.env.NODE_TEST_CONTEXT) return;
   storeFault = null;

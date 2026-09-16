@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp, readFile, access } from "node:fs/promises";
@@ -9,6 +10,7 @@ import { constants } from "node:fs";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-cred-"));
 process.env.CONSOLE_ORIGIN = "http://localhost:3233";
+const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
 process.env.CONSOLE_REQUIRE_GATEWAY = "false";
@@ -168,6 +170,7 @@ function request(
     method,
     headers: {
       "Content-Type": "application/json",
+      Cookie: testAuthCookie,
       ...(origin ? { Origin: origin } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),

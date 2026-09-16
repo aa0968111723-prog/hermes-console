@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { access, mkdtemp, readFile } from "node:fs/promises";
 import { constants } from "node:fs";
@@ -9,6 +10,7 @@ import type { Material } from "../lib/contracts";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-materials-"));
 process.env.CONSOLE_ORIGIN = "http://localhost:3261";
+const testAuthCookie = seedSession().cookie;
 
 const { ApiError } = await import("../lib/server/security");
 const {
@@ -80,6 +82,7 @@ function originRequest(path: string, init?: RequestInit) {
     ...init,
     headers: {
       Origin: process.env.CONSOLE_ORIGIN!,
+      Cookie: testAuthCookie,
       ...(init?.headers || {}),
     },
   });
@@ -192,7 +195,8 @@ test("reference POST writes web_https source, format, fingerprint and dual-write
   const viaRoute = await materialsRoute.POST(
     originRequest("/api/materials", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json",
+      Cookie: testAuthCookie },
       body: JSON.stringify({
         title: "外部海報複本",
         url: "https://example.com/poster.png?utm_source=other",

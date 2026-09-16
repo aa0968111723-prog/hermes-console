@@ -3,6 +3,8 @@ export async function register() {
     process.env.NEXT_RUNTIME === "nodejs" &&
     process.env.NEXT_PHASE !== "phase-production-build"
   ) {
+    const { validateRuntimeEnv } = await import("./lib/server/env");
+    validateRuntimeEnv();
     const { startMonitor } = await import("./lib/server/monitor");
     startMonitor();
     const { startRuntimeMonitor } = await import(

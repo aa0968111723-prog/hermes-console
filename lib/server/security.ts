@@ -10,9 +10,11 @@ import {
   get,
   hitLimit,
   put,
+  readSession,
   transaction,
   StoreUnavailableError,
 } from "./store";
+import { errorCategory } from "./errors";
 
 export const WORKSPACE_OWNER = "workspace";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -194,12 +196,47 @@ export function checkOrigin(request: Request) {
     "後端尚未設定 CONSOLE_ORIGIN。",
   );
 }
+function sessionToken(request: Request) {
+  const raw = request.headers.get("cookie") || "";
+  const part = raw
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith("hermes_session="));
+  const token = part ? part.slice("hermes_session=".length) : "";
+  return /^[a-f0-9]{64}$/.test(token) ? token : "";
+}
+
 export function authenticate(request: Request, mutation = false): string {
-  if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
-    verifyGateway(request);
-  if (mutation) checkOrigin(request);
-  limited("api:" + WORKSPACE_OWNER, 240, 60_000);
-  return WORKSPACE_OWNER;
+  try {
+    if (
+      process.env.CONSOLE_GATEWAY_SECRET ||
+      process.env.CONSOLE_REQUIRE_GATEWAY === "true"
+    )
+      verifyGateway(request);
+    if (mutation) checkOrigin(request);
+    const token = sessionToken(request);
+    if (!token)
+      throw new ApiError(401, "sign_in_required", "請先登入 Hermes。");
+    const row = readSession(hash(token));
+    if (!row || row.expires <= Date.now())
+      throw new ApiError(401, "session_expired", "登入已過期，請重新登入。");
+    const membership = get<{ id: string; role: string }>(
+      "membership",
+      WORKSPACE_OWNER,
+      row.owner,
+    );
+    if (!membership)
+      throw new ApiError(
+        403,
+        "workspace_forbidden",
+        "這個帳號還沒有工作區權限。",
+      );
+    limited("api:" + row.owner, 240, 60_000);
+    return WORKSPACE_OWNER;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new StoreUnavailableError();
+  }
 }
 
 // Optional deployment-level protection. Not an account login.
@@ -350,7 +387,7 @@ export function sessionCookie(token: string, logout = false) {
   const secure = process.env.CONSOLE_ORIGIN?.startsWith("https://")
     ? "; Secure"
     : "";
-  return `hermes_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${logout ? 0 : 43200}${secure}`;
+  return `hermes_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${logout ? 0 : 43200}${secure}`;
 }
 export async function jsonBody(
   request: Request,
@@ -401,7 +438,13 @@ export function route(fn: (req: Request) => Promise<Response>) {
     } catch (error) {
       if (error instanceof ApiError)
         return respond(
-          { error: { code: error.code, message: error.message } },
+          {
+            error: {
+              code: error.code,
+              message: error.message,
+              category: errorCategory(error.code),
+            },
+          },
           error.status,
           error.status === 429 ? { "Retry-After": "60" } : {},
         );

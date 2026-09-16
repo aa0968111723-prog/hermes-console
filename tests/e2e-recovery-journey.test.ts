@@ -1,4 +1,5 @@
 import test from "node:test";
+import { seedSession } from "./session-fixture";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { mkdtemp } from "node:fs/promises";
@@ -19,6 +20,7 @@ process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-e2e-recovery-"),
 );
 process.env.CONSOLE_ORIGIN = "http://localhost:3260";
+const testAuthCookie = seedSession().cookie;
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
 process.env.CONSOLE_REQUIRE_GATEWAY = "false";
@@ -44,7 +46,8 @@ const server = createServer(async (req, res) => {
   }
   if (req.url === "/v1/models") {
     res
-      .writeHead(200, { "Content-Type": "application/json" })
+      .writeHead(200, { "Content-Type": "application/json",
+      Cookie: testAuthCookie })
       .end(JSON.stringify({ data: [{ id: "fixture-agent" }] }));
     return;
   }
@@ -119,6 +122,7 @@ function request(path: string, method = "GET", body?: unknown) {
     method,
     headers: {
       "Content-Type": "application/json",
+      Cookie: testAuthCookie,
       Origin: process.env.CONSOLE_ORIGIN!,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
