@@ -47,9 +47,12 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：待 `lint`、`typecheck`、`npm test`、`build`、`test:ui`。
-- 新增：未驗證看圖的分析任務學生 UI 為「還沒看圖」，不得說已分析畫面。
-- 已 merge `origin/main` `24b4fb8`、`295fac2`，未回退產品路徑。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`check:secrets`、`build`、`test:ui`／`entry`／`chat`／`workbench`／`gateway`／`runtime` 通過。
+- `npm test`：429 tests, 427 pass, 2 skipped, 0 fail。含未驗證看圖不得說已分析畫面；分析-only 不誤標規格已保留。
+- `test:ui`：`design-spec-only-honesty.png`、`research-without-sources-honesty.png`、`image-without-vision-honesty.png`。Composer 為 warning，無「過程完成」。本地 Chrome LCP 360ms，CLS 0，axe 0。
+- Production First Load JS `/`：110 kB（page 6.67 kB，shared 103 kB）。
+- 含 360×800、390×844、412×915、430×932、768×1024。
+- 已 merge `origin/main` `24b4fb8`、`295fac2`，未回退產品路徑。本輪 `HEAD..origin/main` 為空。
 
 ## 仍是 Partial（禁止標綠）
 
