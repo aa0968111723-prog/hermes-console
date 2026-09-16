@@ -1,5 +1,4 @@
-import { mapDataset } from "../canva";
-import { canvaStatus } from "../canva";
+import { CANVA_UNAUTHORIZED_MESSAGE, canvaStatus, mapDataset } from "../canva";
 import { WORKSPACE_OWNER } from "../security";
 import type { RankableDirection } from "./ranking";
 import { visualFormat, type VisualFormatId } from "./formats";
@@ -59,7 +58,7 @@ export function validateSpecForTemplate(
   if (!canva.configured || canva.needsAuthorization)
     return {
       ok: false,
-      blocked: "Needs Canva Authorization",
+      blocked: CANVA_UNAUTHORIZED_MESSAGE,
       mapping: { mapped: {}, missing: Object.keys(dataset) },
     };
   const mapping = mapDataset(dataset, spec.templateDataset);

@@ -15,6 +15,8 @@ type Tokens = {
   scope: string;
 };
 type StoredTokens = { id: string; ciphertext: string };
+export const CANVA_UNAUTHORIZED_MESSAGE =
+  "尚未完成 Canva Connect 使用者授權。";
 export function canvaConfigured() {
   return !!(
     process.env.CANVA_CLIENT_ID &&
@@ -244,7 +246,7 @@ export function canvaStatus(owner: string) {
       status?.state ||
       (canvaConfigured() ? "awaiting_authorization" : "unconfigured"),
     verifiedAt: status?.checkedAt || null,
-    message: status?.message || "尚未完成 Canva Connect 使用者授權。",
+    message: status?.message || CANVA_UNAUTHORIZED_MESSAGE,
     needsAuthorization:
       canvaConfigured() &&
       (status?.state === "awaiting_authorization" || !status),

@@ -154,9 +154,7 @@ export const canvaProvider: InspirationProvider = {
         : status.configured
           ? "partial"
           : "unconfigured",
-      detail: status.needsAuthorization
-        ? "Needs Canva Authorization"
-        : status.message,
+      detail: status.message,
       capabilities: canvaProvider.capabilities(),
     };
   },

@@ -301,9 +301,7 @@ export function integrationsSnapshot(
     }
     if (item.id === "canva") {
       item.state = canva.state as IntegrationState;
-      item.detail = canva.needsAuthorization
-        ? "Needs Canva Authorization"
-        : canva.message;
+      item.detail = canva.message;
       item.verifiedAt = canva.verifiedAt;
     }
   }

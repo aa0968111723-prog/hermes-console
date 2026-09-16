@@ -308,7 +308,8 @@ try {
   );
   assert.ok(canva);
   assert.notEqual(canva.state, "available");
-  assert.match(String(canva.detail), /Needs Canva Authorization|尚未/);
+  assert.match(String(canva.detail), /尚未/);
+  assert.doesNotMatch(String(canva.detail), /Needs Canva Authorization/);
   assert.ok(!logs.includes(fixtureKey));
   console.log(
     "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",

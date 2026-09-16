@@ -79,7 +79,8 @@ test("unconfigured workspace never reports live integrations or auto-publish", a
     assert.equal(byId.instagram.state, "unconfigured");
     assert.equal(byId.canva.state, "unconfigured");
     assert.equal(byId.hermes.state, "unconfigured");
-    assert.match(String(byId.canva.detail), /Needs Canva Authorization|尚未/);
+    assert.match(String(byId.canva.detail), /尚未/);
+    assert.doesNotMatch(String(byId.canva.detail), /Needs Canva Authorization/);
     assert.equal(body.canva.configured, false);
     const blob = JSON.stringify(body);
     assert.doesNotMatch(blob, /"Connected"/);
