@@ -36,6 +36,9 @@
 | Email 連結 | live 契約 | 已登入使用者可連結 Email 到同一 User；不得因信箱相同合併他人。無效 `#verify`／`#login` 顯示錯誤。 |
 | 第 N 版 | live 契約 | 「第二版字放大」鎖定 `v2`，不得另開無關作品。 |
 | Email 找回 | live 契約 | 登入頁一律顯示 Magic Link／忘記密碼；寄信未設標「寄信尚未完成設定」。 |
+| 圖片縮圖 | live 契約 | 列表／附件用 `variant=thumb` WebP 480px；預覽仍用原檔。PDF 為標示封面 SVG，不是頁面擷取。連結只顯示 hostname，不代抓 OG。 |
+| 安全重試 | live 契約 | 僅 `read` 工具對 429／短暫 503／504 做 backoff+jitter。發佈／刪除／空結果／未設定不重試。 |
+| 記憶時效 | live 契約 | `confidence * recencyScore(updatedAt)`；超過 30 天降至 0.3 倍，不永遠沿用舊偏好。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
 
 ## 仍為 Partial（禁止打綠勾）

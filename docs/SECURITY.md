@@ -38,6 +38,8 @@
 
 MCP token 只放後端 env／vault 參照，不進 `CONSOLE_MCP_SERVERS_JSON` 明文。
 
+使用者貼上的參考連結只保存 URL 與 hostname 磁磚，伺服器不代抓 OG 圖或任意網站預覽，避免 SSRF。
+
 ## Other
 
 - XSS：使用者內容經既有 Markdown／結構化元件，不把 tool JSON 當 HTML。

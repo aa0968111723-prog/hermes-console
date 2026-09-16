@@ -27,6 +27,7 @@ Human
 - 取消會打後端 stop，不是只藏 UI。
 - 長任務中斷標 `uncertain`，不假裝仍在跑。程序啟動會立刻把沒有活 worker 的 chat／未取得 remoteId 任務改成 uncertain；有 remoteId 的 runs 才向 Hermes 查回。
 - Runtime Inspector：一般只看 Hermes／Memory／Tools／MCP 狀態；Developer 才看工具清單、schema、latency。
+- 只對 `read` 工具自動重試 429／短暫 503／504（exponential backoff + jitter）。發佈、刪除、寫入、空結果、未設定端點不重試。
 
 ## MCP
 
@@ -39,7 +40,8 @@ Human
 
 - SQLite（`CONSOLE_DATA_DIR`）或 Postgres（`DATABASE_URL`，僅 `console_*` 表）。
 - 作品：`artifactId` + `revisionId`（restore／fork）。
-- 記憶列有 `source`／`createdAt`／`updatedAt`／`scope`／`confidence`。專案 digest 可附加 workspace 列，但標明 scope，不把兩層混成同一列。
+- 素材列表用 `/api/materials?id=&variant=thumb`（WebP）。PDF 回傳標示封面 SVG，不是頁面擷取。參考連結不代抓網站預覽。
+- 記憶列有 `source`／`createdAt`／`updatedAt`／`scope`／`confidence`。組裝上下文時 confidence 乘上 `recencyScore(updatedAt)`，舊列不會永遠當現況。專案 digest 可附加 workspace 列，但標明 scope，不把兩層混成同一列。
 
 ## AuthZ
 
