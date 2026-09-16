@@ -271,7 +271,6 @@ export function memoryShareStatus(owner: string, connection?: Health) {
       : remoteFlag === false || connection?.status === "failed"
         ? "unsupported"
         : "unknown";
-  const label = memoryStoreLabel();
   const writeApi = memoryWriteApiEnabled();
   return {
     store: memoryStoreId(),
@@ -295,9 +294,7 @@ export function memoryShareStatus(owner: string, connection?: Health) {
     ] as const,
     notice:
       hermesRemote === "available"
-        ? label +
-          " 是共用來源；Hermes 遠端記憶能力已宣告且管理者聲明範圍已驗證，仍不代表雙方已雙向鏡像。"
-        : label +
-          " 是 Hermes 可讀寫的共用來源（Workspace MCP 與任務指示）。尚未驗證 Hermes 遠端記憶同步，不會宣稱已對齊。",
+        ? "這是工作區共用記憶。Hermes 已支援記憶，但不代表兩邊已經同步。"
+        : "這是工作區共用記憶。尚未確認遠端同步，不會宣稱已對齊。",
   };
 }

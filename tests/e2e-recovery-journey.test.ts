@@ -201,7 +201,8 @@ test("acknowledge unblocks the same conversation for a real retry", async () => 
   assert.equal(ack.status, 200);
   const acked = (await ack.json()).task as TaskBody;
   assert.equal(acked.state, "cancelled");
-  assert.match(acked.error || "", /已確認|重新提交|未宣稱遠端/);
+  assert.match(acked.error || "", /已確認.*再送出/);
+  assert.match(acked.error || "", /仍無法確認/);
 
   mode = "ok";
   const retry = await submitTask(conv.id, "確認後重試契約");

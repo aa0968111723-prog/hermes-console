@@ -658,7 +658,7 @@ export default function HermesConsole() {
       });
       setTasks((old) => old.map((t) => (t.id === task.id ? result.task : t)));
       setError("");
-      setNotice("已確認此待確認結果，可以重新送出；未宣稱遠端已停止。");
+      setNotice("已確認這筆結果，可以再送出。遠端是否已停，仍無法確認。");
       input.current?.focus();
     } catch (e) {
       setError((e as Error).message);
@@ -670,14 +670,14 @@ export default function HermesConsole() {
       data.conversations.find((c) => c.id === task.conversationId) ||
       activeConv;
     if (!conv) {
-      setError("找不到對應對話，無法建立重試分支。");
+      setError("找不到這則對話，無法另開重試。");
       return;
     }
     const message = conv.messages.find(
       (m) => m.taskId === task.id && m.role === "user",
     );
     if (!message) {
-      setError("找不到觸發此任務的使用者訊息，無法建立重試分支。");
+      setError("找不到觸發這則任務的訊息，無法另開重試。");
       return;
     }
     if (activeId !== conv.id) {
@@ -695,7 +695,7 @@ export default function HermesConsole() {
     setBusy(true);
     try {
       await createConversation(
-        source.title + " · 分支",
+        source.title + " · 重試",
         source.id,
         messageId,
         {
@@ -708,7 +708,7 @@ export default function HermesConsole() {
       );
       setNav("chat");
       setPanel(null);
-      setNotice("已建立分支，原對話完整保留。修改內容後再送出。");
+      setNotice("已另開對話，原本那則還在。改完再送出。");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -1142,7 +1142,7 @@ export default function HermesConsole() {
                   <>
                     {activeConv.parentId && (
                       <p className="branch-note">
-                        此為獨立分支，原對話仍保留。
+                        這是另開的對話，原本那則還在。
                       </p>
                     )}
                     {currentTask && isActive(currentTask) && (
@@ -1165,7 +1165,7 @@ export default function HermesConsole() {
                             <span>舊資料 · 未驗證</span>
                           )}
                           {message.provenance === "workspace" && (
-                            <span>本地索引</span>
+                            <span>工作區資料</span>
                           )}
                         </div>
                         <div className="message-content">
@@ -1215,7 +1215,7 @@ export default function HermesConsole() {
                           </button>
                           {message.role === "user" && (
                             <button
-                              aria-label="編輯並建立分支"
+                              aria-label="編輯並另開對話"
                               onClick={() =>
                                 branch(message.id, message.content)
                               }
@@ -1260,8 +1260,7 @@ export default function HermesConsole() {
                             onClick={() => openTask(currentTask)}
                           >
                             <ListTodo size={16} />
-                            {currentTask.events.at(-1)?.summary ||
-                              "查看已保存的任務"}
+                            {taskProgressLabel(currentTask)}
                             <ChevronDown size={16} />
                           </button>
                           {["failed", "cancelled", "uncertain"].includes(
@@ -1271,7 +1270,7 @@ export default function HermesConsole() {
                               className="text-button"
                               onClick={() => retryBranchFromTask(currentTask)}
                             >
-                              建立重試分支（保留原紀錄）
+                              另開對話重試
                             </button>
                           )}
                           {currentTask.state === "uncertain" && (
@@ -1326,7 +1325,7 @@ export default function HermesConsole() {
               {uncertain && (
                 <div className="composer-uncertain-hint" role="status">
                   <p>
-                    結果待確認，此對話暫時不能再送出。可確認後在原對話重試，或建立分支保留原紀錄；未宣稱遠端已停止。
+                    結果待確認，此對話暫時不能再送出。可確認後再送，或另開對話重試；遠端是否已停，仍無法確認。
                   </p>
                   <div className="composer-uncertain-actions">
                     <button
@@ -1342,7 +1341,7 @@ export default function HermesConsole() {
                       onClick={() => retryBranchFromTask(uncertain)}
                       disabled={busy}
                     >
-                      建立重試分支（保留原紀錄）
+                      另開對話重試
                     </button>
                   </div>
                 </div>
@@ -1987,8 +1986,8 @@ export default function HermesConsole() {
                           <h3>Canva · 授權</h3>
                           <p>
                             {canvaConfigured
-                              ? "後端已設定 OAuth；請前往 Canva 授權並確認所需權限。此授權只用於 Canva。"
-                              : "後端尚未設定 Canva OAuth。也可沿用 Hermes 已有的 Canva 設計 MCP。"}
+                              ? "已設定 Canva 授權；請前往 Canva 確認權限。此授權只用於 Canva。"
+                              : "尚未設定 Canva 授權。也可使用 Hermes 既有的 Canva 連線。"}
                           </p>
                           <button
                             disabled={!canvaConfigured}
@@ -2093,7 +2092,7 @@ export default function HermesConsole() {
                       }}
                     />
                     <p>{data.memory.scope}</p>
-                    <p className="muted">學習地圖是請求紀錄，不是遠端記憶鏡像。</p>
+                    <p className="muted">學習地圖是這次要求的紀錄，不是遠端記憶副本。</p>
                     <button
                       disabled={!activeConv?.hermesSessionId}
                       onClick={async () => {
@@ -2225,7 +2224,7 @@ export default function HermesConsole() {
                 )}
               </div>
               <footer className="settings-footer">
-                <p className="muted">單一工作區 · 秘密只存在後端</p>
+                <p className="muted">金鑰只存在伺服器</p>
               </footer>
             </>
           ) : panel === "preview" && preview ? (
@@ -2281,7 +2280,7 @@ export default function HermesConsole() {
               <TaskRequestSummary input={chosenTask.input} />
               {offline && (
                 <div className="task-offline-banner" role="status">
-                  <p>連線中斷 · 顯示上次已知。後端未假裝停止。</p>
+                  <p>連線中斷 · 顯示上次內容</p>
                   <button
                     type="button"
                     className="task-resume-cta"
@@ -2296,7 +2295,7 @@ export default function HermesConsole() {
               {chosenTask.state === "uncertain" && (
                 <div className="task-uncertain-block" role="status">
                   <p>
-                    結果待確認，此對話暫時不能再送出。請確認後再重試，或建立分支保留原紀錄；系統不會自動重送上一則。
+                    結果待確認，此對話暫時不能再送出。請確認後再送，或另開對話重試；系統不會自動重送上一則。
                   </p>
                   <button
                     type="button"
@@ -2312,7 +2311,7 @@ export default function HermesConsole() {
                     onClick={() => retryBranchFromTask(chosenTask)}
                     disabled={busy}
                   >
-                    建立重試分支
+                    另開對話重試
                   </button>
                 </div>
               )}
@@ -2324,7 +2323,7 @@ export default function HermesConsole() {
                 >
                   <Square size={16} />
                   要求停止
-                  {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
+                  {!chosenTask.stopSupported ? "（無法確認已停止）" : ""}
                 </button>
               )}
               {["failed", "cancelled"].includes(chosenTask.state) && (
@@ -2334,7 +2333,7 @@ export default function HermesConsole() {
                   onClick={() => retryBranchFromTask(chosenTask)}
                   disabled={busy}
                 >
-                  建立重試分支（保留原紀錄）
+                  另開對話重試
                 </button>
               )}
               {!!chosenTask.output && (

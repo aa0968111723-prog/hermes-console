@@ -147,7 +147,7 @@ export default function ProjectWorkbench({
     <section className="workbench" aria-label="活動資料與文案工作區">
       <h2>活動資料與文案</h2>
       <p className="muted">
-        保存於後端，可由 Hermes 查回接續；不是長期記憶，也不代表已製作或發佈。
+        保存後 Hermes 可以查回接續。不是長期記憶，也不代表已製作或發佈。
       </p>
       {error && (
         <p className="error" role="alert">

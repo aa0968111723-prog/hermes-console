@@ -9,7 +9,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 /**
  * LOCAL_CONTRACT only — mock Hermes, not LIVE_EXTERNAL.
  * Covers stream failures Console can classify as definite failed so the UI
- * can offer「建立重試分支」without leaving the task as uncertain.
+ * can offer「另開對話重試」without leaving the task as uncertain.
  */
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-stream-definite-"),

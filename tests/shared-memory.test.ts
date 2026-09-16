@@ -243,7 +243,7 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
       "utf8",
     );
     assert.match(ui, /\/api\/memory/);
-    assert.match(ui, /未宣稱已鏡像/);
+    assert.match(ui, /尚未同步到遠端/);
     assert.doesNotMatch(ui, /HERMES_API_KEY\s*=/);
     assert.doesNotMatch(ui, /sk-[a-zA-Z0-9_-]{12,}/);
   });

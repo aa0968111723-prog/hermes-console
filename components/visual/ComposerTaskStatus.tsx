@@ -4,9 +4,9 @@ import type { Task } from "@/lib/contracts";
 import { taskProgressLabel } from "@/lib/client/activity";
 
 /** Pill + notice share this offline copy (chat-first; never pretend remote stopped). */
-export const OFFLINE_PILL_LABEL = "離線 · 顯示上次資料";
+export const OFFLINE_PILL_LABEL = "離線 · 顯示上次內容";
 export const OFFLINE_NOTICE =
-  "離線 · 顯示上次資料。後端任務不會因關閉頁面而假裝停止。";
+  "離線 · 顯示上次內容。進行中的工作不會因關掉畫面而假裝已停止。";
 
 /**
  * Offline pill click refreshes only. Any other state opens the task sheet.
@@ -79,7 +79,7 @@ export default function ComposerTaskStatus({ task, offline, onClick }: {
     : status.tone === "waiting" ? Clock : Activity;
   const aria =
     action === "refresh"
-      ? `離線：重新整理上次資料（${status.label}）`
+      ? `離線：重新整理上次內容（${status.label}）`
       : `查看目前任務：${status.label}`;
   return (
     <button type="button" className="composer-task-status" data-tone={status.tone}

@@ -229,7 +229,7 @@ function submitLocalWorkspace(
         "conversation_busy",
         "此對話尚有執行中或結果未確認的任務，請先查回狀態。",
       );
-    event(task, "Hermes 未連線，改讀工作區本地索引。不是 live MCP。");
+    event(task, "Hermes 未連線，改讀工作區資料。不是即時連線。");
     event(
       task,
       "禪學社 Drive 索引快照已讀取。不是即時 Drive，也不是 IG。",
@@ -346,7 +346,7 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       );
     if (list<Task>("task", owner).filter(active).length >= 3)
       throw new ApiError(429, "concurrency_limit", "最多同時執行三項任務。");
-    event(task, "已在後端保存任務，準備提交 Hermes。");
+    event(task, "已保存任務，準備交給 Hermes。");
     put("task", owner, task);
     conv.messages.push({
       id: randomUUID(),
@@ -674,7 +674,7 @@ async function execute(
           throw new ApiError(
             502,
             "client_tools_unsupported",
-            "上游要求客戶端執行工具；此工作區只接受由 Hermes 執行的工具，已停止。",
+            "這次需要在瀏覽器執行工具，目前工作區不支援，已停止。",
           );
         raw += choice.delta?.content || "";
         if (raw.length > 1_000_000)
@@ -688,7 +688,7 @@ async function execute(
       throw new ApiError(
         502,
         "stream_incomplete",
-        "串流中斷，尚未收到完成訊號；上游結果待確認。",
+        "連線中斷，還沒收到完成訊號；結果待確認。",
       );
     task.output = visibleText(raw);
     if (!task.output.trim() && !hasCompletedToolEvents(task))
@@ -819,7 +819,7 @@ export async function reconcile(owner: string, id: string) {
         owner,
         task,
         "uncertain",
-        "Console 程序曾中斷，無法確認串流上游結果；不會自動重送。",
+        "服務曾中斷，無法確認遠端結果；不會自動重送。",
       );
     return task;
   }
@@ -903,12 +903,12 @@ export async function reconcile(owner: string, id: string) {
         owner,
         task,
         "uncertain",
-        "重啟後無法確認遠端任務；不會假裝仍在執行，也不會自動重送。",
+        "重新啟動後無法確認遠端工作；不會假裝仍在執行，也不會自動重送。",
       );
     task.observationError =
       error instanceof ApiError
         ? error.message
-        : "查回任務失敗，保留上次已知狀態。";
+        : "暫時查不到最新進度，顯示上次內容。";
   }
   return save(owner, task);
 }
@@ -923,7 +923,7 @@ export async function stop(owner: string, id: string) {
       }),
     );
     task.state = "stopping";
-    event(task, "已將停止要求送達 Hermes，等待執行器確認。");
+    event(task, "已送出停止，等待 Hermes 確認。");
     return save(owner, task);
   }
   workers.get(id)?.abort();
@@ -932,6 +932,6 @@ export async function stop(owner: string, id: string) {
     owner,
     task,
     "uncertain",
-    "已中斷後端連線，但此 Hermes 版本無可驗證的停止介面；工具可能仍在執行。",
+    "已送出停止，但無法確認遠端是否已停；工作可能仍在進行。",
   );
 }

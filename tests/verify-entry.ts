@@ -94,7 +94,7 @@ try {
   await expect(page.locator("article.message.assistant .visual-concept-deck")).toHaveCount(1);
   await expect(page.locator("article.message.assistant .markdown")).toHaveCount(0);
   await expect(page.getByText("Hermes Agent 尚未連線")).toHaveCount(1);
-  await expect(page.getByText("本地索引", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("工作區資料", { exact: true })).toHaveCount(1);
   await expect(page.getByText(/Drive 快照/).first()).toBeVisible();
   await expect(page.locator(".visual-concept-deck")).toHaveAttribute(
     "data-overlay-date",
@@ -393,7 +393,7 @@ try {
     path: join(output, "chat-poster-attached-honest.png"),
   });
   await page.context().setOffline(true);
-  await expect(page.getByText("離線 · 顯示上次資料")).toBeVisible();
+  await expect(page.getByText("離線 · 顯示上次內容")).toBeVisible();
   await expect(page.locator(".turtle").first()).toHaveAttribute(
     "data-state",
     "offline",
@@ -403,7 +403,7 @@ try {
     path: join(output, "chat-offline-reconnect.png"),
   });
   await page.context().setOffline(false);
-  await expect(page.getByText("離線 · 顯示上次資料")).toHaveCount(0);
+  await expect(page.getByText("離線 · 顯示上次內容")).toHaveCount(0);
   await expect(attached()).toContainText("圖片已保存");
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("tab", { name: "帳號", exact: true }).click();

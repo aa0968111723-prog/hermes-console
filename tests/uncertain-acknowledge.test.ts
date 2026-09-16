@@ -77,7 +77,7 @@ test("acknowledge moves uncertain to cancelled so conversation can retry", () =>
   assert.equal(conversationBusy("owner", conversationId), true);
   const after = acknowledge("owner", id);
   assert.equal(after.state, "cancelled");
-  assert.match(after.error || "", /已確認|重新提交/);
+  assert.match(after.error || "", /已確認.*再送出/);
   assert.ok(after.endedAt);
   assert.equal(conversationBusy("owner", conversationId), false);
 });

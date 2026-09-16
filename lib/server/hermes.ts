@@ -127,7 +127,7 @@ export async function upstream(
       throw new ApiError(
         499,
         "interrupted",
-        "請求已中斷；上游執行結果需另行確認。",
+        "請求已中斷；遠端結果需另行確認。",
       );
     throw new ApiError(
       504,

@@ -114,15 +114,15 @@ export default function SharedMemory({ projectId }: { projectId: string }) {
         <dt>存放位置</dt>
         <dd>
           {share?.store === "console-postgres"
-            ? "DATABASE_URL Postgres"
-            : "CONSOLE_DATA_DIR SQLite"}
+            ? "伺服器資料庫"
+            : "本機資料檔"}
         </dd>
         <dt>與 Hermes 共用</dt>
-        <dd>Workspace MCP + 任務指示</dd>
+        <dd>工作區工具與任務</dd>
         <dt>遠端記憶同步</dt>
         <dd>
           {share ? REMOTE[share.hermesRemote] || share.hermesRemote : "讀取中"}
-          {share?.synced ? "" : " · 未宣稱已鏡像"}
+          {share?.synced ? "" : " · 尚未同步到遠端"}
         </dd>
         <dt>筆數</dt>
         <dd>{share?.count ?? "—"}</dd>

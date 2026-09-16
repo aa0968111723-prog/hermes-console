@@ -63,8 +63,8 @@ test("composer marks stale observations and offline data as unconfirmed", () => 
     label: OFFLINE_PILL_LABEL, tone: "warning", tool: null,
     toolName: null, toolKind: null,
   });
-  assert.equal(OFFLINE_PILL_LABEL, "離線 · 顯示上次資料");
-  assert.match(OFFLINE_NOTICE, /離線 · 顯示上次資料/);
+  assert.equal(OFFLINE_PILL_LABEL, "離線 · 顯示上次內容");
+  assert.match(OFFLINE_NOTICE, /離線 · 顯示上次內容/);
   assert.deepEqual(composerTaskStatus(task("running", "poll failed"), false), {
     label: "連線異常 · 狀態待確認", tone: "warning", tool: null,
     toolName: null, toolKind: null,

@@ -577,7 +577,7 @@ export async function verifyVisualStates(
   await page.setViewportSize({ width: 390, height: 844 });
   // Wait until offline pill replaces prior failed state (avoid flake on 「失敗」).
   await expect(page.locator(".composer-task-status")).toContainText(
-    "離線 · 顯示上次資料",
+    "離線 · 顯示上次內容",
     { timeout: 15_000 },
   );
   await expect(page.locator(".turtle")).toHaveAttribute("data-state", "offline");

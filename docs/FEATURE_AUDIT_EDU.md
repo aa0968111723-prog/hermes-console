@@ -83,7 +83,7 @@
 2. **沒有 IRB／同意書工作流**：研究模式只提醒。
 3. **文獻不是真的查完**：`researchBundle.executed === false`，需 Hermes 已授權工具或 MCP 才可能變 live。
 4. **沒有參與者個資治理**：上傳即進同一 SQLite。
-5. **Hermes 金鑰**：未設定就不能走 live Agent；本地索引可回答部分禪學社問題。閘道是部署層保護，不是帳號登入。
+5. **Hermes 金鑰**：未設定就不能走 live Agent；工作區資料可回答部分禪學社問題。閘道是部署層保護，不是帳號登入。
 6. **`/create` 在 tip／正式站為 REGRESSED（404）**：依回饋不在本 PR 恢復。
 7. **現有 UI 不會切研究／行政**：夥伴若要試這兩種模式，需由已授權客戶端傳 `mode` 欄位（或之後另做產品決策再加開關）。本 PR 不加 ModeSwitch。
 
@@ -129,5 +129,5 @@ POST /api/tasks
 ## 共用記憶與 Zeabur
 
 - 設定 → 記憶：可新增／編輯／刪除共用記憶（Postgres 或 SQLite 後備）。Hermes 經 Workspace MCP 與任務指示讀同一批資料。
-- 遠端 Hermes memory API 未驗證時，畫面與 API 都寫「未宣稱已鏡像」。
+- 遠端 Hermes memory API 未驗證時，畫面寫「尚未同步到遠端」，不會假裝已對齊。
 - 設定 → 連線：可保存 Zeabur API 權杖並操作該服務環境變數／重新部署。公開站等同可改後端。

@@ -19,7 +19,7 @@ export function acknowledge(owner: string, id: string): Task {
     );
   const now = new Date().toISOString();
   const message =
-    "操作者已確認此待確認結果，對話可重新提交；未宣稱遠端工具已停止。";
+    "已確認這筆結果，可以再送出。遠端工具是否已停，仍無法確認。";
   task.state = "cancelled";
   task.error = message;
   task.endedAt = now;
