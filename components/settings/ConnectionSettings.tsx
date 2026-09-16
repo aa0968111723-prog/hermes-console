@@ -153,8 +153,6 @@ export default function ConnectionSettings({
   const [framelabToken, setFramelabToken] = useState("");
   const [duigaoUrl, setDuigaoUrl] = useState("");
   const [duigaoToken, setDuigaoToken] = useState("");
-  const [tkuUser, setTkuUser] = useState("");
-  const [tkuPassword, setTkuPassword] = useState("");
   const [galleyUrl, setGalleyUrl] = useState("");
   const [galleyToken, setGalleyToken] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -203,7 +201,6 @@ export default function ConnectionSettings({
     setLumenToken("");
     setFramelabToken("");
     setDuigaoToken("");
-    setTkuPassword("");
     setGalleyToken("");
     setZeaburToken("");
     setZeaburValue("");
@@ -901,34 +898,15 @@ export default function ConnectionSettings({
               />
               清除已存淡江權杖
             </label>
-            <label>
-              淡江使用者名稱（選用）
-              <input
-                value={tkuUser}
-                onChange={(e) => setTkuUser(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <label>
-              淡江密碼（選用）
-              <input
-                type="password"
-                value={tkuPassword}
-                onChange={(e) => setTkuPassword(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
             <p className="muted">
-              既有實作以網址加 Bearer 權杖為準。若伺服器在同一來源提供
-              /auth/login、/api/auth/login、/login 或 JSON-RPC
-              auth/login，後端會代為交換權杖；沒有這些端點時請直接貼權杖。
+              淡江 MCP 只接受已存的 Bearer 權杖。Hermes 不收集校園帳號或密碼。登入 Hermes 的淡江 SSO 在登入頁，需校方 OIDC。
             </p>
           </section>
           <section hidden={selected !== "zeabur"} aria-label="Zeabur 部署">
             <h3>Zeabur 部署</h3>
             <p className="muted">
               {data?.zeabur?.notice ||
-                "在 Zeabur 控制台 Settings → API Keys 建立權杖。公開站任何人都可以覆寫並變更後端環境變數。"}
+                "在 Zeabur 控制台 Settings → API Keys 建立權杖。"}
             </p>
             <label>
               Zeabur API 權杖
@@ -1324,31 +1302,6 @@ export default function ConnectionSettings({
             >
               <RefreshCw size={16} />
               測試對稿連線
-            </button>
-            <button
-              hidden={selected !== "tamkang"}
-              type="button"
-              disabled={busy || !tkuUser || !tkuPassword}
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                setNotice("");
-                try {
-                  const result = (await postJson("settings/tamkang", {
-                    action: "login",
-                    username: tkuUser,
-                    password: tkuPassword,
-                  })) as SettingsPayload;
-                  setTkuUser("");
-                  await afterSave(result, "已用校園憑證交換權杖並探測連線。");
-                } catch (e) {
-                  setError((e as Error).message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              以校園憑證交換權杖
             </button>
           </div>
         </form>

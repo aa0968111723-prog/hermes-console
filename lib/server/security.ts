@@ -210,9 +210,17 @@ function sessionTokenFromRequest(request: Request) {
   return /^[a-f0-9]{64}$/.test(token) ? token : "";
 }
 
+function sessionHasWorkspaceMembership(userId: string) {
+  return Boolean(
+    get("auth_user", WORKSPACE_OWNER, userId) &&
+      get("auth_membership", WORKSPACE_OWNER, userId),
+  );
+}
+
 export function hasValidSession(request: Request) {
   const token = sessionTokenFromRequest(request);
-  return Boolean(token && readSession(hash(token)));
+  const session = token ? readSession(hash(token)) : null;
+  return Boolean(session && sessionHasWorkspaceMembership(session.owner));
 }
 
 export function authenticate(
@@ -227,7 +235,7 @@ export function authenticate(
   if (!options?.anonymous && isAuthRequired()) {
     const token = sessionTokenFromRequest(request);
     const session = token ? readSession(hash(token)) : null;
-    if (!session)
+    if (!session || !sessionHasWorkspaceMembership(session.owner))
       throw new ApiError(401, "AUTH_ERROR", "請先登入 Hermes。", "AUTH_ERROR");
   }
   return WORKSPACE_OWNER;

@@ -1,5 +1,6 @@
 import { ApiError, redact } from "./security";
 import { credentialPresence, runtimeEnv } from "./credentials";
+import { zeaburAccessNotice } from "./auth/access-notice";
 
 const DEFAULT_API = "https://api.zeabur.com/graphql";
 const PUSHABLE = [
@@ -117,8 +118,7 @@ export function zeaburPublicStatus() {
     serviceId: runtimeEnv("ZEABUR_SERVICE_ID") || "",
     environmentId: runtimeEnv("ZEABUR_ENVIRONMENT_ID") || "",
     endpoint: DEFAULT_API,
-    notice:
-      "權杖在 Zeabur 控制台 Settings → API Keys 建立。能開啟此網站的人都可以覆寫權杖並變更部署環境變數。",
+    notice: zeaburAccessNotice(),
   };
 }
 
