@@ -246,6 +246,21 @@ try {
         dock && send && send.y + send.height <= dock.y,
         "bottom dock overlaps send at "+width+": "+JSON.stringify({send,dock}),
       );
+      const title = await page.locator(".topbar-title").boundingBox();
+      const tasks = await page
+        .getByRole("button", { name: "任務與成果" })
+        .boundingBox();
+      assert.ok(
+        title &&
+          tasks &&
+          title.x + title.width <= tasks.x + 1,
+        "topbar title overlaps tasks at " +
+          width +
+          ": " +
+          JSON.stringify({ title, tasks }),
+      );
+      await expect(page.locator(".connection-label")).toBeVisible();
+      await expect(page.locator(".connection-pill")).toContainText("未設定");
     }
     const composer = await page.locator(".composer").boundingBox();
     assert.ok(

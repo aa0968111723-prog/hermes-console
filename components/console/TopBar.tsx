@@ -92,6 +92,7 @@ export default function TopBar({
       </button>
       <button
         className="connection-pill"
+        data-ready={!offline && health?.credential === "valid" ? "true" : "false"}
         aria-label={
           "連線狀態：" +
           (offline

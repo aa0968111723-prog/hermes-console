@@ -23,12 +23,22 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.match(topBar, /創作對話/);
   assert.match(topBar, /aria-label="開啟新對話"/);
   assert.match(topBar, /aria-label="帳號設定"/);
+  assert.match(topBar, /data-ready=/);
   assert.match(consoleUi, /onNewChat=\{fresh\}/);
   const css = await readFile(
     new URL("../app/globals.css", import.meta.url),
     "utf8",
   );
   assert.match(css, /\.mobile-nav \.visual-dock-nav \{\s*display: none;/);
+  assert.match(css, /\.topbar-title \{[\s\S]*?overflow: hidden/);
+  assert.match(
+    css,
+    /connection-pill\[data-ready="true"\] \.connection-label \{ display: none/,
+  );
+  assert.doesNotMatch(
+    css,
+    /\.connection-label \{ display: none; \}\.connection-pill \{ width: 44px/,
+  );
   assert.match(conversation, /className="conversation-scroll"/);
   assert.match(conversation, /今天想做什麼？/);
   assert.match(conversation, /onPickDirection/);
