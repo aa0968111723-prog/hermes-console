@@ -5,7 +5,7 @@ import { revokeUserSessions } from "@/lib/server/auth/identity";
 
 export const runtime = "nodejs";
 
-export const DELETE = route(async (request) => {
+async function signOut(request: Request) {
   authenticate(request, true, { anonymous: true });
   const access = readAccess(request);
   const input = z
@@ -13,4 +13,7 @@ export const DELETE = route(async (request) => {
     .parse(await jsonBody(request, 200).catch(() => ({})));
   if (input.all && access) revokeUserSessions(access.user.id);
   return respond({ signedOut: true }, 200, { "Set-Cookie": clearSession(request) });
-});
+}
+
+export const DELETE = route(signOut);
+export const POST = route(signOut);

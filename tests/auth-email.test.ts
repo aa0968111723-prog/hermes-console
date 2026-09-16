@@ -78,6 +78,22 @@ test("email argon2id register/login and workspace membership", async () => {
   assert.equal(body.tamkang, "unconfigured");
   assert.equal(body.user.email, "owner@example.test");
 
+  const logoutRoute = await import("../app/api/auth/logout/route");
+  const loggedOut = await logoutRoute.POST(
+    request("auth/logout", "POST", {}, cookie),
+  );
+  assert.equal(loggedOut.status, 200);
+  assert.equal((await loggedOut.json()).signedOut, true);
+  assert.match(loggedOut.headers.get("set-cookie") || "", /Max-Age=0/);
+  assert.equal(
+    (await workspace.GET(request("workspace", "GET", undefined, cookie))).status,
+    401,
+  );
+  const signedOut = await session.GET(
+    request("auth/session", "GET", undefined, cookie),
+  );
+  assert.equal((await signedOut.json()).user, null);
+
   const api = await emailRoute.POST(
     request("auth/email", "POST", {
       action: "login",
