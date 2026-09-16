@@ -40,10 +40,12 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 
 ## DB / Security / Tests / Deploy
 
-- [ ] Backup taken
+- [ ] Backup taken (`npm run backup` or volume snapshot)
+- [ ] `npm run rehearse` reports required env; optional Google / Tamkang / Hermes stay honest
 - [ ] No secrets in client, logs, or git
 - [ ] `npm run lint` `typecheck` `test` `test:ui` `test:entry` `test:chat` `test:workbench` `test:gateway` `test:runtime` `build`
-- [ ] `/api/health` and `/api/ready` on the target host
+- [ ] `/api/health` returns 200 while the process is up even if Hermes is down
+- [ ] `/api/ready` on the target host
 - [ ] Rollback snapshot identified
 
 Known gaps must be listed as Partial in the PR. Do not paint them green.

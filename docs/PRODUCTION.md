@@ -14,8 +14,8 @@ Console stores identity, workspace, conversations, tasks, memory, and artifacts.
 - Persistent volume on `CONSOLE_DATA_DIR` (container default `/app/data`).
 - Optional `DATABASE_URL` for Console-owned Postgres tables only (`console_records` / `console_sessions` / `console_limits`). Never point this at `ai_os` or `cutos_memory_items`.
 - Public HTTPS domain in `CONSOLE_ORIGIN`.
-- Health: `GET /api/health` (liveness + store + Hermes probe, no secrets).
-- Readiness: `GET /api/ready` (store probe only). App live ≠ Agent ready.
+- Health: `GET /api/health` (process live + last store probe + cached Hermes status). Never waits on Hermes discovery. `live` is the process; `ready` is the store; `agentReady` is a recent successful probe.
+- Readiness: `GET /api/ready` (store probe only, 200 or 503). App live ≠ Agent ready.
 
 ## Environment
 
@@ -77,16 +77,19 @@ Set `CONSOLE_ORIGIN` to the public origin. Cookies use `Secure` on HTTPS. Mutati
 
 | Path | Auth | Meaning |
 | --- | --- | --- |
-| `GET /api/health` | public | Process live, store probe, Hermes credential/agent status. Includes `live`, `ready`, `agentReady`. No secrets, no tool names, no vault/env sources. Owner/admin cookies receive the developer probe. |
-| `GET /api/ready` | public | Store writable. 200 or 503. |
-| `POST /api/health` | owner or admin + origin | Forced refresh with models / skills / toolsets. Members receive 403. |
+| `GET /api/health` | public | Process live (`live: true` even if Hermes or the store is down). `ready` / `storeReady` come from the store probe. `agentReady` is true only from a **fresh cached** Hermes probe (`reachable` + valid credential). Missing cache with credentials present is `verifying`, not available. This GET never waits on `/v1/models`. No secrets, no tool names, no vault/env sources for anonymous callers. Owner/admin cookies receive the developer cache view. |
+| `GET /api/ready` | public | Store writable. 200 or 503. Use this as the deploy readiness probe. |
+| `POST /api/health` | owner or admin + origin | Forced Hermes discovery with models / skills / toolsets. Members receive 403. May wait up to `HERMES_DISCOVERY_TIMEOUT_MS`. |
 | `GET/POST /api/settings/credentials` | owner or admin | Connection secrets. Members receive 403. |
 
 ## Backup / rollback
 
-1. Snapshot SQLite/Postgres and `vault.key`.
-2. Deploy the new image.
-3. Confirm `/api/ready` and a real login.
-4. On failure, restore the snapshot and previous image. Do not rewrite git history.
+1. Snapshot SQLite/Postgres and `vault.key` (`npm run backup`, or a volume snapshot). `CONSOLE_BACKUP_DIR` overrides the default `$CONSOLE_DATA_DIR/backups`.
+2. Confirm `npm run rehearse` is honest: required env present, optional Google / Tamkang / Hermes / mail reported as configured or not, **without** printing secret values.
+3. Deploy the new image.
+4. Confirm `GET /api/ready` (store) and a real login. `GET /api/health` must stay 200 while Hermes is down.
+5. On failure, restore the snapshot and previous image. Do not rewrite git history.
+
+`npm run backup` copies `console.sqlite` plus WAL/SHM and `vault.key`. Postgres also needs `pg_dump` on the host; if it is missing the command fails honestly. This is not a live Zeabur snapshot.
 
 This file does not authorize a production deploy. Deploy only with explicit owner approval.

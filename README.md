@@ -58,9 +58,11 @@ npm test
 npm run build
 npm run test:ui
 npm run test:entry
+npm run rehearse
+npm run backup
 ```
 
-Contract tests are not live Zeabur / Canva / campus SSO evidence.
+Contract tests and `rehearse` are not live Zeabur / Canva / campus SSO evidence. `backup` writes local files only.
 
 ## Deploy
 

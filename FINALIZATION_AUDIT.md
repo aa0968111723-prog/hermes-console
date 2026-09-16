@@ -33,15 +33,17 @@
 | 帳號工作階段 | 可用（契約） | 列出目前／其他裝置。結束其他登入需確認。目前這次只能登出。`test:ui` 帳號頁斷言「目前這台」、Google／淡江尚未完成設定、登出，且不洩漏 session hash。 |
 | 連線格 | 可用（契約） | 名稱 + 狀態點。狀態文字只在 aria-label。點卡片才開設定。工具名與 MCP 密碼交換收進「進階說明」。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
+| 登入包體 | 可用（契約） | `/` First Load JS 109 kB。AuthGate 先出現；工作區、設定、靈感、活動工作台進場後再載。 |
+| 正式啟動檢查 | 可用（契約） | 缺 `CONSOLE_ORIGIN`、公開 HTTP、非本機 `CONSOLE_ALLOW_LOCAL_ACCESS`、測試 session 會在 production startup 直接失敗。 |
+| Health liveness | 可用（契約） | `GET /api/health` 不等 Hermes。`live` 在 store／Hermes 掛掉時仍為 true。憑證在但還沒探測是 verifying，不是 available。 |
+| 備份／演練 | 可用（契約） | `npm run backup` 複製 sqlite／WAL／vault.key，不印秘密。`npm run rehearse` 只報告已設定／未設定。不是 Zeabur 實機快照。 |
 
 ## 本輪驗證（2026-09-16）
 
 - 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry`、`test:ui`、`test:chat`、`test:workbench`、`test:runtime`、`test:gateway` 通過。
-- `npm test`：400 tests, 398 pass, 2 skipped, 0 fail。含 memory layer 隔離、STALE、copy artifact 上下文、龜龜標籤不含 GALLEY／Canva、Composer 高階進度。
-- `/` First Load JS 239 kB（shared 103 kB）。
-- `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊；magic／重設／驗證；成員 403。
-- `test:ui`：360／390／412／430／768／1024／1440；專案頁「專案」；Composer 顯示「研究」不是「研究 · GALLEY」；axe 0；LCP 72ms／CLS ~0.00008（本機 Chrome，不是實機）。
-- `test:chat`／`test:workbench`／`test:runtime`／`test:gateway`：契約 Playwright 通過；不是 live Zeabur／SSO。
+- `npm test`：401 tests, 399 pass, 2 skipped, 0 fail。含 production 拒絕測試 session／公開 HTTP origin。
+- `/` First Load JS 109 kB（shared 103 kB；登入頁 6.13 kB）。工作區與設定為另外的 chunk。
+- Playwright 六套契約全過。`test:ui` 本機 Chrome LCP 364ms／CLS ~0.00008（不是實機）。
 
 ## 仍是 Partial（禁止標綠）
 
