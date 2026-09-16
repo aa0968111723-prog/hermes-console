@@ -106,6 +106,25 @@ export function buildPlan(
       ),
     );
   }
+  if (goal.requiresImageAnalysis) {
+    const image = routes.find((item) => item.id === "image");
+    steps.push(
+      step(
+        "看圖",
+        "讀取已上傳圖片的真實內容；沒有 imageData 或 PDF 未抽取時標未看圖。",
+        image?.tool || "ask_user",
+        image?.fallback || null,
+      ),
+    );
+    steps.push(
+      step(
+        "視覺層級",
+        "整理構圖、對比、資訊層級與閱讀動線；未讀圖不得假裝。",
+        null,
+        null,
+      ),
+    );
+  }
   if (goal.requiresInspiration) {
     steps.push(
       step("找靈感", "先讀已收藏靈感，再搜尋已授權來源。", "project_inspiration_then_web", "ask_user"),
@@ -123,7 +142,17 @@ export function buildPlan(
       ),
     );
   }
-  if (goal.requiresDesign || goal.output) {
+  if (goal.requiresImageAnalysis) {
+    steps.push(
+      step(
+        "修改建議",
+        "給出可執行的修改建議；未讀圖就說明無法分析。不得重出無關新圖。",
+        null,
+        null,
+      ),
+    );
+  }
+  if (goal.requiresDesign || (goal.output && !goal.requiresImageAnalysis)) {
     steps.push(
       step(
         "編譯視覺規格",
@@ -148,7 +177,14 @@ export function buildPlan(
       step("Canva 接續", "有授權才製作；否則只交規格。", routes.find((item) => item.id === "design")?.tool || "canva_spec_only", "canva_spec_only"),
     );
   }
-  steps.push(step("最終審查", "列出來源、未完成步驟與需要你確認的操作。", null, null));
+  steps.push(
+    step(
+      "最終審查",
+      "確認是否回答問題、工具是否失敗、重要主張是否有來源、作品是否存在。不得暴露內部推理。",
+      null,
+      null,
+    ),
+  );
   return {
     summary: goal.goal.slice(0, 180),
     budgetMode,

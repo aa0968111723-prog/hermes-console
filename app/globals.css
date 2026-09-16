@@ -1015,11 +1015,30 @@ nav button[aria-current="page"] {
   font-size: 12px;
   max-width: 230px;
 }
-.message-attachments img {
+.message-attachments img,
+.attachment-cover {
   width: 54px;
   height: 54px;
   object-fit: cover;
   border-radius: 6px;
+}
+.attachment-cover {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: #eef5e8;
+  color: #356b45;
+}
+.attachment-cover em {
+  font-style: normal;
+  font-size: 9px;
+  line-height: 1;
+  max-width: 50px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .task-summary {
   font-size: 12px;

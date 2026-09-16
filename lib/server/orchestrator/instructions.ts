@@ -17,6 +17,7 @@ import {
   PLANFORM_INSTRUCTION_PACK,
   TAMKANG_INSTRUCTION_PACK,
   TRUTH_QA_INSTRUCTION_PACK,
+  IMAGE_ANALYSIS_INSTRUCTION_PACK,
   WORKSPACE_INSTRUCTION_PACK,
   ZENCLUB_INSTRUCTION_PACK,
 } from "../hermes";
@@ -39,6 +40,7 @@ export type InstructionPackId =
   | "framelab"
   | "planform"
   | "truth"
+  | "image"
   | "research"
   | "admin";
 
@@ -93,17 +95,25 @@ export function composeTaskInstructions(input: {
     parts.push(AUDIENCE_INSTRUCTION_PACK);
     packs.push("audience");
   }
+  if (input.goal.requiresImageAnalysis) {
+    parts.push(IMAGE_ANALYSIS_INSTRUCTION_PACK);
+    packs.push("image");
+  }
   if (
-    input.goal.requiresDesign ||
-    input.goal.output ||
-    /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
-      input.text,
-    )
+    !input.goal.requiresImageAnalysis &&
+    (input.goal.requiresDesign ||
+      input.goal.output ||
+      /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
+        input.text,
+      ))
   ) {
     parts.push(COPYWRITING_INSTRUCTION_PACK);
     packs.push("copywriting");
   }
-  if (input.goal.requiresDesign || input.goal.output) {
+  if (
+    !input.goal.requiresImageAnalysis &&
+    (input.goal.requiresDesign || input.goal.output)
+  ) {
     parts.push(
       VISUAL_INSTRUCTION_PACK,
       DIRECTION_INSTRUCTION_PACK,
@@ -111,8 +121,10 @@ export function composeTaskInstructions(input: {
     );
     packs.push("visual", "canva");
   }
-  const includeLumenManual = isLumenIntent(input.text);
-  const includeFramelabManual = isFramelabIntent(input.text);
+  const includeLumenManual =
+    isLumenIntent(input.text) && !input.goal.requiresImageAnalysis;
+  const includeFramelabManual =
+    isFramelabIntent(input.text) && !input.goal.requiresImageAnalysis;
   if (includeLumenManual) {
     parts.push(LUMEN_INSTRUCTION_PACK);
     packs.push("lumen");

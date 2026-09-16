@@ -18,7 +18,9 @@ export function prepareOrchestration(
   conv: Conversation,
   budgetMode: BudgetMode = task.budgetMode || "balanced",
 ) {
-  const goal = interpretGoal(task.input);
+  const goal = interpretGoal(task.input, {
+    hasAttachments: (task.attachments || []).length > 0,
+  });
   const fast = shouldFastPlan(goal);
   const effectiveBudget: BudgetMode = fast ? "fast" : budgetMode;
   const certifications = getCertification(owner).integrations;

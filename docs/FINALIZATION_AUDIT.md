@@ -4,11 +4,11 @@
 
 近期 `main` 幾乎全是 `data/ai-agent-research/` 報告。本輪不回退那些研究檔，也不讓研究 UI 擠掉主產品。
 
-本輪已改：AuthGate、手機 scroll ownership、Dock（對話／專案／靈感／Agent）、誠實 MCP probe（含 safe-read）、health live/ready/agentReady、Canva artifact V1/V2 還原／分叉／比較、GALLEY 依 live MCP 可用性路由、倉庫研究筆記檢索（confidence 0.4）、Runtime 工具清單收入 Advanced、視覺優先首頁與連線點、龜龜狀態光／姿勢、文件。
+本輪已改：AuthGate、手機 scroll ownership、Dock（對話／專案／靈感／Agent）、誠實 MCP probe（含 safe-read）、health live/ready/agentReady、Canva artifact V1/V2 還原／分叉／比較、GALLEY 依 live MCP 可用性路由、倉庫研究筆記檢索（confidence 0.4）、Runtime 工具清單收入 Advanced、視覺優先首頁與連線點、龜龜狀態光／姿勢、看圖分析不假裝、重啟後不假裝任務仍在跑、文件。
 
-本輪驗證（此環境，非 Zeabur 實機）：`lint` `typecheck` `test` 387 pass / 2 skip。
+本輪驗證（此環境，非 Zeabur 實機）：見最新測試輸出。
 
-尚未完成（必須標 Partial）：淡江 SSO 校方 Client、Google OAuth 部署密鑰、正式 Zeabur 實機部署、實體 Android Chrome 鍵盤。
+尚未完成（必須標 Partial）：淡江 SSO 校方 Client、Google OAuth 部署密鑰、正式 Zeabur 實機部署、實體 Android Chrome 鍵盤、HERMES_IMAGE_INPUT 未驗證時的真實看圖、PDF 頁面封面抽取。
 
 ## 總覽
 
@@ -17,9 +17,10 @@
 | 入口 | `usable` | `/` → AuthGate → session + membership → Console。`AGENTS.md` 原免登入不變量已被使用者明確要求覆蓋。 |
 | 手機捲動 | `usable`（契約）／`partial`（實機鍵盤） | Chat：conversation-scroll；其他頁：secondary-page。`--app-height` + `--app-top`。實體 Android Chrome 未測。 |
 | 底部 Dock | `usable` | 對話／專案／靈感／Agent。設定走頂欄齒輪／頭像。 |
-| Hermes 執行任務 | `usable` | 真實 Hermes runs/chat；失敗與中斷走 `uncertain`，不假裝完成。 |
+| Hermes 執行任務 | `usable` | 真實 Hermes runs/chat；失敗與中斷走 `uncertain`。重啟後查不到遠端不得維持 `running`。停止會打後端，chat 通道無法證明遠端已停。 |
 | MCP Registry | `usable`（契約）／`partial`（部署） | 統一 registry；listTools → `partial`；safe-read 非空 → `verified`；缺 token → `unconfigured`；連不上 → `failed`。多數外部 MCP 尚未填 env。 |
-| 規劃／路由 | `usable`（建議）／`partial`（執行） | Planner 讀 MCP snapshot，GALLEY／淡江不必使用者點選。步驟文字交給 Hermes，不是逐步本地執行引擎。 |
+| 規劃／路由 | `usable`（建議）／`partial`（執行） | Planner 讀 MCP snapshot，GALLEY／淡江不必使用者點選。看圖分析走 `workspace_read_material` 或誠實 `ask_user`，不開 Canva／Lumen。步驟文字交給 Hermes，不是逐步本地執行引擎。 |
+| 看圖／多模態 | `usable`（契約）／`partial`（部署） | 「這張哪裡可以改？」不再走 continue。`HERMES_IMAGE_INPUT` 未驗證不得假裝已看圖。PDF 只顯示種類圖示，沒有頁面 raster。 |
 | 作品版本 | `usable`（Canva／workflow）／`partial`（跨工具 graph） | 同一 `artifactId` 上 V1/V2、還原、分叉；空 Canva 不當成作品。 |
 | 記憶分層 | `partial` | project／workspace／personal + provenance。不是單一 dump。 |
 | 部署 | `partial` | Docker + `/api/health` + `/api/ready` + PRODUCTION／SECURITY／ARCHITECTURE／RELEASE。未做 live Zeabur rehearsal。 |
@@ -44,6 +45,7 @@
 - Canva：可列設計；建立／匯出需另證。
 - 編排器：意圖／工具建議／計畫可見，步驟不隨 Hermes 逐步推進。
 - Audience Twin：模擬，不是民調。
+- 看圖：部署未設 `HERMES_IMAGE_INPUT=true` 時只會要求上傳／說明未驗證，不會假裝已分析像素。
 - 跨工具 artifact graph 仍薄。
 
 ## UI 有、後端未完成
@@ -90,3 +92,5 @@
 4. Planner 依 live MCP 選 GALLEY；短句校園研究不走 continue 快路徑。
 5. 首頁六個短標籤；連線格子點＋ aria-label。
 6. 龜龜狀態用光與姿勢區分，不是同一套 sway。
+7. 海報評論走看圖／視覺層級／修改建議，未驗證圖片輸入不假裝已看圖。
+8. 重啟後無法確認的 runs 標 `uncertain`，不維持假 running。

@@ -487,6 +487,12 @@ export const CANVA_INSTRUCTION_PACK = [
   "具備 Canva 工具授權時才製作可預覽、可編輯草稿並回傳實際連結。呼叫 Canva 後必須查回工作結果，不得將工作 ID 當成完成品。整理 IG 文案草稿但不發佈。",
 ].join("\n");
 
+export const IMAGE_ANALYSIS_INSTRUCTION_PACK = [
+  "看圖前必須 workspace_read_material 取得真實 PNG 或文字。沒有 imageData、PDF 未抽取、或 HERMES_IMAGE_INPUT 未驗證時標未看圖，不得依檔名或空訊息分析。",
+  "可見進度：看圖 → 視覺層級 → 修改建議。Audience Twin 標 SIMULATION，不是民調。",
+  "這是分析既有畫面，不是重新出圖。未要求製作時不要走 Canva、Lumen 或視覺概念編譯。",
+].join("\n");
+
 export const TRUTH_QA_INSTRUCTION_PACK = [
   "活動輸出必須檢查：活動名稱、日期、時間、地點、講師、費用、報名方式、主辦單位、文案、QR、表單。",
   "每項 claim 標記 VERIFIED／LIKELY／UNVERIFIED／CONFLICTING。Drive 與淡江官方優先；Instagram 只作對外品牌，不得補內部事實。",

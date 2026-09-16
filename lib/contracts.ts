@@ -101,6 +101,8 @@ export interface StructuredGoal {
   requiresTamkang: boolean;
   requiresInspiration: boolean;
   requiresLocalNotes: boolean;
+  requiresImageAnalysis: boolean;
+  hasAttachments: boolean;
   intentTier: IntentTier;
 }
 export interface PlanStep {

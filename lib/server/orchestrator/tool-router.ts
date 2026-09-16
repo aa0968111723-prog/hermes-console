@@ -185,6 +185,22 @@ export function routeTools(
     });
   }
 
+  if (goal.requiresImageAnalysis) {
+    const imageReady =
+      process.env.HERMES_IMAGE_INPUT === "true" && goal.hasAttachments;
+    routes.push({
+      id: "image",
+      tool: imageReady ? "workspace_read_material" : "ask_user",
+      reason: imageReady
+        ? "先讀已上傳圖片的真實內容再分析構圖與層級；PDF 未抽取不得當已看圖。"
+        : goal.hasAttachments
+          ? "圖片已保存，但部署尚未驗證圖片輸入；不得假裝已看圖。"
+          : "尚未上傳可分析的圖片；不得依檔名或空訊息假裝已看圖。",
+      fallback: imageReady ? "ask_user" : null,
+      availability: imageReady ? "available" : "unconfigured",
+    });
+  }
+
   if (goal.requiresAudienceEvaluation) {
     routes.push({
       id: "audience",

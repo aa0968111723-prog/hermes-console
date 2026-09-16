@@ -43,6 +43,7 @@ import CapabilityCertification from "./settings/CapabilityCertification";
 import AccountSettings from "./settings/AccountSettings";
 import ConnectionSettings from "./settings/ConnectionSettings";
 import SharedMemory from "./settings/SharedMemory";
+import AttachmentCover from "./visual/AttachmentCover";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
 import AgentOrbit from "./visual/AgentOrbit";
@@ -1169,12 +1170,7 @@ export default function HermesConsole() {
                                       setPanel("preview");
                                     }}
                                   >
-                                    {asset.kind === "image" && (
-                                      <img
-                                        src={"/api/materials?id=" + asset.id}
-                                        alt={asset.title}
-                                      />
-                                    )}
+                                    <AttachmentCover material={asset} />
                                     <span>{asset.title}</span>
                                   </button>
                                 ) : null;
@@ -1582,7 +1578,7 @@ export default function HermesConsole() {
                       {m.kind === "image" ? (
                         <img src={"/api/materials?id=" + m.id} alt={m.title} />
                       ) : (
-                        <LinkIcon size={28} />
+                        <AttachmentCover material={m} />
                       )}
                     </button>
                     <h3>{m.title}</h3>

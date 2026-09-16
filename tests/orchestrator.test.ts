@@ -12,6 +12,10 @@ process.env.CONSOLE_GATEWAY_SECRET = "";
 const { interpretGoal } = await import("../lib/server/orchestrator/goal");
 const { routeTools } = await import("../lib/server/orchestrator/tool-router");
 const { buildPlan } = await import("../lib/server/orchestrator/planner");
+const { shouldFastPlan } = await import("../lib/server/orchestrator/intent");
+const { composeTaskInstructions } = await import(
+  "../lib/server/orchestrator/instructions"
+);
 const { fallbacksFromRoutes } = await import("../lib/server/orchestrator/fallback");
 const { classifyResume, resumeNotice } = await import("../lib/server/orchestrator/recovery");
 const { assembleContext } = await import("../lib/server/context/assembler");
@@ -130,6 +134,9 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     } as Task;
     assert.equal(classifyResume(task, false), "unknown");
     assert.match(resumeNotice("unknown"), /尚未確認/);
+    const remote = { ...task, transport: "runs" as const, remoteId: "run_1" };
+    assert.equal(classifyResume(remote, false), "unknown");
+    assert.equal(classifyResume(remote, true), "running");
   });
 
   await t.test("usable GALLEY is chosen without the user picking a tool", () => {
@@ -169,6 +176,59 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     const plan = buildPlan(goal, routes, "balanced");
     assert.ok(plan.steps.some((step) => step.tool === "galley_research"));
     assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
+  });
+
+  await t.test("poster critique is image analysis, not Canva or a fast reply", () => {
+    for (const prompt of ["這張哪裡可以改？", "請分析這張文宣"]) {
+      const goal = interpretGoal(prompt);
+      assert.equal(goal.intentTier, "lookup", prompt);
+      assert.equal(goal.requiresImageAnalysis, true, prompt);
+      assert.equal(goal.requiresDesign, false, prompt);
+      assert.equal(goal.hasAttachments, false, prompt);
+      assert.equal(shouldFastPlan(goal), false, prompt);
+      const routes = routeTools(goal, []);
+      assert.equal(
+        routes.find((item) => item.id === "image")?.tool,
+        "ask_user",
+        prompt,
+      );
+      assert.equal(routes.find((item) => item.id === "design"), undefined, prompt);
+      const plan = buildPlan(goal, routes, "balanced");
+      assert.ok(plan.steps.some((step) => step.title === "看圖"), prompt);
+      assert.ok(plan.steps.some((step) => step.title === "視覺層級"), prompt);
+      assert.ok(plan.steps.some((step) => step.title === "修改建議"), prompt);
+      assert.ok(plan.steps.some((step) => step.title === "受眾模擬"), prompt);
+      assert.ok(
+        !plan.steps.some((step) => step.title.includes("Canva")),
+        prompt,
+      );
+    }
+    const attached = interpretGoal("這張哪裡可以改？", { hasAttachments: true });
+    assert.equal(attached.hasAttachments, true);
+    const previous = process.env.HERMES_IMAGE_INPUT;
+    process.env.HERMES_IMAGE_INPUT = "true";
+    try {
+      assert.equal(
+        routeTools(attached, []).find((item) => item.id === "image")?.tool,
+        "workspace_read_material",
+      );
+    } finally {
+      if (previous === undefined) delete process.env.HERMES_IMAGE_INPUT;
+      else process.env.HERMES_IMAGE_INPUT = previous;
+    }
+    const make = interpretGoal("幫我做一張淡江新生茶會宣傳");
+    assert.equal(make.requiresImageAnalysis, false);
+    assert.equal(make.requiresDesign, true);
+    assert.equal(make.requiresTamkang, true);
+    const critique = composeTaskInstructions({
+      mode: "creative",
+      text: "請分析這張文宣",
+      goal: interpretGoal("請分析這張文宣"),
+    });
+    assert.ok(critique.packs.includes("image"));
+    assert.equal(critique.packs.includes("canva"), false);
+    assert.equal(critique.includeLumenManual, false);
+    assert.match(critique.instructions, /不得依檔名或空訊息分析/);
   });
 
   await t.test("unconfigured GALLEY is not treated as available", () => {

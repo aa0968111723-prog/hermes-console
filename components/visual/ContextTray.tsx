@@ -1,7 +1,9 @@
 "use client";
-import { Check, FileText, Link, RefreshCw, X } from "lucide-react";
+import { Check, RefreshCw, X } from "lucide-react";
 import type { Material } from "@/lib/contracts";
 import type { Upload } from "../useComposerDraft";
+import AttachmentCover from "./AttachmentCover";
+import { attachmentKindLabel } from "@/lib/client/attachments";
 export default function ContextTray({
   uploads,
   references,
@@ -33,14 +35,10 @@ export default function ContextTray({
             aria-label={"預覽附件：" + upload.file.name}
             onClick={() => upload.material && onPreview(upload.material)}
           >
-            {upload.material?.kind === "image" ? (
-              <img
-                src={"/api/materials?id=" + upload.material.id}
-                alt={upload.file.name}
-              />
-            ) : (
-              <FileText size={24} />
-            )}
+            <AttachmentCover
+              material={upload.material}
+              alt={upload.file.name}
+            />
           </button>
           <span title={upload.file.name}>
             {upload.file.name}
@@ -94,17 +92,16 @@ export default function ContextTray({
               aria-label={"預覽參考：" + (material?.title || "素材已移除")}
               onClick={() => material && onPreview(material)}
             >
-              {material?.kind === "image" ? (
-                <img src={"/api/materials?id=" + id} alt={material.title} />
-              ) : (
-                <Link size={24} />
-              )}
+              <AttachmentCover material={material} />
             </button>
             <span>
               {material?.title || "素材已移除"}
               <small>
-                {material?.rights === "reference_only"
-                  ? "僅供參考"
+                {material
+                  ? attachmentKindLabel(material) +
+                    (material.rights === "reference_only"
+                      ? " · 僅供參考"
+                      : "")
                   : "專案素材"}
               </small>
             </span>
