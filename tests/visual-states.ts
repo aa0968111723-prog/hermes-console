@@ -110,7 +110,7 @@ export async function verifyVisualStates(
     remoteId: "ui-fixture-remote",
     input: "[介面測試資料] 研究春日活動參考",
     output: "",
-    attachments: [],
+    attachments: [] as string[],
     createdAt: now,
     updatedAt: now,
     endedAt: null as string | null,
