@@ -3,6 +3,17 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./AuthProvider";
 
+export function LoginMascot({ alt }: { alt: string }) {
+  return (
+    <div className="login-stage">
+      <span className="core-orbit core-orbit-one" aria-hidden="true" />
+      <span className="core-orbit core-orbit-two" aria-hidden="true" />
+      <span className="core-glow" aria-hidden="true" />
+      <img className="login-turtle" src="/mascot/turtle.png" alt={alt} />
+    </div>
+  );
+}
+
 export default function LoginScreen() {
   const auth = useAuth();
   const [email, setEmail] = useState("");
@@ -95,11 +106,7 @@ export default function LoginScreen() {
   return (
     <main className="login-screen">
       <section className="login-card">
-        <img
-          className="login-turtle"
-          src="/mascot/turtle.png"
-          alt="Hermes 龜龜"
-        />
+        <LoginMascot alt="Hermes 龜龜" />
         <h1>Hermes</h1>
         {(error || notice) && (
           <p role="alert" className="error">
@@ -182,7 +189,7 @@ export default function LoginScreen() {
               className="text-button"
               onClick={() => setMode(mode === "create" ? "enter" : "create")}
             >
-              {mode === "create" ? "已有帳號" : "建立電子信箱帳號"}
+              {mode === "create" ? "已有帳號" : "建立帳號"}
             </button>
             <button
               type="button"

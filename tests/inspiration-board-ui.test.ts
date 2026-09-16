@@ -27,4 +27,12 @@ test("inspiration main surface is visual patterns; research stays in closed 進�
     board.indexOf("值得學") < board.indexOf("inspiration-research"),
     "pattern grids must appear before the research fold",
   );
+  const ui = await readFile(new URL("./verify-ui.ts", import.meta.url), "utf8");
+  assert.match(ui, /inspiration-mobile\.png/);
+  const engines = await readFile(
+    new URL("./mobile-engines.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(engines, /"靈感", "inspiration", "靈感"/);
+  assert.match(engines, /aria-current", "page"/);
 });

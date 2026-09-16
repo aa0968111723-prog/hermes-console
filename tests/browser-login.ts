@@ -17,7 +17,7 @@ export async function signInEmail(
     await home.waitFor({ timeout: 5000 });
     return;
   } catch {
-    const createToggle = page.getByRole("button", { name: "建立電子信箱帳號" });
+    const createToggle = page.getByRole("button", { name: "建立帳號" });
     if (await createToggle.isVisible().catch(() => false))
       await createToggle.click();
     await page.getByLabel("電子信箱").fill(email);

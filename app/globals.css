@@ -2037,17 +2037,56 @@ summary .badge {
   overflow-y: auto;
   padding: max(24px, env(safe-area-inset-top, 0px)) 20px
     max(24px, env(safe-area-inset-bottom, 0px));
-  background: var(--color-canvas);
+  background:
+    radial-gradient(ellipse 70% 42% at 50% 22%, #f3faee 0%, var(--color-canvas) 68%);
+  perspective: 900px;
 }
 .login-card {
   width: min(390px, 100%);
   text-align: center;
 }
+.login-stage {
+  position: relative;
+  width: min(220px, 72vw);
+  height: 168px;
+  margin: 0 auto 4px;
+  display: grid;
+  place-items: center;
+  transform: rotateX(2deg);
+  transform-style: preserve-3d;
+}
+.login-stage::after {
+  content: "";
+  position: absolute;
+  width: 55%;
+  height: 14px;
+  bottom: 16%;
+  border-radius: 50%;
+  background: rgba(57, 86, 57, 0.16);
+  filter: blur(8px);
+  transform: translateZ(-16px);
+}
+.login-stage .core-orbit-one {
+  width: 168px;
+  height: 66px;
+}
+.login-stage .core-orbit-two {
+  width: 196px;
+  height: 84px;
+}
+.login-stage .core-glow {
+  width: 132px;
+  height: 132px;
+}
 .login-turtle {
+  position: relative;
+  z-index: 2;
   height: 112px;
   width: auto;
   object-fit: contain;
-  margin-bottom: 24px;
+  margin: 0;
+  filter: drop-shadow(0 14px 13px rgba(47, 80, 45, 0.18));
+  animation: breathe 5s ease-in-out infinite;
 }
 .login-card h1 {
   font-size: 27px;
@@ -2066,6 +2105,8 @@ summary .badge {
   min-height: 44px;
   display: grid;
   place-items: center;
+  border-radius: 14px;
+  box-shadow: var(--depth-1);
 }
 .login-alt {
   display: grid;
@@ -2552,7 +2593,7 @@ body::before {
 .language-problem li { margin: 6px 0; font-size: 13px; }
 .language-section { margin: 22px 0 10px; font-size: 15px; color: var(--color-primary); }
 .pattern-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
-.inspiration-board .pattern-card { padding: 14px; border: 1px solid #dce9d8; border-radius: 20px; background: #fff; box-shadow: var(--depth-1); }
+.inspiration-board .pattern-card { padding: 14px; border: 1px solid #dce9d8; border-radius: 20px; background: #fff; box-shadow: var(--depth-1); transform: translateZ(0); }
 .inspiration-board .pattern-card strong { display: block; margin: 4px 0 6px; font-size: 15px; }
 .inspiration-board .pattern-card p { margin: 0 0 6px; font-size: 13px; line-height: 1.45; }
 .pattern-meta { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
@@ -2563,6 +2604,17 @@ body::before {
 .inspiration-board .pattern-card details summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--muted); font-size: 12px; }
 .inspiration-board .pattern-card details ul { margin: 0; padding-left: 1.1em; }
 .inspiration-board .pattern-card details li { margin: 6px 0; font-size: 12px; }
+.pattern-grid { perspective: 900px; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .inspiration-board .pattern-card {
+    transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+  }
+  .inspiration-board .pattern-card:hover,
+  .inspiration-board .pattern-card:focus-within {
+    transform: translateY(-2px) rotateX(0.8deg);
+    box-shadow: var(--depth-card);
+  }
+}
 .provenance-pill { display: inline-block; margin-right: 4px; padding: 1px 6px; border-radius: 999px; background: #eef4ea; font-size: 10px; letter-spacing: .04em; }
 .handoff-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 18px 0; }
 .handoff-card { padding: 14px; border-radius: 20px; border: 1px solid #dce9d8; background: #fff; box-shadow: var(--depth-card); }
@@ -2877,6 +2929,9 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   .orbit-beams line { animation: none; }
   .project-cover:hover { transform: none; }
   .hermes-core { transform: none !important; }
+  .login-stage { transform: none; }
+  .inspiration-board .pattern-card:hover,
+  .inspiration-board .pattern-card:focus-within { transform: none; }
 }
 
 /* P2 Help · recruitment truth soft info (Inspiration top; no extra motion) */

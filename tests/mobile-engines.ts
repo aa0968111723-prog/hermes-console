@@ -107,16 +107,24 @@ export async function verifyMobileEngines(base: string, output: string) {
       await expect(
         page.getByRole("button", { name: "Hermes 操作", exact: true }),
       ).toBeFocused();
-      for (const [name, shot] of [
-        ["專案", "projects"],
-        ["靈感", "inspiration"],
-        ["Agent", "agents"],
-        ["對話", "chat"],
-      ]) {
+      for (const [name, shot, heading] of [
+        ["專案", "projects", "素材與靈感"],
+        ["靈感", "inspiration", "靈感"],
+        ["Agent", "agents", "狀態"],
+        ["對話", "chat", "今天想做什麼？"],
+      ] as const) {
         await page
           .locator(".spatial-dock")
           .getByRole("button", { name, exact: true })
           .tap();
+        await expect(
+          page.getByRole("heading", { name: heading, exact: true }),
+        ).toBeVisible();
+        await expect(
+          page
+            .locator(".spatial-dock")
+            .getByRole("button", { name, exact: true }),
+        ).toHaveAttribute("aria-current", "page");
         assert.ok(
           await page.evaluate(
             () => document.documentElement.scrollWidth <= innerWidth,

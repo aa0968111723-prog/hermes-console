@@ -339,6 +339,15 @@ try {
   await expect(page.getByRole("heading", { name: "先避開" })).toBeVisible();
   await expect(page.getByText("Feed EVIDENCE")).toBeHidden();
   await expect(page.getByText("給 Visual Agent")).toBeHidden();
+  await expect(
+    page
+      .locator(".mobile-bottom-dock")
+      .getByRole("button", { name: "靈感", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await page.screenshot({
+    path: join(output, "inspiration-mobile.png"),
+    fullPage: true,
+  });
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(
