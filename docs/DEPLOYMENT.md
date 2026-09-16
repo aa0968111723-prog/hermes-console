@@ -48,7 +48,7 @@ Console 支援 Streamable HTTP 的 2025-03-26／2025-06-18 協定；GET 回應 4
 
 Runtime 探索與限制詳見 [RUNTIME_SYNC.md](RUNTIME_SYNC.md)。後端長駐排程探索，SSE 共用變更發布；離線來源的舊工具會過期且排除候選。綁定目前只在 Console workspace 工具的實際呼叫強制執行，不能限制 Hermes 原生工具或外部 MCP。未支援的綁定與權限覆寫會拒絕，不假裝套用。
 
-工作區 MCP 也列出專案上下文、活動讀寫與逐頁文案讀寫。資料確認、方向和版本選定只開放 Console 使用者操作，不給模型自我確認工具；免登入模式需由閘道保護這些操作。完成 Canva 授權及設計清單驗證後，刷新 Hermes 工具清單才會看到 Canva 操作工具。
+工作區 MCP 也列出專案上下文、活動讀寫與逐頁文案讀寫。資料確認、方向和版本選定只開放 Console 使用者操作，不給模型自我確認工具；需登入與 membership，閘道是部署層保護。完成 Canva 授權及設計清單驗證後，刷新 Hermes 工具清單才會看到 Canva 操作工具。
 
 新增 `workspace_read_material` 讀取真實 PNG／TXT；PDF 僅保存原檔，尚未文字抽取，不向 Hermes 傳送假內容。`MCP_REQUIRE_TASK_CONTEXT=true` 是預設：工具需帶 Console 提供的 taskId；已停止或跨專案請求會拒絕。僅隔離管理者測試可設 false。`CONSOLE_MAX_TOOL_CALLS=40` 計算每任務 Console MCP 嘗試，不是全 Hermes 預算／供應商費用；達上限保留資料，需由使用者檢視後建立接續任務。
 
