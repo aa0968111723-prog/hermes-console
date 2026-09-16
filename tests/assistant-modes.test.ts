@@ -87,6 +87,11 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
       taskInput.safeParse({ ...base, focus: { direction: 1 } }).success,
       false,
     );
+    const activityFocused = taskInput.parse({
+      ...base,
+      focus: { activityId: randomUUID() },
+    });
+    assert.equal(typeof activityFocused.focus?.activityId, "string");
   });
 
   await t.test("new conversations store the requested assistant mode", async () => {

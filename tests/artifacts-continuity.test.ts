@@ -22,9 +22,14 @@ const {
 } = await import("../lib/server/artifacts");
 const { copyDocument } = await import("../lib/server/creative");
 const artifacts = await import("../app/api/artifacts/route");
-const { continueCopy, revisionLabel } = await import(
-  "../lib/client/artifacts"
-);
+const {
+  continueActivity,
+  continueCaptionSet,
+  continueCopy,
+  continueDesign,
+  continueProjectDraft,
+  revisionLabel,
+} = await import("../lib/client/artifacts");
 const { focusInstructions } = await import(
   "../lib/server/orchestrator/instructions"
 );
@@ -93,6 +98,32 @@ test("copy artifacts keep stable ids, versions, restore and fork", () => {
   assert.match(focusInstructions(continued.focus), /workspace_get_copy/);
   assert.match(focusInstructions(continued.focus), new RegExp(artifactId));
   assert.equal(revisionLabel(3), "V3");
+});
+
+test("student continue lines keep ids and tools off the composer", () => {
+  const workflowId = "ab".repeat(32);
+  const activityId = randomUUID();
+  const design = continueDesign(workflowId);
+  assert.equal(design.text, "請接續修改這個作品。");
+  assert.doesNotMatch(design.text, new RegExp(workflowId));
+  assert.equal(design.focus?.workflowId, workflowId);
+  const unlabeled = continueDesign("ui-fixture-artifact-B");
+  assert.equal(unlabeled.text, "請接續修改這個作品。");
+  assert.equal(unlabeled.focus, undefined);
+  const continuedActivity = continueActivity(activityId);
+  assert.doesNotMatch(continuedActivity.text, new RegExp(activityId));
+  assert.doesNotMatch(continuedActivity.text, /workspace_/);
+  assert.equal(continuedActivity.focus.activityId, activityId);
+  assert.match(
+    focusInstructions(continuedActivity.focus),
+    /workspace_project_context/,
+  );
+  assert.match(
+    focusInstructions(continuedActivity.focus),
+    new RegExp(activityId),
+  );
+  assert.doesNotMatch(continueProjectDraft().text, /workspace_/);
+  assert.doesNotMatch(continueCaptionSet().text, /workspace_/);
 });
 
 test("artifact restore requires a workspace session", async () => {

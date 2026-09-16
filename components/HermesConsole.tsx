@@ -1753,7 +1753,7 @@ export default function HermesConsole() {
                               await refresh();
                               const next = selectDirection(w.id, index + 1);
                               setText(next.text);
-                              setFocus(next.focus);
+                              setFocus(next.focus || null);
                               setNav("chat");
                             } catch (e) {
                               setError((e as Error).message);

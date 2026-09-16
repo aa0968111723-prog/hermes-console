@@ -40,7 +40,7 @@ import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
-import { copyDocument } from "./creative";
+import { activity, copyDocument } from "./creative";
 import { workflow } from "./workflows";
 
 const runtimeTasks = globalThis as typeof globalThis & {
@@ -66,11 +66,15 @@ export const taskFocus = z
     revision: z.number().int().min(1).max(200).optional(),
     workflowId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
     direction: z.number().int().min(1).max(8).optional(),
+    activityId: z.string().uuid().optional(),
   })
   .strict()
-  .refine((value) => !!(value.copyId || value.workflowId), {
-    message: "接續目標不完整。",
-  });
+  .refine(
+    (value) => !!(value.copyId || value.workflowId || value.activityId),
+    {
+      message: "接續目標不完整。",
+    },
+  );
 export const taskInput = z
   .object({
     conversationId: z.string().uuid(),
@@ -201,6 +205,11 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     const record = workflow(owner, input.focus.workflowId);
     if (record.projectId !== conv.projectId)
       throw new ApiError(403, "scope_mismatch", "創作方向不屬於此專案。");
+  }
+  if (input.focus?.activityId) {
+    const record = activity(owner, input.focus.activityId);
+    if (record.projectId !== conv.projectId)
+      throw new ApiError(403, "scope_mismatch", "活動不屬於此專案。");
   }
   // Validate actual attachment support before reserving a task or transmitting anything.
   await attachmentParts(owner, input.attachments);

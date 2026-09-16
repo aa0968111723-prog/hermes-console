@@ -148,8 +148,12 @@ export function dropOptionalPacks(composed: ReturnType<typeof composeTaskInstruc
 }
 
 export function focusInstructions(focus?: TaskFocus | null) {
-  if (!focus || (!focus.copyId && !focus.workflowId)) return "";
-  const parts = ["使用者要接續同一作品，禁止重建無關輸出。"];
+  if (
+    !focus ||
+    (!focus.copyId && !focus.workflowId && !focus.activityId)
+  )
+    return "";
+  const parts = ["使用者要接續同一作品或活動，禁止重建無關輸出。"];
   if (focus.copyId)
     parts.push(
       "呼叫 workspace_get_copy，copyId=" +
@@ -162,6 +166,12 @@ export function focusInstructions(focus?: TaskFocus | null) {
       "查回創作流程 " +
         focus.workflowId +
         " 的現有設計與選定方向。已有設計時先查回，不要重複建立。",
+    );
+  if (focus.activityId)
+    parts.push(
+      "呼叫 workspace_project_context 讀取活動 activityId=" +
+        focus.activityId +
+        "。依已確認資訊提出三個方向並保存，等待使用者選擇。私人資訊不得用於公開文宣。",
     );
   if (focus.direction)
     parts.push(

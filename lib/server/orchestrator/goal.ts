@@ -17,7 +17,10 @@ export function interpretGoal(
 ): StructuredGoal {
   const text = input.trim();
   let intentTier = classifyIntent(text, options);
-  const focused = !!(options?.focus?.copyId || options?.focus?.workflowId);
+  const artifactFocused = !!(
+    options?.focus?.copyId || options?.focus?.workflowId
+  );
+  const focused = artifactFocused || !!options?.focus?.activityId;
   if (focused && isFastTier(intentTier)) intentTier = "create";
   const requiresImageAnalysis = ANALYZE.test(text) || !!options?.hasImage;
   const requiresTamkang = TAMKANG.test(text);
@@ -35,7 +38,9 @@ export function interpretGoal(
     OUTPUT.test(text) || requiresImageAnalysis || focused
       ? requiresImageAnalysis
         ? "看圖後的修改建議（模擬受眾，不是已改稿）"
-        : "同一作品的下一版，不是無關的新輸出"
+        : artifactFocused
+          ? "同一作品的下一版，不是無關的新輸出"
+          : "依此活動提出方向，不是無關的新企劃"
       : null;
   const constraints: string[] = [];
   if (requiresAudienceEvaluation)

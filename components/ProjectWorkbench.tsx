@@ -9,7 +9,13 @@ import {
 } from "@/lib/creative";
 import { fieldLabels } from "@/lib/activity-labels";
 import type { Material, TaskFocus } from "@/lib/contracts";
-import { continueCopy, continueDesign } from "@/lib/client/artifacts";
+import {
+  continueActivity,
+  continueCaptionSet,
+  continueCopy,
+  continueDesign,
+  continueProjectDraft,
+} from "@/lib/client/artifacts";
 import type { Workflow } from "@/lib/server/workflows";
 import type { CopyReview } from "@/lib/server/copywriting";
 import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
@@ -165,20 +171,18 @@ export default function ProjectWorkbench({
           新增文案草稿
         </button>
         <button
-          onClick={() =>
-            onCompose(
-              "請先用 workspace_project_context 查回這個專案的活動、來源及已有文案；核對必要資訊後，接續網宣草稿。缺少日期或地點先詢問我，不要捏造。",
-            )
-          }
+          onClick={() => {
+            const next = continueProjectDraft();
+            onCompose(next.text);
+          }}
         >
           請 Hermes 接續創作
         </button>
         <button
-          onClick={() =>
-            onCompose(
-              "請先查回活動日期與地點；未確認標 UNKNOWN，不要捏造。產出 IG caption A 最自然、B 最有梗、C 最溫暖三版，順序 HOOK→生活場景→活動→為什麼來→時間地點→CTA。不要宗教宣傳。寫完用 workspace_review_copy 做新生視角審核，不要發佈。",
-            )
-          }
+          onClick={() => {
+            const next = continueCaptionSet();
+            onCompose(next.text);
+          }}
         >
           請 Hermes 寫 A／B／C
         </button>
@@ -357,11 +361,10 @@ export default function ProjectWorkbench({
           ))}
           <button onClick={() => editActivity(a)}>修改活動</button>
           <button
-            onClick={() =>
-              onCompose(
-                `請讀取活動 ${a.id}（專案 ${projectId}），依已確認資訊提出三個方向，保存後等待我選擇；私人資訊不得用於公開文宣。`,
-              )
-            }
+            onClick={() => {
+              const next = continueActivity(a.id);
+              onCompose(next.text, next.focus);
+            }}
           >
             請 Hermes 整理三個方向
           </button>

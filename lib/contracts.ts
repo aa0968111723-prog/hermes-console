@@ -94,6 +94,7 @@ export type TaskFocus = {
   revision?: number;
   workflowId?: string;
   direction?: number;
+  activityId?: string;
 };
 export type BudgetMode = "fast" | "balanced" | "deep";
 export type IntentTier = "chitchat" | "continue" | "lookup" | "create";

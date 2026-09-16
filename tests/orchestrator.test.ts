@@ -143,4 +143,11 @@ test("continue-this-work stays on the same artifact without exposing tools in th
   assert.match(goal.output || "", /同一作品/);
   const fast = interpretGoal("請接續修改這個作品（第 2 版）。不要另做無關的新作品。");
   assert.equal(fast.intentTier, "continue");
+  const activityId = "22222222-2222-2222-2222-222222222222";
+  const activityGoal = interpretGoal(
+    "請依這個活動已確認的資訊提出三個方向，保存後等我選擇。私人資訊不得用於公開文宣。",
+    { focus: { activityId } },
+  );
+  assert.equal(activityGoal.intentTier, "create");
+  assert.match(activityGoal.output || "", /活動/);
 });
