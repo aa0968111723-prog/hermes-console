@@ -52,7 +52,7 @@
 - `test:ui`：含 `design-spec-only-honesty.png`。Composer 與訊息為 warning「規格已保留」，無「過程完成」、無作品預覽。本地 Chrome LCP 380ms，CLS 0，axe 0。
 - Production First Load JS `/`：110 kB（page 6.46 kB，shared 103 kB）。
 - 含 360×800、390×844、412×915、430×932、768×1024。
-- 已 merge `origin/main` 研究筆記 `6591e40`，未回退產品路徑。本輪 `HEAD..origin/main` 為空。
+- 已 merge `origin/main` 研究筆記 `24b4fb8`（NIXL），未回退產品路徑。本輪 `HEAD..origin/main` 為空。
 
 ## 仍是 Partial（禁止標綠）
 
