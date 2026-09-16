@@ -26,12 +26,18 @@ export default function InspirationBoard({
   syncStatus,
   pack,
   onSync,
+  onSelectDirection,
+  selectedDirection,
+  selecting = false,
 }: {
   items: InspirationItem[];
   notice: string;
   syncStatus: SheetSyncResult | null;
   pack?: InspirationSearchPack | null;
   onSync: () => Promise<void>;
+  onSelectDirection?: (id: "A" | "B" | "C", pack: InspirationSearchPack) => void;
+  selectedDirection?: "A" | "B" | "C" | null;
+  selecting?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -59,7 +65,16 @@ export default function InspirationBoard({
 
       <RecruitmentTruthNotice />
       <RecruitmentFunnelFold />
-      {pack && <InspirationResult pack={pack} />}
+      {pack && (
+        <InspirationResult
+          pack={pack}
+          onSelect={
+            onSelectDirection ? (id) => onSelectDirection(id, pack) : undefined
+          }
+          selectedId={selectedDirection}
+          busy={selecting}
+        />
+      )}
 
       <details className="language-fold">
         <summary>社團視覺語言</summary>

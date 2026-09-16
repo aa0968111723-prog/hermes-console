@@ -36,6 +36,7 @@ import { callGalleyTool } from "./galley";
 import {
   directionsInput,
   saveDirections,
+  listWorkflows,
   templateDataset,
   autofillInput,
   createDraft,
@@ -483,8 +484,26 @@ async function execute(
   args: Record<string, unknown>,
 ): Promise<unknown> {
   switch (name) {
-    case "workspace_project_context":
-      return projectContext(owner, schemas[name].parse(args).projectId);
+    case "workspace_project_context": {
+      const input = schemas[name].parse(args);
+      const context = projectContext(owner, input.projectId);
+      return {
+        ...context,
+        workflows: listWorkflows(owner)
+          .filter((item) => item.projectId === input.projectId)
+          .slice(0, 10)
+          .map((item) => ({
+            id: item.id,
+            state: item.state,
+            selected: item.selected,
+            selectedTitle:
+              item.selected === null
+                ? null
+                : item.directions[item.selected]?.title || null,
+            brief: item.brief.slice(0, 160),
+          })),
+      };
+    }
     case "workspace_get_activity":
       return publicActivity(
         activity(owner, schemas[name].parse(args).activityId),

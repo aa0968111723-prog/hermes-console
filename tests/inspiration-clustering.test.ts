@@ -16,9 +16,8 @@ const { interpretGoal } = await import("../lib/server/orchestrator/goal");
 const { routeTools } = await import("../lib/server/orchestrator/tool-router");
 const { buildPlan } = await import("../lib/server/orchestrator/planner");
 const { emptyIntegration } = await import("../lib/server/certification/registry");
-const { searchInspiration, resolveInspirationUrl } = await import(
-  "../lib/server/inspiration/engine"
-);
+const { searchInspiration, resolveInspirationUrl, selectInspirationDirection } =
+  await import("../lib/server/inspiration/engine");
 const { isInspirationSearchPack } = await import("../lib/inspiration-pack");
 const { callTool, toolsList } = await import("../lib/server/mcp");
 const { permissionClass, autoAllowed } = await import(
@@ -123,4 +122,42 @@ test("workspace_search_inspiration is a read-only MCP tool", async () => {
   assert.equal(pack.fullSiteSearch, false);
   assert.match(text, /沒有搜尋整個|不是全站搜尋/);
   assert.doesNotMatch(text, /已搜尋整個 Instagram/);
+});
+
+test("selecting a direction saves a workflow and is visible in project context", async () => {
+  const first = selectInspirationDirection({
+    owner: "workspace",
+    prompt: TEA,
+    projectId: "personal",
+    selected: "A",
+  });
+  assert.equal(first.workflow.selected, 0);
+  assert.equal(first.workflow.state, "ready");
+  assert.equal(first.workflow.directions.length, 3);
+  assert.ok(first.workflow.directions[0].title);
+  const again = selectInspirationDirection({
+    owner: "workspace",
+    prompt: TEA,
+    projectId: "personal",
+    selected: "A",
+  });
+  assert.equal(again.workflow.id, first.workflow.id);
+  const switched = selectInspirationDirection({
+    owner: "workspace",
+    prompt: TEA,
+    projectId: "personal",
+    selected: "B",
+  });
+  assert.equal(switched.workflow.id, first.workflow.id);
+  assert.equal(switched.workflow.selected, 1);
+  const result = await callTool("workspace", "workspace_project_context", {
+    projectId: "personal",
+  });
+  assert.equal(result.isError, false);
+  const text = String((result.content as Array<{ text?: string }>)[0].text);
+  const context = JSON.parse(text) as {
+    workflows?: Array<{ selected: number | null; selectedTitle: string | null }>;
+  };
+  assert.ok(context.workflows?.some((item) => item.selected === 1));
+  assert.ok(context.workflows?.some((item) => item.selectedTitle));
 });

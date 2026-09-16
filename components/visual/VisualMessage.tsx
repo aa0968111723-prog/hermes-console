@@ -3,16 +3,25 @@ import type { Task } from "@/lib/contracts";
 import { eventState, safeSource } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
-import { isInspirationSearchPack } from "@/lib/inspiration-pack";
+import { isInspirationSearchPack, type InspirationSearchPack } from "@/lib/inspiration-pack";
 import InspirationResult from "./InspirationResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
 export default function VisualMessage({
   task,
   onInspect,
+  onPickInspiration,
+  pickingInspiration = false,
+  selectedInspiration = null,
 }: {
   task?: Task;
   onInspect: () => void;
+  onPickInspiration?: (
+    id: "A" | "B" | "C",
+    pack: InspirationSearchPack,
+  ) => void;
+  pickingInspiration?: boolean;
+  selectedInspiration?: "A" | "B" | "C" | null;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
@@ -35,7 +44,18 @@ export default function VisualMessage({
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
-      {inspiration && <InspirationResult pack={inspiration} />}
+      {inspiration && (
+        <InspirationResult
+          pack={inspiration}
+          onSelect={
+            onPickInspiration
+              ? (id) => onPickInspiration(id, inspiration)
+              : undefined
+          }
+          selectedId={selectedInspiration}
+          busy={pickingInspiration}
+        />
+      )}
       {!!calls.size && (
         <button className="tool-result-summary" onClick={onInspect}>
           {completed === calls.size ? (

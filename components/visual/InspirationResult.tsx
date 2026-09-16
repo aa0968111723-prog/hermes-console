@@ -13,8 +13,14 @@ const KIND_LABEL: Record<string, string> = {
 
 export default function InspirationResult({
   pack,
+  onSelect,
+  selectedId,
+  busy = false,
 }: {
   pack: InspirationSearchPack;
+  onSelect?: (id: "A" | "B" | "C") => void;
+  selectedId?: "A" | "B" | "C" | null;
+  busy?: boolean;
 }) {
   return (
     <section className="inspiration-result" aria-label="靈感方向">
@@ -22,17 +28,45 @@ export default function InspirationResult({
         {pack.itemCount} 筆已收藏 · 未搜全站
       </p>
       <ul className="inspiration-direction-grid">
-        {pack.directions.map((direction) => (
-          <li key={direction.id} className="inspiration-direction-card">
-            <span className="inspiration-direction-id">{direction.id}</span>
-            <strong>{direction.title}</strong>
-            <p>{direction.summary}</p>
-            <small>
-              {direction.source === "saved_references" ? "已收藏" : "社團語言"}
-              {direction.confidence === "medium" ? " · 中" : " · 低"}
-            </small>
-          </li>
-        ))}
+        {pack.directions.map((direction) => {
+          const chosen = selectedId === direction.id;
+          const card = (
+            <>
+              <span className="inspiration-direction-id">{direction.id}</span>
+              <strong>{direction.title}</strong>
+              <p>{direction.summary}</p>
+              <small>
+                {direction.source === "saved_references" ? "已收藏" : "社團語言"}
+                {direction.confidence === "medium" ? " · 中" : " · 低"}
+              </small>
+              {onSelect ? (
+                <span className="inspiration-pick">
+                  {chosen ? "已選" : "用這個"}
+                </span>
+              ) : null}
+            </>
+          );
+          return (
+            <li key={direction.id}>
+              {onSelect ? (
+                <button
+                  type="button"
+                  className={
+                    "inspiration-direction-card" + (chosen ? " selected" : "")
+                  }
+                  aria-label={"選方向 " + direction.id + "：" + direction.title}
+                  aria-pressed={chosen}
+                  disabled={busy}
+                  onClick={() => onSelect(direction.id)}
+                >
+                  {card}
+                </button>
+              ) : (
+                <div className="inspiration-direction-card">{card}</div>
+              )}
+            </li>
+          );
+        })}
       </ul>
       {pack.clusters.length > 0 && (
         <ul className="inspiration-cluster-rail">

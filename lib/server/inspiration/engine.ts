@@ -14,6 +14,8 @@ import type {
   InspirationDirection,
   InspirationSearchPack,
 } from "../../inspiration-pack";
+import { ApiError } from "../security";
+import { saveDirections, chooseDirection, type Workflow } from "../workflows";
 
 export function analyzeReference(input: {
   caption?: string;
@@ -314,4 +316,52 @@ export function boardFor(projectId: string, prompt = "靈感板") {
     providers: providerHealth(),
     pack: toInspirationPack({ prompt, projectId, items }),
   };
+}
+
+function httpsSources(urls: string[]) {
+  return urls.filter((value) => {
+    try {
+      return new URL(value).protocol === "https:";
+    } catch {
+      return false;
+    }
+  });
+}
+
+export function selectInspirationDirection(input: {
+  owner: string;
+  prompt: string;
+  projectId: string;
+  selected: "A" | "B" | "C";
+}): { workflow: Workflow; pack: ReturnType<typeof searchInspiration> } {
+  const pack = searchInspiration({
+    prompt: input.prompt,
+    projectId: input.projectId,
+  });
+  const index = pack.directions.findIndex((item) => item.id === input.selected);
+  if (index < 0)
+    throw new ApiError(400, "invalid_direction", "請選擇其中一個創作方向。");
+  if (pack.directions.length < 3)
+    throw new ApiError(
+      409,
+      "directions_incomplete",
+      "方向不足三個，不能保存選擇。",
+    );
+  const saved = saveDirections(input.owner, {
+    projectId: input.projectId,
+    brief: pack.query.primary.slice(0, 10_000) || "靈感方向",
+    directions: pack.directions.slice(0, 5).map((item) => ({
+      title: item.title.slice(0, 120),
+      claim: item.summary.slice(0, 2000),
+      visual: item.summary.slice(0, 4000),
+      copy: item.summary.slice(0, 5000),
+      cta: "待使用者確認，未發佈。",
+      sources: httpsSources(item.evidenceUrls).slice(0, 20),
+    })),
+  });
+  const workflow =
+    saved.selected === index
+      ? saved
+      : chooseDirection(input.owner, saved.id, index);
+  return { workflow, pack };
 }

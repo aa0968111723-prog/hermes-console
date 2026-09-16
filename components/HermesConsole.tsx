@@ -222,6 +222,10 @@ export default function HermesConsole() {
     clearDrafts,
   } = useComposerDraft(draftScope);
   const [busy, setBusy] = useState(false);
+  const [pickingInspiration, setPickingInspiration] = useState(false);
+  const [pickedDirection, setPickedDirection] = useState<"A" | "B" | "C" | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [offline, setOffline] = useState(false);
@@ -554,16 +558,27 @@ export default function HermesConsole() {
     await loadWorkspace();
     return result.conversation;
   }
-  async function send() {
-    if (busy || blocked || !text.trim() || uploads.some((u) => !u.material))
+  async function sendPrompt(prompt: string, attachmentIds?: string[]) {
+    const trimmed = prompt.trim();
+    if (busy || blocked || !trimmed) return;
+    const files = attachmentIds
+      ? []
+      : uploads.filter((u) => u.material);
+    if (
+      !attachmentIds &&
+      uploads.some((u) => !u.material)
+    )
       return;
-    const imageAttached = [
-      ...uploads.flatMap((u) => (u.material ? [u.material] : [])),
-      ...references.flatMap((id) => {
-        const item = data.materials.find((material) => material.id === id);
-        return item ? [item] : [];
-      }),
-    ].some((item) => item.kind === "image");
+    const refs = attachmentIds ? [] : references;
+    const imageAttached = attachmentIds
+      ? false
+      : [
+          ...files.flatMap((u) => (u.material ? [u.material] : [])),
+          ...refs.flatMap((id) => {
+            const item = data.materials.find((material) => material.id === id);
+            return item ? [item] : [];
+          }),
+        ].some((item) => item.kind === "image");
     if (imageAttached && !data.imageInput) {
       setError(
         "圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。",
@@ -574,13 +589,13 @@ export default function HermesConsole() {
     setError("");
     nearBottom.current = true;
     try {
-      const conv = activeConv || (await createConversation(text.trim()));
+      const conv = activeConv || (await createConversation(trimmed));
       const payload = {
         conversationId: conv.id,
-        input: text.trim(),
-        attachments: [
-          ...uploads.flatMap((u) => (u.material ? [u.material.id] : [])),
-          ...references,
+        input: trimmed,
+        attachments: attachmentIds || [
+          ...files.flatMap((u) => (u.material ? [u.material.id] : [])),
+          ...refs,
         ],
       };
       const signature = JSON.stringify(payload);
@@ -602,6 +617,41 @@ export default function HermesConsole() {
       setError((e as Error).message);
     } finally {
       setBusy(false);
+    }
+  }
+  async function send() {
+    await sendPrompt(text);
+  }
+  async function pickInspirationDirection(
+    id: "A" | "B" | "C",
+    pack: InspirationSearchPack,
+  ) {
+    if (busy || pickingInspiration || blocked) return;
+    const title = pack.directions.find((item) => item.id === id)?.title || id;
+    setPickingInspiration(true);
+    setError("");
+    try {
+      await api("inspiration", "POST", {
+        action: "select",
+        selected: id,
+        prompt: pack.query.primary,
+        projectId: project,
+      });
+      setPickedDirection(id);
+      await refresh();
+      setNav("chat");
+      await sendPrompt(
+        "我選方向 " +
+          id +
+          "：" +
+          title +
+          "。請依這個已選定方向整理文案與視覺規格，不要改選其他方向，也不要假裝已出圖或已發佈。",
+        [],
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPickingInspiration(false);
     }
   }
   async function stopTask(task: Task) {
@@ -1182,6 +1232,9 @@ export default function HermesConsole() {
                                   tasks.find((t) => t.id === message.taskId),
                                 )
                               }
+                              onPickInspiration={pickInspirationDirection}
+                              pickingInspiration={pickingInspiration}
+                              selectedInspiration={pickedDirection}
                             />
                           )}
                           {!!message.attachments?.length && (
@@ -1663,6 +1716,9 @@ export default function HermesConsole() {
               items={inspiration}
               pack={inspirationPack}
               syncStatus={sheetsSync}
+              onSelectDirection={pickInspirationDirection}
+              selectedDirection={pickedDirection}
+              selecting={pickingInspiration}
               onSync={async () => {
                 const result = await api<{ sheetsSync: SheetSyncResult }>(
                   "inspiration",

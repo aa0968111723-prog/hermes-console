@@ -331,6 +331,10 @@ try {
   assert.equal(inspirationJson.pack.fullSiteSearch, false);
   assert.equal(inspirationJson.pack.kind, "inspiration_search");
   assert.ok(inspirationJson.pack.directions.length >= 1);
+  const pickA = page.getByRole("button", { name: /選方向 A/ });
+  await expect(pickA).toBeVisible();
+  const pickBox = await pickA.boundingBox();
+  assert.ok(pickBox && pickBox.height >= 44);
   await page.screenshot({
     path: join(output, "inspiration-mobile.png"),
     fullPage: true,
