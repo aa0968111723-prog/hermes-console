@@ -6,7 +6,7 @@
 - 分支：`feat/visual-first-3d-workspace`。
 - 已執行 `git pull --ff-only`、重新 fetch main；本輪結束前 main 仍為 `b3059a96ad8828c7fcf4aa56ec64c6c9e1864378`（GALLEY PR #24 merge）。
 - 已檢查近期 Agent OS、GALLEY、FrameLab、Lumen 合併。相對 main，`lib/server` 與 `app/api` **沒有修改**。既有 MCP、Runtime、Memory、Projects、授權、任務、用量、文案修訂與執行契約保留。
-- 延續最新 main 的免登入共用工作區。這不是新增公開存取授權；正式站仍須受控網路／存取閘道。未進行正式部署、發文或 PR 合併。
+- 當時延續 main 的免登入共用工作區。**現行產品已改為 AuthGate。** 這不是新增公開存取授權；正式站仍須受控網路／存取閘道。未進行正式部署、發文或 PR 合併。
 
 ## UI audit：文字與操作
 

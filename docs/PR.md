@@ -1,6 +1,10 @@
+# 現行產品
+
+正式入口是 AuthGate（未登入 → Google／淡江 SSO／Email → Hermes）。本文件是早期 PR 紀錄，**不要**依「免登入」或「不要在 UI 恢復登入」回退登入。現行說明見 [README](../README.md) 與 [PRODUCTION](PRODUCTION.md)。
+
 ## 摘要
 
-將 Hermes Console 升級為 **Hermes Creative Intelligence**：免登入單一工作區。開啟網址即可對話，不再出現登入頁、註冊、帳號或密碼。秘密仍只存在 server-side env / encrypted vault。
+將 Hermes Console 升級為 **Hermes Creative Intelligence**：當時選擇免登入單一工作區。現行產品已改為登入後進入工作區。秘密仍只存在 server-side env / encrypted vault。
 
 ## No-login architecture
 

@@ -1,6 +1,6 @@
 # Runtime 同步修復與能力盤點
 
-基準：從 `21a590f`（免登入工作區）接續，整合 `7b55b41`（共用記憶、加密設定、FrameLab、Lumen），再同步遠端 `b3059a9`（GALLEY、Agent OS）。保留現有 SQLite、記憶學習樹、素材與對話，不修改部署、不合併 PR、不輪替部署憑證。
+基準：從 `21a590f`（當時免登入工作區）接續，整合 `7b55b41`（共用記憶、加密設定、FrameLab、Lumen），再同步遠端 `b3059a9`（GALLEY、Agent OS）。**現行產品是 AuthGate。** 保留現有 SQLite、記憶學習樹、素材與對話，不修改部署、不合併 PR、不輪替部署憑證。
 
 ## 實際完成範圍
 
@@ -63,7 +63,7 @@ npm run test:workbench
 1. 已輪替的新 Hermes key（僅後端設定）、已確認 API 網域、部署版本及可讀的 capabilities／toolsets／skills 回應；勿在聊天貼秘密。
 2. 已配置的外部 MCP HTTPS 端點、服務認證的環境變數參照及工具權限；GitHub repo 網址不是 MCP。
 3. 若要端到端 Canva 成果：Canva 使用者授權、已授權模板／設計及目標專案；未授權時不製作假設計連結。
-4. 正式工作區免登入，必須以受控閘道／私人網路保護。請在部署端驗證 gateway 不能由公開訪客偽造 header，且 SQLite 與 Hermes 資料卷重啟後仍保留。本次不宣稱已執行這些部署操作。
+4. 正式工作區須登入（AuthGate）。請在部署端驗證 gateway 不能由公開訪客偽造 header，且 SQLite 與 Hermes 資料卷重啟後仍保留。本次不宣稱已執行這些部署操作。
 
 ## 官方依據
 

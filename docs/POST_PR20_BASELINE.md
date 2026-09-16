@@ -1,5 +1,7 @@
 # Post-PR20 Baseline
 
+> 現行產品：AuthGate 登入後才進入工作區。本文件是 2026-09-07 對當時 main 的盤點，不是現況。
+
 基準：`main` `6d168ef`（Merge pull request #20）。盤點日期：2026-09-07。盤點方式：讀 UI → API → server → persistence → external service。**沒有對真實 Hermes / Zeabur / Tamkang / Canva 做 live probe。**
 
 本文件不是完成宣告。分類只描述目前 `feat/post-pr20-agent-os` 從 current main 看到的狀態。
