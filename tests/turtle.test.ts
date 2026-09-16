@@ -29,6 +29,11 @@ test("turtle queued planning and creating tool states", () => {
     events: [{ toolName: "canva_create", status: "running" }],
   } as Task;
   assert.equal(turtleState(creating, false).id, "creating");
+  const galley = {
+    state: "running" as const,
+    events: [{ toolName: "galley_research", status: "running" }],
+  } as Task;
+  assert.equal(turtleState(galley, false).id, "researching");
 });
 
 test("turtle terminal task and offline states override old tool activity", () => {
