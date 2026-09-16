@@ -9,5 +9,7 @@ export async function register() {
       "./lib/server/hermes/runtime-monitor"
     );
     startRuntimeMonitor();
+    const { validateProductionEnv } = await import("./lib/server/env");
+    validateProductionEnv();
   }
 }

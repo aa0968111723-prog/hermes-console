@@ -41,10 +41,10 @@ function request(
 }
 
 test("no-login entry contracts", async (t) => {
-  await t.test("root page does not import InvitationGate", async () => {
+  await t.test("root page uses AuthGate and does not import InvitationGate", async () => {
     const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
     assert.ok(!page.includes("InvitationGate"));
-    assert.ok(page.includes("HermesConsole"));
+    assert.ok(page.includes("AuthGate"));
   });
 
   await t.test("FEATURE_AUDIT matches no-login workspace and stub research", async () => {
@@ -52,14 +52,14 @@ test("no-login entry contracts", async (t) => {
       new URL("../docs/FEATURE_AUDIT_EDU.md", import.meta.url),
       "utf8",
     );
-    assert.match(audit, /免登入/);
+    assert.match(audit, /免登入|workspace owner/);
     assert.match(audit, /InvitationGate/);
     assert.match(audit, /researchBundle/);
     assert.match(audit, /executed: false/);
     assert.match(audit, /API only/);
     assert.match(audit, /dormant/);
     assert.match(audit, /可選/);
-    assert.doesNotMatch(audit, /正式必填/);
+    assert.match(audit, /正式必填/);
     assert.doesNotMatch(audit, /公開部署沒有閘道會 fail closed/);
   });
 

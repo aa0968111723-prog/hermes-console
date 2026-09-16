@@ -3,7 +3,7 @@ import { health } from "@/lib/server/hermes";
 import { z } from "zod";
 export const runtime = "nodejs";
 export const GET = route(async (request) =>
-  respond(await health(authenticate(request))),
+  respond(await health(authenticate(request, false, { anonymous: true }))),
 );
 export const POST = route(async (request) => {
   const owner = authenticate(request, true);

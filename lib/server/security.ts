@@ -10,9 +10,12 @@ import {
   get,
   hitLimit,
   put,
+  readSession,
   transaction,
   StoreUnavailableError,
 } from "./store";
+import { errorCategory, type ErrorCategory } from "./errors";
+import { isAuthRequired } from "./auth/mode";
 
 export const WORKSPACE_OWNER = "workspace";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -120,12 +123,15 @@ export function assertSafeServiceUrl(
 }
 
 export class ApiError extends Error {
+  category: ErrorCategory;
   constructor(
     public status: number,
     public code: string,
     message: string,
+    category?: ErrorCategory,
   ) {
     super(message);
+    this.category = category || errorCategory(code);
   }
 }
 export const hash = (value: string) =>
@@ -194,11 +200,31 @@ export function checkOrigin(request: Request) {
     "後端尚未設定 CONSOLE_ORIGIN。",
   );
 }
-export function authenticate(request: Request, mutation = false): string {
+function sessionTokenFromRequest(request: Request) {
+  const token =
+    (request.headers.get("cookie") || "")
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("hermes_session="))
+      ?.slice("hermes_session=".length) || "";
+  return /^[a-f0-9]{64}$/.test(token) ? token : "";
+}
+
+export function authenticate(
+  request: Request,
+  mutation = false,
+  options?: { anonymous?: boolean },
+): string {
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
+  if (!options?.anonymous && isAuthRequired()) {
+    const token = sessionTokenFromRequest(request);
+    const session = token ? readSession(hash(token)) : null;
+    if (!session)
+      throw new ApiError(401, "AUTH_ERROR", "請先登入 Hermes。", "AUTH_ERROR");
+  }
   return WORKSPACE_OWNER;
 }
 
@@ -401,7 +427,13 @@ export function route(fn: (req: Request) => Promise<Response>) {
     } catch (error) {
       if (error instanceof ApiError)
         return respond(
-          { error: { code: error.code, message: error.message } },
+          {
+            error: {
+              code: error.code,
+              category: error.category,
+              message: error.message,
+            },
+          },
           error.status,
           error.status === 429 ? { "Retry-After": "60" } : {},
         );
@@ -410,6 +442,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
           {
             error: {
               code: "invalid_input",
+              category: "INVALID_INPUT",
               message: "輸入格式不正確，請確認欄位與長度。",
             },
           },
@@ -420,6 +453,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
           {
             error: {
               code: "store_unavailable",
+              category: "UPSTREAM_ERROR",
               message: "儲存庫無法使用。",
             },
           },
@@ -429,6 +463,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
         {
           error: {
             code: "internal_error",
+            category: "UNKNOWN",
             message: "操作未完成，請查看設定或重試。",
           },
         },
