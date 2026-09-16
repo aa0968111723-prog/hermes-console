@@ -40,10 +40,11 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry`、`test:ui`、`test:chat`、`test:workbench`、`test:runtime`、`test:gateway` 通過。
-- `npm test`：401 tests, 399 pass, 2 skipped, 0 fail。含 production 拒絕測試 session／公開 HTTP origin。
-- `/` First Load JS 109 kB（shared 103 kB；登入頁 6.13 kB）。工作區與設定為另外的 chunk。
-- Playwright 六套契約全過。`test:ui` 本機 Chrome LCP 364ms／CLS ~0.00008（不是實機）。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`npm run rehearse`、`test:entry`、`test:ui`、`test:chat`、`test:workbench`、`test:runtime`、`test:gateway` 通過。
+- `npm test`：406 tests, 404 pass, 2 skipped, 0 fail。含 health GET 不等 hanging Hermes、store 掛掉仍 live、backup 不印 vault key。
+- `/` First Load JS 109 kB（shared 103 kB；登入頁 6.13 kB）。
+- Playwright 六套契約全過。`test:ui` 本機 Chrome LCP 376ms／CLS ~0.00008（不是實機）。
+- `npm run rehearse`：local `ok: true`，Hermes／Google／Tamkang／mail／gateway 皆未設定並寫入 warnings。不是 Zeabur。
 
 ## 仍是 Partial（禁止標綠）
 
