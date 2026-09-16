@@ -79,10 +79,8 @@ import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import {
   directionPickFollowUp,
-  isInspirationSearchPack,
   type InspirationSearchPack,
 } from "@/lib/inspiration-pack";
-import { isImageReviewPack } from "@/lib/image-review";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
 import {
   emptyDraft,
@@ -103,13 +101,6 @@ function pinScrollerTo(scroller: HTMLElement, target: HTMLElement) {
     scroller.scrollTop -
     8;
   scroller.scrollTo({ top: Math.max(0, top) });
-}
-
-function taskHasStructuredPack(task?: Task) {
-  return !!task?.events.some(
-    (event) =>
-      isInspirationSearchPack(event.result) || isImageReviewPack(event.result),
-  );
 }
 
 type Project = { id: string; name: string };
@@ -1287,7 +1278,9 @@ export default function HermesConsole() {
                         message.role === "assistant" && message.taskId
                           ? tasks.find((item) => item.id === message.taskId)
                           : undefined;
-                      const hideBody = taskHasStructuredPack(visualTask);
+                      const hideBody =
+                        message.provenance === "workspace" &&
+                        !!message.taskId;
                       return (
                       <article
                         key={message.id}
