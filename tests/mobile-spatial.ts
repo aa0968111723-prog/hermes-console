@@ -330,8 +330,11 @@ export async function verifyMobileSpatial(
   const settings = page.getByRole("dialog", { name: "工作區設定" });
   await expect(settings).toBeVisible();
   await expect(
-    page.getByRole("tab", { name: "記憶", exact: true }),
+    page.getByRole("tab", { name: "工作區", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  await expect(
+    settings.getByRole("heading", { name: "共用記憶庫", exact: true }),
+  ).toBeVisible();
   await expect
     .poll(
       async () =>
