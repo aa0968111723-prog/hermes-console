@@ -66,6 +66,28 @@ export function createSpeechSession(options: {
   rec.interimResults = false;
   // Android Chrome / zh-TW ends a non-continuous session at the first pause.
   rec.continuous = true;
+  let active = false;
+  let heard = false;
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    active = false;
+    options.onEnd?.();
+  };
+  const listen = () => {
+    try {
+      rec.start();
+    } catch (error) {
+      const name =
+        error && typeof error === "object" && "name" in error
+          ? String((error as { name?: string }).name)
+          : "";
+      if (name === "InvalidStateError") return;
+      options.onError?.(name === "NotAllowedError" ? "not-allowed" : "audio-capture");
+      finish();
+    }
+  };
   rec.onresult = (event) => {
     const results = event.results;
     const start =
@@ -76,27 +98,48 @@ export function createSpeechSession(options: {
       const item = results[i];
       if (!item?.isFinal) continue;
       const text = item[0]?.transcript || "";
-      if (text.trim()) options.onFinal(text);
+      if (text.trim()) {
+        heard = true;
+        options.onFinal(text);
+      }
     }
   };
   rec.onerror = (event) => {
-    options.onError?.(event?.error);
-    options.onEnd?.();
+    if (!active || finished) return;
+    const code = event?.error;
+    if (code === "aborted") return;
+    if (code === "no-speech") {
+      if (heard) return;
+      options.onError?.(code);
+      finish();
+      return;
+    }
+    options.onError?.(code);
+    finish();
   };
-  rec.onend = () => options.onEnd?.();
+  rec.onend = () => {
+    if (finished || !active) {
+      finish();
+      return;
+    }
+    if (!heard) {
+      finish();
+      return;
+    }
+    listen();
+  };
   return {
     start: () => {
+      active = true;
+      listen();
+    },
+    stop: () => {
+      active = false;
       try {
-        rec.start();
-      } catch (error) {
-        const name =
-          error && typeof error === "object" && "name" in error
-            ? String((error as { name?: string }).name)
-            : "";
-        options.onError?.(name === "NotAllowedError" ? "not-allowed" : "audio-capture");
-        options.onEnd?.();
+        rec.stop();
+      } catch {
+        finish();
       }
     },
-    stop: () => rec.stop(),
   };
 }

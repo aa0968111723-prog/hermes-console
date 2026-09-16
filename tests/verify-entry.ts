@@ -154,6 +154,21 @@ try {
     "我想辦茶會 再幫我看場佈",
   );
   await expect(page.getByText("說完了，請按送出")).toHaveCount(0);
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onerror: ((event?: { error?: string }) => void) | null;
+          onend: (() => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onerror?.({ error: "no-speech" });
+    current?.onend?.();
+  });
+  await expect(page.getByRole("button", { name: "停止語音輸入" })).toBeVisible();
+  await expect(page.getByText("說完了，請按送出")).toHaveCount(0);
+  await expect(page.locator(".notice-bar.warning")).toHaveCount(0);
   await page.getByRole("button", { name: "停止語音輸入" }).click();
   await expect(page.getByText("說完了，請按送出")).toBeVisible();
   await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
