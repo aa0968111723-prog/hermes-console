@@ -57,5 +57,5 @@
 - [ ] `npm test`
 - [ ] `npm run build`
 - [ ] Playwright：entry／ui／chat／workbench／gateway／runtime
-- [ ] `/api/live` 200、`/api/ready` 反映儲存、`/api/health` 無密鑰
+- [ ] `/api/live` 200、`/api/ready` 反映儲存、未登入 `/api/health` 無密鑰且無技能目錄
 - [ ] Rollback 路徑已寫在 PRODUCTION.md

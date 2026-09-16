@@ -43,6 +43,10 @@
 | 完成自檢 | live 契約 | 缺讀圖／缺研究資料／缺作品／Lumen 無結果時寫入誠實 notice，不拿空成功當完成。 |
 | 記憶時效 | live 契約 | `confidence * recencyScore(updatedAt)`；超過 30 天降至 0.3 倍，不永遠沿用舊偏好。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
+| 匿名 Health | live 契約 | required 且未登入時 `/api/health` 不含 models／skills／toolsets。 |
+| 龜龜狀態 | live UI | Idle／Thinking／Planning／Searching／Researching／Creating／Tool／Waiting／Success／Error／Offline 各有姿勢與光。 |
+| 快速開始 | live UI | 只顯示研究／創作／分析／客群／靈感／設計，不放長句。 |
+| 連線格 | live UI | 名稱 + 狀態點；完整說明在 aria-label。 |
 
 ## 仍為 Partial（禁止打綠勾）
 

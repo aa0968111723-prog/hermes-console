@@ -46,7 +46,8 @@ MCP token 只放後端 env／vault 參照，不進 `CONSOLE_MCP_SERVERS_JSON` �
 - Open redirect：OAuth callback 只回 `CONSOLE_ORIGIN`。
 - Rate limit：API 與登入／註冊分開限流。
 - Webhook：本產品沒有未驗證的公開 webhook 入口可改資料。
-- Health／Ready／Live 回應不得含 Secret。
+- Health／Ready／Live 回應不得含 Secret。正式 required 模式且未登入時，`GET /api/health` 也不回 models／skills／toolsets。
+- 正式 `CONSOLE_ORIGIN` 必須 https；僅 loopback 可用 http 做 rehearsal。
 
 ## Incident rotation
 

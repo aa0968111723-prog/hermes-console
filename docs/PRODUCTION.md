@@ -60,7 +60,7 @@ Browser → Console (this app)
 
 - `GET /api/live`：行程活著。不含 DB／Hermes／Secret。
 - `GET /api/ready`：儲存可用。200／503。含 `backend`、`dataDir`，不含連線字串。
-- `GET /api/health`：匿名可讀摘要。不含 Token、密碼、Cookie、Authorization。App 活著 ≠ Agent 可用。
+- `GET /api/health`：匿名可讀摘要（App／DB／Hermes 可達與憑證有無）。required 且未登入時不含 models／skills／toolsets／features。不含 Token、密碼、Cookie、Authorization。App 活著 ≠ Agent 可用。登入後 GET／POST 才回完整探測。
 
 ## Backup
 
