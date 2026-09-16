@@ -18,6 +18,11 @@ import { ApiError, taxonomyFor } from "./errors";
 export { ApiError, taxonomyFor } from "./errors";
 
 export const WORKSPACE_OWNER = "workspace";
+export type WorkspaceRole = "owner" | "admin" | "member";
+export const WORKSPACE_OPERATOR_ROLES: readonly WorkspaceRole[] = [
+  "owner",
+  "admin",
+];
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const METADATA_HOSTS = new Set([
   "169.254.169.254",
@@ -188,7 +193,17 @@ export function checkOrigin(request: Request) {
     "後端尚未設定 CONSOLE_ORIGIN。",
   );
 }
-export function authenticate(request: Request, mutation = false): string {
+function workspaceRoleOf(membership: unknown): WorkspaceRole | null {
+  const role = (membership as { role?: unknown } | null)?.role;
+  if (role === "owner" || role === "admin" || role === "member") return role;
+  return null;
+}
+
+export function authenticate(
+  request: Request,
+  mutation = false,
+  roles?: readonly WorkspaceRole[],
+): string {
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
   if (mutation) checkOrigin(request);
@@ -231,7 +246,21 @@ export function authenticate(request: Request, mutation = false): string {
       "membership_required",
       "這個帳號還沒有工作區權限。",
     );
+  if (roles?.length) {
+    const role = workspaceRoleOf(membership);
+    if (!role || !roles.includes(role))
+      throw new ApiError(
+        403,
+        "permission_denied",
+        "這個操作需要工作區管理者權限。",
+      );
+  }
   return WORKSPACE_OWNER;
+}
+
+/** Hermes / MCP / Zeabur credential surfaces. Members may use the workspace, not change secrets. */
+export function authenticateOperator(request: Request, mutation = false) {
+  return authenticate(request, mutation, WORKSPACE_OPERATOR_ROLES);
 }
 
 // Optional deployment-level protection. Not an account login.

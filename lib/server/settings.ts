@@ -253,7 +253,7 @@ export function publicSettings() {
     },
     zeabur: zeaburPublicStatus(),
     openSettingsWarning:
-      "變更連線憑證需要已登入的工作區成員。秘密只存在後端，不會傳回瀏覽器。",
+      "變更連線憑證需要工作區擁有者或管理者。秘密只存在後端，不會傳回瀏覽器。",
   };
 }
 

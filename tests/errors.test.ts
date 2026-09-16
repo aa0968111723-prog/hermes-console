@@ -16,6 +16,8 @@ test("empty tool payloads are not success", () => {
 test("error codes collapse into the shared taxonomy", () => {
   assert.equal(taxonomyFor("empty_tool_result"), "TOOL_UNAVAILABLE");
   assert.equal(taxonomyFor("invalid_login"), "AUTH_ERROR");
+  assert.equal(taxonomyFor("permission_denied"), "PERMISSION_ERROR");
+  assert.equal(taxonomyFor("membership_required"), "PERMISSION_ERROR");
   assert.equal(taxonomyFor("rate_limited"), "RATE_LIMIT");
   assert.equal(taxonomyFor("store_unavailable"), "NETWORK_ERROR");
   assert.equal(taxonomyFor("mystery"), "UNKNOWN");

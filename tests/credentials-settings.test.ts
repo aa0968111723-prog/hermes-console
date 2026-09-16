@@ -190,7 +190,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
     assert.equal(body.galley.state, "unconfigured");
-    assert.match(body.openSettingsWarning, /已登入的工作區成員/);
+    assert.match(body.openSettingsWarning, /擁有者或管理者/);
     assert.equal(body.zeabur.token.configured, false);
     assert.match(body.zeabur.notice, /覆寫權杖/);
   });

@@ -176,6 +176,9 @@ async function api<T>(
 export default function HermesConsole() {
   const [auth, setAuth] = useState<"loading" | "ready">("loading");
   const [data, setData] = useState<Workspace>(EMPTY);
+  const [workspaceRole, setWorkspaceRole] = useState<
+    "owner" | "admin" | "member" | null
+  >(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
@@ -260,9 +263,25 @@ export default function HermesConsole() {
   const blocked = currentTasks.some(
     (t) => isActive(t) || t.state === "uncertain",
   );
+  const canManageConnections =
+    workspaceRole === "owner" || workspaceRole === "admin";
+  const settingsTabs = canManageConnections
+    ? (["帳號", "外觀", "連線", "工作區", "進階"] as const)
+    : (["帳號", "外觀", "工作區"] as const);
 
   const loadWorkspace = useCallback(async () => {
-    const result = await api<Workspace>("workspace");
+    const [result, account] = await Promise.all([
+      api<Workspace>("workspace"),
+      api<{ membership: { role?: string } | null }>("auth").catch(() => ({
+        membership: null,
+      })),
+    ]);
+    const role = account.membership?.role;
+    setWorkspaceRole(
+      role === "owner" || role === "admin" || role === "member"
+        ? role
+        : "member",
+    );
     setData(result);
     return result;
   }, []);
@@ -321,6 +340,13 @@ export default function HermesConsole() {
   useEffect(() => {
     if (hydrated) writePreference("hermes.ui.v2", JSON.stringify(prefs));
   }, [prefs, hydrated]);
+  useEffect(() => {
+    if (
+      !canManageConnections &&
+      (settingsTab === "連線" || settingsTab === "進階")
+    )
+      setSettingsTab("外觀");
+  }, [canManageConnections, settingsTab]);
   useEffect(() => {
     if (auth !== "ready") return;
     api<Health>("health")
@@ -931,15 +957,15 @@ export default function HermesConsole() {
       </div>
       <button
         className="settings-button"
-        aria-label="設定與連線"
-        title="設定與連線"
+        aria-label={canManageConnections ? "設定與連線" : "設定"}
+        title={canManageConnections ? "設定與連線" : "設定"}
         onClick={() => {
           setPanel("settings");
           setDrawer(false);
         }}
       >
         <Settings size={19} />
-        <span>設定與連線</span>
+        <span>{canManageConnections ? "設定與連線" : "設定"}</span>
         <span
           className={
             "status-dot " + (health?.credential === "valid" ? "good" : "")
@@ -1041,7 +1067,7 @@ export default function HermesConsole() {
                   : "確認中")
             }
             onClick={() => {
-              setSettingsTab("連線");
+              setSettingsTab(canManageConnections ? "連線" : "帳號");
               setPanel("settings");
             }}
           >
@@ -1888,6 +1914,7 @@ export default function HermesConsole() {
                 className="setting-tabs"
                 role="tablist"
                 aria-label="設定分類"
+                data-workspace-role={workspaceRole || "unknown"}
                 onKeyDown={(event) => {
                   if (
                     !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
@@ -1917,7 +1944,7 @@ export default function HermesConsole() {
                   tabs[next]?.click();
                 }}
               >
-                {["帳號", "外觀", "連線", "工作區", "進階"].map((tab) => (
+                {settingsTabs.map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -2026,7 +2053,7 @@ export default function HermesConsole() {
                       重設外觀
                     </button>
                   </div>
-                ) : settingsTab === "連線" ? (
+                ) : settingsTab === "連線" && canManageConnections ? (
                   <div className="settings-stack">
                     <details className="connection-storage">
                       <summary>Hermes · 健康與驗證</summary>
@@ -2208,7 +2235,7 @@ export default function HermesConsole() {
                       <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
                     )}
                   </div>
-                ) : (
+                ) : settingsTab === "進階" && canManageConnections ? (
                   <div className="settings-stack">
                     <p>
                       僅顯示 Hermes
@@ -2280,7 +2307,7 @@ export default function HermesConsole() {
                         ))}
                     </details>
                   </div>
-                )}
+                ) : null}
               </div>
               <footer className="settings-footer">
                 <p className="muted">單一工作區 · 秘密只存在後端</p>

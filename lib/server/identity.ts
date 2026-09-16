@@ -224,6 +224,20 @@ export function requireWorkspaceMember(request: Request) {
   return { user, membership };
 }
 
+export function requireWorkspaceRole(
+  request: Request,
+  roles: readonly MembershipRole[],
+) {
+  const access = requireWorkspaceMember(request);
+  if (!roles.includes(access.membership.role))
+    throw new ApiError(
+      403,
+      "permission_denied",
+      "這個操作需要工作區管理者權限。",
+    );
+  return access;
+}
+
 export function issueSession(userId: string) {
   const token = randomBytes(32).toString("hex");
   put("auth_session", SCOPE, {

@@ -179,6 +179,19 @@ try {
     headers: { Cookie: "hermes_session=" + session },
   });
   assert.equal(signed.status, 200);
+  const ownerCredentials = await fetch(base + "/api/settings/credentials", {
+    headers: { Cookie: "hermes_session=" + session },
+  });
+  assert.equal(ownerCredentials.status, 200);
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await expect(page.getByRole("heading", { name: "工作區設定" })).toBeVisible();
+  await expect(page.locator(".setting-tabs")).toHaveAttribute(
+    "data-workspace-role",
+    "owner",
+  );
+  await expect(page.getByRole("tab", { name: "連線", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "進階", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "關閉面板" }).click();
 
   await signOut();
   const identity = await import("../lib/server/identity");
@@ -218,6 +231,31 @@ try {
   await page.getByRole("button", { name: "完成驗證" }).click();
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await page.screenshot({ path: join(output, "login-verify.png"), fullPage: true });
+  const memberSession = (await context.cookies()).find(
+    (row) => row.name === "hermes_session",
+  )?.value;
+  assert.ok(memberSession);
+  const memberCredentials = await fetch(base + "/api/settings/credentials", {
+    headers: { Cookie: "hermes_session=" + memberSession },
+  });
+  assert.equal(memberCredentials.status, 403);
+  const memberDenied = await memberCredentials.json();
+  assert.equal(memberDenied.error?.code, "permission_denied");
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await expect(page.getByRole("heading", { name: "工作區設定" })).toBeVisible();
+  await expect(page.locator(".setting-tabs")).toHaveAttribute(
+    "data-workspace-role",
+    "member",
+  );
+  await expect(page.getByRole("tab", { name: "帳號", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "工作區", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "連線", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("tab", { name: "進階", exact: true })).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "settings-member-no-connections.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "關閉面板" }).click();
 
   await signOut();
   await context.clearCookies();
@@ -255,7 +293,7 @@ try {
 
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate, unconfigured Google/Tamkang/mail, invalid magic link, first owner register, magic redeem, password reset, email verify, email-link honesty. Not live Zeabur.",
+    "PASS: login gate, unconfigured Google/Tamkang/mail, invalid magic link, first owner register, magic redeem, password reset, email verify, member cannot open connection settings, email-link honesty. Not live Zeabur.",
   );
 } finally {
   await browser?.close();

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   authenticate,
+  authenticateOperator,
   jsonBody,
   respond,
   route,
@@ -11,7 +12,7 @@ export const GET = route(async (req) =>
   respond(canvaStatus(authenticate(req))),
 );
 export const POST = route(async (req) => {
-  const owner = authenticate(req, true);
+  const owner = authenticateOperator(req, true);
   const body = z
     .object({ action: z.enum(["authorize", "verify"]) })
     .strict()
