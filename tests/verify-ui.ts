@@ -178,6 +178,7 @@ try {
   await textarea.fill("");
   for (const [width, height, name] of [
     [1440, 1000, "desktop"],
+    [1280, 800, "desktop-1280"],
     [1024, 900, "desktop-1024"],
     [768, 1024, "tablet"],
     [430, 932, "mobile-430"],
@@ -244,16 +245,26 @@ try {
         path: join(output, "home-desktop.png"),
         fullPage: true,
       });
-    if (name === "mobile-390")
+    if (name === "mobile-390") {
       await page.screenshot({
         path: join(output, "home-mobile.png"),
         fullPage: true,
       });
+      await page.screenshot({
+        path: join(output, "chat-mobile.png"),
+        fullPage: true,
+      });
+    }
   }
   await page.getByRole("button", { name: "開啟導覽" }).click();
   const mobileNavigation = page
     .getByRole("dialog")
     .filter({ has: page.getByRole("navigation") });
+  await expect(mobileNavigation).toBeVisible();
+  await page.screenshot({
+    path: join(output, "drawer-mobile.png"),
+    fullPage: true,
+  });
   await mobileNavigation
     .getByRole("button", { name: "Agent", exact: true })
     .click();
@@ -361,6 +372,27 @@ try {
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const projectScroll = page.locator(".page-scroll, .secondary-page").first();
+  await expect.poll(() =>
+    projectScroll.evaluate(
+      (el) => getComputedStyle(el).overflowY !== "hidden",
+    ),
+  ).toBe(true);
+  await projectScroll.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  const scrolled = await projectScroll.evaluate((el) => ({
+    overflow: getComputedStyle(el).overflowY,
+    top: el.scrollTop,
+    height: el.clientHeight,
+    scroll: el.scrollHeight,
+  }));
+  assert.notEqual(scrolled.overflow, "hidden", "project page overflow hidden");
+  if (scrolled.scroll > scrolled.height + 8)
+    assert.ok(scrolled.top > 0, "long project page did not move");
+  await page.screenshot({
+    path: join(output, "project-mobile.png"),
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
@@ -608,7 +640,7 @@ try {
     "axe violations; inspect browser-report.json",
   );
   console.log(
-    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
+    "PASS: AuthGate workspace, light-only, reduced motion, IME, Shift+Enter, widths 360/390/412/430/768/1024/1280/1440, keyboard, project scroll, drawer, named dialogs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
 } catch (error) {
