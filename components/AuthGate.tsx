@@ -191,7 +191,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
         label="Hermes 龜龜"
       />
       <h1>Hermes</h1>
-      <p className="auth-lead">先登入，再開始今天想做的事。</p>
       {notice && (
         <p role="status" className="auth-notice">
           {notice}
@@ -208,11 +207,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }}
       >
-        使用 Google 登入
+        {providers.google ? "Google" : "Google 登入尚未完成設定"}
       </a>
-      {!providers.google && (
-        <p className="auth-hint">Google 登入尚未完成設定</p>
-      )}
       <a
         className="auth-provider"
         href={providers.tamkang.configured ? "/api/auth/tamkang/start" : undefined}
@@ -224,11 +220,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           }
         }}
       >
-        淡江 SSO
+        {providers.tamkang.configured
+          ? "淡江 SSO"
+          : providers.tamkang.message}
       </a>
-      {!providers.tamkang.configured && (
-        <p className="auth-hint">{providers.tamkang.message}</p>
-      )}
       <form
         className="auth-form"
         onSubmit={(event) => {

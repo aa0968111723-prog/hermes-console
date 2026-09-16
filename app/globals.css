@@ -2633,6 +2633,16 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   font-size: var(--type-caption);
   cursor: pointer;
 }
+.connection-more { margin-top: 10px; }
+.connection-more > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-muted);
+  font-size: var(--type-caption);
+  cursor: pointer;
+}
+.connection-more .integration-picker { margin-top: 10px; }
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
 .visual-concept-deck { display: grid; gap: 12px; }

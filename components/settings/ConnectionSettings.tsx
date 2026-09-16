@@ -112,6 +112,14 @@ const TAMKANG: Record<string, string> = {
   verified: "已驗證",
 };
 
+const MORE_CONNECTIONS = new Set([
+  "workspace",
+  "framelab",
+  "xunhe",
+  "planform",
+  "duigao",
+]);
+
 function secretHint(field?: FieldStatus) {
   if (!field?.configured) return "尚未儲存";
   return (
@@ -131,6 +139,7 @@ export default function ConnectionSettings({
 }) {
   const [data, setData] = useState<SettingsPayload | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -366,7 +375,10 @@ export default function ConnectionSettings({
       </details>
       <IntegrationGrid
         selected={selected}
-        onSelect={setSelected}
+        onSelect={(id) => {
+          setSelected(id);
+          setMoreOpen(false);
+        }}
         items={[
           ...(canva ? [{ id: "canva", name: "Canva", state: canvaState }] : []),
           {
@@ -375,9 +387,9 @@ export default function ConnectionSettings({
             state: data?.hermes.configured ? "configured" : "unconfigured",
           },
           {
-            id: "workspace",
-            name: "Workspace",
-            state: data?.mcpBridge.configured ? "configured" : "unconfigured",
+            id: "tamkang",
+            name: "淡江",
+            state: data?.tamkang.state || "unconfigured",
           },
           {
             id: "galley",
@@ -385,42 +397,64 @@ export default function ConnectionSettings({
             state: data?.galley?.state || "unconfigured",
           },
           {
-            id: "atlas",
-            name: "Atlas",
-            state: data?.atlas?.configured ? "configured" : "unconfigured",
-          },
-          {
-            id: "framelab",
-            name: "FrameLab",
-            state: data?.framelab?.state || "unconfigured",
-          },
-          {
             id: "lumen",
             name: "Lumen",
             state: data?.lumen?.state || "unconfigured",
           },
           {
-            id: "xunhe",
-            name: "訊核",
-            state: data?.xunhe?.state || "unconfigured",
-          },
-          {
-            id: "planform",
-            name: "Planform",
-            state: data?.planform?.state || "unconfigured",
-          },
-          {
-            id: "duigao",
-            name: "對稿",
-            state: data?.duigao?.state || "unconfigured",
-          },
-          {
-            id: "tamkang",
-            name: "淡江",
-            state: data?.tamkang.state || "unconfigured",
+            id: "atlas",
+            name: "Atlas",
+            state: data?.atlas?.configured ? "configured" : "unconfigured",
           },
         ]}
       />
+      <details
+        className="connection-more"
+        open={moreOpen || (!!selected && MORE_CONNECTIONS.has(selected))}
+        onToggle={(event) => {
+          const open = event.currentTarget.open;
+          setMoreOpen(open);
+          if (!open && selected && MORE_CONNECTIONS.has(selected))
+            setSelected(null);
+        }}
+      >
+        <summary>進階 · 其他連線</summary>
+        <IntegrationGrid
+          label="進階連線"
+          selected={selected}
+          onSelect={(id) => {
+            setSelected(id);
+            setMoreOpen(true);
+          }}
+          items={[
+            {
+              id: "workspace",
+              name: "Workspace",
+              state: data?.mcpBridge.configured ? "configured" : "unconfigured",
+            },
+            {
+              id: "framelab",
+              name: "FrameLab",
+              state: data?.framelab?.state || "unconfigured",
+            },
+            {
+              id: "xunhe",
+              name: "訊核",
+              state: data?.xunhe?.state || "unconfigured",
+            },
+            {
+              id: "planform",
+              name: "Planform",
+              state: data?.planform?.state || "unconfigured",
+            },
+            {
+              id: "duigao",
+              name: "對稿",
+              state: data?.duigao?.state || "unconfigured",
+            },
+          ]}
+        />
+      </details>
       <details
         className="connection-deploy"
         open={selected === "zeabur"}

@@ -30,10 +30,12 @@ export default function IntegrationGrid({
   items,
   selected,
   onSelect,
+  label = "選擇連線",
 }: {
   items: { id: string; name: string; state: string }[];
   selected: string | null;
   onSelect: (id: string | null) => void;
+  label?: string;
 }) {
   const labels: Record<string, string> = {
     configured: "已設定 · 待驗證",
@@ -47,7 +49,7 @@ export default function IntegrationGrid({
     unknown: "未知",
   };
   return (
-    <div className="integration-picker" role="group" aria-label="選擇連線">
+    <div className="integration-picker" role="group" aria-label={label}>
       {items.map((item) => {
         const Icon = icons[item.id] || Network;
         return (

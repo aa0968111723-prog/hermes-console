@@ -400,6 +400,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.doesNotMatch(ui, /setTkuPassword/);
     assert.match(ui, /不收集淡江帳號或密碼/);
     assert.match(ui, /進階 · 部署/);
+    assert.match(ui, /進階 · 其他連線/);
     assert.doesNotMatch(ui, /id: "zeabur"/);
   });
 });

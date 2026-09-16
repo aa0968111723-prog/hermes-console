@@ -54,15 +54,7 @@ export async function verifyVisualStates(
   });
   await audit("connections-mobile");
   const picker = page.getByRole("group", { name: "選擇連線" });
-  for (const name of [
-    "GALLEY",
-    "淡江",
-    "Lumen",
-    "Atlas",
-    "FrameLab",
-    "訊核",
-    "Hermes",
-  ]) {
+  for (const name of ["GALLEY", "淡江", "Lumen", "Atlas", "Hermes"]) {
     await picker
       .getByRole("button", { name: new RegExp("^" + name + "：") })
       .click();
@@ -71,8 +63,28 @@ export async function verifyVisualStates(
     ).toHaveCount(1);
   }
   await expect(
+    picker.getByRole("button", { name: /^FrameLab：/ }),
+  ).toHaveCount(0);
+  await expect(
+    picker.getByRole("button", { name: /^訊核：/ }),
+  ).toHaveCount(0);
+  await expect(
+    picker.getByRole("button", { name: /^Workspace：/ }),
+  ).toHaveCount(0);
+  await expect(
     picker.getByRole("button", { name: /^Zeabur：/ }),
   ).toHaveCount(0);
+  await page.locator(".connection-more > summary").click();
+  const advanced = page.getByRole("group", { name: "進階連線" });
+  await expect(advanced).toBeVisible();
+  for (const name of ["FrameLab", "訊核", "Workspace"]) {
+    await advanced
+      .getByRole("button", { name: new RegExp("^" + name + "：") })
+      .click();
+    await expect(
+      page.locator(".connection-editor section:visible"),
+    ).toHaveCount(1);
+  }
   await page.locator(".connection-deploy > summary").click();
   await expect(
     page.getByRole("heading", { name: "Zeabur 部署", exact: true }),
