@@ -78,6 +78,15 @@ import {
   writePreference,
   removeLegacyPreference,
 } from "@/lib/client/storage";
+import {
+  applyShellMetrics,
+  detectComposerKeyboard,
+  readViewportFrame,
+  shellMetrics,
+  widthChanged,
+} from "@/lib/client/viewport";
+import AccountPanel from "./auth/AccountPanel";
+import { useAuthOptional } from "./auth/AuthProvider";
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -119,6 +128,7 @@ const taskLabels: Record<string, string> = {
   queued: "準備提交",
   running: "執行中",
   waiting_user: "等待確認",
+  waiting_authorization: "等待授權",
   stopping: "停止確認中",
   completed: "已完成",
   failed: "失敗",
@@ -134,7 +144,13 @@ const connectionLabels: Record<string, string> = {
   failed: "失敗",
 };
 const isActive = (task: Task) =>
-  ["queued", "running", "waiting_user", "stopping"].includes(task.state);
+  [
+    "queued",
+    "running",
+    "waiting_user",
+    "waiting_authorization",
+    "stopping",
+  ].includes(task.state);
 const time = (value: string) =>
   new Date(value).toLocaleString("zh-TW", {
     month: "numeric",
@@ -167,6 +183,7 @@ async function api<T>(
   return data as T;
 }
 export default function HermesConsole() {
+  const account = useAuthOptional();
   const [auth, setAuth] = useState<"loading" | "ready">("loading");
   const [data, setData] = useState<Workspace>(EMPTY);
   const [health, setHealth] = useState<Health | null>(null);
@@ -391,41 +408,29 @@ export default function HermesConsole() {
   }, [text, auth, nav]);
   useEffect(() => {
     const viewport = window.visualViewport;
-    let baseline = {
-      width: viewport?.width || window.innerWidth,
-      height: viewport?.height || window.innerHeight,
-    };
-    let previousWidth = baseline.width;
+    let baselineHeight = viewport?.height || window.innerHeight;
+    let previousWidth = viewport?.width || window.innerWidth;
     let frame = 0;
     const update = () => {
-      const current = {
-        width: viewport?.width || window.innerWidth,
-        height: viewport?.height || window.innerHeight,
-      };
+      const current = readViewportFrame(viewport, window);
       const composerFocused = document.activeElement === input.current;
-      const widthChanged = Math.abs(current.width - previousWidth) > 16;
-      if (
-        !composerFocused ||
-        widthChanged ||
-        current.height > baseline.height
-      ) {
-        baseline = current;
+      const rotated = widthChanged(previousWidth, current.width);
+      if (!composerFocused || rotated || current.height > baselineHeight) {
+        baselineHeight = current.innerHeight;
       }
       previousWidth = current.width;
-      document.documentElement.style.setProperty(
-        "--app-height",
-        current.height + "px",
+      applyShellMetrics(
+        document.documentElement,
+        shellMetrics(
+          current,
+          detectComposerKeyboard({
+            composerFocused,
+            widthChanged: rotated,
+            frame: current,
+            baselineHeight,
+          }),
+        ),
       );
-      const keyboardOpen =
-        composerFocused &&
-        !widthChanged &&
-        Math.max(baseline.height, window.innerHeight) - current.height >= 96 &&
-        (viewport?.scale || 1) <= 1.01;
-      if (keyboardOpen) {
-        document.documentElement.dataset.composerKeyboard = "open";
-      } else {
-        delete document.documentElement.dataset.composerKeyboard;
-      }
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
@@ -444,7 +449,11 @@ export default function HermesConsole() {
       window.removeEventListener("resize", schedule);
       document.removeEventListener("focusin", schedule);
       document.removeEventListener("focusout", schedule);
-      delete document.documentElement.dataset.composerKeyboard;
+      applyShellMetrics(document.documentElement, {
+        height: null,
+        offsetTop: 0,
+        keyboardOpen: false,
+      });
     };
   }, []);
   useEffect(() => {
@@ -845,7 +854,7 @@ export default function HermesConsole() {
           aria-label="新增專案"
           onClick={() => {
             setPanel("settings");
-            setSettingsTab("專案");
+            setSettingsTab("工作區");
             setDrawer(false);
           }}
         >
@@ -932,6 +941,7 @@ export default function HermesConsole() {
       data-spatial={spatial.mode}
       data-page-visible={spatial.visible}
       data-sheet-open={!!panel || drawer || radialOpen}
+      data-scroll-owner={nav === "chat" ? "conversation" : "page"}
     >
       <a className="skip-link" href="#composer">
         跳至輸入區
@@ -1026,6 +1036,22 @@ export default function HermesConsole() {
                   ? connectionLabels[health.status]
                   : "確認連線"}
             </span>
+          </button>
+          <button
+            className="icon-button account-chip"
+            aria-label="帳號設定"
+            onClick={() => {
+              setSettingsTab("帳號");
+              setPanel("settings");
+            }}
+          >
+            {account?.user?.avatar ? (
+              <img src={account.user.avatar} alt="" width={28} height={28} />
+            ) : (
+              <span aria-hidden="true">
+                {(account?.user?.name || "H").slice(0, 1)}
+              </span>
+            )}
           </button>
           <button
             className="icon-button"
@@ -1476,7 +1502,7 @@ export default function HermesConsole() {
             </div>
           </>
         ) : nav === "projects" ? (
-          <section className="secondary-page">
+          <section className="secondary-page page-scroll">
             <h1>素材與靈感</h1>
             <ProjectShelf
               projects={data.projects}
@@ -1489,7 +1515,7 @@ export default function HermesConsole() {
               }}
               onCreate={() => {
                 setPanel("settings");
-                setSettingsTab("專案");
+                setSettingsTab("工作區");
               }}
             />
             <details className="workbench-disclosure">
@@ -1617,7 +1643,7 @@ export default function HermesConsole() {
             )}
           </section>
         ) : nav === "inspiration" ? (
-          <>
+          <section className="secondary-page page-scroll" aria-label="靈感">
             <InspirationBoard
               items={inspiration}
               syncStatus={sheetsSync}
@@ -1638,9 +1664,9 @@ export default function HermesConsole() {
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />
             <KnowledgeArchive />
-          </>
+          </section>
         ) : nav === "agents" ? (
-          <section className="secondary-page">
+          <section className="secondary-page page-scroll">
             <div className="page-heading-row">
               <div>
                 <p className="eyebrow">能力</p>
@@ -1665,7 +1691,7 @@ export default function HermesConsole() {
             </details>
           </section>
         ) : (
-          <section className="secondary-page">
+          <section className="secondary-page page-scroll">
             <h1>任務</h1>
             <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} />
             {workflows
@@ -1803,7 +1829,7 @@ export default function HermesConsole() {
       <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
         onAction={action=>{
           if(action==="spatial")setPanel("spatial");
-          else if(action==="memory"){setSettingsTab("記憶");setPanel("settings");}
+          else if(action==="memory"){setSettingsTab("進階");setPanel("settings");}
           else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
         }}
         onFiles={files=>{
@@ -1844,7 +1870,7 @@ export default function HermesConsole() {
           )}
           {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
             animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
-            onMemory={()=>{setSettingsTab("記憶");setPanel("settings");}}
+            onMemory={()=>{setSettingsTab("進階");setPanel("settings");}}
             onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
             <>
               <div
@@ -1880,7 +1906,7 @@ export default function HermesConsole() {
                   tabs[next]?.click();
                 }}
               >
-                {["外觀", "連線", "記憶", "使用量", "說明", "專案"].map((tab) => (
+                {["帳號", "外觀", "連線", "工作區", "進階"].map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -1900,7 +1926,9 @@ export default function HermesConsole() {
                 aria-labelledby={"setting-tab-" + settingsTab}
                 tabIndex={0}
               >
-                {settingsTab === "外觀" ? (
+                {settingsTab === "帳號" ? (
+                  <AccountPanel />
+                ) : settingsTab === "外觀" ? (
                   <div className="settings-stack">
                     <p className="muted">
                       固定明亮介面。外觀偏好只儲存在此瀏覽器。
@@ -2143,9 +2171,9 @@ export default function HermesConsole() {
                         ))}
                     </details>
                   </div>
-                ) : settingsTab === "記憶" ? (
+                ) : settingsTab === "進階" ? (
                   <div className="settings-stack">
-                    <h3>記憶與會話</h3>
+                    <h3>記憶</h3>
                     <SharedMemory projectId={project} />
                     <LearningMap
                       key={project}
@@ -2159,11 +2187,7 @@ export default function HermesConsole() {
                     />
                     <p>{data.memory.scope}</p>
                     <p className="muted">
-                      上方「共用記憶庫」是 Console 持久化庫（DATABASE_URL
-                      Postgres，未設定時為 CONSOLE_DATA_DIR SQLite），Hermes
-                      可經 Workspace MCP 與任務指示讀寫同一批資料。
-                      學習地圖仍是「請 Hermes
-                      學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
+                      Console 持久化記憶，不是 Hermes 遠端鏡像。未驗證前不宣稱已同步。
                     </p>
                     <button
                       disabled={!activeConv?.hermesSessionId}
@@ -2194,13 +2218,8 @@ export default function HermesConsole() {
                     {legacy && (
                       <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
                     )}
-                  </div>
-                ) : settingsTab === "使用量" ? (
-                  <div className="settings-stack">
-                    <p>
-                      僅顯示 Hermes
-                      回傳的統計。未知費用不是零，也不推測外部工具費用。
-                    </p>
+                    <h3>使用量</h3>
+                    <p className="muted">僅顯示 Hermes 回傳的統計。未知費用不是零。</p>
                     {tasks.map((t) => (
                       <details key={t.id}>
                         <summary>{t.input.slice(0, 40)}</summary>
@@ -2210,9 +2229,9 @@ export default function HermesConsole() {
                     {!tasks.length && (
                       <p className="muted">尚無任務使用量資料。</p>
                     )}
+                    <h3>說明</h3>
+                    <HelpPage />
                   </div>
-                ) : settingsTab === "說明" ? (
-                  <HelpPage />
                 ) : (
                   <div className="settings-stack">
                     <p>

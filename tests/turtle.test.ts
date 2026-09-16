@@ -32,6 +32,6 @@ test("turtle terminal task and offline states override old tool activity", () =>
     "結果待確認",
   );
   assert.equal(turtleState(task("stopping", "running"), false).id, "waiting");
-  assert.equal(turtleState(task("completed"), true).id, "error");
+  assert.equal(turtleState(task("completed"), true).id, "offline");
   assert.equal(turtleState(undefined, false).id, "idle");
 });
