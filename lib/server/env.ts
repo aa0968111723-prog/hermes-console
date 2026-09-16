@@ -1,21 +1,27 @@
-const PRODUCTION_REQUIRED = ["CONSOLE_ORIGIN"] as const;
+import { googleConfigured, emailConfigured } from "./auth/providers";
+import { isAuthEnforced } from "./auth/session";
 
 function isLoopbackHost(hostname: string) {
   return ["localhost", "127.0.0.1", "[::1]"].includes(hostname);
 }
 
 export function validateRuntimeEnv() {
-  if (process.env.NODE_ENV !== "production") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
-  const missing = PRODUCTION_REQUIRED.filter(
-    (name) => !String(process.env[name] || "").trim(),
-  );
-  if (missing.length) {
+  if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_TEST_CONTEXT || process.env.CONSOLE_TEST_SESSION) {
+      throw new Error("測試用 session 不得用於正式環境。");
+    }
+  }
+  const origin = process.env.CONSOLE_ORIGIN?.trim() || "";
+  const allowLocal = process.env.CONSOLE_ALLOW_LOCAL_ACCESS === "true";
+  if (!origin) {
     throw new Error(
-      "正式環境缺少必要設定：" + missing.join(", ") + "。請在部署端補齊後再啟動。",
+      process.env.NODE_ENV === "production" && !allowLocal
+        ? "缺少 CONSOLE_ORIGIN。正式環境必須設定公開 HTTPS origin。"
+        : "缺少 CONSOLE_ORIGIN。請設定公開 origin 後再啟動。",
     );
   }
-  let origin: URL;
+  let url: URL;
   try {
     origin = new URL(process.env.CONSOLE_ORIGIN || "");
   } catch {
@@ -76,5 +82,12 @@ export function localAuthConvenience() {
     );
   } catch {
     return false;
+  }
+  if (allowLocal) return;
+  if (!isAuthEnforced()) return;
+  if (!googleConfigured() && !emailConfigured()) {
+    throw new Error(
+      "正式環境需要 Google OAuth（GOOGLE_CLIENT_ID／SECRET）或 Email 寄信（RESEND_API_KEY／CONSOLE_EMAIL_FROM）。淡江 SSO 未設定時必須顯示尚未完成，不可假裝成功。",
+    );
   }
 }

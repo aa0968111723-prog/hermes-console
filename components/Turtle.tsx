@@ -1,7 +1,14 @@
 "use client";
 import { memo, useEffect, useState } from "react";
 import type { Task } from "@/lib/contracts";
-import { eventState, workingEvent } from "@/lib/client/activity";
+import {
+  activityKind,
+  eventState,
+  studentHonestyLabel,
+  studentTaskLabel,
+  taskHasWorkspaceResult,
+  workingEvent,
+} from "@/lib/client/activity";
 export function turtleState(task: Task | undefined, offline: boolean) {
   if (offline) return { id: "offline", label: "離線" };
   if (!task) return { id: "idle", label: "陪你把想法慢慢完成" };
@@ -11,7 +18,16 @@ export function turtleState(task: Task | undefined, offline: boolean) {
       label: task.state === "uncertain" ? "結果待確認" : "需要處理錯誤",
     };
   if (task.state === "completed")
-    return { id: "success", label: "成果已回來了" };
+    return taskHasWorkspaceResult(task)
+      ? { id: "idle", label: "準備好了" }
+      : { id: "success", label: "完成了" };
+  if (task.state === "waiting_user")
+    return { id: "waiting", label: "等你確認" };
+  if (task.state === "waiting_authorization")
+    return { id: "waiting", label: "等你授權" };
+  if (task.state === "stopping")
+    return { id: "waiting", label: "正在停下" };
+  if (task.state === "cancelled") return { id: "idle", label: "準備好了" };
   if (task.state === "queued")
     return { id: "planning", label: "正在規劃" };
   if (task.state === "waiting_user" || task.state === "waiting_authorization")
@@ -55,7 +71,7 @@ export default memo(function Turtle({
   offline: boolean;
   animation: boolean;
   size: number;
-  onClick: () => void;
+  onClick?: () => void;
   compact?: boolean;
   label?: string;
 }) {

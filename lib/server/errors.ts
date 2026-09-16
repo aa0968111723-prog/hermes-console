@@ -8,124 +8,112 @@ export class ApiError extends Error {
   }
 }
 
-export type ErrorCategory =
-  | "AUTH_ERROR"
-  | "PERMISSION_ERROR"
-  | "TOOL_UNAVAILABLE"
-  | "TOOL_TIMEOUT"
-  | "RATE_LIMIT"
-  | "INVALID_INPUT"
-  | "NETWORK_ERROR"
-  | "UPSTREAM_ERROR"
-  | "UNKNOWN";
+export const ERROR_CATEGORY = {
+  AUTH_ERROR: "AUTH_ERROR",
+  PERMISSION_ERROR: "PERMISSION_ERROR",
+  TOOL_UNAVAILABLE: "TOOL_UNAVAILABLE",
+  TOOL_TIMEOUT: "TOOL_TIMEOUT",
+  RATE_LIMIT: "RATE_LIMIT",
+  INVALID_INPUT: "INVALID_INPUT",
+  NETWORK_ERROR: "NETWORK_ERROR",
+  UPSTREAM_ERROR: "UPSTREAM_ERROR",
+  UNKNOWN: "UNKNOWN",
+} as const;
 
-const BY_CODE: Record<string, ErrorCategory> = {
-  sign_in_required: "AUTH_ERROR",
-  session_expired: "AUTH_ERROR",
-  invalid_login: "AUTH_ERROR",
-  invalid_link: "AUTH_ERROR",
-  gateway_required: "AUTH_ERROR",
-  gateway_unconfigured: "AUTH_ERROR",
-  setup_required: "AUTH_ERROR",
-  oauth_unconfigured: "AUTH_ERROR",
-  oauth_failed: "AUTH_ERROR",
-  google_unconfigured: "AUTH_ERROR",
-  tamkang_unconfigured: "AUTH_ERROR",
-  tku_password_refused: "AUTH_ERROR",
-  email_unverified: "AUTH_ERROR",
-  origin_rejected: "PERMISSION_ERROR",
-  workspace_forbidden: "PERMISSION_ERROR",
-  admin_required: "PERMISSION_ERROR",
-  confirmation_required: "PERMISSION_ERROR",
-  confirmation_invalid: "PERMISSION_ERROR",
-  confirmation_mismatch: "PERMISSION_ERROR",
-  identity_conflict: "PERMISSION_ERROR",
-  ssrf_rejected: "PERMISSION_ERROR",
-  mcp_target_not_allowed: "PERMISSION_ERROR",
-  rate_limited: "RATE_LIMIT",
-  concurrency_limit: "RATE_LIMIT",
-  invalid_input: "INVALID_INPUT",
-  invalid_json: "INVALID_INPUT",
-  invalid_body: "INVALID_INPUT",
-  invalid_url: "INVALID_INPUT",
-  content_type: "INVALID_INPUT",
-  too_large: "INVALID_INPUT",
-  github_is_not_mcp: "INVALID_INPUT",
-  hermes_unconfigured: "TOOL_UNAVAILABLE",
-  hermes_not_ready: "TOOL_UNAVAILABLE",
-  mcp_credential_missing: "TOOL_UNAVAILABLE",
-  tool_unavailable: "TOOL_UNAVAILABLE",
-  tool_timeout: "TOOL_TIMEOUT",
-  idle_timeout: "TOOL_TIMEOUT",
-  upstream_401: "UPSTREAM_ERROR",
-  upstream_403: "UPSTREAM_ERROR",
-  upstream_404: "UPSTREAM_ERROR",
-  upstream_429: "RATE_LIMIT",
-  email_failed: "UPSTREAM_ERROR",
-  empty_output: "UPSTREAM_ERROR",
-  empty_stream: "UPSTREAM_ERROR",
-  store_unavailable: "NETWORK_ERROR",
-  internal_error: "UNKNOWN",
-};
+export type ErrorCategory =
+  (typeof ERROR_CATEGORY)[keyof typeof ERROR_CATEGORY];
+
+const AUTH = new Set([
+  "AUTH_ERROR",
+  "invalid_login",
+  "sign_in_required",
+  "session_expired",
+  "session_not_found",
+  "current_session",
+  "gateway_required",
+  "gateway_unconfigured",
+  "email_unverified",
+  "auth_unconfigured",
+  "identity_conflict",
+]);
+const PERMISSION = new Set([
+  "PERMISSION_ERROR",
+  "origin_rejected",
+  "admin_required",
+  "permission_denied",
+  "membership_required",
+  "confirmation_required",
+  "confirmation_invalid",
+  "confirmation_mismatch",
+  "ssrf_rejected",
+]);
+const TIMEOUT = new Set(["TOOL_TIMEOUT", "tool_timeout", "connect_timeout"]);
+const UNAVAILABLE = new Set([
+  "TOOL_UNAVAILABLE",
+  "tool_unavailable",
+  "mcp_unconfigured",
+  "mcp_credential_missing",
+  "invalid_mcp_target",
+  "images_unverified",
+  "hermes_not_ready",
+  "hermes_unconfigured",
+]);
+const RATE = new Set(["RATE_LIMIT", "rate_limited"]);
+const INPUT = new Set([
+  "INVALID_INPUT",
+  "invalid_input",
+  "invalid_json",
+  "invalid_url",
+  "invalid_body",
+  "content_type",
+  "too_large",
+]);
+const NETWORK = new Set([
+  "NETWORK_ERROR",
+  "network_error",
+  "store_unavailable",
+]);
+const UPSTREAM = new Set([
+  "UPSTREAM_ERROR",
+  "upstream_401",
+  "upstream_403",
+  "upstream_error",
+  "empty_tool_result",
+  "empty_output",
+  "empty_stream",
+]);
 
 export function errorCategory(code: string): ErrorCategory {
-  if (BY_CODE[code]) return BY_CODE[code];
-  if (
-    /^(google_|tamkang_|oauth_|gateway_|sign_in|session_|invalid_login|invalid_link|email_unverified)/.test(
-      code,
-    )
-  )
-    return "AUTH_ERROR";
-  if (
-    /(_forbidden|admin_|confirmation_|identity_conflict|ssrf|mcp_target|scope_mismatch|tool_scope|origin_rejected|private_content|activity_scope|memory_scope|learning_scope)/.test(
-      code,
-    )
-  )
-    return "PERMISSION_ERROR";
-  if (/timeout/.test(code)) return "TOOL_TIMEOUT";
-  if (/rate_limited|concurrency_limit|upstream_429/.test(code))
-    return "RATE_LIMIT";
-  if (
-    /unconfigured|_token_missing|not_ready|unknown_tool|tool_unavailable|tool_failed|mcp_credential/.test(
-      code,
-    )
-  )
-    return "TOOL_UNAVAILABLE";
-  if (/store_unavailable|zeabur_network|network_error/.test(code))
-    return "NETWORK_ERROR";
-  if (
-    /_empty$|empty_|_failed$|upstream_|invalid_stream|invalid_response|probe_failed|zeabur_invalid|galley_invalid/.test(
-      code,
-    )
-  )
-    return "UPSTREAM_ERROR";
-  if (
-    /invalid_|too_large|content_type|empty_file|not_found|_conflict|sensitive_content|upload_limit|url_required/.test(
-      code,
-    )
-  )
-    return "INVALID_INPUT";
-  return "UNKNOWN";
+  if (AUTH.has(code)) return ERROR_CATEGORY.AUTH_ERROR;
+  if (PERMISSION.has(code)) return ERROR_CATEGORY.PERMISSION_ERROR;
+  if (TIMEOUT.has(code)) return ERROR_CATEGORY.TOOL_TIMEOUT;
+  if (UNAVAILABLE.has(code) || /_unconfigured$/.test(code))
+    return ERROR_CATEGORY.TOOL_UNAVAILABLE;
+  if (RATE.has(code)) return ERROR_CATEGORY.RATE_LIMIT;
+  if (INPUT.has(code)) return ERROR_CATEGORY.INVALID_INPUT;
+  if (NETWORK.has(code)) return ERROR_CATEGORY.NETWORK_ERROR;
+  if (UPSTREAM.has(code) || code.startsWith("upstream_"))
+    return ERROR_CATEGORY.UPSTREAM_ERROR;
+  return ERROR_CATEGORY.UNKNOWN;
 }
 
 export type ErrorTaxonomy = ErrorCategory;
 
 export function taxonomyFor(code: string): ErrorCategory {
-  if (code === "empty_tool_result") return "TOOL_UNAVAILABLE";
-  if (code === "hermes_not_ready") return "UPSTREAM_ERROR";
-  if (code === "hermes_unconfigured") return "TOOL_UNAVAILABLE";
-  if (code === "store_unavailable") return "NETWORK_ERROR";
-  if (code === "permission_denied" || code === "membership_required")
-    return "PERMISSION_ERROR";
+  if (code === "empty_tool_result") return ERROR_CATEGORY.TOOL_UNAVAILABLE;
+  if (code === "hermes_not_ready") return ERROR_CATEGORY.UPSTREAM_ERROR;
+  if (code === "hermes_unconfigured") return ERROR_CATEGORY.TOOL_UNAVAILABLE;
   return errorCategory(code);
 }
 
 export const STUDENT_HERMES_UNCONFIGURED =
-  "Hermes 還沒連上。請到設定的連線頁。";
+  "Hermes 還沒準備好。可以先找靈感，或稍後再試。";
 export const STUDENT_HERMES_UNAVAILABLE = "現在沒辦法連到 Hermes。";
+export const STUDENT_IMAGE_UNVERIFIED =
+  "圖片已保存，但還沒辦法讀圖。可以先拿掉附件，或改問這張哪裡可以改。";
 
 const HERMES_ENGINEERING =
-  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization/i;
+  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i;
 
 export function studentHermesError(message: string, code?: string): string {
   if (
@@ -134,6 +122,7 @@ export function studentHermesError(message: string, code?: string): string {
     code === "invalid_credential_ref"
   )
     return STUDENT_HERMES_UNCONFIGURED;
+  if (code === "images_unverified") return STUDENT_IMAGE_UNVERIFIED;
   if (
     code &&
     /^(connect_timeout|network_error|interrupted|upstream_)/.test(code)

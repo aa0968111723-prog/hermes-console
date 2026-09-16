@@ -12,6 +12,7 @@ import type { Material } from "@/lib/contracts";
 import type { Workflow } from "@/lib/server/workflows";
 import type { CopyReview } from "@/lib/server/copywriting";
 import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
+import { CONTINUE_SAME_WORK_PROMPT } from "@/lib/server/inspiration/revise";
 type Data = {
   activities: Activity[];
   copies: Array<CopyDocument & { check: CopyCheck }>;
@@ -40,12 +41,14 @@ export default function ProjectWorkbench({
   projectId,
   materials,
   workflows,
+  hermesReady,
   onCompose,
 }: {
   projectId: string;
   materials: Material[];
   workflows: Workflow[];
-  onCompose: (text: string) => void;
+  hermesReady: boolean;
+  onCompose: (text: string, conversationId?: string) => void;
 }) {
   const [data, setData] = useState<Data>({ activities: [], copies: [] });
   const [editing, setEditing] = useState<Activity | null>(null);
@@ -166,17 +169,21 @@ export default function ProjectWorkbench({
         <button
           onClick={() =>
             onCompose(
-              "請接續這個專案的網宣草稿；缺日期或地點先問我，不要捏造。",
+              CONTINUE_SAME_WORK_PROMPT,
+              [...workflows]
+                .filter((item) => item.projectId === projectId && item.conversationId)
+                .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+                .at(-1)?.conversationId || undefined,
             )
           }
         >
           請 Hermes 接續創作
         </button>
         <button
+          disabled={!hermesReady}
+          title={hermesReady ? undefined : "Hermes 尚未連線"}
           onClick={() =>
-            onCompose(
-              "請寫三版貼文：自然、有梗、溫暖。缺資料先問我，不要發佈。",
-            )
+            onCompose("請寫三版文案：最自然、最有梗、最溫暖。日期地點未確認先問我，不要發佈。")
           }
         >
           請 Hermes 寫 A／B／C
@@ -356,10 +363,10 @@ export default function ProjectWorkbench({
           ))}
           <button onClick={() => editActivity(a)}>修改活動</button>
           <button
+            disabled={!hermesReady}
+            title={hermesReady ? undefined : "Hermes 尚未連線"}
             onClick={() =>
-              onCompose(
-                `請讀取活動 ${a.id}（專案 ${projectId}），依已確認資訊提出三個方向，保存後等待我選擇；私人資訊不得用於公開文宣。`,
-              )
+              onCompose("請依已確認的活動資料提出三個方向。")
             }
           >
             請 Hermes 整理三個方向
@@ -677,22 +684,21 @@ export default function ProjectWorkbench({
                 </a>
                 <button
                   onClick={() =>
-                    onCompose("請接續修改這則文案，不要另做無關的。")
+                    onCompose(
+                      CONTINUE_SAME_WORK_PROMPT,
+                      workflows.find((item) => item.id === r.workflowId)
+                        ?.conversationId || undefined,
+                    )
                   }
                 >
                   在對話接續修改
                 </button>
-                {d.selectedRevision === r.revision && r.workflowId && (
-                  <button
-                    onClick={() =>
-                      onCompose(
-                        "請依已選方向接續製作；還沒授權就先保留進度，不要宣稱完成。",
-                      )
-                    }
-                  >
-                    交給 Hermes 接續製作
-                  </button>
-                )}
+                {d.selectedRevision === r.revision && r.workflowId && <button
+                  onClick={() => onCompose(
+                    CONTINUE_SAME_WORK_PROMPT,
+                    workflows.find((item) => item.id === r.workflowId)
+                      ?.conversationId || undefined,
+                  )}>交給 Hermes 接續製作</button>}
               </div>
             </details>
           ))}

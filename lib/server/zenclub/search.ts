@@ -47,12 +47,38 @@ function haystack(entity: KnowledgeEntity) {
     .toLowerCase();
 }
 
-function whitespaceTokens(query: string) {
-  return query
+const CUES = [
+  "禪學社",
+  "茶會",
+  "社博",
+  "期初演講",
+  "演講",
+  "入社",
+  "社課",
+  "挑戰營",
+  "攤位",
+  "迎新",
+  "文館",
+  "生命靈數",
+  "淡大禪",
+];
+
+/** Spoken 迎新 is club fair / 入社 in this snapshot, not a separate Drive title. */
+const RELATED_CUES: Record<string, string[]> = {
+  迎新: ["社博", "攤位", "入社"],
+};
+
+function tokens(query: string) {
+  const parts = query
     .toLowerCase()
     .split(/[\s,，。！？、；;:：/\\|()\-【】\[\]]+/)
     .map((item) => item.trim())
     .filter((item) => item.length >= 2);
+  const cues = CUES.filter((cue) => query.includes(cue));
+  const related = Object.entries(RELATED_CUES).flatMap(([cue, extras]) =>
+    query.includes(cue) ? extras : [],
+  );
+  return [...new Set([...parts, ...cues, ...related])];
 }
 
 function queryKeys(query: string) {

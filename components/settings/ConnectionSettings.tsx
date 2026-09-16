@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import IntegrationGrid from "../visual/IntegrationGrid";
+import { useAuth } from "../auth/AuthProvider";
 
 type FieldStatus = {
   configured: boolean;
@@ -16,10 +17,12 @@ type SettingsPayload = {
   fields: Record<string, FieldStatus>;
   hermes: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     keySource: string;
   };
-  mcpBridge: FieldStatus;
+  mcpBridge: FieldStatus & { state?: string; detail?: string };
   tamkang: {
     state: string;
     detail: string;
@@ -53,6 +56,8 @@ type SettingsPayload = {
   };
   atlas?: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     tokenSource: string;
   };
@@ -89,6 +94,8 @@ type SettingsPayload = {
     serviceId: string;
     environmentId: string;
     notice: string;
+    state?: string;
+    detail?: string;
   };
   openSettingsWarning: string;
   probe?: { status: string; toolsCount: number; lastError: string | null };
@@ -137,6 +144,11 @@ export default function ConnectionSettings({
   canva?: ReactNode;
   canvaState?: string;
 }) {
+  const auth = useAuth();
+  const canEditConnections =
+    !auth?.required ||
+    auth.membership?.role === "owner" ||
+    auth.membership?.role === "admin";
   const [data, setData] = useState<SettingsPayload | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -322,9 +334,9 @@ export default function ConnectionSettings({
           </dd>
           <dt>Hermes</dt>
           <dd>
-            {data?.hermes.configured
-              ? `已設定（網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}）`
-              : "尚未設定"}
+            {data
+              ? `${TAMKANG[data.hermes.state || ""] || data.hermes.state || (data.hermes.configured ? "待驗證" : "未設定")} · ${data.hermes.detail || (data.hermes.configured ? `網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}` : "尚未設定")}`
+              : "讀取中"}
           </dd>
           <dt>淡江 MCP</dt>
           <dd>
@@ -352,8 +364,8 @@ export default function ConnectionSettings({
           </dd>
           <dt>場圖 Atlas</dt>
           <dd>
-            {data?.atlas?.configured
-              ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
+            {data?.atlas
+              ? `${TAMKANG[data.atlas.state || ""] || data.atlas.state || "未設定"} · ${data.atlas.detail || "尚未回報"}`
               : "尚未設定"}
           </dd>
           <dt>Lumen 創作台</dt>
@@ -387,12 +399,12 @@ export default function ConnectionSettings({
           {
             id: "hermes",
             name: "Hermes",
-            state: data?.hermes.configured ? "configured" : "unconfigured",
+            state: data?.hermes.state || "unconfigured",
           },
           {
-            id: "tamkang",
-            name: "淡江",
-            state: data?.tamkang.state || "unconfigured",
+            id: "workspace",
+            name: "Workspace",
+            state: data?.mcpBridge.state || "unconfigured",
           },
           {
             id: "galley",
@@ -400,14 +412,44 @@ export default function ConnectionSettings({
             state: data?.galley?.state || "unconfigured",
           },
           {
+            id: "atlas",
+            name: "Atlas",
+            state: data?.atlas?.state || "unconfigured",
+          },
+          {
+            id: "framelab",
+            name: "FrameLab",
+            state: data?.framelab?.state || "unconfigured",
+          },
+          {
             id: "lumen",
             name: "Lumen",
             state: data?.lumen?.state || "unconfigured",
           },
           {
-            id: "atlas",
-            name: "Atlas",
-            state: data?.atlas?.configured ? "configured" : "unconfigured",
+            id: "xunhe",
+            name: "訊核",
+            state: data?.xunhe?.state || "unconfigured",
+          },
+          {
+            id: "planform",
+            name: "Planform",
+            state: data?.planform?.state || "unconfigured",
+          },
+          {
+            id: "duigao",
+            name: "對稿",
+            state: data?.duigao?.state || "unconfigured",
+          },
+          {
+            id: "tamkang",
+            name: "淡江",
+            state: data?.tamkang.state || "unconfigured",
+          },
+          {
+            id: "zeabur",
+            name: "Zeabur",
+            state: data?.zeabur?.state || "unconfigured",
           },
         ]}
       />
@@ -470,10 +512,15 @@ export default function ConnectionSettings({
         <summary>進階 · 部署</summary>
       </details>
       {selected === "canva" && canva}
-      <div
-        className="connection-editor"
-        hidden={!selected || selected === "canva"}
+      {!canEditConnections && (
+        <p className="muted">連線與權杖由工作區管理員設定。一般成員看不到也改不了密鑰。</p>
+      )}
+      <details
+        className="connection-ops"
+        hidden={!canEditConnections || !selected || selected === "canva"}
       >
+        <summary>填寫網址與權杖</summary>
+      <div className="connection-editor">
         <form
           onSubmit={async (event) => {
             event.preventDefault();
@@ -648,7 +695,7 @@ export default function ConnectionSettings({
               清除已存 GALLEY 權杖
             </label>
             <p className="muted">
-              Hermes 經工作區工具 galley_research 呼叫 GALLEY。填入部署後的
+              Hermes 經工作區研究工具呼叫 GALLEY。填入部署後的
               HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端
               GALLEY_MCP_TOKEN 相同。
             </p>
@@ -745,7 +792,7 @@ export default function ConnectionSettings({
               填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub
               倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN
               相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫
-              lumen_utter；按「測試 Lumen 連線」確認
+              創作台口語工具；按「測試 Lumen 連線」確認
               initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
             </p>
             <label>
@@ -828,7 +875,7 @@ export default function ConnectionSettings({
             <p className="muted">
               填 Planform 的 Streamable HTTP 端點（路徑必須是 /mcp）。不能填 GitHub
               倉庫網址。儲存後按「測試 Planform 連線」，成功後 Hermes 經工作區 MCP 呼叫
-              planform_run_agent。
+              場佈工具。
             </p>
             <label>
               Planform MCP 網址
@@ -940,7 +987,7 @@ export default function ConnectionSettings({
               清除已存淡江權杖
             </label>
             <p className="muted">
-              只貼 Bearer 權杖後測試連線。Hermes 不收集淡江帳號或密碼。
+              淡江 MCP 只用網址與 Bearer 權杖，不是淡江 SSO。學校登入請走帳號頁的淡江 SSO，會跳轉校方身分服務。Console 不收集學校密碼。
             </p>
           </section>
           <section hidden={selected !== "zeabur"} aria-label="Zeabur 部署">
@@ -1347,6 +1394,7 @@ export default function ConnectionSettings({
           </div>
         </form>
       </div>
+      </details>
     </div>
   );
 }

@@ -27,55 +27,58 @@ export default function FirstReactionBoard({ panel }: { panel: TwinPanel }) {
       {panel.unknowns.length > 0 && (
         <ul className="twin-unknowns">
           {panel.unknowns.map((item) => (
-            <li key={item}>未知 · {item}</li>
+            <li key={item}>未確認 · {item}</li>
           ))}
         </ul>
       )}
-      <div className="twin-rail" role="list">
-        {panel.personas.map((persona) => (
-          <article
-            key={persona.personaId}
-            className="twin-card"
-            role="listitem"
-            data-pressure={persona.pressure}
-          >
-            <h3>{persona.label}</h3>
-            <blockquote>{persona.firstReaction}</blockquote>
-            <ul className="twin-why">
-              {persona.why.map((reason) => (
-                <li key={reason}>{reason}</li>
-              ))}
-            </ul>
-            <dl className="twin-metrics">
-              {TWIN_METRICS.map((metric) => {
-                const value = persona.scores.scores[metric];
-                const risk = RISK_METRICS.has(metric);
-                return (
-                  <div key={metric} data-risk={risk ? "true" : "false"}>
-                    <dt>{TWIN_METRIC_LABELS[metric]}</dt>
-                    <dd>
-                      <span
-                        className="twin-bar"
-                        style={{ width: `${value}%` }}
-                        aria-hidden="true"
-                      />
-                      <small>
-                        {band(value)}
-                        <span className="twin-score">{value}</span>
-                      </small>
-                    </dd>
-                  </div>
-                );
-              })}
-            </dl>
-            <p className="twin-actions">
-              {persona.wouldStop ? "會停" : "會滑掉"}
-              {persona.wouldWalkIn ? " · 願意走近" : " · 不敢走進"}
-              {persona.wouldFillForm ? " · 願意填表" : " · 不填表"}
-            </p>
-          </article>
-        ))}
-      </div>
+      <details className="twin-fold">
+        <summary>十個視角</summary>
+        <div className="twin-rail" role="list">
+          {panel.personas.map((persona) => (
+            <article
+              key={persona.personaId}
+              className="twin-card"
+              role="listitem"
+              data-pressure={persona.pressure}
+            >
+              <h3>{persona.label}</h3>
+              <blockquote>{persona.firstReaction}</blockquote>
+              <ul className="twin-why">
+                {persona.why.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+              <dl className="twin-metrics">
+                {TWIN_METRICS.map((metric) => {
+                  const value = persona.scores.scores[metric];
+                  const risk = RISK_METRICS.has(metric);
+                  return (
+                    <div key={metric} data-risk={risk ? "true" : "false"}>
+                      <dt>{TWIN_METRIC_LABELS[metric]}</dt>
+                      <dd>
+                        <span
+                          className="twin-bar"
+                          style={{ width: `${value}%` }}
+                          aria-hidden="true"
+                        />
+                        <small>
+                          {band(value)}
+                          <span className="twin-score">{value}</span>
+                        </small>
+                      </dd>
+                    </div>
+                  );
+                })}
+              </dl>
+              <p className="twin-actions">
+                {persona.wouldStop ? "會停" : "會滑掉"}
+                {persona.wouldWalkIn ? " · 願意走近" : " · 不敢走進"}
+                {persona.wouldFillForm ? " · 願意填表" : " · 不填表"}
+              </p>
+            </article>
+          ))}
+        </div>
+      </details>
       <p className="quiet">
         {KIND_LABELS[panel.kind]}比較用分數，不是 98/100，也不是真實轉換率。
       </p>

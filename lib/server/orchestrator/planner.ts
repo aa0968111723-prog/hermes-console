@@ -126,45 +126,71 @@ export function buildPlan(
     );
   }
   if (goal.requiresInspiration) {
+    const inspiration = routes.find((item) => item.id === "inspiration");
     steps.push(
-      step("找靈感", "先讀已收藏靈感，再搜尋已授權來源。", "project_inspiration_then_web", "ask_user"),
+      step(
+        "找靈感",
+        "查已收藏來源、分群與創作方向；不假裝 IG 全站搜尋。",
+        inspiration?.tool || "workspace_search_inspiration",
+        inspiration?.fallback || "ask_user",
+      ),
+    );
+  }
+  if (goal.requiresImageReview) {
+    steps.push(
+      step(
+        "讀取附圖",
+        "先讀真實像素才能評論構圖與字級；沒讀到就標未確認，不得假裝已看圖。",
+        "workspace_read_material",
+        "ask_user",
+      ),
     );
   }
   if (goal.requiresAudienceEvaluation) {
+    const audience = routes.find((item) => item.id === "audience");
     steps.push(
       step(
         "受眾模擬",
         goal.requiresTamkang
           ? "以淡江新生假設做 SIMULATION，不是真實轉換率。"
           : `以${goal.audience || "目標受眾"}假設做 SIMULATION，不是真實轉換率。`,
-        "audience_simulation",
+        audience?.tool || "workspace_simulate_audience",
         null,
       ),
     );
   }
-  if (goal.requiresImageAnalysis) {
+  if (goal.requiresImageReview) {
     steps.push(
       step(
-        "修改建議",
-        "給出可執行的修改建議；未讀圖就說明無法分析。不得重出無關新圖。",
+        "視覺修改建議",
+        "只給可執行建議，不自動覆蓋原檔，也不假裝已改圖。",
         null,
         null,
       ),
     );
   }
-  if (goal.requiresDesign || (goal.output && !goal.requiresImageAnalysis)) {
+  if (!goal.requiresImageReview && (goal.requiresDesign || goal.output)) {
     steps.push(
       step(
         "編譯視覺規格",
-        "依已確認活動事實產出 4:5／9:16／A4 三個概念；缺日期地點標 UNKNOWN，不補造、不出圖。",
+        goal.directionLocked
+          ? "依已選定方向產出 4:5／9:16／A4 規格；缺日期地點標 UNKNOWN，不補造、不出圖。"
+          : "依已確認活動事實產出 4:5／9:16／A4 三個概念；缺日期地點標 UNKNOWN，不補造、不出圖。",
         routes.find((item) => item.id === "visual_spec")?.tool ||
           "workspace_get_visual_concepts",
         null,
       ),
     );
-    steps.push(
-      step("提出創作方向", "給出策略層不同的方向並排序。", "creative_directions", null),
-    );
+    if (!goal.directionLocked) {
+      steps.push(
+        step(
+          "提出創作方向",
+          "給出策略層不同的方向並排序，等待使用者選擇。",
+          "workspace_save_directions",
+          null,
+        ),
+      );
+    }
     steps.push(
       step(
         "文案審核",

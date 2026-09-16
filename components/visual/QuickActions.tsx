@@ -26,13 +26,13 @@ const actions: QuickAction[] = [
   },
   {
     label: "靈感",
-    prompt: "幫我找已授權來源的網宣靈感。",
+    prompt: "幫我找網宣靈感參考。",
     icon: Image,
     tone: "leaf",
   },
   {
     label: "設計",
-    prompt: "幫我做 Canva 草稿；若未授權請保留進度。",
+    prompt: "幫我整理網宣視覺方向。",
     icon: Palette,
     tone: "lime",
   },

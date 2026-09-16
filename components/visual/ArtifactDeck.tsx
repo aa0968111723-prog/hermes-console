@@ -2,20 +2,52 @@
 import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Workflow } from "@/lib/server/workflows";
+import type { Artifact } from "@/lib/server/artifacts";
 import ArtifactStage from "./ArtifactStage";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
 export default function ArtifactDeck({
   items,
+  artifacts = [],
   onContinue,
   onRestore,
   onFork,
 }: {
   items: Workflow[];
+  artifacts?: Artifact[];
   onContinue: (id: string) => void;
-  onRestore?: (id: string, revision: number) => void;
-  onFork?: (id: string, revision: number) => void;
+  onRestore?: (artifactId: string, revisionId: string) => void;
+  onFork?: (artifactId: string) => void;
 }) {
-  const rail = useRef<HTMLDivElement>(null),
-    designs = items.filter((w) => !!w.design);
+  const rail = useRef<HTMLDivElement>(null);
+  const linked = new Set(
+    items.map((item) => item.artifactId).filter(Boolean) as string[],
+  );
+  const standalone = artifacts.filter(
+    (item) =>
+      item.source !== "copy" &&
+      item.source !== "material" &&
+      !linked.has(item.id),
+  );
+  const designs = [
+    ...items
+      .filter((w) => !!w.design || isDirectionBriefPack(w.directionBrief))
+      .map((w) => ({
+        key: w.id,
+        design: w.design || { ...w.directionBrief! },
+        workflowId: w.id,
+        artifact: artifacts.find(
+          (item) => item.id === w.artifactId || item.workflowId === w.id,
+        ),
+      })),
+    ...standalone.map((artifact) => ({
+      key: artifact.id,
+      design: (artifact.revisions.find(
+        (item) => item.revisionId === artifact.currentRevisionId,
+      ) || artifact.revisions.at(-1))!.design,
+      workflowId: artifact.id,
+      artifact,
+    })),
+  ];
   if (!designs.length) return null;
   const move = (direction: number) =>
     rail.current?.scrollBy({
@@ -50,17 +82,22 @@ export default function ArtifactDeck({
         aria-label="左右滑動查看作品"
         tabIndex={0}
       >
-        {designs.map((w) => (
+        {designs.map((item) => (
           <ArtifactStage
-            key={w.id}
-            design={w.design!}
-            revisions={w.revisions}
-            activeRevision={w.activeRevision}
-            onContinue={() => onContinue(w.id)}
+            key={item.key}
+            design={item.design}
+            artifact={item.artifact}
+            onContinue={() => onContinue(item.workflowId)}
             onRestore={
-              onRestore ? (revision) => onRestore(w.id, revision) : undefined
+              item.artifact && onRestore
+                ? (revisionId) => onRestore(item.artifact!.id, revisionId)
+                : undefined
             }
-            onFork={onFork ? (revision) => onFork(w.id, revision) : undefined}
+            onFork={
+              item.artifact && onFork
+                ? () => onFork(item.artifact!.id)
+                : undefined
+            }
           />
         ))}
       </div>

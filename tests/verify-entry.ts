@@ -20,6 +20,7 @@ const child = spawn(
       NODE_ENV: "production",
       CONSOLE_ORIGIN: base,
       CONSOLE_ALLOW_LOCAL_ACCESS: "true",
+      CONSOLE_AUTH_REQUIRED: "",
       CONSOLE_GATEWAY_SECRET: "",
       CONSOLE_REQUIRE_GATEWAY: "false",
       CONSOLE_ADMIN_EMAILS: "",
@@ -38,6 +39,7 @@ child.stdout?.on("data", (chunk) => {
 child.stderr?.on("data", (chunk) => {
   logs += chunk;
 });
+
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
   for (let i = 0; i < 100; i++) {
@@ -48,13 +50,23 @@ try {
     await new Promise((r) => setTimeout(r, 100));
   }
   const workspace = await fetch(base + "/api/workspace");
-  assert.equal(workspace.status, 401, "workspace GET requires a session");
+  assert.equal(workspace.status, 200, "no-login workspace GET");
   const health = await fetch(base + "/api/health");
   assert.equal(health.status, 200);
+  const healthBody = await health.json();
+  assert.equal(healthBody.live, true);
+  assert.match(String(healthBody.message || ""), /還沒準備好/);
+  assert.doesNotMatch(
+    String(healthBody.message || ""),
+    /連線頁|HERMES_API|環境變數/,
+  );
+  assert.doesNotMatch(JSON.stringify(healthBody), /Bearer |sk-|postgres(?:ql)?:\/\//i);
   const runtime = await fetch(base + "/api/runtime");
-  assert.equal(runtime.status, 401, "runtime requires a session");
+  assert.notEqual(runtime.status, 401);
   const tasks = await fetch(base + "/api/tasks");
-  assert.equal(tasks.status, 401);
+  assert.equal(tasks.status, 200);
+  const artifacts = await fetch(base + "/api/artifacts");
+  assert.equal(artifacts.status, 200);
   const cross = await fetch(base + "/api/workspace", {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
@@ -66,373 +78,267 @@ try {
     headers: { "Content-Type": "application/json", Origin: base },
     body: JSON.stringify({ title: "免登入對話" }),
   });
-  assert.equal(created.status, 401);
-  const output = resolve("output/playwright");
-  await mkdir(output, { recursive: true });
+  assert.equal(created.status, 201);
   browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage();
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
+  await context.addInitScript(`
+    class FakeSpeechRecognition {
+      lang = "";
+      interimResults = false;
+      continuous = false;
+      onresult = null;
+      onerror = null;
+      onend = null;
+      start() { window.__hermesSpeech = this; }
+      stop() { if (this.onend) this.onend(); }
+    }
+    window.SpeechRecognition = FakeSpeechRecognition;
+    window.webkitSpeechRecognition = FakeSpeechRecognition;
+  `);
+  const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.setViewportSize({ width: 390, height: 844 });
+  const output = resolve("output/playwright");
+  await mkdir(output, { recursive: true });
+
   await page.goto(base);
-  await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
-  await expect(page.getByText("Google 登入尚未完成設定", { exact: true })).toBeVisible();
-  await expect(page.getByText("淡江 SSO 尚未完成設定", { exact: true })).toBeVisible();
-  await page.screenshot({
-    path: join(output, "login-mobile.png"),
-    fullPage: true,
-  });
-  await signInConsole(page);
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
+  await expect(page.getByText("無法確認登入狀態")).toHaveCount(0);
+  await expect(page.getByText("正在確認身分")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
-  await expect(page.locator(".connection-pill")).toContainText("未設定");
-  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(
-    "幫我找淡大禪學社茶會宣傳靈感",
-  );
-  await page.getByRole("button", { name: "送出訊息" }).click();
-  await expect(page.locator("article.message.assistant")).toHaveCount(1);
-  await expect(page.locator("article.message.assistant .visual-concept-deck")).toHaveCount(1);
-  await expect(page.locator("article.message.assistant .markdown")).toHaveCount(0);
-  await expect(page.getByText("Hermes Agent 尚未連線")).toHaveCount(1);
-  await expect(page.getByText("工作區資料", { exact: true })).toHaveCount(1);
-  await expect(page.getByText(/Drive 快照/).first()).toBeVisible();
-  await expect(page.locator(".visual-concept-deck")).toHaveAttribute(
-    "data-overlay-date",
-    "2026-09-30",
-  );
-  await expect(page.locator(".visual-concept-facts")).toContainText("2026-09-30");
-  await expect(page.locator(".visual-concept-facts")).toContainText("留空");
-  await expect(page.getByText("未提供：地點，畫面上留空。")).toBeVisible();
-  await expect(page.locator(".visual-concept-format")).not.toContainText("1080");
-  await expect(page.locator(".visual-concept-format")).not.toContainText("Instagram");
-  await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
-  await expect(page.getByText("概念 A")).toBeVisible();
-  await expect(page.getByRole("button", { name: "選這個" })).toHaveCount(3);
-  await page.getByRole("button", { name: "選這個" }).first().click();
-  await expect(page.getByRole("button", { name: "已選定" })).toHaveCount(1);
-  await expect(page.getByText("已選定概念 A")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "貼文文案" })).toBeVisible();
-  await expect(page.locator(".visual-concept-caption")).toContainText("2026-09-30");
-  await expect(page.locator(".visual-concept-caption")).toContainText("報名");
-  await expect(page.getByText(/Canva 未授權/)).toBeVisible();
-  await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "執行紀錄", exact: true }),
-  ).toHaveCount(0);
-  await expect(page.locator(".composer-task-status")).toHaveCount(0);
-  const workflows = await page.request.get(base + "/api/workflows");
-  const body = (await workflows.json()) as {
-    workflows: Array<{ selected: number | null; design: unknown; state: string }>;
-  };
-  const chosen = body.workflows.find((item) => item.selected === 0);
-  assert.ok(chosen);
-  assert.equal(chosen.design, null);
-  assert.notEqual(chosen.state, "draft_ready");
-  await expect(page.getByText("1 / 1 個工具完成")).toHaveCount(0);
-  const chat = await page.locator("body").innerText();
-  assert.equal(chat.includes("已搜尋整個 Instagram"), false);
-  await page.locator(".visual-concept-caption").scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: join(output, "chat-visual-direction-selected.png"),
+  const voice = page.getByRole("button", { name: "語音輸入" });
+  await expect(voice).toBeVisible();
+  const box = await voice.boundingBox();
+  assert.ok(box && box.width >= 44 && box.height >= 44);
+  await voice.click();
+  const rec = await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: { lang: string; continuous: boolean };
+      }
+    ).__hermesSpeech;
+    return current ? { lang: current.lang, continuous: current.continuous } : null;
   });
-  await page.locator(".visual-concept-facts").scrollIntoViewIfNeeded();
-  await page.screenshot({
-    path: join(output, "chat-visual-concepts-mobile.png"),
-  });
-  await page.setViewportSize({ width: 360, height: 800 });
-  await expect(page.locator(".visual-concept-facts")).toContainText("2026-09-30");
-  await page.screenshot({
-    path: join(output, "chat-visual-concepts-360.png"),
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({
-    path: join(output, "chat-local-knowledge-mobile.png"),
-  });
-  await page.getByRole("button", { name: "開啟新對話", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
-  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(
-    "幫我做一張淡江新生茶會宣傳",
-  );
-  await page.getByRole("button", { name: "送出訊息" }).click();
-  await expect(
-    page.locator("article.message.assistant .visual-concept-deck"),
-  ).toHaveCount(1);
-  await expect(
-    page.getByRole("button", { name: "執行紀錄", exact: true }),
-  ).toHaveCount(0);
-  await expect(page.locator(".composer-task-status")).toHaveCount(0);
-  await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
-  await page.locator("article.message.assistant .visual-concept-choose").first().click();
-  await expect(page.getByText(/Canva 未授權/)).toBeVisible();
-  await expect(page.locator(".visual-concept-caption")).toContainText("2026-09-30");
-  await expect(page.getByText("已搜尋整個 Instagram")).toHaveCount(0);
-  await page.screenshot({
-    path: join(output, "chat-make-poster-mobile.png"),
-  });
-  await page.getByRole("button", { name: "Agent", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "連線", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Hermes Runtime 狀態" })).toBeVisible();
-  await expect(page.locator(".runtime-human-summary")).toContainText("Hermes 未驗證");
-  await expect(page.locator(".runtime-human-summary")).toContainText("記憶 未設定");
-  await expect(page.locator(".runtime-human-summary")).toContainText("工具 未設定");
-  await expect(page.locator(".runtime-human-summary")).toContainText("MCP 未設定");
-  await expect(page.locator(".runtime-human-summary")).not.toContainText("過期");
-  await expect(page.locator(".runtime-state")).toHaveClass(/unconfigured/);
-  await expect(page.locator(".runtime-state")).not.toHaveClass(/available/);
-  await expect(page.locator(".runtime-advanced > summary")).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "重新同步", exact: true }),
-  ).toHaveCount(0);
-  await expect(page.locator(".runtime-inspector > .orbit-layout")).toHaveCount(0);
-  await page.screenshot({
-    path: join(output, "agent-status-dots-mobile.png"),
-  });
-  await page.getByRole("button", { name: "對話", exact: true }).click();
-  const authed = await page.request.post(base + "/api/conversations", {
-    headers: { Origin: base },
-    data: { title: "登入後對話" },
-  });
-  assert.equal(authed.status(), 201);
-  const text = await page.locator("body").innerText();
-  for (const word of [
-    "受邀電子信箱",
-    "寄送登入連結",
-    "歡迎回到 Hermes",
-    "正在驗證工作區存取",
-  ])
-    assert.ok(!text.includes(word), "invitation UI visible: " + word);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "專案", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
-  const poster = await readFile("public/mascot/turtle.png");
-  await page.locator(".secondary-page input[type=\"file\"]").setInputFiles({
-    name: "龜龜參考.png",
-    mimeType: "image/png",
-    buffer: poster,
-  });
-  await expect(
-    page.getByRole("button", { name: "預覽素材：龜龜參考.png" }),
-  ).toBeVisible({ timeout: 30_000 });
-  await page.locator(".workbench-disclosure > summary").click();
-  const projectPage = page.locator(".secondary-page");
-  const scrolled = await projectPage.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-    return {
-      reached: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
-      overflowY: getComputedStyle(el).overflowY,
-    };
-  });
-  assert.equal(["auto", "scroll", "overlay"].includes(scrolled.overflowY), true);
-  assert.equal(scrolled.reached, true);
-  const beforePreview = await projectPage.evaluate((el) => el.scrollTop);
-  await page.getByRole("button", { name: "預覽素材：龜龜參考.png" }).click();
-  const preview = page.getByRole("dialog", { name: "素材預覽" });
-  await expect(preview.locator("img")).toBeVisible();
-  await expect(preview).toHaveCSS("opacity", "1");
-  await expect(preview).toHaveCSS("transform", "none");
-  assert.ok(
-    await preview
-      .locator("img")
-      .evaluate(
-        (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
-      ),
-  );
-  await page.screenshot({
-    path: join(output, "project-preview-mobile.png"),
-  });
-  await page.getByRole("button", { name: "關閉面板" }).click();
-  await expect(preview).toBeHidden();
-  await expect
-    .poll(() =>
-      projectPage.evaluate(
-        (el, previous) => Math.abs(el.scrollTop - previous) < 48,
-        beforePreview,
-      ),
-    )
-    .toBe(true);
-  const afterClose = await projectPage.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-    return {
-      reached: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
-      overflowY: getComputedStyle(el).overflowY,
-      htmlOverflow: getComputedStyle(document.documentElement).overflow,
-      bodyOverflow: getComputedStyle(document.body).overflow,
-    };
-  });
-  assert.equal(["auto", "scroll", "overlay"].includes(afterClose.overflowY), true);
-  assert.equal(afterClose.reached, true);
-  assert.equal(["hidden", "clip"].includes(afterClose.htmlOverflow), true);
-  assert.equal(["hidden", "clip"].includes(afterClose.bodyOverflow), true);
-  await expect(page.getByRole("button", { name: "專案", exact: true })).toBeVisible();
-  await page.screenshot({
-    path: join(output, "project-mobile-390.png"),
-  });
-  await page.setViewportSize({ width: 412, height: 915 });
-  await projectPage.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
-  await page.screenshot({
-    path: join(output, "project-mobile-412.png"),
-  });
-  await page.setViewportSize({ width: 430, height: 932 });
-  await projectPage.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  await page.screenshot({
-    path: join(output, "project-mobile-430.png"),
-  });
-  await page.setViewportSize({ width: 768, height: 1024 });
-  await projectPage.evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "預覽素材：龜龜參考.png" })).toBeVisible();
-  await page.screenshot({
-    path: join(output, "project-tablet-768.png"),
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "對話", exact: true }).click();
-  await expect(page.getByText("素材已保存", { exact: true })).toHaveCount(0);
-  const box = page.getByRole("textbox", { name: "訊息", exact: true });
-  await box.click();
+  assert.equal(rec?.lang, "zh-TW");
+  assert.equal(rec?.continuous, true);
   await page.evaluate(() => {
-    if (!window.visualViewport) throw new Error("visualViewport unavailable");
-    Object.defineProperty(window.visualViewport, "height", {
-      configurable: true,
-      value: 420,
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "我想辦茶會" } }],
     });
-    window.visualViewport.dispatchEvent(new Event("resize"));
+    current?.onresult?.({
+      resultIndex: 1,
+      results: [
+        { isFinal: true, 0: { transcript: "我想辦茶會" } },
+        { isFinal: true, 0: { transcript: "再幫我看場佈" } },
+      ],
+    });
   });
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-composer-keyboard",
-    "open",
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "我想辦茶會 再幫我看場佈",
   );
-  await expect(page.locator(".mobile-bottom-dock")).toBeHidden();
-  await expect(page.locator(".jump-button")).toBeHidden();
-  await expect
-    .poll(() =>
-      page
-        .locator(".app-shell")
-        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
-    )
-    .toBe(420);
-  const keyboardSend = await page
-    .getByRole("button", { name: "送出訊息", exact: true })
-    .boundingBox();
-  assert.ok(
-    keyboardSend && keyboardSend.y + keyboardSend.height <= 420,
-    "software keyboard must not cover the send button",
-  );
-  await expect(box).toBeVisible();
-  await page.screenshot({
-    path: join(output, "composer-keyboard-entry-390x420.png"),
-    clip: { x: 0, y: 0, width: 390, height: 420 },
-  });
-  await box.evaluate((el) => el.blur());
-  await expect(page.locator("html")).not.toHaveAttribute(
-    "data-composer-keyboard",
-    "open",
-  );
-  await expect(page.locator(".mobile-bottom-dock")).toBeVisible();
-  await expect
-    .poll(() =>
-      page
-        .locator(".app-shell")
-        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
-    )
-    .toBe(844);
-  await box.click();
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-composer-keyboard",
-    "open",
-  );
+  await expect(page.getByText("說完了，請按送出")).toHaveCount(0);
   await page.evaluate(() => {
-    if (!window.visualViewport) return;
-    Reflect.deleteProperty(window.visualViewport, "height");
-    window.visualViewport.dispatchEvent(new Event("resize"));
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onerror: ((event?: { error?: string }) => void) | null;
+          onend: (() => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onerror?.({ error: "no-speech" });
+    current?.onend?.();
   });
-  await expect(page.locator("html")).not.toHaveAttribute(
-    "data-composer-keyboard",
-    "open",
-  );
-  await expect(page.locator(".mobile-bottom-dock")).toBeVisible();
-  await expect
-    .poll(() =>
-      page
-        .locator(".app-shell")
-        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
-    )
-    .toBe(844);
-  await box.fill("這張哪裡可以改？");
-  await page.getByRole("button", { name: "送出訊息" }).click();
-  await expect(page.getByText("請先上傳海報")).toBeVisible();
-  await expect(page.getByText(/假裝已看圖/)).toBeVisible();
-  await page.screenshot({
-    path: join(output, "chat-poster-critique-honest.png"),
-  });
-  await page.getByRole("button", { name: "專案", exact: true }).click();
-  await page.getByRole("button", { name: "加入對話" }).click();
-  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
-  await expect(page.locator(".context-card")).toContainText("龜龜參考.png");
-  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(
-    "這張哪裡可以改？",
-  );
-  await page.getByRole("button", { name: "送出訊息" }).click();
-  const attached = () => page.locator("article.message.assistant").last();
-  await expect(attached()).toContainText("圖片已保存");
-  await expect(attached()).toContainText("不能讀取像素");
-  await expect(attached()).toContainText("假裝已看圖");
-  await page.locator(".conversation-scroll").evaluate((el) => {
-    el.scrollTop = el.scrollHeight;
-  });
-  await expect(page.getByText(/視覺層級：/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "停止語音輸入" })).toBeVisible();
+  await expect(page.getByText("說完了，請按送出")).toHaveCount(0);
   await expect(page.locator(".notice-bar.warning")).toHaveCount(0);
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByText("說完了，請按送出")).toBeVisible();
+  await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
+  await page.screenshot({ path: join(output, "voice-ready-hint.png") });
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(page.getByRole("button", { name: /選方向 A/ })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
+  await expect(page.getByText("不是 Hermes", { exact: true })).toBeVisible();
+  await expect(page.getByText("沒有已收藏來源 · 未搜全站")).toBeVisible();
+  await expect(page.getByText("連線頁")).toHaveCount(0);
+  await expect(page.getByText("環境變數")).toHaveCount(0);
+  await page.screenshot({ path: join(output, "spoken-goal-results.png") });
+  await page.getByRole("button", { name: /選方向 A/ }).click();
+  await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("region", { name: "已選方向規格" })).toBeInViewport();
+  await expect(page.getByText(/不是已出圖/)).toBeVisible();
+  await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
+  await expect(page.locator(".conversation-scroll")).not.toContainText("210:297");
+  await page.screenshot({ path: join(output, "spoken-goal-spec.png") });
+  const dismiss = page.getByRole("button", { name: "關閉提示" });
+  if ((await dismiss.count()) > 0) await dismiss.click();
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "今天社博在哪" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "今天社博在哪",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const clubFacts = page.getByRole("region", { name: "社團資料" });
+  await expect(clubFacts).toBeVisible({ timeout: 15_000 });
+  await expect(clubFacts).toContainText(/社博|攤位/);
+  await expect(clubFacts).toContainText("不是即時");
+  await expect(clubFacts).toContainText(/已核對|尚未確認/);
+  await expect(clubFacts).toBeInViewport();
+  await expect(page.locator(".conversation-scroll")).not.toContainText("UNKNOWN");
+  await page.screenshot({ path: join(output, "spoken-lookup-results.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "幫我出圖" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "幫我出圖",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const specAfterRenderAsk = page.getByRole("region", { name: "已選方向規格" });
+  await expect(specAfterRenderAsk).toBeVisible({ timeout: 15_000 });
+  await expect(specAfterRenderAsk).toBeInViewport();
+  await expect(specAfterRenderAsk).toContainText("V1");
+  await expect(specAfterRenderAsk).toContainText("未出圖");
+  await expect(page.getByRole("region", { name: "靈感方向" })).toHaveCount(1);
+  await expect(page.locator(".composer-task-status")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "執行紀錄", exact: true }),
+    page.getByRole("button", { name: "查看目前任務：完成了" }),
   ).toHaveCount(0);
-  await page.screenshot({
-    path: join(output, "chat-poster-attached-honest.png"),
+  await page.screenshot({ path: join(output, "spoken-make-poster.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "顏色改暖一點" } }],
+    });
   });
-  await page.context().setOffline(true);
-  await expect(page.getByText("離線 · 顯示上次內容")).toBeVisible();
-  await expect(page.locator(".turtle").first()).toHaveAttribute(
-    "data-state",
-    "offline",
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "顏色改暖一點",
   );
-  await expect(attached()).toContainText("圖片已保存");
-  await page.screenshot({
-    path: join(output, "chat-offline-reconnect.png"),
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const warmed = page.getByRole("region", { name: "已選方向規格" });
+  await expect(warmed).toBeVisible({ timeout: 15_000 });
+  await expect(warmed).toContainText("V2");
+  await expect(warmed).toContainText("配色偏暖");
+  await expect(warmed).toContainText("未出圖");
+  await expect(warmed.locator(".direction-format-copy").first()).toHaveAttribute(
+    "data-palette",
+    "warm",
+  );
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
+  await page.screenshot({ path: join(output, "spoken-warm-revision.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onerror: ((event?: { error?: string }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onerror?.({ error: "no-speech" });
   });
-  await page.context().setOffline(false);
-  await expect(page.getByText("離線 · 顯示上次內容")).toHaveCount(0);
-  await expect(attached()).toContainText("圖片已保存");
-  await page.getByRole("button", { name: "外觀設定" }).click();
-  await page.getByRole("tab", { name: "帳號", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "登入方式" })).toBeVisible();
-  await expect(page.getByText("電子信箱 ✓", { exact: true })).toBeVisible();
-  await expect(page.getByText("工作區角色：擁有者")).toBeVisible();
-  const linkButtons = page.getByRole("link", { name: "連結", exact: true });
-  await expect(linkButtons).toHaveCount(2);
-  await expect(linkButtons.nth(0)).toHaveAttribute(
-    "href",
-    "/api/auth/google/start",
-  );
-  await expect(linkButtons.nth(1)).toHaveAttribute(
-    "href",
-    "/api/auth/tamkang/start",
-  );
-  await expect(
-    page.getByText("不會只因為電子信箱相同就自動合併帳號。"),
-  ).toBeVisible();
+  await expect(page.locator(".notice-bar.warning")).toContainText("沒聽到語音");
+  await page.screenshot({ path: join(output, "voice-no-speech.png") });
+  await page.getByRole("button", { name: "關閉提示" }).click();
+
+  await page.locator(".connection-pill").click();
+  await expect(page.getByRole("heading", { name: "能力", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Hermes 憑證")).toHaveCount(0);
+  await expect(page.getByText("填寫網址與權杖")).toHaveCount(0);
+  await expect(page.getByText("尚未取得工具清單")).toHaveCount(0);
   await page.screenshot({
-    path: join(output, "account-mobile.png"),
+    path: join(output, "agent-status-mobile.png"),
     fullPage: true,
   });
-  await page.keyboard.press("Escape");
+  await page
+    .getByRole("navigation", { name: "快速導覽" })
+    .getByRole("button", { name: "對話", exact: true })
+    .click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("今天好嗎");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const notice = page.locator(".notice-bar.warning");
+  await expect(notice).toContainText("還沒準備好", { timeout: 15_000 });
+  await expect(notice).not.toContainText("連線頁");
+
+  await page.goto(base + "/#reset=" + "a".repeat(64));
+  await expect(page.getByRole("heading", { name: "重設密碼" })).toBeVisible();
+  await expect(page.getByLabel("新密碼")).toBeVisible();
+  await page.screenshot({ path: join(output, "login-reset-hash.png"), fullPage: true });
+  await page.getByRole("button", { name: "密碼登入" }).click();
+  await expect(page.getByRole("heading", { name: "重設密碼" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }),
+  ).toBeVisible();
+
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate then workspace, local club index without fake MCP or task chrome, project upload/preview/close, 768, simulated keyboard, poster honesty with and without file, offline reconnect, account identities. Not live Zeabur or physical Android.",
+    "PASS: no-login `/` enters workspace, APIs are not a login wall, reset hash still opens the dormant form. Dismissing it returns to the open conversation. Not live Zeabur.",
   );
 } finally {
   await browser?.close();

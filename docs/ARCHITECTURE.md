@@ -2,41 +2,42 @@
 
 ```
 Human
-  → Hermes Console (AuthGate + visual workspace)
+  → Hermes Console（AuthGate → 視覺化工作區）
     → Hermes Agent
-      → Planner / reasoning
-        → Memory (conversation / project / workspace / preference / runtime)
+      → Planner / Reasoning
+        → Memory
         → Tools
-          → MCP registry
-            → External services
-              → Artifacts / results
+        → MCP Registry
+          → External services
+            → Artifacts / Results
 ```
 
-Hermes Console is the human interface to that runtime. It is not a tool directory, MCP dashboard, Canva clone, or ChatGPT clone.
+Console 是使用者與 Hermes Agent Runtime 的主介面。它不是工具清單 App、MCP Dashboard、研究報告閱讀器，也不是 Canva／Notion／Figma／ChatGPT clone。
 
-## Console responsibilities
+## 執行邊界
 
-- Authenticate the user (Google / Tamkang SSO / Email) and authorize workspace membership (`owner` / `admin` / `member`). Connection secrets require owner or admin.
-- Render conversations, projects, inspiration, artifacts, and turtle state.
-- Persist workspace data (SQLite or Console Postgres).
-- Expose Workspace MCP to Hermes. Probe external MCP. Never fake `available`.
-- Show high-level progress in the normal UI. Schema, endpoints, receipts, env-var requirements, and tool names stay in 進階 / Developer. Member GET `/api/integrations` and `/api/agents` return `view: normal` without those fields. Public `/api/health` is a liveness probe (`live` / `ready` / `agentReady`) that never waits on Hermes discovery. Task submit (`ensureHermesReady`) reuses a valid/unconfigured/failed cache, otherwise probes `/v1/models` only — not skills/toolsets. Student/member connection errors never name keys or env vars; owner/admin discovery keeps the probe wording. App live ≠ Agent ready (`GET /api/ready` is the store probe). Developer dumps (`/api/runtime/tools`, `/mcp`, `/agents`, `/bindings`, `/api/certification`, `/api/usage`) and `POST /api/health` require owner or admin. Planner picks Tamkang / GALLEY / Lumen / FrameLab / Planform from live availability; the student progress strip stays 理解／研究／靈感／客群／創作／完成.
+- 工具在 Hermes 執行。Console 保存專案、對話、任務、素材、記憶與活動。
+- 前端只渲染結構化事件與高階進度，不顯示內部推理、toolCallId、endpoint、JSON schema（進階／Developer 除外）。
+- 工作區資料列的 store owner 仍是單一 `workspace`。授權層可選 User → Identity（Google／Tamkang／Email）→ WorkspaceMembership。預設免登入。已登入才能連結第二種登入方式；相同 email 不會自動合併。
 
-## Hermes responsibilities
+## 主要路徑
 
-- Plan, call tools, write memory through Workspace MCP, create artifacts.
-- Respect confirmation, cancel, budget, and max-step limits.
-- After Console restart, orphaned chat tasks become `uncertain` and are never auto-resent.
-- Do not expose chain-of-thought.
+1. `/` → `AuthGate` 失敗時仍進入 `HermesConsole`。只有 `CONSOLE_AUTH_REQUIRED=true` 才顯示登入。InvitationGate 不得擋工作區。
+2. `HermesConsole`：對話為主。Planner 依意圖選工具，使用者不必先選 GALLEY／Canva／淡江。
+3. `/api/chat`、`/api/tasks` 建立任務；狀態 `queued`／`running`／`waiting_user`／`waiting_authorization`／`stopping`／`completed`／`failed`／`cancelled`／`uncertain`。程序重啟時 monitor 立刻 reconcile：沒有 worker 的 chat 任務標 `uncertain`，不會假裝 still running。工具 HTTP 200 但內容為空不算成功。
+4. Workspace MCP `/api/mcp` 給 Hermes 呼叫 Console 工具（含本地研究筆記搜尋）。外部 MCP 由 registry 探測，狀態不得假裝成功。
+5. `GET /api/health` 是存活（不等待 Hermes）。`GET /api/ready` 是 store 就緒。`agentReady` 才表示 Agent 真的可用。
 
-## Data
+## 手機捲動
 
-Records live in one store (`kind` + `owner` + `id`):
+App shell 鎖定視窗；**唯一主捲動**在 `.conversation-scroll`（聊天）或 `.secondary-page`（其他頁）。底部 dock `position: fixed`。不要對捲動祖先做 transform，也不要用 `overflow-y: auto !important` 當修法。
 
-User / Identity / Session / Membership / Project / Conversation / Message / Task / Tool receipt / Material / Artifact (copy revisions) / Memory.
+`--app-height` 只在 Composer 軟鍵盤開啟時綁定 `visualViewport.height`。鍵盤關閉後必須回到 CSS `100dvh`，避免 Android Chrome 把殼層留在鍵盤縮小後的高度。
 
-Memory rows have `scope`, `layer`, `source`, `confidence`, `updatedAt`. They are not a remote Hermes mirror unless separately verified.
+## 檔案
 
-## Trust
-
-Unconfigured integrations stay unconfigured. `tools/list` is `partial`. Empty HTTP 200 is not success. Interrupted tasks are `uncertain`, not still running.
+- UI：`components/HermesConsole.tsx`、`components/auth/`、`components/visual/`。選定方向的規格卡只出現在選方向的那則對話，不出現在空的「今天想做什麼？」首頁。靈感頁先顯示方向卡；Drive 知識預設摺疊。作品接續用學生句子，不把 workflow UUID 貼進輸入框
+- 授權：`lib/server/auth/`
+- 編排：`lib/server/orchestrator/`、`lib/server/tasks.ts`（Hermes 未設定時，「找靈感」走工作區搜尋；「這張哪裡可以改」走未讀像素的畫面審查。兩者都不寫 Agent verified）
+- MCP：`lib/server/mcp-registry.ts`、`lib/server/mcp.ts`
+- 儲存：`lib/server/store.ts`

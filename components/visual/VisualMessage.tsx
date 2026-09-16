@@ -1,35 +1,110 @@
-import { ExternalLink, Search, Check, Circle } from "lucide-react";
-import type { Task } from "@/lib/contracts";
-import { eventState, safeSource, taskProgressLabel } from "@/lib/client/activity";
-import { isTwinPanel } from "@/lib/server/audience/personas";
+import { ExternalLink, Search, Check, Circle, CircleHelp } from "lucide-react";
+import type { Task, TaskFocus } from "@/lib/contracts";
+import {
+  artifactsForConversation,
+  progressSteps,
+  safeSource,
+  showVisualProcessSummary,
+  studentHonestyLabel,
+  studentProcessDone,
+  visualProcessCaption,
+} from "@/lib/client/activity";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
+import {
+  isInspirationSearchPack,
+  type InspirationSearchPack,
+} from "@/lib/inspiration-pack";
+import { isImageReviewPack, twinPanelFromResults } from "@/lib/image-review";
+import { isClubKnowledgePack } from "@/lib/knowledge-pack";
+import InspirationResult from "./InspirationResult";
+import ImageReviewResult from "./ImageReviewResult";
+import KnowledgeResult from "./KnowledgeResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
+import ArtifactStage from "./ArtifactStage";
+import { continueDesign } from "@/lib/client/artifacts";
+
 export default function VisualMessage({
   task,
   onInspect,
+  onPickInspiration,
+  pickingInspiration = false,
+  selectedInspiration = null,
+  workflows = [],
+  projectId,
+  onContinue,
 }: {
   task?: Task;
   onInspect: () => void;
+  onPickInspiration?: (
+    id: "A" | "B" | "C",
+    pack: InspirationSearchPack,
+  ) => void;
+  pickingInspiration?: boolean;
+  selectedInspiration?: "A" | "B" | "C" | null;
+  workflows?: {
+    id: string;
+    projectId: string;
+    design: Record<string, unknown> | null;
+  }[];
+  projectId?: string;
+  onContinue?: (text: string, focus?: TaskFocus) => void;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
   const sources = [...new Set(task.events.flatMap((event) => event.sources))]
     .map(safeSource)
     .filter((value): value is string => !!value);
-  const calls = new Map<string, string>();
-  for (const event of task.events)
-    if (event.toolName)
-      calls.set(event.toolCallId || event.toolName, eventState(event));
-  const completed = [...calls.values()].filter(
-    (state) => state === "completed",
-  ).length;
-  const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
-  if (!sources.length && !calls.size && !twinPanel && !layout) return null;
+  const steps = progressSteps(task);
+  const results = task.events.map((event) => event.result);
+  const twinPanel = twinPanelFromResults(results);
+  const imageReview = results.find(isImageReviewPack);
+  const knowledge = results.find(isClubKnowledgePack);
+  const inspiration = task.events
+    .map((event) => event.result)
+    .find(isInspirationSearchPack);
+  const artifacts = artifactsForConversation(
+    task,
+    workflows,
+    projectId || "",
+  );
+  const showProcess =
+    !!steps.length &&
+    !inspiration &&
+    !imageReview &&
+    !knowledge &&
+    showVisualProcessSummary(task);
+  if (
+    !sources.length &&
+    !artifacts.length &&
+    !twinPanel &&
+    !layout &&
+    !showProcess &&
+    !inspiration &&
+    !imageReview &&
+    !knowledge
+  )
+    return null;
+  const honesty = studentHonestyLabel(task);
+  const done = studentProcessDone(task, steps);
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
-      {!!calls.size && (
+      {inspiration && (
+        <InspirationResult
+          pack={inspiration}
+          onSelect={
+            onPickInspiration
+              ? (id) => onPickInspiration(id, inspiration)
+              : undefined
+          }
+          selectedId={selectedInspiration}
+          busy={pickingInspiration}
+        />
+      )}
+      {imageReview && <ImageReviewResult pack={imageReview} />}
+      {knowledge && <KnowledgeResult pack={knowledge} />}
+      {showProcess && (
         <button className="tool-result-summary" onClick={onInspect}>
           {completed === calls.size ? (
             <Check size={15} />
@@ -39,6 +114,20 @@ export default function VisualMessage({
           {taskProgressLabel(task)}
         </button>
       )}
+      {artifacts.map((item) => (
+        <ArtifactStage
+          key={item.id}
+          design={item.design}
+          onContinue={
+            onContinue
+              ? () => {
+                  const next = continueDesign(item.id);
+                  onContinue(next.text, next.focus);
+                }
+              : undefined
+          }
+        />
+      ))}
       {!!sources.length && (
         <details className="source-cards">
           <summary>

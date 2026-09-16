@@ -1,63 +1,67 @@
 # Release checklist
 
-Do not merge until each line is actually true, or explicitly marked **Partial**.
+每次 release 勾選。未完成就標 Partial，不要打綠勾。
 
 ## Mobile
 
-- [ ] Chat: only conversation pane scrolls; composer stays visible
-- [ ] Projects / Inspiration / Agent / Settings scroll to the bottom
-- [ ] Android Chrome keyboard: composer visible, send visible, close restores height
-- [ ] Safe area: composer, dock, dialogs
-- [ ] Viewports: 360×800, 390×844, 412×915, 430×932, 768×1024
+- [ ] 360×800、390×844、412×915、430×932、768×1024 可捲動（聊天與專案）
+- [ ] Composer 不被鍵盤／Home Indicator／Android 導覽列擋住
+- [ ] Dock：對話／專案／靈感／Agent；設定在齒輪／頭像；漢堡是對話列表
+- [ ] 預覽關閉後仍可繼續滑
 
 ## Auth
 
-- [ ] AuthGate before workspace
-- [ ] Google Authorization Code + PKCE, or honest unconfigured
-- [ ] Tamkang SSO real IdP, or 「淡江 SSO 尚未完成設定」
-- [ ] Email register / login / verify / magic link / reset
-- [ ] No auto-merge by email
-- [ ] OAuth `mode=link` requires the original signed-in session
-- [ ] Logout clears session
-- [ ] Anonymous `/api/workspace` is 401
-- [ ] Members cannot GET/POST `/api/settings/credentials`; owners and admins can
+- [ ] 預設免登入進入工作區。只有 `CONSOLE_AUTH_REQUIRED=true` 才看到登入閘
+- [ ] Google Authorization Code 真的跳轉 Google
+- [ ] 淡江：有 metadata 才跳校方 IdP；否則「尚未完成設定」；Console 不收集學校密碼
+- [ ] Email 註冊／驗證／magic link／重設／登出；`/#reset=` 可輸入新密碼
+- [ ] 已登入後可連結 Google／淡江／Email；登出後用任一已連結方式回來仍是同一 User
+- [ ] 連結身份不會因 email 相同而自動合併
+- [ ] 連線密鑰變更限 owner／admin
+- [ ] 帳號頁可看到工作階段；結束其他裝置要確認
+- [ ] 無 membership 不能打工作區 API
 
 ## Chat / Agent
 
-- [ ] Natural-language request does not require picking GALLEY / Canva / Tamkang
-- [ ] Unconfigured submit 503 is student copy, not env-var names
-- [ ] Invalid Hermes key / hanging Hermes submit copy stays student-safe
-- [ ] Cancel hits backend
-- [ ] Restart leaves running chat tasks `uncertain` (no auto-resend)
-- [ ] Unverified vision: image asks continue without pixel pretence
-- [ ] Design completion without copy/Canva/thumbnail does not claim a finished result
-- [ ] Student chrome for that case is 「規格已保留」, not green 「完成」/「過程完成」
-- [ ] Research/campus completion without https sources is 「還沒找到來源」, not 「已回傳完成結果」
-- [ ] Missing-design assistant output includes the honesty sentence, not only a green chip
-- [ ] Unverified vision analysis is 「還沒看圖」, not green 「完成」/「過程完成」
-- [ ] Honesty-incomplete completions (規格已保留／還沒找到來源／還沒看圖) must not stamp `health.agent` `verified` or 「已有成功任務」
-- [ ] Composer image chips wrap on 390×844; local thumbnail while uploading
-- [ ] Empty tool output is not success, including `{}` behind `tool.completed`
-- [ ] Offline banner; reconnect does not drop the thread
+- [ ] 使用者只說目標，不必選工具
+- [ ] 360px 靈感方向 A／B／C 可在同一列橫滑到達，不必把 C 壓到 composer 下面
+- [ ] 方向卡／規格在對話可視區時不顯示「回到最新訊息」
+- [ ] 360px 靈感頁第一屏是方向卡，不是 A4 規格或 Drive 知識；Drive 知識預設摺疊
+- [ ] 切換 Dock 分頁（任務→靈感／專案）從頁頂開始，不沿用上一頁捲動
+- [ ] 工具失敗顯示不可用或明確 fallback，不假裝有資料
+- [ ] 工具 HTTP 200 但內容為空記為失敗，不是完成
+- [ ] 取消會打後端 cancel
+- [ ] 長任務重啟後不是假 running（立刻 reconcile 為 uncertain）
+- [ ] 未開 `HERMES_IMAGE_INPUT` 時附圖不假裝已分析；「這張哪裡可以改」可走工作區模擬並標明沒有讀像素
+- [ ] Hermes 未連線時，工作臺「寫 A／B／C」「整理三個方向」與 Composer／Dock Canva 查回停用，不 503
+- [ ] 規格框顯示語氣與「海報 A4」，不露出紙張比例 `210:297`
+- [ ] Agent 分頁一般檢視只顯示 Hermes／記憶／工具／MCP 狀態，開發者才看工具清單與節點設定檔
+- [ ] 任務頁選方向不把「缺授權／阻塞點」寫進聊天輸入框
 
 ## MCP
 
-- [ ] Registry statuses: unconfigured / verifying / available / partial / failed
-- [ ] Unreachable = failed; missing token = unconfigured; listTools only = partial
+- [ ] 每個已設定 MCP 的真實狀態（unconfigured／partial／failed／available）
+- [ ] 未設 token 不是綠燈
 
 ## Artifacts / Memory
 
-- [ ] Stable artifact + revision ids
-- [ ] Memory layers not dumped into one blob
+- [ ] 作品有可接續的 ID；「第二版」不是無關重生
+- [ ] 選定方向的規格草稿會進任務頁作品舞台（workspace artifact），不得標成 Canva 已出圖
+- [ ] 「第二版字放大」改同一件規格的 V2，不是無關重生，也不是假出圖
+- [ ] 任務頁接續修改會回到該作品的對話；送出「請接續修改同一作品」不 503、不另開版本
+- [ ] 專案活動與文案「在對話接續修改」不把 tool／UUID 塞進輸入框
+- [ ] 多版本可並排預覽（不是像素 diff）後再還原
+- [ ] Memory 分得清對話／專案／工作區（Partial 則寫明）
 
-## DB / Security / Tests / Deploy
+## DB / Security
 
-- [ ] Backup taken (`npm run backup` or volume snapshot)
-- [ ] `npm run rehearse` reports required env; optional Google / Tamkang / Hermes stay honest
-- [ ] No secrets in client, logs, or git
-- [ ] `npm run lint` `typecheck` `test` `test:ui` `test:entry` `test:chat` `test:workbench` `test:gateway` `test:runtime` `build`
-- [ ] `/api/health` returns 200 while the process is up even if Hermes is down
-- [ ] `/api/ready` on the target host
-- [ ] Rollback snapshot identified
+- [ ] 備份 Postgres 或 SQLite 卷
+- [ ] 無 secret 進 Git／log／client
+- [ ] Origin、SSRF、OAuth state 仍有效
 
-Known gaps must be listed as Partial in the PR. Do not paint them green.
+## Tests / Deploy
+
+- [ ] `npm run lint` `typecheck` `test` `build`
+- [ ] CI GitHub Actions 全過
+- [ ] `GET /api/ready`、`GET /api/health` 不回秘密；health 不等待 Hermes；agentReady 與 App 存活分開
+- [ ] 回滾步驟已確認

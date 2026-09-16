@@ -1,47 +1,10 @@
 "use client";
 
-import { studentFormatCaption, type VisualPackView } from "@/lib/client/visual-pack";
-
-const FACT_ROWS: Array<{
-  key: "date" | "time" | "location" | "registration";
-  label: string;
-}> = [
-  { key: "date", label: "日期" },
-  { key: "time", label: "時間" },
-  { key: "location", label: "地點" },
-  { key: "registration", label: "報名" },
-];
-
-function httpsHref(value: string | null | undefined) {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && !url.username && !url.password
-      ? url.href
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function overlayCta(copy: string | null | undefined) {
-  if (!copy) return null;
-  return httpsHref(copy) ? "報名" : copy;
-}
-
-function overlayTime(value?: string | null) {
-  if (!value) return null;
-  const short = value.split(/[（(]/)[0]?.trim() || value.trim();
-  return short || null;
-}
-
-function overlayInfo(overlay?: Record<string, string | null>) {
-  if (!overlay) return null;
-  const date = overlay.date?.trim() || "";
-  const time = overlayTime(overlay.time) || "";
-  if (date && time) return `${date}\n${time}`;
-  return date || time || null;
-}
+import {
+  studentFormatLabel,
+  studentUnknownNotice,
+  type VisualPackView,
+} from "@/lib/client/visual-pack";
 
 function Frame({
   aspect,
@@ -175,28 +138,19 @@ export default function VisualConceptCards({
       <header className="visual-concept-meta">
         <p className="visual-concept-title">{pack.title}</p>
         <p className="visual-concept-format">
-          {studentFormatCaption(pack.format)}
+          {studentFormatLabel(pack.format.label)}
         </p>
         <p className="visual-concept-status">尚未出圖 · 未發佈</p>
       </header>
       <FactStrip pack={pack} />
       {pack.unknownFields.length > 0 && (
         <p className="visual-concept-unknown">
-          未提供：{pack.unknownFields.join("、")}，畫面上留空。
+          {studentUnknownNotice(pack.unknownFields)}
         </p>
       )}
-      <p className="visual-concept-notice">{pack.notice}</p>
-      {selected && (
-        <>
-          <p className="visual-concept-chosen" role="status">
-            已選定概念 {selected.id}
-            {" · "}
-            尚未出圖
-            {canvaReady ? "" : " · Canva 未授權"}
-          </p>
-          <Caption pack={pack} conceptId={selected.id} />
-        </>
-      )}
+      <p className="visual-concept-notice">
+        {pack.notice.replace(/UNKNOWN/g, "未確認")}
+      </p>
       <div className="visual-concept-grid">
         {pack.concepts.map((concept, index) => (
           <article

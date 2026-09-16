@@ -50,6 +50,7 @@ export default memo(function AgentOrbit({
   compact = false,
   animation = true,
   limit,
+  developer = false,
 }: {
   task?: Task | null;
   integrations?: Integration[];
@@ -58,6 +59,7 @@ export default memo(function AgentOrbit({
   compact?: boolean;
   animation?: boolean;
   limit?: number;
+  developer?: boolean;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
@@ -170,7 +172,9 @@ export default memo(function AgentOrbit({
             </button>
           );
         })}
-        {!nodes.length && <span className="orbit-empty">尚未取得工具清單</span>}
+        {!nodes.length && developer && (
+          <span className="orbit-empty">尚未取得工具清單</span>
+        )}
       </div>
       {chosen && (
         <section
@@ -186,21 +190,25 @@ export default memo(function AgentOrbit({
           </button>
           <h3>{chosen.name}</h3>
           <p>{statusNames[chosen.status] || chosen.status}</p>
-          {chosen.detail && <p>{chosen.detail}</p>}
-          <small>
-            最後驗證：
-            {chosen.verifiedAt
-              ? new Date(chosen.verifiedAt).toLocaleString("zh-TW")
-              : "尚無紀錄"}
-          </small>
-          <details>
-            <summary>工具清單（{chosen.tools.length}）</summary>
-            <ul>
-              {chosen.tools.map((tool) => (
-                <li key={tool}>{tool}</li>
-              ))}
-            </ul>
-          </details>
+          {developer && chosen.detail && <p>{chosen.detail}</p>}
+          {developer && (
+            <>
+              <small>
+                最後驗證：
+                {chosen.verifiedAt
+                  ? new Date(chosen.verifiedAt).toLocaleString("zh-TW")
+                  : "尚無紀錄"}
+              </small>
+              <details>
+                <summary>工具清單（{chosen.tools.length}）</summary>
+                <ul>
+                  {chosen.tools.map((tool) => (
+                    <li key={tool}>{tool}</li>
+                  ))}
+                </ul>
+              </details>
+            </>
+          )}
         </section>
       )}
     </div>

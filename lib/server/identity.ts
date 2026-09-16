@@ -1,4 +1,6 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { argon2id } from "@noble/hashes/argon2.js";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { z } from "zod";
 import {
   ApiError,

@@ -19,7 +19,12 @@ export function isEmptyToolResult(value: unknown): boolean {
     return isEmptyToolResult(record.content);
   if (keys.length === 1 && "result" in record)
     return isEmptyToolResult(record.result);
-  return false;
+  return keys.every((key) => {
+    const nested = record[key];
+    if (Array.isArray(nested)) return false;
+    if (typeof nested === "boolean" || typeof nested === "number") return false;
+    return isEmptyToolResult(nested);
+  });
 }
 
 export function assertMeaningfulToolResult(
@@ -39,7 +44,7 @@ export function toolEventHasUsableOutput(event: {
   result: unknown;
   summary: string;
 }) {
-  if (!isEmptyToolResult(event.result)) return true;
+  if (event.result != null) return !isEmptyToolResult(event.result);
   const summary = event.summary.trim();
   return summary.length > 0 && !PLACEHOLDER_SUMMARIES.has(summary);
 }

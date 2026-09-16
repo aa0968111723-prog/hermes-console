@@ -48,7 +48,6 @@ export default function TaskEventSummary({ event }: { event: TaskEvent }) {
         </span>
         <ChevronDown className="event-chevron" size={17} aria-hidden="true" />
       </span>
-      <span className="event-description">{event.summary}</span>
     </summary>
   );
 }

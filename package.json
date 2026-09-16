@@ -17,12 +17,11 @@
     "test:runtime": "tsx tests/verify-runtime.ts",
     "typecheck": "tsc --noEmit",
     "check:secrets": "node scripts/check-secrets.mjs",
-    "password:hash": "node scripts/password-hash.mjs",
-    "rehearse": "node scripts/production-rehearsal.mjs"
+    "password:hash": "node scripts/password-hash.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0",
-    "@noble/hashes": "^1.8.0",
+    "@noble/hashes": "^2.4.0",
     "lucide-react": "^0.468.0",
     "next": "15.5.25",
     "pg": "^8.23.0",

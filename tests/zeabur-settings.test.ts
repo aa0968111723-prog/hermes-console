@@ -132,6 +132,8 @@ test("Zeabur settings vault and mocked GraphQL operations", async (t) => {
     assert.equal(saved.status, 200);
     const published = await saved.json();
     assert.equal(published.fields.ZEABUR_API_TOKEN.last4, "aaaa");
+    assert.equal(published.zeabur.state, "awaiting_authorization");
+    assert.match(published.zeabur.detail, /不是部署成功/);
     assert.ok(!JSON.stringify(published).includes(token));
     assert.match(published.zeabur.notice, /覆寫權杖/);
 

@@ -25,12 +25,34 @@ const labels: Record<string, string> = {
 };
 const statusLabel = (value: string) => labels[value] || value;
 
+function StatusPill({
+  good,
+  label,
+  detail,
+  developer,
+}: {
+  good: boolean;
+  label: string;
+  detail: string;
+  developer: boolean;
+}) {
+  return (
+    <span aria-label={label + " " + detail}>
+      <i className={good ? "good" : "unknown"} aria-hidden="true" />
+      {label}
+      {developer ? " " + detail : null}
+    </span>
+  );
+}
+
 const ToolRow = memo(function ToolRow({
   tool,
   stale,
+  developer,
 }: {
   tool: ToolDescriptor;
   stale: boolean;
+  developer: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const shown = stale ? "stale" : tool.status;
@@ -48,8 +70,7 @@ const ToolRow = memo(function ToolRow({
         />
         <strong>{tool.displayName}</strong>
         <small>
-          {tool.canonicalName} ·{" "}
-          {tool.enabled ? statusLabel(shown) : "未啟用"}
+          {tool.canonicalName} · {tool.enabled ? statusLabel(shown) : "未啟用"}
         </small>
         <ChevronDown
           className={open ? "is-open" : ""}
@@ -71,26 +92,24 @@ const ToolRow = memo(function ToolRow({
                 ? new Date(tool.lastVerifiedAt).toLocaleString("zh-TW")
                 : "尚無此工具的執行驗證"}
             </dd>
-            <dt>專案綁定</dt>
-            <dd>
-              {tool.metadata.bindingSupported
-                ? "由 Console 後端檢查"
-                : "尚無可強制套用的介面"}
-            </dd>
           </dl>
-          <details>
-            <summary>輸入格式</summary>
-            {Object.keys(tool.inputSchema).length ? (
-              <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
-            ) : (
-              <p>此探索介面未提供輸入 schema。</p>
-            )}
-          </details>
-          {tool.outputSchema && (
-            <details>
-              <summary>輸出格式</summary>
-              <pre>{JSON.stringify(tool.outputSchema, null, 2)}</pre>
-            </details>
+          {developer && (
+            <>
+              <details>
+                <summary>輸入格式</summary>
+                {Object.keys(tool.inputSchema).length ? (
+                  <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
+                ) : (
+                  <p>此探索介面未提供輸入 schema。</p>
+                )}
+              </details>
+              {tool.outputSchema && (
+                <details>
+                  <summary>輸出格式</summary>
+                  <pre>{JSON.stringify(tool.outputSchema, null, 2)}</pre>
+                </details>
+              )}
+            </>
           )}
         </div>
       )}
@@ -102,12 +121,12 @@ export default function RuntimeInspector({
   task,
   health = null,
   animation = true,
-  children,
+  allowDeveloper = false,
 }: {
   task?: Task;
   health?: Health | null;
   animation?: boolean;
-  children?: ReactNode;
+  allowDeveloper?: boolean;
 }) {
   const [snapshot, setSnapshot] = useState<HermesRuntimeSnapshot | null>(null);
   const [stale, setStale] = useState(false);
@@ -115,6 +134,11 @@ export default function RuntimeInspector({
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(100);
+  const [developer, setDeveloper] = useState(false);
+  const inspect = allowDeveloper && developer;
+  useEffect(() => {
+    if (!allowDeveloper) setDeveloper(false);
+  }, [allowDeveloper]);
   const accept = useCallback((next: HermesRuntimeSnapshot) => {
     setSnapshot((previous) =>
       previous && Date.parse(previous.fetchedAt) > Date.parse(next.fetchedAt)
@@ -234,31 +258,38 @@ export default function RuntimeInspector({
     snapshot?.tools.filter(
       (tool) => tool.enabled && tool.status === "available",
     ).length || 0;
-  const mcpServers = snapshot?.mcpServers || [];
-  const mcpState = !mcpServers.length
-    ? "unconfigured"
-    : mcpServers.some((server) => server.status === "available")
-      ? "available"
-      : mcpServers.some((server) => server.status === "partial")
-        ? "partial"
-        : mcpServers.some((server) => server.status === "failed")
-          ? "failed"
-          : mcpServers.every(
-              (server) =>
-                !server.enabled || server.status === "unconfigured",
-            )
-            ? "unconfigured"
-            : mcpServers.some((server) => server.status === "stale")
-              ? "stale"
-              : "unknown";
-  const mcpLabel =
-    mcpState === "unconfigured"
-      ? "未設定"
-      : mcpState === "available"
-        ? "已驗證"
-        : statusLabel(mcpState);
+  const mcpAvailable =
+    snapshot?.mcpServers.filter(
+      (server) => server.enabled && server.status === "available",
+    ).length || 0;
+  const mcpEnabled =
+    snapshot?.mcpServers.filter((server) => server.enabled).length || 0;
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
+      <header>
+        <div>
+          <p className="eyebrow">狀態</p>
+          <h2>Hermes</h2>
+        </div>
+        <div className="runtime-actions">
+          <button onClick={() => void refresh()} disabled={busy}>
+            <RefreshCw size={15} />
+            {busy ? "同步中…" : "重新同步"}
+          </button>
+          {allowDeveloper && (
+            <button
+              aria-pressed={inspect}
+              onClick={() => setDeveloper((value) => !value)}
+            >
+              {inspect ? "一般檢視" : "開發者檢視"}
+            </button>
+          )}
+          <span className={`runtime-state ${state}`}>
+            <i aria-hidden="true" />
+            {snapshot ? statusLabel(state) : "尚未同步"}
+          </span>
+        </div>
+      </header>
       {error && (
         <p role="alert" className="error">
           <CircleAlert size={15} />
@@ -266,122 +297,99 @@ export default function RuntimeInspector({
         </p>
       )}
       <div className="runtime-human-summary">
-        <span>
-          <i
-            className={
-              !stale &&
-              health?.credential === "valid" &&
-              health.agent === "verified"
-                ? "good"
-                : "unknown"
-            }
-            aria-hidden="true"
-          />
-          Hermes{" "}
-          {stale
-            ? "待重新驗證"
-            : health?.agent === "verified" && health.credential === "valid"
-              ? "已驗證"
-              : "未驗證"}
-        </span>
-        <span>
-          <i
-            className={
-              !stale && snapshot?.memorySupport === "available"
-                ? "good"
-                : "unknown"
-            }
-            aria-hidden="true"
-          />
-          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未設定"}
-        </span>
-        <span>
-          <i
-            className={!stale && availableTools > 0 ? "good" : "unknown"}
-            aria-hidden="true"
-          />
-          工具{" "}
-          {availableTools > 0 && snapshot
-            ? "可用"
-            : health?.credential === "valid"
-              ? "無可用"
-              : "未設定"}
-        </span>
-        <span>
-          <i
-            className={
-              !stale && (mcpState === "available" || mcpState === "partial")
-                ? mcpState === "available"
-                  ? "good"
-                  : "unknown"
-                : "unknown"
-            }
-            aria-hidden="true"
-          />
-          MCP {mcpLabel}
-        </span>
+        <StatusPill
+          good={
+            !stale &&
+            health?.credential === "valid" &&
+            health.agent === "verified"
+          }
+          label="Hermes"
+          detail={
+            stale
+              ? "待重新驗證"
+              : health?.agent === "verified" && health.credential === "valid"
+                ? "已驗證"
+                : "未驗證"
+          }
+          developer={inspect}
+        />
+        <StatusPill
+          good={!stale && snapshot?.memorySupport === "available"}
+          label="記憶"
+          detail={snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+          developer={inspect}
+        />
+        <StatusPill
+          good={!stale && availableTools > 0}
+          label="工具"
+          detail={
+            snapshot ? availableTools + "/" + snapshot.tools.length : "未知"
+          }
+          developer={inspect}
+        />
+        <StatusPill
+          good={!stale && mcpAvailable > 0}
+          label="MCP"
+          detail={snapshot ? mcpAvailable + "/" + mcpEnabled : "未知"}
+          developer={inspect}
+        />
         {!stale && snapshot?.status === "available" && (
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />
         )}
       </div>
-      <details className="runtime-advanced">
-        <summary>進階</summary>
-        <div className="runtime-actions">
-          <button onClick={() => void refresh()} disabled={busy}>
-            <RefreshCw size={15} />
-            {busy ? "同步中…" : "重新同步"}
-          </button>
-          <span className={`runtime-state ${state}`}>
-            <i aria-hidden="true" />
-            {snapshot ? statusLabel(state) : "尚未同步"}
-          </span>
-        </div>
-        <AgentOrbit
-          snapshot={snapshot}
-          task={task}
-          stale={stale}
-          animation={animation}
-        />
-        {snapshot && (
-          <>
-            <label>
-              搜尋工具用途
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setLimit(100);
-                }}
-                placeholder="例如：活動、草稿、search"
-              />
-            </label>
-            <div className="runtime-tool-groups">
-              {groups.map(([source, tools]) => (
-                <details key={source} open>
-                  <summary>
-                    {source} · {tools.length} 個工具
-                  </summary>
-                  <ul>
-                    {tools.map((tool) => (
-                      <ToolRow
-                        key={tool.canonicalName}
-                        tool={tool}
-                        stale={stale}
-                      />
-                    ))}
-                  </ul>
-                </details>
-              ))}
-            </div>
-            {filtered.length > limit && (
-              <button onClick={() => setLimit((value) => value + 100)}>
-                顯示更多（共 {filtered.length} 個）
-              </button>
-            )}
-            {!groups.length && (
-              <p>目前沒有符合的工具；這不代表工具已可用。</p>
-            )}
+      <AgentOrbit
+        snapshot={snapshot}
+        task={task}
+        stale={stale}
+        animation={animation}
+        developer={inspect}
+      />
+      {inspect && snapshot && (
+        <>
+          <p className="muted">
+            探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
+          </p>
+          <label>
+            搜尋工具用途
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setLimit(100);
+              }}
+              placeholder="例如：活動、草稿、search"
+            />
+          </label>
+          <div className="runtime-tool-groups">
+            {groups.map(([source, tools]) => (
+              <details key={source} open>
+                <summary>
+                  {source} · {tools.length} 個工具
+                </summary>
+                <ul>
+                  {tools.map((tool) => (
+                    <ToolRow
+                      key={tool.canonicalName}
+                      tool={tool}
+                      stale={stale}
+                      developer={inspect}
+                    />
+                  ))}
+                </ul>
+              </details>
+            ))}
+          </div>
+          {filtered.length > limit && (
+            <button onClick={() => setLimit((value) => value + 100)}>
+              顯示更多（共 {filtered.length} 個）
+            </button>
+          )}
+          {!groups.length && (
+            <p>目前沒有符合的工具；這不代表工具已可用。</p>
+          )}
+          <details className="runtime-advanced" open>
+            <summary>開發者 · Runtime 詳情</summary>
             <p className="muted">
               最後同步：
               {new Date(snapshot.lastSyncedAt).toLocaleString("zh-TW")} ·
@@ -402,6 +410,7 @@ export default function RuntimeInspector({
               <span>Sessions {statusLabel(snapshot.sessionsSupport)}</span>
               <span>Runs {statusLabel(snapshot.runsSupport)}</span>
               <span>Memory {statusLabel(snapshot.memorySupport)}</span>
+              <span>讀圖 {statusLabel(snapshot.imageInputSupport)}</span>
             </div>
             <details>
               <summary>技能與 Toolsets</summary>
@@ -434,10 +443,9 @@ export default function RuntimeInspector({
                 ))}
               </ul>
             </details>
-          </>
-        )}
-        {children}
-      </details>
+          </details>
+        </>
+      )}
     </section>
   );
 }

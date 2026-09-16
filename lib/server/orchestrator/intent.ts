@@ -1,4 +1,5 @@
-import type { IntentTier, StructuredGoal } from "../../contracts";
+import type { IntentTier } from "../../contracts";
+import { isDirectionPick } from "../../inspiration-pack";
 
 export type { IntentTier };
 
@@ -11,11 +12,17 @@ const CHITCHAT =
 const CONTINUE_CUE =
   /改(一?下|軟|短|長|語氣|顏色|標題)|再(短|長|改|試|寫|來)|語氣|繼續|剛剛|那個|換個|縮短|加長|潤稿|潤色/;
 
-const LOOKUP =
-  /研究|查一?下|查詢|搜尋|文獻|資料來源|找資料|查資料|來源|議題|幫我找|找淡|宣傳方向|社團宣傳|分析這|這張哪裡|哪裡可以改|請分析/;
+const LOOKUP = /研究|幫我查|查一?下|查詢|搜尋|文獻|資料來源|找資料|查資料|來源|議題|公告/;
+
+/** Location/time facts stay lookup. Do not use bare 哪裡 — that would flip poster review. */
+const FACT_QUESTION = /在哪|幾點|什麼時候|何時舉辦/;
 
 const CREATE =
-  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|招新|茶會|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/;
+  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|招新|迎新|攤位|場佈|擺攤|茶會|我想辦|辦活動|招生|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題|這張|哪裡可以改|視覺層級/;
+
+export function hasCreateCue(input: string): boolean {
+  return CREATE.test(input.trim());
+}
 
 export function classifyIntent(
   input: string,
@@ -24,8 +31,8 @@ export function classifyIntent(
   const text = input.trim();
   if (!text && !options?.hasImage) return "chitchat";
   if (options?.hasImage) return "create";
-  if (LOOKUP.test(text)) return "lookup";
-  if (CREATE.test(text)) return "create";
+  if (LOOKUP.test(text) || FACT_QUESTION.test(text)) return "lookup";
+  if (isDirectionPick(text) || hasCreateCue(text)) return "create";
   if (CHITCHAT.test(text)) return "chitchat";
   if (text.length <= FAST_INTENT_CHAR_LIMIT || CONTINUE_CUE.test(text))
     return "continue";

@@ -4,6 +4,8 @@ import { ApiError, hash, redact } from "./security";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest } from "./canva";
 import { activity } from "./creative";
+import { recordDesignRevision } from "./artifacts";
+import type { DirectionBriefPack } from "../direction-brief";
 const url = z
   .string()
   .url()
@@ -64,85 +66,12 @@ export interface Workflow {
   updatedAt: string;
   canvaJobId: string | null;
   design: Record<string, unknown> | null;
+  artifactId?: string | null;
+  revisionId?: string | null;
   error: string | null;
-  /** Stable Console id; same as workflow id. */
-  artifactId?: string;
-  /** Present when this row is a fork of another artifact. */
-  parentArtifactId?: string;
-  revisions?: ArtifactRevision[];
-  activeRevision?: number | null;
-}
-
-export function designHasContent(design: Record<string, unknown> | null) {
-  if (!design) return false;
-  const thumbnail = design.thumbnail as { url?: unknown } | undefined;
-  const urls = design.urls as { edit_url?: unknown; view_url?: unknown } | undefined;
-  return Boolean(
-    (typeof design.id === "string" && design.id.trim()) ||
-      (typeof design.url === "string" && design.url.trim()) ||
-      (typeof thumbnail?.url === "string" && thumbnail.url.trim()) ||
-      (typeof urls?.edit_url === "string" && urls.edit_url.trim()) ||
-      (typeof urls?.view_url === "string" && urls.view_url.trim()),
-  );
-}
-
-export function normalizeWorkflow(record: Workflow): Workflow {
-  const revisions =
-    record.revisions?.length
-      ? record.revisions
-      : record.design && designHasContent(record.design)
-        ? [
-            {
-              revisionId: record.id,
-              revision: 1,
-              design: record.design,
-              createdAt: record.updatedAt || record.createdAt,
-              source: "canva" as const,
-            },
-          ]
-        : [];
-  return {
-    ...record,
-    artifactId: record.artifactId || record.id,
-    revisions,
-    activeRevision:
-      record.activeRevision ?? revisions.at(-1)?.revision ?? null,
-  };
-}
-
-export function applySuccessfulDesign(
-  record: Workflow,
-  design: Record<string, unknown>,
-): Workflow {
-  const snapshot = JSON.parse(redact(JSON.stringify(design))) as Record<
-    string,
-    unknown
-  >;
-  const current = normalizeWorkflow(record);
-  const last = current.revisions?.at(-1);
-  const same = last && JSON.stringify(last.design) === JSON.stringify(snapshot);
-  const revisions = same
-    ? current.revisions || []
-    : [
-        ...(current.revisions || []),
-        {
-          revisionId: randomUUID(),
-          revision: (last?.revision || 0) + 1,
-          design: snapshot,
-          createdAt: new Date().toISOString(),
-          source: "canva" as const,
-        },
-      ];
-  const active = revisions.at(-1);
-  return {
-    ...current,
-    design: snapshot,
-    revisions,
-    activeRevision: active?.revision ?? null,
-    state: "draft_ready",
-    error: null,
-    updatedAt: new Date().toISOString(),
-  };
+  directionBrief?: DirectionBriefPack | null;
+  copyId?: string | null;
+  conversationId?: string | null;
 }
 export function saveDirections(
   owner: string,
@@ -174,6 +103,8 @@ export function saveDirections(
     updatedAt: new Date().toISOString(),
     canvaJobId: null,
     design: null,
+    artifactId: null,
+    revisionId: null,
     error: null,
     artifactId: id,
     revisions: [],
@@ -206,6 +137,32 @@ export function chooseDirection(owner: string, id: string, selected: number) {
       ...record,
       selected,
       state: "ready",
+      updatedAt: new Date().toISOString(),
+    } satisfies Workflow);
+  });
+}
+export function attachDirectionBrief(
+  owner: string,
+  id: string,
+  directionBrief: DirectionBriefPack,
+) {
+  return bindWorkflowDraft(owner, id, { directionBrief });
+}
+export function bindWorkflowDraft(
+  owner: string,
+  id: string,
+  patch: {
+    activityId?: string;
+    copyId?: string | null;
+    directionBrief?: DirectionBriefPack | null;
+    conversationId?: string | null;
+  },
+) {
+  return transaction(() => {
+    const record = workflow(owner, id);
+    return put("workflow", owner, {
+      ...record,
+      ...patch,
       updatedAt: new Date().toISOString(),
     } satisfies Workflow);
   });
@@ -327,19 +284,20 @@ export async function pollDraft(owner: string, id: string) {
     | { status?: string; result?: { design?: Record<string, unknown> } }
     | undefined;
   if (job?.status === "success" && job.result?.design) {
-    if (!designHasContent(job.result.design)) {
-      record.state = "failed";
-      record.error = "Canva 回報成功但沒有可用設計內容。";
-    } else {
-      return put(
-        "workflow",
-        owner,
-        applySuccessfulDesign(record, job.result.design),
-      );
-    }
-  } else if (job?.status === "success") {
-    record.state = "failed";
-    record.error = "Canva 回報成功但沒有可用設計內容。";
+    const design = JSON.parse(
+      redact(JSON.stringify(job.result.design)),
+    ) as Record<string, unknown>;
+    record.design = design;
+    const artifact = recordDesignRevision(owner, {
+      artifactId: record.artifactId || undefined,
+      projectId: record.projectId,
+      workflowId: record.id,
+      source: "canva",
+      design,
+    });
+    record.artifactId = artifact.id;
+    record.revisionId = artifact.currentRevisionId;
+    record.state = "draft_ready";
   } else if (job?.status === "failed") {
     record.state = "failed";
     record.error = "Canva 回報製作失敗。";

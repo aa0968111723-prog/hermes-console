@@ -217,7 +217,7 @@ test("ensureHermesReady fails closed on unconfigured without probing", async () 
   assert.ok(Date.now() - started < 500);
   assert.equal(state.credential, "missing");
   assert.equal(state.status, "unconfigured");
-  assert.equal(state.message, "Hermes 還沒連上。請到設定的連線頁。");
+  assert.equal(state.message, "Hermes 還沒準備好。可以先找靈感，或稍後再試。");
 });
 
 test("GET /api/health unconfigured message stays student-safe", async () => {
@@ -227,8 +227,8 @@ test("GET /api/health unconfigured message stays student-safe", async () => {
   const response = await healthRoute.GET(request("health"));
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.equal(body.message, "Hermes 還沒連上。請到設定的連線頁。");
-  assert.doesNotMatch(String(body.message), /環境變數|HERMES_API/);
+  assert.equal(body.message, "Hermes 還沒準備好。可以先找靈感，或稍後再試。");
+  assert.doesNotMatch(String(body.message), /環境變數|HERMES_API|設定的連線頁/);
 });
 
 test("ensureHermesReady times out hanging Hermes without catalog wait", async () => {
@@ -288,13 +288,13 @@ test("POST /api/tasks returns student copy when Hermes is unconfigured", async (
     request("tasks", cookie, "POST", {
       conversationId,
       requestKey: randomUUID(),
-      input: "幫我找淡大禪學社茶會宣傳靈感",
+      input: "只是打個招呼，今天好嗎",
     }),
   );
   assert.equal(response.status, 503);
   const body = await response.json();
   assert.equal(body.error?.code, "hermes_not_ready");
-  assert.equal(body.error?.message, "Hermes 還沒連上。請到設定的連線頁。");
+  assert.equal(body.error?.message, "Hermes 還沒準備好。可以先找靈感，或稍後再試。");
   assert.equal(body.error?.taxonomy, "UPSTREAM_ERROR");
   assert.doesNotMatch(JSON.stringify(body), /環境變數|HERMES_API/);
 });
@@ -326,7 +326,7 @@ test("POST /api/tasks times out hanging Hermes with student copy", async () => {
       request("tasks", cookie, "POST", {
         conversationId,
         requestKey: randomUUID(),
-        input: "幫我找淡大禪學社茶會宣傳靈感",
+        input: "只是打個招呼，今天好嗎",
       }),
     );
     const elapsed = Date.now() - started;
@@ -365,13 +365,13 @@ test("POST /api/tasks maps invalid Hermes keys to student copy", async () => {
       request("tasks", cookie, "POST", {
         conversationId,
         requestKey: randomUUID(),
-        input: "幫我找淡大禪學社茶會宣傳靈感",
+        input: "只是打個招呼，今天好嗎",
       }),
     );
     assert.equal(response.status, 503);
     const body = await response.json();
     assert.equal(body.error?.code, "hermes_not_ready");
-    assert.equal(body.error?.message, "Hermes 還沒連上。請到設定的連線頁。");
+    assert.equal(body.error?.message, "Hermes 還沒準備好。可以先找靈感，或稍後再試。");
     assert.doesNotMatch(JSON.stringify(body), /金鑰|後端|環境變數|HERMES_API/);
   } finally {
     rejected.server.close();
@@ -389,6 +389,7 @@ test("workspace settings keep DATABASE_URL off the student tab", async () => {
   assert.match(text, /記憶存在這個工作區/);
   assert.match(text, /connection-label sr-only/);
   assert.match(text, /shortTaskError\(currentTask\.error\)/);
+  assert.match(text, /shortTaskError\(currentTask\.observationError\)/);
   assert.match(text, /不會假裝已看過圖片/);
   assert.doesNotMatch(text, /部署端尚未驗證圖片輸入/);
 });

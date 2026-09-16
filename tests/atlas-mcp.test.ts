@@ -13,7 +13,7 @@ delete process.env.XUNHE_MCP_URL;
 delete process.env.FRAMELAB_MCP_URL;
 delete process.env.DUIGAO_MCP_URL;
 
-const { configuredMcp, githubIsNotMcp } = await import("../lib/server/mcp-registry.ts");
+const { configuredMcp, githubIsNotMcp, atlasStatus } = await import("../lib/server/mcp-registry.ts");
 
 test("ATLAS_MCP_URL auto-registers atlas for Hermes", () => {
   const atlas = configuredMcp().find((item) => item.id === "atlas");
@@ -22,6 +22,17 @@ test("ATLAS_MCP_URL auto-registers atlas for Hermes", () => {
   assert.equal(atlas?.endpoint, "https://atlas.example/api/mcp");
   assert.equal(atlas?.credentialReference, "ATLAS_MCP_TOKEN");
   assert.equal(atlas?.readonly, false);
+});
+
+test("Atlas without token stays unconfigured", () => {
+  const token = process.env.ATLAS_MCP_TOKEN;
+  delete process.env.ATLAS_MCP_TOKEN;
+  try {
+    assert.equal(atlasStatus().state, "unconfigured");
+    assert.match(atlasStatus().detail, /ATLAS_MCP_TOKEN/);
+  } finally {
+    process.env.ATLAS_MCP_TOKEN = token;
+  }
 });
 
 test("GitHub repository URLs are still not MCP endpoints", () => {

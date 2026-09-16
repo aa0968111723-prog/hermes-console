@@ -27,7 +27,9 @@ test("uncertain UI offers acknowledge and retry branch alongside failed/cancelle
   assert.match(ui, /結果待確認/);
   assert.match(ui, /確認並可重試/);
   assert.match(ui, /系統不會自動重送上一則/);
-  assert.match(ui, /另開對話重試/);
+  assert.match(ui, /再試一次/);
+  assert.doesNotMatch(ui, /建立重試分支/);
+  assert.doesNotMatch(ui, /未宣稱遠端已停止/);
   assert.match(ui, /action:\s*"acknowledge"/);
   assert.match(ui, /panel === "task" && chosenTask/);
 });

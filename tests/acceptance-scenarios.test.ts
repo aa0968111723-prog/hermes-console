@@ -53,6 +53,12 @@ test("acceptance prompts route without the user picking tools", async (t) => {
   await t.test("B: uploaded poster asks for edits, not chitchat", () => {
     const prompt = "這張哪裡可以改？";
     assert.equal(classifyIntent(prompt), "create");
+    assert.equal(classifyIntent("這張哪裡可以改？"), "create");
+    assert.equal(classifyIntent("我想辦迎新"), "create");
+    assert.equal(classifyIntent("我想辦活動"), "create");
+    assert.equal(classifyIntent("我想擺攤"), "create");
+    assert.equal(classifyIntent("淡江迎新在哪"), "lookup");
+    assert.equal(classifyIntent("茶會幾點"), "lookup");
     assert.equal(classifyIntent(prompt, { hasImage: true }), "create");
     const goal = interpretGoal(prompt, { hasImage: true });
     assert.equal(goal.requiresImageAnalysis, true);

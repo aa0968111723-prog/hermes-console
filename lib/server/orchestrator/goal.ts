@@ -1,21 +1,26 @@
 import type { StructuredGoal, TaskFocus } from "../../contracts";
-import { classifyIntent } from "./intent";
+import { isDirectionPick } from "../../inspiration-pack";
+import { needsZenclubKnowledge } from "../zenclub/detect";
+import { classifyIntent, hasCreateCue } from "./intent";
 
 const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
-const DESIGN = /海報|網宣|Canva|canva|視覺|設計|稿/;
-const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|可能喜歡|反向|路人會不會/;
+const STRONG_DESIGN =
+  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|做一張|視覺層級|構圖|配色/;
+const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會|客群/;
 const INSPIRATION = /靈感|參考|IG|Pinterest|instagram/i;
-const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA/;
-const LOCAL_NOTES =
-  /研究筆記|MoE|CUDA|KV.?cache|multimodal encoder|Agent Runtime|knowledge graph/i;
-const IMAGE =
-  /分析(這張|這份|圖片|海報|文宣)|這張哪裡|哪裡可以改|看圖|構圖|配色|視覺層級|資訊層級|版本差|請分析這/;
-const MAKING = /幫我做|做一張|製作|出圖/;
-const MAKING_VISUAL = /文宣|海報|網宣|宣傳|IG|限動|貼文/;
+const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA|宣傳|文宣/;
+const IMAGE_REVIEW = /這張(圖|海報|稿|設計)?|哪裡可以改|視覺層級|分析這[張個]/;
+const ANALYZE =
+  /這張|這圖|這份海報|分析這|哪裡可以改|哪裡要改|構圖|配色|視覺層級/;
+
+export function userFacingGoalText(input: string) {
+  const index = input.indexOf("BEGIN_UNTRUSTED_DATA");
+  return (index >= 0 ? input.slice(0, index) : input).trim();
+}
 
 export function wantsNewVisual(text: string): boolean {
-  return DESIGN.test(text.trim()) || (MAKING.test(text) && MAKING_VISUAL.test(text));
+  return STRONG_DESIGN.test(text.trim());
 }
 
 export function interpretGoal(
@@ -26,39 +31,60 @@ export function interpretGoal(
     focus?: TaskFocus | null;
   } = {},
 ): StructuredGoal {
-  const text = input.trim();
-  const artifactFocused = !!(extras.focus?.copyId || extras.focus?.workflowId);
-  const focused = artifactFocused || !!extras.focus?.activityId;
-  let intentTier = classifyIntent(text);
+  const text = userFacingGoalText(input);
+  const artifactFocused = !!(
+    options?.focus?.copyId || options?.focus?.workflowId
+  );
+  const focused = artifactFocused || !!options?.focus?.activityId;
+  let intentTier = classifyIntent(text, options);
   if (focused && (intentTier === "chitchat" || intentTier === "continue"))
     intentTier = "create";
-  const hasAttachments = !!(extras.hasAttachments || extras.hasImage);
-  const requiresTamkang = TAMKANG.test(text);
+  const directionLocked = isDirectionPick(text);
+  const imageReview =
+    !directionLocked && (IMAGE_REVIEW.test(text) || ANALYZE.test(text));
   const requiresImageAnalysis =
-    IMAGE.test(text) || (hasAttachments && !MAKING.test(text));
-  const requiresResearch = RESEARCH.test(text) || requiresTamkang;
-  const wantsVisual =
-    DESIGN.test(text) || (MAKING.test(text) && MAKING_VISUAL.test(text));
+    imageReview || !!options?.hasImage || ANALYZE.test(text);
+  const requiresTamkang = !directionLocked && TAMKANG.test(text);
+  const requiresResearch =
+    !directionLocked && (RESEARCH.test(text) || requiresTamkang);
+  const inspirationOnly =
+    INSPIRATION.test(text) &&
+    !STRONG_DESIGN.test(text) &&
+    !imageReview &&
+    !directionLocked &&
+    !focused;
   const requiresDesign =
-    focused || (wantsVisual && (MAKING.test(text) || !requiresImageAnalysis));
+    !inspirationOnly &&
+    (STRONG_DESIGN.test(text) ||
+      /宣傳/.test(text) ||
+      imageReview ||
+      directionLocked ||
+      focused);
   const requiresAudienceEvaluation =
-    AUDIENCE.test(text) || requiresImageAnalysis;
-  const requiresInspiration = INSPIRATION.test(text) || requiresDesign;
-  const requiresLocalNotes = LOCAL_NOTES.test(text) && !requiresTamkang;
+    !directionLocked && (AUDIENCE.test(text) || imageReview || requiresImageAnalysis);
+  const requiresInspiration = directionLocked
+    ? false
+    : imageReview
+      ? false
+      : INSPIRATION.test(text) || requiresDesign;
   const audience = requiresTamkang
     ? "淡江大一新生（模擬，不是民調）"
     : /受眾|學生/.test(text)
       ? "使用者提到的受眾（待確認）"
       : null;
-  const output = artifactFocused
-    ? "同一作品的下一版，不是無關的新輸出"
-    : extras.focus?.activityId
-      ? "依此活動提出方向，不是無關的新企劃"
-      : requiresImageAnalysis
-        ? "看圖、視覺層級與修改建議（受眾為模擬）"
-        : OUTPUT.test(text)
-          ? "可審查的創作方向與 Canva 接續草稿"
-          : null;
+  const output = inspirationOnly
+    ? null
+    : OUTPUT.test(text) || requiresImageAnalysis || focused
+      ? requiresImageAnalysis
+        ? "看圖後的修改建議（模擬受眾，不是已改稿）"
+        : artifactFocused
+          ? "同一作品的下一版，不是無關的新輸出"
+          : options?.focus?.activityId
+            ? "依此活動提出方向，不是無關的新企劃"
+            : OUTPUT.test(text)
+              ? "可審查的創作方向與 Canva 接續草稿"
+              : "依此活動提出方向，不是無關的新企劃"
+      : null;
   const constraints: string[] = [];
   if (requiresAudienceEvaluation)
     constraints.push("Audience Twin 只能標 SIMULATION。");
@@ -79,9 +105,33 @@ export function interpretGoal(
     requiresAudienceEvaluation,
     requiresTamkang,
     requiresInspiration,
-    requiresLocalNotes,
+    requiresImageReview: imageReview,
     requiresImageAnalysis,
-    hasAttachments,
+    directionLocked,
     intentTier,
   };
+}
+
+/** Spoken create asks still get workspace cards when Hermes is unconfigured. */
+export function wantsWorkspaceInspiration(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.intentTier === "lookup") return goal.requiresInspiration;
+  if (goal.requiresInspiration || goal.requiresDesign) return true;
+  return goal.intentTier === "create" && hasCreateCue(goal.goal);
+}
+
+/** Club fact questions use the Drive index snapshot, not a poster mill. */
+export function wantsWorkspaceKnowledge(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.intentTier === "chitchat") return false;
+  if (wantsWorkspaceInspiration(goal)) return false;
+  return needsZenclubKnowledge(goal.goal);
+}
+
+/** Spoken audience asks still get the freshman twin without pretending to see a poster. */
+export function wantsWorkspaceAudience(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.requiresImageAnalysis) return false;
+  if (wantsWorkspaceInspiration(goal) || wantsWorkspaceKnowledge(goal)) return false;
+  return goal.requiresAudienceEvaluation;
 }

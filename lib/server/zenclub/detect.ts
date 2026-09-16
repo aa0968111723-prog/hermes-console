@@ -3,11 +3,13 @@ const CLUB_IDENTITY =
 
 const CLUB_LOCAL = /社博|期初茶會|期初演講|入社單|擺攤|文館左側|挑戰營/;
 
-const CLUB_EVENT = /茶會|社博|期初演講|入社|社課|社評|挑戰營|擺攤|招生/;
+const CLUB_EVENT = /茶會|社博|期初演講|入社|社課|社評|挑戰營|擺攤|攤位|招生|迎新/;
 
 const TAMKANG_CAMPUS = /淡江|淡大|tku/i;
 
 const OTHER_SCHOOL = /台大|臺大|成大|清大|政大|北大|成功大學|清華|政治大學/;
+
+const FACT_QUESTION = /在哪|幾點|什麼時候|何時舉辦/;
 
 /** Drive knowledge is for 禪學社 internals, not every Tamkang query. */
 export function needsZenclubKnowledge(text: string) {
@@ -16,5 +18,6 @@ export function needsZenclubKnowledge(text: string) {
   if (OTHER_SCHOOL.test(value) && !TAMKANG_CAMPUS.test(value) && !CLUB_IDENTITY.test(value))
     return false;
   if (CLUB_IDENTITY.test(value) || CLUB_LOCAL.test(value)) return true;
+  if (FACT_QUESTION.test(value) && CLUB_EVENT.test(value)) return true;
   return TAMKANG_CAMPUS.test(value) && CLUB_EVENT.test(value);
 }

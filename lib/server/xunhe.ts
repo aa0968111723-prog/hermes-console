@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ApiError, redact } from "./security";
 import { runtimeEnv } from "./credentials";
-import { githubIsNotMcp } from "./mcp-registry";
+import { githubIsNotMcp, honestConfiguredStatus } from "./mcp-registry";
 
 const context = {
   taskId: z.string().uuid().optional(),
@@ -74,14 +74,12 @@ export function xunheStatus() {
       state: "failed" as const,
       detail: "GitHub 網址不是 MCP 端點。請改填訊核 /mcp。",
     };
-  return {
+  return honestConfiguredStatus("xunhe", {
     id: "xunhe",
     name: "訊核即時情報",
-    state: "partial" as const,
-    detail: runtimeEnv("XUNHE_MCP_TOKEN")
-      ? "已設定端點與服務憑證，需 initialize／tools/list 驗證後 Hermes 才能呼叫。"
-      : "已設定端點。可選 XUNHE_MCP_TOKEN；驗證成功後 Hermes 可經工作區 MCP 呼叫訊核工具。",
-  };
+    state: "awaiting_authorization" as const,
+    detail: "已設定端點，尚未完成 initialize／tools/list。",
+  });
 }
 
 type RpcResult = {

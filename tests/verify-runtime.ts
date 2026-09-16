@@ -6,7 +6,6 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
-import { signInConsole } from "./playwright-login";
 
 // Production Console + real Chrome + isolated HTTP discovery fixture.
 // The fixture declares tools; it never pretends to execute Hermes or Canva.
@@ -120,8 +119,14 @@ try {
   await signInConsole(page);
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   const inspector = page.getByRole("region", { name: "Hermes Runtime 狀態" });
-  await expect(inspector.locator(".runtime-human-summary")).not.toContainText("/");
-  await inspector.locator(".runtime-advanced > summary").click();
+  await expect(inspector.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
+  await expect(inspector.getByText("fixture_tool_000", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "外觀設定", exact: true }).click();
+  await page.getByRole("tab", { name: "進階", exact: true }).click();
+  await page.getByRole("checkbox", { name: /顯示維運檢視/ }).check();
+  await page.getByRole("button", { name: "關閉面板", exact: true }).click();
+  await expect(inspector.getByRole("button", { name: "開發者檢視", exact: true })).toBeVisible();
+  await inspector.getByRole("button", { name: "開發者檢視", exact: true }).click();
   await expect(
     inspector.getByText("fixture_tool_000", { exact: true }),
   ).toBeVisible();
@@ -193,11 +198,18 @@ try {
     .getByRole("button", { name: "選擇這個方向" })
     .click();
   await expect(
-    page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).toHaveValue(/第 2 個方向/);
+    page.getByRole("heading", { name: "任務", exact: true }),
+  ).toBeVisible();
   await expect(
-    page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).not.toHaveValue(new RegExp(workflow.id));
+    page
+      .locator(".direction.selected")
+      .getByRole("heading", { name: "測試方向 2", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("缺授權")).toHaveCount(0);
+  await expect(page.getByText("阻塞點")).toHaveCount(0);
   const saved = await (
     await context.request.get(base + "/api/workflows")
   ).json();

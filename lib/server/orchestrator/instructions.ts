@@ -8,6 +8,8 @@ import {
   CANVA_INSTRUCTION_PACK,
   COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,
+  LOCKED_DIRECTION_INSTRUCTION_PACK,
+  IMAGE_REVIEW_PACK,
   VISUAL_INSTRUCTION_PACK,
   FAST_TASK_INSTRUCTIONS,
   FRAMELAB_INSTRUCTION_PACK,
@@ -32,7 +34,9 @@ export type InstructionPackId =
   | "zenclub"
   | "galley"
   | "inspiration"
+  | "locked"
   | "audience"
+  | "image"
   | "visual"
   | "copywriting"
   | "canva"
@@ -49,10 +53,11 @@ export function composeTaskInstructions(input: {
   text: string;
   goal: StructuredGoal;
   intentTier?: IntentTier;
+  hasImageAttachments?: boolean;
 }) {
   const tier = input.intentTier || input.goal.intentTier;
   const specialist = specialistInstructions(input.mode);
-  if (shouldFastPlan(input.goal) && isFastTier(tier)) {
+  if (isFastTier(tier) && !input.hasImageAttachments) {
     return {
       instructions: specialist || FAST_TASK_INSTRUCTIONS,
       packs: ["fast"] as InstructionPackId[],
@@ -80,27 +85,33 @@ export function composeTaskInstructions(input: {
     packs.push("tamkang");
   }
   if (
-    input.goal.requiresResearch ||
-    input.goal.requiresInspiration ||
-    input.goal.requiresDesign
+    !input.goal.requiresImageReview &&
+    (input.goal.requiresInspiration ||
+      (input.goal.requiresDesign && !input.goal.directionLocked))
   ) {
-    parts.push(GALLEY_INSTRUCTION_PACK);
-    packs.push("galley");
-  }
-  if (input.goal.requiresInspiration || input.goal.requiresDesign) {
-    parts.push(INSPIRATION_INSTRUCTION_PACK);
-    packs.push("inspiration");
+    parts.push(GALLEY_INSTRUCTION_PACK, INSPIRATION_INSTRUCTION_PACK);
+    packs.push("galley", "inspiration");
   }
   if (input.goal.requiresAudienceEvaluation) {
     parts.push(AUDIENCE_INSTRUCTION_PACK);
     packs.push("audience");
   }
-  if (input.goal.requiresImageAnalysis) {
-    parts.push(IMAGE_ANALYSIS_INSTRUCTION_PACK);
+  const imageReview =
+    input.goal.requiresImageReview || Boolean(input.hasImageAttachments);
+  if (imageReview) {
+    parts.push(IMAGE_REVIEW_PACK);
     packs.push("image");
+    if (!packs.includes("audience")) {
+      parts.push(AUDIENCE_INSTRUCTION_PACK);
+      packs.push("audience");
+    }
+    if (!packs.includes("visual")) {
+      parts.push(VISUAL_INSTRUCTION_PACK);
+      packs.push("visual");
+    }
   }
   if (
-    !input.goal.requiresImageAnalysis &&
+    !input.goal.requiresImageReview &&
     (input.goal.requiresDesign ||
       input.goal.output ||
       /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
@@ -111,20 +122,23 @@ export function composeTaskInstructions(input: {
     packs.push("copywriting");
   }
   if (
-    !input.goal.requiresImageAnalysis &&
+    !input.goal.requiresImageReview &&
     (input.goal.requiresDesign || input.goal.output)
   ) {
-    parts.push(
-      VISUAL_INSTRUCTION_PACK,
-      DIRECTION_INSTRUCTION_PACK,
-      CANVA_INSTRUCTION_PACK,
-    );
+    parts.push(VISUAL_INSTRUCTION_PACK);
+    if (input.goal.directionLocked) {
+      parts.push(LOCKED_DIRECTION_INSTRUCTION_PACK);
+      packs.push("locked");
+    } else {
+      parts.push(DIRECTION_INSTRUCTION_PACK);
+    }
+    parts.push(CANVA_INSTRUCTION_PACK);
     packs.push("visual", "canva");
   }
   const includeLumenManual =
-    isLumenIntent(input.text) && !input.goal.requiresImageAnalysis;
+    !input.goal.directionLocked && isLumenIntent(input.text);
   const includeFramelabManual =
-    isFramelabIntent(input.text) && !input.goal.requiresImageAnalysis;
+    !input.goal.directionLocked && isFramelabIntent(input.text);
   if (includeLumenManual) {
     parts.push(LUMEN_INSTRUCTION_PACK);
     packs.push("lumen");
@@ -156,11 +170,15 @@ export function composeTaskInstructions(input: {
 export function dropOptionalPacks(composed: ReturnType<typeof composeTaskInstructions>) {
   if (composed.packs.includes("fast") || composed.packs.includes("research") || composed.packs.includes("admin"))
     return composed;
+  const packs: InstructionPackId[] = ["base", "workspace"];
+  const parts = [BASE_CREATIVE_INSTRUCTIONS, WORKSPACE_INSTRUCTION_PACK];
+  if (composed.packs.includes("locked")) {
+    parts.push(LOCKED_DIRECTION_INSTRUCTION_PACK);
+    packs.push("locked");
+  }
   return {
-    instructions: [BASE_CREATIVE_INSTRUCTIONS, WORKSPACE_INSTRUCTION_PACK].join(
-      "\n",
-    ),
-    packs: ["base", "workspace"] as InstructionPackId[],
+    instructions: parts.join("\n"),
+    packs,
     includeLumenManual: false,
     includeFramelabManual: false,
   };

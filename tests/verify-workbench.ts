@@ -4,7 +4,6 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { signInConsole } from "./playwright-login";
 const data = await mkdtemp(join(tmpdir(), "hermes-workbench-ui-"));
 const port = Number(process.env.WORKBENCH_TEST_PORT || 3418), base = "http://127.0.0.1:" + port;
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port), "-H", "127.0.0.1"], {
@@ -34,8 +33,10 @@ try {
   const body = await page.locator("body").innerText();
   for (const word of ["受邀電子信箱","寄送登入連結","歡迎回到 Hermes","正在驗證工作區存取"])
     assert.ok(!body.includes(word), "invitation UI visible: "+word);
-  await page.getByRole("button",{name:"專案",exact:true}).click();
+  await page.getByRole("navigation", { name: "快速導覽" }).getByRole("button",{name:"專案",exact:true}).click();
   await page.locator(".workbench-disclosure > summary").click();
+  await expect(page.getByRole("button",{name:"請 Hermes 寫 A／B／C",exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"請 Hermes 接續創作",exact:true})).toBeEnabled();
   await page.getByRole("button",{name:"建立活動資料",exact:true}).click();
   await page.getByLabel("活動資料標題",{exact:true}).fill("驗證活動");
   for (const [label,value] of [["活動名稱","春日創作展"],["日期","2026-10-01"],["地點","活動展示廳"]])
@@ -43,6 +44,7 @@ try {
   await page.getByRole("button",{name:"保存活動資料",exact:true}).click();
   await expect(page.getByText("活動已保存，新增或變更的資訊仍需核對。")).toBeVisible();
   await page.getByText("驗證活動 · v1",{exact:true}).click();
+  await expect(page.getByRole("button",{name:"請 Hermes 整理三個方向",exact:true})).toBeDisabled();
   for (const value of ["春日創作展","2026-10-01","活動展示廳"])
     await page.locator(".fact-row").filter({has:page.getByText(value,{exact:true})}).getByRole("button",{name:"確認此資訊"}).click();
   await page.getByRole("button",{name:"新增文案草稿",exact:true}).click();
@@ -68,6 +70,9 @@ try {
   assert.equal(exported.status(),200);
   assert.match(await exported.text(),/一起看看春日創作/);
   await page.screenshot({path:join(output,"workbench-mobile-390.png"),fullPage:true});
+  await page.getByRole("button",{name:"在對話接續修改",exact:true}).last().click();
+  await expect(page.getByRole("textbox",{name:"訊息",exact:true})).toHaveValue("請接續修改同一作品。");
+  await expect(page.getByRole("textbox",{name:"訊息",exact:true})).not.toContainText("workspace_get_copy");
   await page.getByRole("button",{name:"外觀設定"}).click();
   await page.getByRole("tab",{name:"工作區",exact:true}).click();
   await page.getByText("進階 · 學習紀錄與會話").click();
@@ -96,7 +101,7 @@ try {
   assert.equal((await (await context.request.get(base+"/api/learning")).json()).nodes.length,2);
   assert.equal((await context.request.get(base+"/api/creative")).status(),200);
   assert.deepEqual(errors,[]);
-  console.log("PASS: real production browser signed-in workbench; activity confirmation; two-page revisions/export; persistent learning tree with honest unconfigured state. Hermes memory and Canva NOT live verified.");
+  console.log("PASS: real production browser no-login workbench; activity confirmation; two-page revisions/export; persistent learning tree with honest unconfigured state. Hermes memory and Canva NOT live verified.");
 } catch (error) {
   const page = browser.contexts()[0]?.pages()[0];
   if (page) {

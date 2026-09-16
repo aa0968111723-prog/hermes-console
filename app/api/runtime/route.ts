@@ -1,7 +1,7 @@
 import { z } from "zod";
 import {
   authenticate,
-  isWorkspaceOperator,
+  canInspectRuntime,
   jsonBody,
   respond,
   route,
@@ -14,7 +14,7 @@ export const GET = route(async (req) => {
   const snapshot = runtimeSnapshot(owner) || (await syncRuntime(owner));
   void syncRuntime(owner).catch(() => {});
   return respond({
-    snapshot: presentRuntimeSnapshot(snapshot, isWorkspaceOperator(req)),
+    snapshot: presentRuntimeSnapshot(snapshot, canInspectRuntime(req)),
     stale: snapshot.status === "stale",
   });
 });
@@ -26,7 +26,7 @@ export const POST = route(async (req) => {
   return respond({
     snapshot: presentRuntimeSnapshot(
       await syncRuntime(owner, { force: true }),
-      isWorkspaceOperator(req),
+      canInspectRuntime(req),
     ),
   });
 });

@@ -432,7 +432,8 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
     runsSupport: capability("run_submission"),
     memorySupport: capability("memory"),
     responsesSupport: capability("responses_api"),
-    imageInputSupport: "unknown",
+    imageInputSupport:
+      process.env.HERMES_IMAGE_INPUT === "true" ? "available" : "unsupported",
     status:
       !online && before
         ? "stale"

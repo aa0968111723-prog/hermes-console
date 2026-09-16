@@ -270,8 +270,19 @@ test("password hashing, identity linking and unconfigured SSO", async (t) => {
     assert.equal((await auth.GET(request("auth", "GET", undefined, cookie))).status, 401);
   });
 
-  await t.test("artifact API requires a workspace session", async () => {
-    assert.equal((await artifacts.GET(request("artifacts"))).status, 401);
+  await t.test("artifact API follows no-login unless auth is enforced", async () => {
+    assert.equal((await artifacts.GET(request("artifacts"))).status, 200);
+    const previousAllow = process.env.CONSOLE_ALLOW_LOCAL_ACCESS;
+    const previousRequired = process.env.CONSOLE_AUTH_REQUIRED;
+    process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "false";
+    process.env.CONSOLE_AUTH_REQUIRED = "true";
+    try {
+      assert.equal((await artifacts.GET(request("artifacts"))).status, 401);
+    } finally {
+      process.env.CONSOLE_ALLOW_LOCAL_ACCESS = previousAllow;
+      if (previousRequired === undefined) delete process.env.CONSOLE_AUTH_REQUIRED;
+      else process.env.CONSOLE_AUTH_REQUIRED = previousRequired;
+    }
     const { cookie } = seedSession();
     assert.equal((await artifacts.GET(request("artifacts", "GET", undefined, cookie))).status, 200);
     const forged = await artifacts.POST(

@@ -85,7 +85,7 @@ export function reviewCopy(input: {
   if (lint.some((item) => item.severity === "block"))
     next.push("先拿掉宗教宣傳或未確認地點，再給新生看。");
   if (facts.location.kind === "UNKNOWN")
-    next.push("地點仍是 UNKNOWN，對外文案標未定，不要捏造教室。");
+    next.push("地點還沒定，對外文案標未確認，不要捏造教室。");
   if (personas.filter((item) => !item.wouldStop).length >= 5)
     next.push("超過一半新生視角不會停下來，主標改成生活場景。");
   if (!next.length) next.push("三版可給幹部選；選定後才保存，不要發佈。");

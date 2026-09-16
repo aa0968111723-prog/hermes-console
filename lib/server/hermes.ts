@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
 import { ApiError, assertSafeServiceUrl, redact } from "./security";
-import { studentHermesError } from "./errors";
+import { STUDENT_HERMES_UNCONFIGURED, studentHermesError } from "./errors";
 import { get, probeStore, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
 import {
@@ -41,7 +41,7 @@ export function resolveAgent(agent?: HermesAgent) {
       503,
       "hermes_unconfigured",
       role === "general"
-        ? "Hermes 還沒連上。請到設定的連線頁。"
+        ? STUDENT_HERMES_UNCONFIGURED
         : "此 Agent 尚未完成連線設定。",
     );
   return { role, credentialReference, key, url };
@@ -53,7 +53,7 @@ export function target(raw?: string, key?: string) {
     throw new ApiError(
       503,
       "hermes_unconfigured",
-      "Hermes 還沒連上。請到設定的連線頁。",
+      STUDENT_HERMES_UNCONFIGURED,
     );
   const url = assertSafeServiceUrl(urlValue, "hermes");
   url.pathname = url.pathname.replace(/\/$/, "").replace(/\/v1$/, "");
@@ -300,7 +300,7 @@ function uncheckedHealth(): Health {
     status: present ? "verifying" : "unconfigured",
     message: present
       ? "尚未完成連線探測。"
-      : "Hermes 還沒連上。請到設定的連線頁。",
+      : STUDENT_HERMES_UNCONFIGURED,
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,
@@ -324,6 +324,21 @@ export function healthSnapshot(owner: string): Health {
   } catch {
     return fallbackHealth("儲存庫無法使用。");
   }
+}
+
+export function hermesConnectionStatus() {
+  const hermesUrl = credentialPresence("HERMES_API_URL");
+  const hermesKey = credentialPresence("HERMES_API_KEY");
+  const configured = hermesUrl.configured && hermesKey.configured;
+  return {
+    hermesUrl,
+    hermesKey,
+    configured,
+    status: configured ? ("verifying" as const) : ("unconfigured" as const),
+    message: configured
+      ? "已設定 Hermes 連線，尚未完成探測。"
+      : STUDENT_HERMES_UNCONFIGURED,
+  };
 }
 
 /** Task submit: cached valid/unconfigured/failed answers immediately. Probe models only while verifying. */
@@ -356,7 +371,7 @@ export async function health(
     credential: "missing",
     agent: "unverified",
     status: "unconfigured",
-    message: "Hermes 還沒連上。請到設定的連線頁。",
+    message: STUDENT_HERMES_UNCONFIGURED,
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,
@@ -565,7 +580,7 @@ export const GALLEY_INSTRUCTION_PACK =
   "設計創作、生成模型、NVIDIA NIM、影片工具或來源優先研究時，先呼叫 galley_capability；已連接則用 galley_research 或 galley_intel。GALLEY 未設定時明確說未配置，不得憑記憶填來源。GitHub 網址不是 MCP 端點。";
 
 export const INSPIRATION_INSTRUCTION_PACK =
-  "幫我找靈感時自行決定 Instagram／Pinterest／Web／Canva／Behance／Dribbble／專案歷史；不要假裝已搜尋完整 Instagram 或 Pinterest。";
+  "找靈感時必須呼叫 workspace_search_inspiration。幫我找靈感時自行決定 Instagram／Pinterest／Web／Canva／Behance／Dribbble／專案歷史；不要假裝已搜尋完整 Instagram 或 Pinterest。不得宣稱已搜尋整個 Instagram。";
 
 export const AUDIENCE_INSTRUCTION_PACK =
   "建立 Audience Twin 時分開 Evidence 與 Hypothesis。反向思考必須呼叫 workspace_simulate_audience，用十個淡江新生人格模擬第一眼（住宿／通勤／內向／社牛／課業壓力／想交朋友／怕宗教／對禪好奇／沒興趣／設計系視覺敏感）。分數只是比較工具，禁止寫 90 分以上或轉換率。永遠標 SIMULATION，並說明為什麼會停、為什麼有壓力、看不看得懂、為什麼願或不願填表／走進。沒有視覺描述時標 UNKNOWN，不得假裝已看圖。";
@@ -587,6 +602,14 @@ export const VISUAL_INSTRUCTION_PACK = [
 
 export const DIRECTION_INSTRUCTION_PACK =
   "提出 3–5 個策略層不同的創作方向（不是只換顏色），等待使用者選擇後再製作草稿。來源上限 30，方向最多 5，受眾角色最多 5，修訂最多 3。";
+
+export const LOCKED_DIRECTION_INSTRUCTION_PACK =
+  "使用者已選定方向。依此方向製作，不要重開無關的新企劃。缺授權時保留阻塞點，不要宣稱設計完成。禁止再呼叫 workspace_search_inspiration。禁止再呼叫 workspace_save_directions。修改時使用 copyId 與最新 expectedRevision。";
+
+export const IMAGE_REVIEW_PACK = [
+  "先讀附件畫面再給修改建議。沒讀到像素就標還沒看圖，只根據文字，不要假裝已分析畫面。",
+  "Audience Twin 只能標 SIMULATION。這不是已改稿。",
+].join("\n");
 
 export const CANVA_INSTRUCTION_PACK = [
   "Canva 未授權時研究與創意流程仍完成，最後標記 Needs Canva Authorization，不得假裝設計成功。",

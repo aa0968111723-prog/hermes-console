@@ -1,15 +1,18 @@
 import { z } from "zod";
 import { checkOrigin, jsonBody, respond, route } from "@/lib/server/security";
-import { requireUser } from "@/lib/server/identity";
+import { emailInput } from "@/lib/server/invitations";
 import {
-  linkEmailToUser,
-  registerWithEmail,
+  authCookie,
+  loginEmail,
+  linkEmail,
+  redeemMagic,
+  registerEmail,
   requestMagicLink,
-  requestPasswordReset,
+  requestReset,
+  requireUser,
   resetPassword,
-  signInWithEmail,
-  verifyEmailToken,
-} from "@/lib/server/auth-email";
+  verifyEmail,
+} from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 
@@ -20,67 +23,75 @@ export const POST = route(async (req) => {
       z
         .object({
           action: z.literal("register"),
-          email: z.string(),
-          password: z.string().min(12).max(200),
-          name: z.string().trim().min(1).max(80),
+          email: emailInput,
+          password: z.string().min(10).max(200),
+          name: z.string().trim().max(80).optional(),
         })
         .strict(),
       z
         .object({
           action: z.literal("login"),
-          email: z.string(),
+          email: emailInput,
           password: z.string().min(1).max(200),
         })
         .strict(),
+      z.object({ action: z.literal("magic_link"), email: emailInput }).strict(),
       z
-        .object({ action: z.literal("magic"), email: z.string() })
-        .strict(),
-      z
-        .object({ action: z.literal("verify"), token: z.string() })
-        .strict(),
-      z
-        .object({ action: z.literal("forgot"), email: z.string() })
+        .object({
+          action: z.literal("redeem"),
+          token: z.string().regex(/^[a-f0-9]{64}$/),
+        })
         .strict(),
       z
         .object({
+          action: z.literal("verify"),
+          token: z.string().regex(/^[a-f0-9]{64}$/),
+        })
+        .strict(),
+      z.object({ action: z.literal("forgot"), email: emailInput }).strict(),
+      z
+        .object({
           action: z.literal("reset"),
-          token: z.string(),
-          password: z.string().min(12).max(200),
+          token: z.string().regex(/^[a-f0-9]{64}$/),
+          password: z.string().min(10).max(200),
         })
         .strict(),
       z
         .object({
           action: z.literal("link"),
-          email: z.string(),
-          password: z.string().min(12).max(200),
+          email: emailInput,
+          password: z.string().min(10).max(200),
         })
         .strict(),
     ])
     .parse(await jsonBody(req, 4000));
   if (input.action === "register") {
-    const result = await registerWithEmail(input);
+    const result = await registerEmail(input, req);
     return respond(
-      { message: result.message, verified: result.verified, signedIn: result.signedIn },
-      result.signedIn ? 201 : 202,
-      result.cookie ? { "Set-Cookie": result.cookie } : {},
+      { message: result.message, signedIn: !!result.token },
+      result.token ? 201 : 202,
+      result.token ? { "Set-Cookie": authCookie(result.token) } : {},
     );
   }
   if (input.action === "login") {
-    const result = signInWithEmail(input.email, input.password);
-    return respond({ signedIn: true }, 200, { "Set-Cookie": result.cookie });
+    const result = loginEmail(input.email, input.password, req);
+    return respond({ signedIn: true }, 200, {
+      "Set-Cookie": authCookie(result.token),
+    });
   }
-  if (input.action === "magic")
+  if (input.action === "magic_link")
     return respond(await requestMagicLink(input.email), 202);
-  if (input.action === "verify") {
-    const result = verifyEmailToken(input.token);
-    return respond({ signedIn: true }, 200, { "Set-Cookie": result.cookie });
-  }
   if (input.action === "forgot")
-    return respond(await requestPasswordReset(input.email), 202);
-  if (input.action === "link") {
-    const user = requireUser(req);
-    return respond(await linkEmailToUser(user.id, input.email, input.password));
-  }
-  const result = resetPassword(input.token, input.password);
-  return respond({ signedIn: true }, 200, { "Set-Cookie": result.cookie });
+    return respond(await requestReset(input.email), 202);
+  if (input.action === "link")
+    return respond(await linkEmail(requireUser(req).id, input));
+  const result =
+    input.action === "redeem"
+      ? redeemMagic(input.token, req)
+      : input.action === "verify"
+        ? verifyEmail(input.token, req)
+        : resetPassword(input.token, input.password, req);
+  return respond({ signedIn: true }, 200, {
+    "Set-Cookie": authCookie(result.token),
+  });
 });

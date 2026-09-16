@@ -7,9 +7,14 @@ import {
   pollDraft,
   restoreArtifact,
 } from "@/lib/server/workflows";
-export const GET = route(async (req) =>
-  respond({ workflows: listWorkflows(authenticate(req)) }),
-);
+import { listArtifacts } from "@/lib/server/artifacts";
+export const GET = route(async (req) => {
+  const owner = authenticate(req);
+  return respond({
+    workflows: listWorkflows(owner),
+    artifacts: listArtifacts(owner),
+  });
+});
 export const PATCH = route(async (req) => {
   const owner = authenticate(req, true);
   const input = z
