@@ -54,6 +54,8 @@ const UNAVAILABLE = new Set([
   "mcp_credential_missing",
   "invalid_mcp_target",
   "images_unverified",
+  "hermes_not_ready",
+  "hermes_unconfigured",
 ]);
 const RATE = new Set(["RATE_LIMIT", "rate_limited"]);
 const INPUT = new Set([

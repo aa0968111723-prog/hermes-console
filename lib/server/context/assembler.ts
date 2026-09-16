@@ -75,12 +75,22 @@ export function assembleContext(input: {
       item({
         id: message.id,
         source: "conversation",
-        title: message.role === "user" ? "使用者" : "Hermes",
+        title:
+          message.role === "user"
+            ? "使用者"
+            : message.provenance === "workspace"
+              ? "工作區"
+              : "Hermes",
         content: message.content.slice(0, 400),
         recency: recencyScore(message.createdAt),
         importance: 0.45,
         relevance: relevanceTo(message.content, query),
-        confidence: message.provenance === "hermes" ? 0.7 : 0.4,
+        confidence:
+          message.provenance === "hermes"
+            ? 0.7
+            : message.provenance === "workspace"
+              ? 0.5
+              : 0.4,
         truth: message.role === "user" ? "USER_PROVIDED" : "INFERENCE",
       }),
     );

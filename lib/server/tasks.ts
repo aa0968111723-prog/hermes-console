@@ -41,6 +41,13 @@ import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
 import { classifyResume, resumeNotice } from "./orchestrator/recovery";
 import { toolEventHasUsableOutput } from "./tool-result";
+import { interpretGoal } from "./orchestrator/goal";
+import {
+  searchInspiration,
+  toInspirationPack,
+} from "./inspiration/engine";
+import { isInspirationSearchPack } from "../inspiration-pack";
+import type { StructuredGoal } from "../contracts";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -205,9 +212,16 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   }
   limited("tasks:" + owner, 20, 60_000);
   const connection = await health(owner);
-  if (connection.credential !== "valid")
+  const goal = interpretGoal(input.input);
+  const localInspiration = canFulfillLocalInspiration(
+    connection.credential,
+    goal,
+    input.attachments,
+  );
+  if (connection.credential !== "valid" && !localInspiration)
     throw new ApiError(503, "hermes_not_ready", connection.message);
   const native =
+    !localInspiration &&
     connection.features.run_submission &&
     connection.features.run_status &&
     input.attachments.length === 0;
@@ -255,7 +269,12 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       );
     if (list<Task>("task", owner).filter(active).length >= 3)
       throw new ApiError(429, "concurrency_limit", "最多同時執行三項任務。");
-    event(task, "已在後端保存任務，準備提交 Hermes。");
+    event(
+      task,
+      localInspiration
+        ? "已在後端保存任務，改由工作區靈感搜尋；不是 Hermes。"
+        : "已在後端保存任務，準備提交 Hermes。",
+    );
     put("task", owner, task);
     conv.messages.push({
       id: randomUUID(),
@@ -272,6 +291,12 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     return task;
   });
   if (reserved.id !== task.id) return reserved;
+  if (localInspiration)
+    return fulfillWorkspaceInspiration(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
   const controller = new AbortController();
   workers.set(task.id, controller);
   // Requires a persistent Node process (not a serverless invocation).
@@ -279,6 +304,100 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     workers.delete(task.id),
   );
   return task;
+}
+function canFulfillLocalInspiration(
+  credential: string,
+  goal: StructuredGoal,
+  attachments: string[],
+) {
+  return (
+    credential !== "valid" &&
+    goal.requiresInspiration &&
+    !goal.directionLocked &&
+    attachments.length === 0
+  );
+}
+function httpsEventSources(urls: string[]) {
+  return urls.filter((value) => {
+    try {
+      return new URL(value).protocol === "https:";
+    } catch {
+      return false;
+    }
+  });
+}
+function fulfillWorkspaceInspiration(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const goal = interpretGoal(task.input);
+  task.goal = goal;
+  const found = searchInspiration({
+    prompt: task.input,
+    projectId: conv.projectId,
+  });
+  const pack = toInspirationPack({
+    prompt: task.input,
+    projectId: conv.projectId,
+    items: found.items,
+    query: found.query,
+  });
+  if (!isInspirationSearchPack(pack) || pack.directions.length < 1) {
+    task.state = "failed";
+    task.error = "工作區靈感沒有可用方向；沒有用假資料補上。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  event(task, "已整理工作區靈感方向；不是 Hermes 執行。", "plan");
+  event(
+    task,
+    pack.notice,
+    "completed",
+    "workspace_search_inspiration",
+    pack,
+  );
+  const last = task.events[task.events.length - 1];
+  last.sources = httpsEventSources([
+    ...pack.directions.flatMap((item) => item.evidenceUrls),
+    ...pack.cards.map((item) => item.sourceUrl),
+  ]).slice(0, 20);
+  task.output = [
+    "已從工作區整理創作方向。",
+    pack.notice,
+    "這不是 Hermes Agent 執行，也沒有搜尋整個 Instagram 或 Pinterest。",
+    goal.requiresDesign
+      ? "視覺出圖與 Canva 需要 Hermes 連線後才能做；現在沒有假裝已出圖。"
+      : "",
+    goal.requiresTamkang
+      ? "沒有連到淡江資料源；校園細節標為未驗證。"
+      : "",
+    "選一個方向後可整理文案規格。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳靈感方向（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
 }
 async function execute(
   owner: string,

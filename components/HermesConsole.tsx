@@ -1241,12 +1241,19 @@ export default function HermesConsole() {
                         className={"message " + message.role}
                       >
                         <div className="message-byline">
-                          {message.role === "user" ? "你" : "Hermes"}
+                          {message.role === "user"
+                            ? "你"
+                            : message.provenance === "workspace"
+                              ? "工作區"
+                              : "Hermes"}
                           <time dateTime={message.createdAt}>
                             {time(message.createdAt)}
                           </time>
                           {message.provenance === "legacy_unverified" && (
                             <span>舊資料 · 未驗證</span>
+                          )}
+                          {message.provenance === "workspace" && (
+                            <span>不是 Hermes</span>
                           )}
                         </div>
                         <div className="message-content">

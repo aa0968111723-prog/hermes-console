@@ -50,6 +50,7 @@ child.stdout?.on("data", (data) => {
 child.stderr?.on("data", (data) => {
   serverOutput += data.toString();
 });
+const TEA = "幫我找淡大禪學社茶會宣傳靈感";
 const output = resolve("output/playwright");
 await mkdir(output, { recursive: true });
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
@@ -270,6 +271,23 @@ try {
   }
   const dockNav = page.getByRole("navigation", { name: "快速導覽" });
   await expect(dockNav).toBeVisible();
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(TEA);
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: /選方向 A/ }),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.locator(".message.assistant .message-byline"),
+  ).toContainText("工作區");
+  await expect(page.getByText("不是 Hermes", { exact: true })).toBeVisible();
+  await expect(page.getByText("未搜全站")).toBeVisible();
+  await expect(page.getByText(/不是 Hermes Agent 執行/)).toBeVisible();
+  await expect(page.getByText(/已搜尋整個 Instagram/)).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "chat-inspiration-mobile.png"),
+    fullPage: true,
+  });
   await expect(page.getByRole("button", { name: "對話列表" })).toBeVisible();
   await page.getByRole("button", { name: "對話列表" }).click();
   const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });

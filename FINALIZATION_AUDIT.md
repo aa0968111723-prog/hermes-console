@@ -66,3 +66,4 @@
 24. 選定方向後 `directionLocked`：不再找靈感、不再 `workspace_save_directions`；計畫改為專案上下文 → 視覺規格 → 文案 → Canva 規格。即使跟進句含「文案／視覺／淡大」也不重跑靈感搜尋。token 裁切後仍保留鎖定指示，不會退回「再找靈感」
 25. 選定方向後立刻編譯可見的文案 A／B／C 與 4:5／9:16／A4 規格卡（規則草稿）。不是 Hermes 生成、不是已出圖。Hermes 未連線時仍可看到規格，並誠實提示尚未連線
 26. 選定方向會寫入候選活動（無捏造日期地點）與可改版文案 `copyId`。同一方向的後續修改沿用同一文案 id；專案脈絡帶出 `activityId`／`copyId`
+27. Hermes 未設定時，對話「找靈感」仍走工作區 `workspace_search_inspiration`，顯示方向卡。 provenance=`workspace`，不寫 Agent verified，不假裝已搜 Instagram／已連淡江／已出圖。非靈感對話仍回 `hermes_not_ready`

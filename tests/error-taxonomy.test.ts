@@ -9,6 +9,7 @@ test("error taxonomy maps auth, tool, and unconfigured codes", () => {
   assert.equal(errorCategory("session_not_found"), "AUTH_ERROR");
   assert.equal(errorCategory("membership_required"), "PERMISSION_ERROR");
   assert.equal(errorCategory("hermes_unconfigured"), "TOOL_UNAVAILABLE");
+  assert.equal(errorCategory("hermes_not_ready"), "TOOL_UNAVAILABLE");
   assert.equal(errorCategory("canva_unconfigured"), "TOOL_UNAVAILABLE");
   assert.equal(errorCategory("galley_unconfigured"), "TOOL_UNAVAILABLE");
   assert.equal(errorCategory("atlas_unconfigured"), "TOOL_UNAVAILABLE");
