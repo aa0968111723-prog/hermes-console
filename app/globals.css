@@ -2744,6 +2744,9 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   html[data-composer-keyboard="open"] .composer-area {
     padding-bottom: 8px;
   }
+  html[data-composer-keyboard="open"] .jump-button {
+    display: none;
+  }
 }
 
 /* P5: <=430 keyboard-open -> composer task pill shrinks to icon float (no full row). */
@@ -3176,6 +3179,9 @@ html, body {
   }
   html[data-composer-keyboard="open"] .composer-area {
     padding-bottom: 8px;
+  }
+  html[data-composer-keyboard="open"] .jump-button {
+    display: none;
   }
 }
 

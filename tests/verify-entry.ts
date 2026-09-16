@@ -267,6 +267,7 @@ try {
     "open",
   );
   await expect(page.locator(".mobile-bottom-dock")).toBeHidden();
+  await expect(page.locator(".jump-button")).toBeHidden();
   await expect
     .poll(() =>
       page
@@ -322,6 +323,7 @@ try {
   await expect(attached).toContainText("圖片已保存");
   await expect(attached).toContainText("不能讀取像素");
   await expect(attached).toContainText("假裝已看圖");
+  await attached.scrollIntoViewIfNeeded();
   await expect(page.getByText(/視覺層級：/)).toHaveCount(0);
   await expect(page.locator(".notice-bar.warning")).toHaveCount(0);
   await expect(
