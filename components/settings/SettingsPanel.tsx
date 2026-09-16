@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import dynamic from "next/dynamic";
 import { ExternalLink, Plus, RefreshCw } from "lucide-react";
 import type { Health, Material, Task } from "@/lib/contracts";
@@ -111,6 +117,22 @@ export default function SettingsPanel({
   onNotice: (message: string) => void;
 }) {
   const [creating, setCreating] = useState(false);
+  const pendingTabFocus = useRef<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (pendingTabFocus.current !== settingsTab) return;
+    const tabId = "setting-tab-" + settingsTab;
+    const restore = () => document.getElementById(tabId)?.focus();
+    restore();
+    const retries = [0, 50, 200].map((ms) => window.setTimeout(restore, ms));
+    const done = window.setTimeout(() => {
+      pendingTabFocus.current = null;
+    }, 400);
+    return () => {
+      retries.forEach((id) => window.clearTimeout(id));
+      window.clearTimeout(done);
+    };
+  }, [settingsTab]);
 
   async function refreshConnections() {
     onHealth(await consoleApi<Health>("health", "POST", {}));
@@ -148,9 +170,12 @@ export default function SettingsPanel({
                     (event.key === "ArrowRight" ? 1 : -1) +
                     tabs.length) %
                   tabs.length;
+          const name = TABS[next];
+          if (!name) return;
           event.preventDefault();
+          pendingTabFocus.current = name;
+          onTab(name);
           tabs[next]?.focus();
-          tabs[next]?.click();
         }}
       >
         {TABS.map((tab) => (
@@ -171,7 +196,6 @@ export default function SettingsPanel({
         role="tabpanel"
         id="setting-panel"
         aria-labelledby={"setting-tab-" + settingsTab}
-        tabIndex={0}
       >
         {settingsTab === "帳號" ? (
           <AccountPanel />
