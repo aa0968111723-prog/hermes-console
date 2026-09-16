@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { Check, ChevronDown, CircleAlert, RefreshCw } from "lucide-react";
 import type { HermesRuntimeSnapshot, ToolDescriptor } from "@/lib/runtime";
 import AgentOrbit from "./visual/AgentOrbit";
@@ -94,10 +101,12 @@ export default function RuntimeInspector({
   task,
   health = null,
   animation = true,
+  children,
 }: {
   task?: Task;
   health?: Health | null;
   animation?: boolean;
+  children?: ReactNode;
 }) {
   const [snapshot, setSnapshot] = useState<HermesRuntimeSnapshot | null>(null);
   const [stale, setStale] = useState(false);
@@ -243,9 +252,6 @@ export default function RuntimeInspector({
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>
-        <div>
-          <h2>Agent</h2>
-        </div>
         <div className="runtime-actions">
           <button onClick={() => void refresh()} disabled={busy}>
             <RefreshCw size={15} />
@@ -325,7 +331,7 @@ export default function RuntimeInspector({
         animation={animation}
       />
       <details className="runtime-advanced">
-        <summary>Advanced · Runtime 詳情</summary>
+        <summary>進階</summary>
         {snapshot && (
           <>
             <label>
@@ -420,6 +426,7 @@ export default function RuntimeInspector({
             </details>
           </>
         )}
+        {children}
       </details>
     </section>
   );

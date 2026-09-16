@@ -68,6 +68,15 @@ test("natural tea-party query ranks 115-1 tea facts first", () => {
   assert.equal(result.live, false);
 });
 
+test("making a tea-party poster ranks the 115-1 tea activity, not the signup form", () => {
+  const result = searchZenclubKnowledge("幫我做一張淡江新生茶會宣傳");
+  assert.equal(result.hits[0]?.entity.id, "activity:115-1-tea");
+  assert.equal(
+    result.hits[0]?.entity.claims.find((claim) => claim.field === "date")?.value,
+    "2026-09-30",
+  );
+});
+
 test("115-1 tea party facts stay verified and venue stays unknown", () => {
   const result = searchZenclubKnowledge("期初茶會");
   const tea = result.hits.find((hit) =>

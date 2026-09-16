@@ -49,6 +49,18 @@ test("club inspiration returns visual cards with overlay date, not a notes wall"
   assert.doesNotMatch(text, /Inspiration Engine/);
 });
 
+test("making a tea-party poster uses the same visual pack, not a fake Canva render", () => {
+  const text = localWorkspaceReply("幫我做一張淡江新生茶會宣傳");
+  assert.ok(text);
+  const pack = parseVisualConceptPack(text);
+  assert.ok(pack);
+  assert.equal(pack.generatedImage, false);
+  assert.equal(pack.rendered, false);
+  assert.equal(pack.overlayText?.date, "2026-09-30");
+  assert.equal(pack.overlayText?.location, null);
+  assert.match(pack.notice, /尚未連線/);
+});
+
 test("factual club query stays a short card, not a visual pack", () => {
   const text = localWorkspaceReply("禪學社期初茶會地點");
   assert.ok(text);

@@ -170,6 +170,10 @@ function scoreEntity(
   }
   if (!/114/.test(needle) && entity.semester === "115-1") score += 3;
   if (!/114/.test(needle) && entity.semester?.startsWith("114")) score -= 1;
+  if (/宣傳|海報|網宣|做一張|靈感/.test(needle)) {
+    if (entity.kind === "activity") score += 6;
+    if (entity.kind === "form") score -= 5;
+  }
   return { score, matched: [...new Set(matched)] };
 }
 

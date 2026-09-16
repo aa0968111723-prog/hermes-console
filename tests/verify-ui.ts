@@ -248,7 +248,7 @@ try {
   const dock = page.locator(".mobile-bottom-dock");
   await dock.getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Agent Runtime", exact: true }),
+    page.getByRole("heading", { name: "連線", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Hermes Runtime 狀態" }),

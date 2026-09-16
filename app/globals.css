@@ -696,6 +696,9 @@ nav button[aria-current="page"] {
   border-left: 1px solid var(--line);
   padding-left: 13px;
 }
+.topbar-new-chat {
+  display: none;
+}
 .connection-pill {
   margin-left: auto;
   font-size: 11px;
@@ -3150,6 +3153,11 @@ html, body {
     padding-bottom: 24px;
   }
   .mobile-toggle { display: none; }
+  .topbar-new-chat {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+  }
   .mobile-bottom-dock,
   .spatial-dock {
     position: fixed;

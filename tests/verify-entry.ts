@@ -146,6 +146,36 @@ try {
   await page.screenshot({
     path: join(output, "chat-local-knowledge-mobile.png"),
   });
+  await page.getByRole("button", { name: "開啟新對話", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(
+    "幫我做一張淡江新生茶會宣傳",
+  );
+  await page.getByRole("button", { name: "送出訊息" }).click();
+  await expect(
+    page.locator("article.message.assistant .visual-concept-deck"),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "執行紀錄", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".composer-task-status")).toHaveCount(0);
+  await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
+  await expect(page.getByText(/Canva 未授權/)).toBeVisible();
+  await expect(page.getByText("已搜尋整個 Instagram")).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "chat-make-poster-mobile.png"),
+  });
+  await page.getByRole("button", { name: "Agent", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "連線", exact: true })).toBeVisible();
+  await expect(page.locator(".runtime-human-summary")).toContainText("Hermes");
+  await expect(page.locator(".runtime-human-summary")).toContainText("MCP");
+  await expect(page.locator(".runtime-human-summary")).toContainText("未驗證");
+  await expect(page.locator(".runtime-human-summary")).toContainText("未設定");
+  await expect(page.locator(".runtime-advanced > summary")).toBeVisible();
+  await page.screenshot({
+    path: join(output, "agent-status-dots-mobile.png"),
+  });
+  await page.getByRole("button", { name: "對話", exact: true }).click();
   const authed = await page.request.post(base + "/api/conversations", {
     headers: { Origin: base },
     data: { title: "登入後對話" },

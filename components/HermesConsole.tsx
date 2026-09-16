@@ -1105,6 +1105,7 @@ export default function HermesConsole() {
             setSettingsTab("外觀");
             setPanel("settings");
           }}
+          onNewChat={fresh}
         />
         {(error || notice || offline) && (
           <div
@@ -1754,27 +1755,16 @@ export default function HermesConsole() {
             onScroll={(e) => rememberPageScroll(e.currentTarget)}
           >
             <div className="page-heading-row">
-              <div>
-                <p className="eyebrow">能力</p>
-                <h1>Agent Runtime</h1>
-              </div>
+              <h1>連線</h1>
               <div className="page-heading-actions">
                 <VisualStatus health={health} offline={offline} />
-                <button
-                  className="text-button"
-                  onClick={() => navigate("tasks")}
-                >
-                  任務
-                </button>
               </div>
             </div>
             <RuntimeInspector
               task={currentTask}
               health={health}
               animation={prefs.animation}
-            />
-            <details className="agent-profiles">
-              <summary>Agent OS · 設定檔</summary>
+            >
               <AgentPanel
                 agents={agents.filter(
                   (agent) =>
@@ -1782,7 +1772,7 @@ export default function HermesConsole() {
                 )}
                 brain={[]}
               />
-            </details>
+            </RuntimeInspector>
           </section>
         ) : (
           <section

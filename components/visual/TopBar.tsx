@@ -3,6 +3,7 @@ import {
   ListTodo,
   Menu,
   PanelLeftClose,
+  Plus,
   Settings,
 } from "lucide-react";
 import type { Health } from "@/lib/contracts";
@@ -35,6 +36,7 @@ export default function TopBar({
   onOpenTasks,
   onOpenConnections,
   onOpenAppearance,
+  onNewChat,
 }: {
   nav: ConsoleNav;
   mobile: boolean;
@@ -48,6 +50,7 @@ export default function TopBar({
   onOpenTasks: () => void;
   onOpenConnections: () => void;
   onOpenAppearance: () => void;
+  onNewChat: () => void;
 }) {
   const title = nav === "chat" && mobile ? "Hermes" : TITLES[nav];
   const statusText = offline
@@ -77,6 +80,14 @@ export default function TopBar({
         {title}
         <span>{projectName}</span>
       </div>
+      <button
+        className="icon-button topbar-new-chat"
+        aria-label="開啟新對話"
+        title="開啟新對話"
+        onClick={onNewChat}
+      >
+        <Plus size={20} />
+      </button>
       <button
         className="icon-button"
         aria-label="任務與成果"
