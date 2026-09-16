@@ -15,7 +15,7 @@ delete process.env.TAMKANG_SSO_CLIENT_ID;
 delete process.env.RESEND_API_KEY;
 delete process.env.CONSOLE_TEST_SESSION;
 
-const { hashPassword, verifyPasswordHash, loginWithIdentity, registerEmail, loginEmail, linkEmailIdentity, users, identitiesFor, verifyEmail } =
+const { hashPassword, verifyPasswordHash, loginWithIdentity, registerEmail, loginEmail, linkEmailIdentity, users, identitiesFor, verifyEmail, boundLinkActor } =
   await import("../lib/server/identity");
 const auth = await import("../app/api/auth/route");
 const google = await import("../app/api/auth/google/route");
@@ -85,6 +85,59 @@ test("password hashing, identity linking and unconfigured SSO", async (t) => {
       actorId: owner.id,
     });
     assert.equal(identitiesFor(owner.id).some((row) => row.provider === "google"), true);
+  });
+
+  await t.test("OAuth link stays on the original session", async () => {
+    assert.equal(boundLinkActor("login", "a", "b"), undefined);
+    assert.equal(boundLinkActor("link", "user-1", "user-1"), "user-1");
+    assert.throws(
+      () => boundLinkActor("link", "user-1", "user-2"),
+      /原本的登入工作階段/,
+    );
+    assert.throws(
+      () => boundLinkActor("link", "user-1", undefined),
+      /原本的登入工作階段/,
+    );
+    assert.equal(
+      (await google.GET(request("auth/google?mode=link"))).status,
+      401,
+    );
+    assert.equal(
+      (await tamkang.GET(request("auth/tamkang?mode=link"))).status,
+      401,
+    );
+    process.env.GOOGLE_CLIENT_ID = "test.apps.googleusercontent.com";
+    process.env.GOOGLE_CLIENT_SECRET = "test-google-secret-not-for-production";
+    try {
+      assert.equal(
+        (await google.GET(request("auth/google?mode=link"))).status,
+        401,
+      );
+      const login = await google.GET(request("auth/google"));
+      assert.equal(login.status, 302);
+      const location = login.headers.get("location") || "";
+      assert.match(location, /^https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth/);
+      assert.doesNotMatch(location, /test-google-secret|client_secret/);
+      const owner = users().find((row) => row.passwordHash)!;
+      const cookie =
+        "hermes_session=" +
+        loginEmail({
+          email: "owner@example.test",
+          password: "Test-Password-14",
+        });
+      const linked = await google.GET(
+        request("auth/google?mode=link", "GET", undefined, cookie),
+      );
+      assert.equal(linked.status, 302);
+      const linkLocation = linked.headers.get("location") || "";
+      assert.match(linkLocation, /accounts\.google\.com/);
+      assert.match(linkLocation, /state=/);
+      assert.doesNotMatch(linkLocation, /test-google-secret|client_secret/);
+      assert.equal(identitiesFor(owner.id).some((row) => row.provider === "google"), true);
+    } finally {
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+    }
   });
 
   await t.test("email link refuses another user's mailbox", async () => {
