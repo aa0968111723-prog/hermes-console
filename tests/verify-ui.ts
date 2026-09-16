@@ -457,6 +457,14 @@ try {
   await expect(
     page.getByRole("button", { name: "送出訊息", exact: true }),
   ).toBeEnabled();
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const sendNotice = page.locator(".notice-bar[role=alert]");
+  await expect(sendNotice).toContainText("Hermes 還沒連上");
+  await expect(sendNotice).not.toContainText("環境變數");
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toHaveValue("茶會宣傳");
+  await expect(page.locator(".composer-task-status")).toHaveCount(0);
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();

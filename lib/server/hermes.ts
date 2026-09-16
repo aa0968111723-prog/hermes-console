@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
-import { EMPTY_USAGE } from "../contracts";
+import { EMPTY_USAGE, HERMES_UNCONFIGURED_MESSAGE } from "../contracts";
 import { ApiError, assertSafeServiceUrl, redact } from "./security";
 import { get, probeStore, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
@@ -40,7 +40,7 @@ export function resolveAgent(agent?: HermesAgent) {
       503,
       "hermes_unconfigured",
       role === "general"
-        ? "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。"
+        ? HERMES_UNCONFIGURED_MESSAGE
         : "此 Agent 尚未設定後端網域與憑證參照。",
     );
   return { role, credentialReference, key, url };
@@ -52,7 +52,7 @@ export function target(raw?: string, key?: string) {
     throw new ApiError(
       503,
       "hermes_unconfigured",
-      "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。",
+      HERMES_UNCONFIGURED_MESSAGE,
     );
   const url = assertSafeServiceUrl(urlValue, "hermes");
   url.pathname = url.pathname.replace(/\/$/, "").replace(/\/v1$/, "");
@@ -254,7 +254,7 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     credential: "missing",
     agent: "unverified",
     status: "unconfigured",
-    message: "尚未在連線設定或後端環境變數提供 Hermes 網域與新金鑰。",
+    message: HERMES_UNCONFIGURED_MESSAGE,
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,
@@ -368,9 +368,11 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     if (state.reachable === null && state.credential !== "missing")
       state.reachable = false;
     state.message =
-      error instanceof ApiError
-        ? error.message
-        : "服務設定無效，請檢查連線設定或後端環境變數。";
+      state.credential === "missing"
+        ? HERMES_UNCONFIGURED_MESSAGE
+        : error instanceof ApiError
+          ? error.message
+          : "Hermes 連線檢查失敗，請到連線再試一次。";
   }
   try {
     put("health", owner, {

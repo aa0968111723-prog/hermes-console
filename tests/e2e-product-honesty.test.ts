@@ -59,6 +59,8 @@ test("unconfigured workspace never reports live integrations or auto-publish", a
     assert.equal(probe.credential, "missing");
     assert.notEqual(probe.status, "available");
     assert.notEqual(probe.agent, "verified");
+    assert.match(String(probe.message), /Hermes 還沒連上/);
+    assert.doesNotMatch(String(probe.message), /環境變數/);
     const space = await (await workspace.GET(request("workspace"))).json();
     assert.equal(space.memory.synced, false);
   });

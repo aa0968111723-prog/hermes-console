@@ -298,3 +298,6 @@ export type RecruitmentFunnelRead = {
     attendanceRows: "omitted";
   };
 };
+
+export const HERMES_UNCONFIGURED_MESSAGE =
+  "Hermes 還沒連上，現在不能開始任務。請到連線把 Hermes 設定好。";

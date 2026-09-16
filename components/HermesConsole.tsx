@@ -56,6 +56,7 @@ import {
 import { consoleApi as api } from "@/lib/client/console-api";
 import { taskPollDelayMs } from "@/lib/client/task-poll";
 import { isActiveTask } from "@/lib/client/workspace-ui";
+import { HERMES_UNCONFIGURED_MESSAGE } from "@/lib/contracts";
 import { useAuthOptional } from "./auth/AuthProvider";
 import { useSpatialMode } from "./visual/useSpatialMode";
 
@@ -443,6 +444,10 @@ export default function HermesConsole() {
   async function send() {
     if (busy || blocked || !text.trim() || uploads.some((u) => !u.material))
       return;
+    if (!health || health.credential !== "valid") {
+      setError(health?.message || HERMES_UNCONFIGURED_MESSAGE);
+      return;
+    }
     setBusy(true);
     setError("");
     nearBottom.current = true;

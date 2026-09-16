@@ -12,25 +12,12 @@
   --app-offset-top: 0px;
   --dock-clearance: 0px;
 }
-.workspace-loading,
-.welcome-overlay {
+.workspace-loading {
   min-height: var(--app-height);
   display: grid;
   place-items: center;
   padding: 32px;
   text-align: center;
-}
-.welcome-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  background: rgba(250, 252, 248, 0.96);
-}
-.welcome-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 18px;
 }
 .agent-grid {
   display: grid;

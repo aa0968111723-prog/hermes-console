@@ -1,4 +1,5 @@
 import type { Health } from "../contracts";
+import { HERMES_UNCONFIGURED_MESSAGE } from "../contracts";
 import { credentialPresence } from "./credentials";
 import { get, probeStore } from "./store";
 
@@ -56,7 +57,7 @@ export function publicHealthStatus(owner: string): Health {
     message:
       cached?.message ||
       (missing
-        ? "尚未在連線設定或後端環境變數提供 Hermes 網域與新金鑰。"
+        ? HERMES_UNCONFIGURED_MESSAGE
         : "已設定連線；詳細能力僅登入後可見。"),
     configSource,
     httpStatus: cached?.httpStatus ?? null,
