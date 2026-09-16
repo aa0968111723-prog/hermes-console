@@ -344,6 +344,18 @@ try {
   await page.screenshot({
     path: join(output, "chat-direction-brief-mobile.png"),
   });
+  await page.getByRole("button", { name: "任務與成果" }).click();
+  const specStage = page.getByRole("region", { name: "規格草稿預覽" });
+  await expect(specStage).toBeVisible();
+  await expect(specStage).toContainText("規格草稿");
+  await expect(specStage).toContainText("未出圖");
+  await expect(specStage).toContainText("最自然");
+  await expect(specStage).toContainText("茶會來坐一下");
+  await expect(specStage.locator(".canva-result")).toHaveCount(0);
+  await expect(page.getByText("Canva 草稿")).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "chat-direction-artifact-mobile.png"),
+  });
   await page.getByRole("button", { name: "對話列表" }).click();
   const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });
   await expect(conversationDrawer).toBeVisible();

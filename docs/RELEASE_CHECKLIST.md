@@ -39,6 +39,7 @@
 ## Artifacts / Memory
 
 - [ ] 作品有可接續的 ID；「第二版」不是無關重生
+- [ ] 選定方向的規格草稿會進任務頁作品舞台（workspace artifact），不得標成 Canva 已出圖
 - [ ] 多版本可並排預覽（不是像素 diff）後再還原
 - [ ] Memory 分得清對話／專案／工作區（Partial 則寫明）
 

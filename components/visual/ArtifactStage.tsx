@@ -4,6 +4,8 @@ import { GitBranch, Layers, MessageSquare, RotateCcw, X } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import CanvaResult from "../CanvaResult";
 import type { Artifact } from "@/lib/server/artifacts";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
+import DirectionBrief from "./DirectionBrief";
 
 export default function ArtifactStage({
   design,
@@ -42,12 +44,18 @@ export default function ArtifactStage({
   }, [artifact?.currentRevisionId, previous?.revisionId]);
   const left = revisions.find((item) => item.revisionId === leftId);
   const right = revisions.find((item) => item.revisionId === rightId);
+  const spec = isDirectionBriefPack(design);
+  const leftSpec = left && isDirectionBriefPack(left.design) ? left.design : null;
+  const rightSpec = right && isDirectionBriefPack(right.design) ? right.design : null;
   return (
-    <section className="artifact-stage" aria-label="設計成果預覽">
+    <section
+      className="artifact-stage"
+      aria-label={spec ? "規格草稿預覽" : "設計成果預覽"}
+    >
       <header>
         <span>
           <Layers size={16} />
-          成果
+          {spec ? "規格草稿" : "成果"}
           {current && <small> V{current.revision}</small>}
         </span>
         <div className="artifact-actions">
@@ -128,7 +136,11 @@ export default function ArtifactStage({
                   ))}
                 </select>
               </label>
-              <CanvaResult design={left.design} />
+              {leftSpec ? (
+                <DirectionBrief brief={leftSpec} />
+              ) : (
+                <CanvaResult design={left.design} />
+              )}
             </figure>
             <figure>
               <label>
@@ -145,10 +157,16 @@ export default function ArtifactStage({
                   ))}
                 </select>
               </label>
-              <CanvaResult design={right.design} />
+              {rightSpec ? (
+                <DirectionBrief brief={rightSpec} />
+              ) : (
+                <CanvaResult design={right.design} />
+              )}
             </figure>
           </div>
         </div>
+      ) : spec ? (
+        <DirectionBrief brief={design} />
       ) : (
         <CanvaResult design={design} onPreview={() => setOpen(true)} />
       )}

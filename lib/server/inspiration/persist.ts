@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { saveActivity, saveCopy, copyDocument } from "../creative";
-import { bindWorkflowDraft, type Workflow } from "../workflows";
-import type { DirectionBriefPack } from "../../direction-brief";
+import { bindWorkflowDraft, workflow, type Workflow } from "../workflows";
+import { listArtifacts, recordDesignRevision } from "../artifacts";
+import { isDirectionBriefPack, type DirectionBriefPack } from "../../direction-brief";
 
 export function uuidFromSeed(seed: string) {
   const hex = createHash("sha256").update(seed).digest("hex");
@@ -115,9 +116,40 @@ export function persistSelectedDirectionDraft(
     copyId: document.id,
     revision: document.revisions.at(-1)?.revision || null,
   };
-  return bindWorkflowDraft(owner, bound.id, {
+  const withCopy = bindWorkflowDraft(owner, bound.id, {
     activityId: activity.id,
     copyId: document.id,
     directionBrief: nextBrief,
   });
+  if (unchanged && previous && specArtifactUnchanged(owner, withCopy, nextBrief))
+    return withCopy;
+  recordDesignRevision(owner, {
+    projectId: withCopy.projectId,
+    workflowId: withCopy.id,
+    source: "workspace",
+    createdBy: "workspace",
+    design: { ...nextBrief },
+  });
+  return workflow(owner, withCopy.id);
+}
+
+function specArtifactUnchanged(
+  owner: string,
+  record: Workflow,
+  brief: DirectionBriefPack,
+) {
+  const artifact = listArtifacts(owner, record.projectId).find(
+    (item) => item.workflowId === record.id,
+  );
+  const current = artifact?.revisions.find(
+    (item) => item.revisionId === artifact.currentRevisionId,
+  )?.design;
+  return (
+    isDirectionBriefPack(current) &&
+    current.selected === brief.selected &&
+    current.copy.a === brief.copy.a &&
+    current.copy.b === brief.copy.b &&
+    current.copy.c === brief.copy.c &&
+    current.title === brief.title
+  );
 }

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
 import ArtifactStage from "./ArtifactStage";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
 export default function ArtifactDeck({
   items,
   artifacts = [],
@@ -24,10 +25,10 @@ export default function ArtifactDeck({
   const standalone = artifacts.filter((item) => !linked.has(item.id));
   const designs = [
     ...items
-      .filter((w) => !!w.design)
+      .filter((w) => !!w.design || isDirectionBriefPack(w.directionBrief))
       .map((w) => ({
         key: w.id,
-        design: w.design!,
+        design: w.design || { ...w.directionBrief! },
         workflowId: w.id,
         artifact: artifacts.find(
           (item) => item.id === w.artifactId || item.workflowId === w.id,

@@ -2663,7 +2663,7 @@ button.inspiration-direction-card.selected { border-color: var(--color-primary);
   border-radius: 14px;
   background: #f7faf5;
 }
-.direction-brief { display: grid; gap: 12px; margin: 16px 0 20px; }
+.artifact-stage .direction-brief { margin: 8px 0 0; }
 .direction-brief h2 { margin: 0; font-size: 1.15rem; }
 .direction-brief > p { margin: 0; font-size: 14px; line-height: 1.45; }
 .direction-format-grid {

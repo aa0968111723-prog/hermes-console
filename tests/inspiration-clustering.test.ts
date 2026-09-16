@@ -22,6 +22,8 @@ const { searchInspiration, resolveInspirationUrl, selectInspirationDirection } =
 const { copyDocument, activity: loadActivity } = await import(
   "../lib/server/creative"
 );
+const { listArtifacts } = await import("../lib/server/artifacts");
+const { isDirectionBriefPack } = await import("../lib/direction-brief");
 const { directionPickFollowUp, isInspirationSearchPack } = await import(
   "../lib/inspiration-pack"
 );
@@ -193,6 +195,22 @@ test("selecting a direction saves a workflow and is visible in project context",
   assert.equal(stored.revisions[0].pages[0].title, "A 最自然");
   assert.equal(loadActivity("workspace", first.workflow.activityId!).facts.length, 0);
   assert.equal(first.workflow.directionBrief?.revision, 1);
+  const specArtifact = listArtifacts("workspace", "personal").find(
+    (item) => item.workflowId === first.workflow.id,
+  );
+  assert.ok(specArtifact);
+  assert.equal(first.workflow.artifactId, specArtifact.id);
+  assert.equal(isDirectionBriefPack(first.workflow.design), true);
+  assert.equal(
+    (first.workflow.design as { rendered?: boolean } | null)?.rendered,
+    false,
+  );
+  assert.equal(specArtifact.source, "workspace");
+  assert.equal(specArtifact.createdBy, "workspace");
+  assert.equal(specArtifact.revisions.length, 1);
+  assert.equal(specArtifact.revisions[0].source, "workspace");
+  assert.equal(specArtifact.revisions[0].createdBy, "workspace");
+  assert.equal(isDirectionBriefPack(specArtifact.revisions[0].design), true);
   assert.equal(again.workflow.copyId, first.workflow.copyId);
   assert.equal(again.workflow.activityId, first.workflow.activityId);
   assert.equal(again.workflow.directionBrief?.revision, 1);
@@ -200,6 +218,17 @@ test("selecting a direction saves a workflow and is visible in project context",
   assert.equal(switched.workflow.copyId, first.workflow.copyId);
   assert.equal(switched.workflow.directionBrief?.revision, 2);
   assert.equal(copyDocument("workspace", switched.workflow.copyId!).revisions.length, 2);
+  assert.equal(switched.workflow.artifactId, first.workflow.artifactId);
+  const switchedArtifact = listArtifacts("workspace", "personal").find(
+    (item) => item.id === switched.workflow.artifactId,
+  );
+  assert.equal(switchedArtifact?.revisions.length, 2);
+  assert.equal(switchedArtifact?.source, "workspace");
+  assert.equal(isDirectionBriefPack(switchedArtifact?.revisions[1]?.design), true);
+  assert.equal(
+    (switchedArtifact?.revisions[1]?.design as { selected?: string }).selected,
+    "B",
+  );
   assert.match(JSON.stringify(first.workflow.directionBrief), /UNKNOWN/);
   assert.doesNotMatch(
     JSON.stringify(first.workflow.directionBrief),
