@@ -27,6 +27,7 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 - [ ] Unconfigured submit 503 is student copy, not env-var names
 - [ ] Invalid Hermes key / hanging Hermes submit copy stays student-safe
 - [ ] Cancel hits backend
+- [ ] Restart leaves running chat tasks `uncertain` (no auto-resend)
 - [ ] Empty tool output is not success
 - [ ] Offline banner; reconnect does not drop the thread
 

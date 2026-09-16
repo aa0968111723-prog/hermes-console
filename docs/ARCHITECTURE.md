@@ -26,6 +26,7 @@ Hermes Console is the human interface to that runtime. It is not a tool director
 
 - Plan, call tools, write memory through Workspace MCP, create artifacts.
 - Respect confirmation, cancel, budget, and max-step limits.
+- After Console restart, orphaned chat tasks become `uncertain` and are never auto-resent.
 - Do not expose chain-of-thought.
 
 ## Data
