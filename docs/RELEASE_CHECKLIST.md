@@ -11,7 +11,7 @@
 
 ## Auth
 
-- [ ] 未登入看到登入，不先載工作區
+- [ ] 預設免登入進入工作區。只有 `CONSOLE_AUTH_REQUIRED=true` 才看到登入閘
 - [ ] Google Authorization Code 真的跳轉 Google
 - [ ] 淡江：有 metadata 才跳校方 IdP；否則「尚未完成設定」；Console 不收集學校密碼
 - [ ] Email 註冊／驗證／magic link／重設／登出；`/#reset=` 可輸入新密碼

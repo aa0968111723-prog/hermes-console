@@ -198,6 +198,23 @@ export function eventPhaseLabel(
   return "工具";
 }
 
+/** Closed event row: phase + state only. Raw Hermes preview stays in 維運檢視. */
+export function studentEventCaption(
+  event: TaskEvent,
+  task?: Task | null,
+): string {
+  return `${eventPhaseLabel(event, task)} · ${eventStateLabel(event)}`;
+}
+
+/** In-chat task button: never render Hermes preview / tool dump. */
+export function studentTaskCaption(task: Task): string {
+  const current = workingEvent(task) || task.events.at(-1);
+  if (!current) return "查看任務進度";
+  const honesty = studentHonestyLabel(task);
+  if (honesty) return `${eventPhaseLabel(current, task)} · ${honesty}`;
+  return studentEventCaption(current, task);
+}
+
 export type ProgressStep = {
   key: string;
   label: string;

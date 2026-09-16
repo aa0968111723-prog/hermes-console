@@ -34,6 +34,7 @@ import {
   isComposerKeyboardOpen,
 } from "@/lib/client/composer-keyboard";
 import { materialImageSrc } from "@/lib/client/materials";
+import { studentTaskCaption } from "@/lib/client/activity";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
 import MessageBody from "./MessageBody";
@@ -1469,8 +1470,7 @@ export default function HermesConsole() {
                             onClick={() => openTask(currentTask)}
                           >
                             <ListTodo size={16} />
-                            {currentTask.events.at(-1)?.summary ||
-                              "查看已保存的任務"}
+                            {studentTaskCaption(currentTask)}
                             <ChevronDown size={16} />
                           </button>
                           {["failed", "cancelled", "uncertain"].includes(
@@ -2822,7 +2822,7 @@ export default function HermesConsole() {
                   ))}
                 </>
               ) : null}
-              <h3>真實事件紀錄</h3>
+              <h3>進行狀況</h3>
               {chosenTask.events.map((e) => (
                 <details className="event" key={e.id}>
                   <TaskEventSummary event={e} />
@@ -2830,6 +2830,9 @@ export default function HermesConsole() {
                     {time(e.startedAt)}
                     {inspectDeveloper && e.toolName && <code>{e.toolName}</code>}
                   </small>
+                  {inspectDeveloper && e.summary && (
+                    <p className="event-raw-summary">{e.summary}</p>
+                  )}
                   {inspectDeveloper && e.result !== null && (
                     <details>
                       <summary>開發者 · 原始結果</summary>

@@ -11,7 +11,9 @@ import {
   safeSource,
   IMAGE_WITHOUT_VISION_LABEL,
   SPEC_ONLY_DESIGN_LABEL,
+  studentEventCaption,
   studentProcessDone,
+  studentTaskCaption,
   studentTaskLabel,
   taskKeptSpecOnly,
   taskMissingSources,
@@ -98,6 +100,20 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
     eventPhaseLabel(event("i", "running", "instagram_search")),
     "靈感",
   );
+});
+
+test("student captions never use Hermes preview text", () => {
+  const running = task("running", [
+    {
+      ...event("g", "running"),
+      summary: "GET /v1/tools galley_research schema={type:object}",
+    },
+  ]);
+  assert.equal(studentEventCaption(running.events[0], running), "研究 · 執行中");
+  assert.equal(studentTaskCaption(running), "研究 · 執行中");
+  assert.doesNotMatch(studentTaskCaption(running), /schema|galley_research|GET \//);
+  const empty = task("running", []);
+  assert.equal(studentTaskCaption(empty), "查看任務進度");
 });
 test("source actions never accept script, credentials or relative destinations", () => {
   for (const value of [

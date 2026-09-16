@@ -258,6 +258,10 @@ export async function verifyVisualStates(
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
     const draft = "[介面測試草稿] 等候工具結果";
     await composer.fill(draft);
+    const liveSummary = page.locator(".task-summary");
+    await expect(liveSummary).toContainText("研究 · 執行中");
+    await expect(liveSummary).not.toContainText("[介面測試事件]");
+    await expect(liveSummary).not.toContainText("galley_research");
     const status = page.getByRole("button", { name: "查看目前任務：執行中，研究", exact: true });
     await expect(status).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
@@ -297,7 +301,7 @@ export async function verifyVisualStates(
     await expect(eventSummary.locator(".event-tool-label")).toHaveText("研究");
     await expect(eventSummary).not.toContainText("GALLEY");
     await expect(eventSummary).toContainText("執行中");
-    await expect(eventSummary).toContainText("[介面測試事件] 研究來源");
+    await expect(eventSummary).not.toContainText("[介面測試事件] 研究來源");
     await expect(eventSummary).not.toContainText("galley_research");
     if ((width === 390 && height === 420) || width === 1440) {
       await eventSummary.scrollIntoViewIfNeeded();
@@ -305,6 +309,9 @@ export async function verifyVisualStates(
     }
     await eventSummary.click();
     await expect(eventDetails).toHaveAttribute("open", "");
+    await expect(eventDetails.locator(".event-raw-summary")).toHaveText(
+      "[介面測試事件] 研究來源",
+    );
     await expect(detail.locator(".event-meta code").first()).toBeVisible();
     await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
     await technicalSummary.click();

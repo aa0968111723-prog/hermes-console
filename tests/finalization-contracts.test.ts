@@ -240,7 +240,10 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, /顯示維運檢視/);
   assert.match(consoleUi, /說完了，請按送出/);
   assert.match(consoleUi, /composer-voice-hint/);
-  assert.match(consoleUi, /shortTaskError\(currentTask\.observationError\)/);
+  assert.match(consoleUi, /studentTaskCaption\(currentTask\)/);
+  assert.doesNotMatch(consoleUi, /currentTask\.events\.at\(-1\)\?\.summary/);
+  assert.match(consoleUi, /進行狀況/);
+  assert.doesNotMatch(consoleUi, /真實事件紀錄/);
   assert.doesNotMatch(
     consoleUi,
     /\{currentTask\.observationError && \(/,
@@ -270,6 +273,11 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   );
   assert.match(tasks, /studentHermesError\(error\.message, error\.code\)/);
   assert.doesNotMatch(tasks, /服務日誌|原始會話|請至 Hermes|請檢查 Agent/);
+  const eventUi = await readFile(
+    new URL("../components/visual/TaskEventSummary.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(eventUi, /event\.summary/);
   const orbit = await readFile(
     new URL("../components/visual/AgentOrbit.tsx", import.meta.url),
     "utf8",
