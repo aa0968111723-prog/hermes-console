@@ -44,7 +44,8 @@ import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
 import { activity, copyDocument } from "./creative";
-import { workflow } from "./workflows";
+import { workflow, listWorkflows } from "./workflows";
+import { listArtifacts } from "./artifacts";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -166,6 +167,40 @@ function failedToolEvents(task: Task) {
   });
 }
 
+export const DESIGN_WITHOUT_PREVIEW =
+  "還沒有可預覽的作品。規格已保留，沒有假裝設計完成。";
+
+export function taskHasVisualArtifact(owner: string, task: Task) {
+  const conv = conversation(owner, task.conversationId);
+  const started = Date.parse(task.createdAt) - 2000;
+  if (
+    listArtifacts(owner, conv.projectId).some(
+      (row) => row.source === "copy" && Date.parse(row.createdAt) >= started,
+    )
+  )
+    return true;
+  if (
+    listWorkflows(owner).some(
+      (row) =>
+        row.projectId === conv.projectId &&
+        row.design &&
+        Date.parse(row.updatedAt) >= started,
+    )
+  )
+    return true;
+  return task.events.some((event) => {
+    const done =
+      event.status === "completed" || event.status === "tool.completed";
+    if (!done || !toolEventHasContent(event.result, event.summary))
+      return false;
+    const text =
+      (typeof event.result === "string"
+        ? event.result
+        : JSON.stringify(event.result ?? "")) + event.summary;
+    return /canva\.com\/design|"thumbnail"|preview_url/i.test(text);
+  });
+}
+
 function finish(
   owner: string,
   task: Task,
@@ -178,6 +213,15 @@ function finish(
       "部分步驟目前做不到，只保留已確認的內容。",
       "fallback",
     );
+  const visualMissing =
+    state === "completed" &&
+    !!task.goal?.requiresDesign &&
+    !taskHasVisualArtifact(owner, task);
+  if (
+    visualMissing &&
+    !task.events.some((item) => item.summary.includes("沒有假裝設計完成"))
+  )
+    event(task, DESIGN_WITHOUT_PREVIEW, "fallback");
   task.state = state;
   task.error = error;
   task.endedAt = now();
@@ -186,7 +230,9 @@ function finish(
     task,
     error ||
       (state === "completed"
-        ? "Hermes 已回傳完成結果。"
+        ? visualMissing
+          ? DESIGN_WITHOUT_PREVIEW
+          : "Hermes 已回傳完成結果。"
         : state === "cancelled"
           ? "Hermes 已確認停止。"
           : "任務已結束。"),
