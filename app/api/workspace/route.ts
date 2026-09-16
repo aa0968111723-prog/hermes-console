@@ -7,13 +7,13 @@ import {
   includeDuplicatesQuery,
   listMaterials,
 } from "@/lib/server/materials";
-import { health } from "@/lib/server/hermes";
+import { healthSnapshot } from "@/lib/server/hermes";
 import { capabilityFromHealth } from "@/lib/server/agents";
 import { memoryShareStatus } from "@/lib/server/memory";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   const owner = authenticate(req);
-  const connection = await health(owner);
+  const connection = healthSnapshot(owner);
   const capabilities = capabilityFromHealth(connection);
   const url = new URL(req.url);
   return respond({

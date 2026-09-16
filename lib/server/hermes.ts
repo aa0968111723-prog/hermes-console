@@ -203,6 +203,10 @@ function discovery(raw: unknown): DiscoveryItem[] {
     description: redact(item.description || ""),
   }));
 }
+const HEALTH_CACHE_MS = 30_000;
+
+type CachedHealth = Health & { id: string; targetHash: string };
+
 function storeFields() {
   const probe = probeStore();
   return {
@@ -220,33 +224,112 @@ function withConsoleMemoryWriteFeature(
   return { ...features, memory_write_api: storeReady };
 }
 
+function readCachedHealth(owner: string): CachedHealth | null {
+  try {
+    return get<CachedHealth>("health", owner, "current");
+  } catch {
+    return null;
+  }
+}
+
+function publicHealthFromCache(cached: CachedHealth): Health {
+  const { id, targetHash, ...publicState } = cached;
+  void id;
+  void targetHash;
+  return publicState;
+}
+
+function overlayStore(state: Health, store = storeFields()): Health {
+  return {
+    ...state,
+    ...store,
+    features: withConsoleMemoryWriteFeature(
+      state.features || {},
+      store.storeReady,
+    ),
+  };
+}
+
+function hermesCredentialsPresent() {
+  return (
+    credentialPresence("HERMES_API_URL").configured &&
+    credentialPresence("HERMES_API_KEY").configured
+  );
+}
+
+function freshCachedHealth(owner: string): Health | null {
+  const cached = readCachedHealth(owner);
+  if (
+    !cached ||
+    cached.targetHash !== serviceIdentity() ||
+    Date.now() - Date.parse(cached.checkedAt) >= HEALTH_CACHE_MS
+  )
+    return null;
+  return overlayStore(publicHealthFromCache(cached));
+}
+
+function fallbackHealth(message: string): Health {
+  const probe = probeStore();
+  return {
+    checkedAt: new Date().toISOString(),
+    reachable: null,
+    credential: "unknown",
+    agent: "unverified",
+    status: "unconfigured",
+    message,
+    httpStatus: null,
+    features: {},
+    models: [],
+    skills: [],
+    toolsets: [],
+    discovery: {},
+    backend: probe.backend,
+    dataDir: probe.dataDir,
+    storeReady: probe.ok,
+  };
+}
+
+function uncheckedHealth(): Health {
+  const present = hermesCredentialsPresent();
+  return overlayStore({
+    checkedAt: new Date().toISOString(),
+    reachable: null,
+    credential: present ? "unknown" : "missing",
+    agent: "unverified",
+    status: present ? "verifying" : "unconfigured",
+    message: present
+      ? "尚未完成連線探測。"
+      : "尚未在連線設定或後端環境變數提供 Hermes 網域與新金鑰。",
+    configSource: {
+      hermesUrl: credentialPresence("HERMES_API_URL").source,
+      hermesKey: credentialPresence("HERMES_API_KEY").source,
+    },
+    httpStatus: null,
+    features: {},
+    models: [],
+    skills: [],
+    toolsets: [],
+    discovery: {},
+    backend: "sqlite",
+    dataDir: "",
+    storeReady: false,
+  });
+}
+
+/** Liveness/readiness snapshot. Never waits on Hermes discovery. */
+export function healthSnapshot(owner: string): Health {
+  try {
+    return freshCachedHealth(owner) || uncheckedHealth();
+  } catch {
+    return fallbackHealth("儲存庫無法使用。");
+  }
+}
 
 export async function health(owner: string, refresh = false): Promise<Health> {
   const store = storeFields();
-  let cached: (Health & { id: string; targetHash: string }) | null = null;
-  try {
-    cached = get<Health & { id: string; targetHash: string }>(
-      "health",
-      owner,
-      "current",
-    );
-  } catch {
-    cached = null;
-  }
-  if (
-    cached &&
-    cached.targetHash === serviceIdentity() &&
-    !refresh &&
-    Date.now() - Date.parse(cached.checkedAt) < 30_000
-  ) {
-    const { id, targetHash, ...publicState } = cached;
-    void id;
-    void targetHash;
-    return {
-      ...publicState,
-      ...store,
-      features: withConsoleMemoryWriteFeature(publicState.features || {}, store.storeReady),
-    };
+  if (!refresh) {
+    const fresh = freshCachedHealth(owner);
+    if (fresh) return fresh;
   }
   const state: Health = {
     checkedAt: new Date().toISOString(),

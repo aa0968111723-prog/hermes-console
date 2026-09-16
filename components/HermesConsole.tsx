@@ -321,14 +321,17 @@ export default function HermesConsole() {
     return result;
   }, []);
   const refresh = useCallback(async () => {
-    const [workspace, taskResult, workflowResult] = await Promise.all([
-      api<Workspace>("workspace"),
-      api<{ tasks: Task[] }>("tasks"),
-      api<{ workflows: Workflow[] }>("workflows"),
-    ]);
+    const [workspace, taskResult, workflowResult, healthResult] =
+      await Promise.all([
+        api<Workspace>("workspace"),
+        api<{ tasks: Task[] }>("tasks"),
+        api<{ workflows: Workflow[] }>("workflows"),
+        api<Health>("health").catch(() => null),
+      ]);
     setData(workspace);
     setTasks(taskResult.tasks);
     setWorkflows(workflowResult.workflows);
+    if (healthResult) setHealth(healthResult);
     setOffline(false);
   }, []);
   useEffect(() => {

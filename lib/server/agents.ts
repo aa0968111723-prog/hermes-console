@@ -124,7 +124,12 @@ export function capabilityFromHealth(
   const flag = (value: unknown, fallback: CapabilityState): CapabilityState =>
     value === true ? "available" : value === false ? "unsupported" : fallback;
   const states = emptyCapabilities();
-  if (health.status === "unconfigured") return states;
+  if (
+    health.status === "unconfigured" ||
+    health.status === "verifying" ||
+    health.status === "awaiting_authorization"
+  )
+    return states;
   if (health.status === "failed") {
     for (const key of Object.keys(states)) states[key] = "failed";
     return states;

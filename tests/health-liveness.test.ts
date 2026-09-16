@@ -1,0 +1,131 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { AddressInfo } from "node:net";
+import { seedSession } from "./session-fixture";
+
+const dataDir = await mkdtemp(join(tmpdir(), "hermes-liveness-"));
+process.env.CONSOLE_DATA_DIR = dataDir;
+process.env.CONSOLE_ORIGIN = "http://localhost:3261";
+process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
+process.env.CONSOLE_GATEWAY_SECRET = "";
+process.env.CONSOLE_REQUIRE_GATEWAY = "false";
+delete process.env.DATABASE_URL;
+delete process.env.HERMES_API_URL;
+delete process.env.HERMES_API_KEY;
+
+const { resetStoreForTests } = await import("../lib/server/store");
+const healthRoute = await import("../app/api/health/route");
+const workspaceRoute = await import("../app/api/workspace/route");
+
+function request(path: string, cookie = "") {
+  return new Request("http://localhost:3261/api/" + path, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Origin: process.env.CONSOLE_ORIGIN!,
+      ...(cookie ? { Cookie: cookie } : {}),
+    },
+  });
+}
+
+async function hangingHermes() {
+  const server = createServer(() => {
+    /* never respond — discovery would wait on this */
+  });
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+  return { server, url: "http://127.0.0.1:" + port };
+}
+
+test("GET /api/health stays live without waiting on Hermes", async () => {
+  const hanging = await hangingHermes();
+  const previous = {
+    url: process.env.HERMES_API_URL,
+    key: process.env.HERMES_API_KEY,
+    loopback: process.env.HERMES_ALLOW_LOOPBACK_HTTP,
+    timeout: process.env.HERMES_DISCOVERY_TIMEOUT_MS,
+  };
+  process.env.HERMES_API_URL = hanging.url;
+  process.env.HERMES_API_KEY = "liveness-probe-key-not-a-secret";
+  process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
+  process.env.HERMES_DISCOVERY_TIMEOUT_MS = "20000";
+  resetStoreForTests();
+  try {
+    const started = Date.now();
+    const response = await healthRoute.GET(request("health"));
+    const elapsed = Date.now() - started;
+    assert.ok(elapsed < 1500, "health GET blocked for " + elapsed + "ms");
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.live, true);
+    assert.equal(body.ready, true);
+    assert.equal(body.agentReady, false);
+    assert.equal(body.status, "verifying");
+    assert.equal(body.reachable, null);
+    assert.notEqual(body.status, "available");
+    assert.equal(body.configSource, undefined);
+  } finally {
+    hanging.server.close();
+    if (previous.url === undefined) delete process.env.HERMES_API_URL;
+    else process.env.HERMES_API_URL = previous.url;
+    if (previous.key === undefined) delete process.env.HERMES_API_KEY;
+    else process.env.HERMES_API_KEY = previous.key;
+    if (previous.loopback === undefined) delete process.env.HERMES_ALLOW_LOOPBACK_HTTP;
+    else process.env.HERMES_ALLOW_LOOPBACK_HTTP = previous.loopback;
+    if (previous.timeout === undefined) delete process.env.HERMES_DISCOVERY_TIMEOUT_MS;
+    else process.env.HERMES_DISCOVERY_TIMEOUT_MS = previous.timeout;
+    resetStoreForTests();
+  }
+});
+
+test("GET /api/workspace does not wait on an unreachable Hermes", async () => {
+  const hanging = await hangingHermes();
+  process.env.HERMES_API_URL = hanging.url;
+  process.env.HERMES_API_KEY = "liveness-probe-key-not-a-secret";
+  process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
+  process.env.HERMES_DISCOVERY_TIMEOUT_MS = "20000";
+  resetStoreForTests();
+  const { cookie } = seedSession();
+  try {
+    const started = Date.now();
+    const response = await workspaceRoute.GET(request("workspace", cookie));
+    const elapsed = Date.now() - started;
+    assert.ok(elapsed < 1500, "workspace GET blocked for " + elapsed + "ms");
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.memory.status, "unknown");
+    assert.equal(body.memory.hermesRemote, "unknown");
+  } finally {
+    hanging.server.close();
+    delete process.env.HERMES_API_URL;
+    delete process.env.HERMES_API_KEY;
+    delete process.env.HERMES_ALLOW_LOOPBACK_HTTP;
+    delete process.env.HERMES_DISCOVERY_TIMEOUT_MS;
+    resetStoreForTests();
+  }
+});
+
+test("GET /api/health stays 200 when the store probe fails", async () => {
+  const { randomUUID } = await import("node:crypto");
+  const blocked = join(tmpdir(), "hermes-liveness-blocked-" + randomUUID());
+  await writeFile(blocked, "not-a-directory");
+  const previous = process.env.CONSOLE_DATA_DIR;
+  process.env.CONSOLE_DATA_DIR = blocked;
+  resetStoreForTests();
+  try {
+    const response = await healthRoute.GET(request("health"));
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.live, true);
+    assert.equal(body.ready, false);
+    assert.equal(body.storeReady, false);
+    assert.equal(body.agentReady, false);
+  } finally {
+    process.env.CONSOLE_DATA_DIR = previous;
+    resetStoreForTests();
+  }
+});

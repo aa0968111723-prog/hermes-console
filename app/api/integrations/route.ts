@@ -5,7 +5,7 @@ import {
   respond,
   route,
 } from "@/lib/server/security";
-import { health } from "@/lib/server/hermes";
+import { healthSnapshot } from "@/lib/server/hermes";
 import {
   integrationsSnapshot,
   presentIntegration,
@@ -25,7 +25,7 @@ export const GET = route(async (req) => {
   const owner = authenticate(req);
   const operator = isWorkspaceOperator(req);
   try {
-    const snapshot = integrationsSnapshot(owner, await health(owner));
+    const snapshot = integrationsSnapshot(owner, healthSnapshot(owner));
     let canva: ReturnType<typeof canvaStatus> = CANVA_UNAVAILABLE;
     let degraded = snapshot.degraded;
     try {

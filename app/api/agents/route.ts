@@ -15,7 +15,7 @@ import {
   presentAgentProfile,
   saveAgentDiscovery,
 } from "@/lib/server/agents";
-import { health } from "@/lib/server/hermes";
+import { health, healthSnapshot } from "@/lib/server/hermes";
 import { aggregateUsage } from "@/lib/server/usage";
 import type { Health } from "@/lib/contracts";
 export const runtime = "nodejs";
@@ -43,7 +43,7 @@ export const GET = route(async (req) => {
     let error = STORE_UNAVAILABLE;
     let connection: Health | null = null;
     try {
-      connection = await health(owner);
+      connection = healthSnapshot(owner);
     } catch (caught) {
       rethrowUnlessStoreFailure(caught);
       degraded = true;
