@@ -205,9 +205,9 @@ try {
   await expect(
     page.getByRole("button", { name: "回到最新訊息" }),
   ).toBeVisible();
-  await expect(
-    page.locator(".composer-task-status"),
-  ).toBeVisible({ timeout: 15000 });
+  await expect(page.locator(".composer-task-status")).toContainText("完成", {
+    timeout: 15000,
+  });
   assert.ok(
     await page
       .locator(".conversation-scroll")
