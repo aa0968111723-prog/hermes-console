@@ -333,6 +333,12 @@ try {
   await expect(
     page.getByRole("region", { name: "已選方向規格" }).locator(".direction-format-copy").first(),
   ).toContainText("茶會來坐一下");
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }),
+  ).toContainText("海報 A4");
+  await expect(page.locator(".conversation-scroll")).not.toContainText(
+    "210:297",
+  );
   await expect(page.getByText("最自然")).toBeVisible();
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();

@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { Plus, ImagePlus, FileText, Link, Palette, Folder } from "lucide-react";
 export default function ComposerMenu({
   disabled,
+  canvaReady,
   onUpload,
   onNavigate,
 }: {
   disabled: boolean;
+  canvaReady: boolean;
   onUpload: (kind: "image" | "document") => void;
   onNavigate: (kind: "reference" | "canva" | "project") => void;
 }) {
@@ -84,7 +86,10 @@ export default function ComposerMenu({
           </button>
           <button
             type="button"
+            disabled={!canvaReady}
+            title={canvaReady ? undefined : "Hermes 尚未連線"}
             onClick={() => {
+              if (!canvaReady) return;
               setOpen(false);
               onNavigate("canva");
             }}

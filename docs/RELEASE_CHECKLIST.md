@@ -33,6 +33,8 @@
 - [ ] 取消會打後端 cancel
 - [ ] 長任務重啟後不是假 running（立刻 reconcile 為 uncertain）
 - [ ] 未開 `HERMES_IMAGE_INPUT` 時附圖不假裝已分析；「這張哪裡可以改」可走工作區模擬並標明沒有讀像素
+- [ ] Hermes 未連線時，工作臺「寫 A／B／C」「整理三個方向」與 Composer／Dock Canva 查回停用，不 503
+- [ ] 規格框顯示語氣與「海報 A4」，不露出紙張比例 `210:297`
 
 ## MCP
 

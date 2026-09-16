@@ -41,11 +41,13 @@ export default function ProjectWorkbench({
   projectId,
   materials,
   workflows,
+  hermesReady,
   onCompose,
 }: {
   projectId: string;
   materials: Material[];
   workflows: Workflow[];
+  hermesReady: boolean;
   onCompose: (text: string, conversationId?: string) => void;
 }) {
   const [data, setData] = useState<Data>({ activities: [], copies: [] });
@@ -178,6 +180,8 @@ export default function ProjectWorkbench({
           請 Hermes 接續創作
         </button>
         <button
+          disabled={!hermesReady}
+          title={hermesReady ? undefined : "Hermes 尚未連線"}
           onClick={() =>
             onCompose("請寫三版文案：最自然、最有梗、最溫暖。日期地點未確認先問我，不要發佈。")
           }
@@ -359,6 +363,8 @@ export default function ProjectWorkbench({
           ))}
           <button onClick={() => editActivity(a)}>修改活動</button>
           <button
+            disabled={!hermesReady}
+            title={hermesReady ? undefined : "Hermes 尚未連線"}
             onClick={() =>
               onCompose("請依已確認的活動資料提出三個方向。")
             }

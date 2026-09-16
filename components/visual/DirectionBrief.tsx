@@ -36,9 +36,7 @@ export default function DirectionBrief({
                 className="direction-format-frame"
                 data-aspect={format.aspect}
               >
-                <span>
-                  {format.aspect} · {COPY_LABEL[id]}
-                </span>
+                <span>{COPY_LABEL[id]}</span>
                 <strong>{format.label}</strong>
                 <p
                   className="direction-format-copy preserve-lines"

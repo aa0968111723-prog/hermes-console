@@ -1641,6 +1641,7 @@ export default function HermesConsole() {
                     />
                     <ComposerMenu
                       disabled={busy}
+                      canvaReady={hermesCanContinue(health)}
                       onUpload={(kind) => {
                         if (uploadInput.current) {
                           uploadInput.current.accept =
@@ -1652,6 +1653,10 @@ export default function HermesConsole() {
                       }}
                       onNavigate={(kind) => {
                         if (kind === "canva") {
+                          if (!hermesCanContinue(health)) {
+                            setError("Hermes 尚未連線，無法查回 Canva 設計。");
+                            return;
+                          }
                           setText(
                             "請查回我已有的 Canva 設計，選擇要接續修改的作品。",
                           );
@@ -1721,6 +1726,7 @@ export default function HermesConsole() {
                 projectId={project}
                 materials={data.materials}
                 workflows={workflows}
+                hermesReady={hermesCanContinue(health)}
                 onCompose={(text, conversationId) => {
                   if (busy) {
                     setError("請先等目前任務結束或停止，再接續其他作品。");
@@ -2096,10 +2102,11 @@ export default function HermesConsole() {
           </section>
         )}
       </main>
-      <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
+      <AppDock nav={nav} onNavigate={navigate} busy={busy} canvaReady={hermesCanContinue(health)} onOpenChange={setRadialOpen}
         onAction={action=>{
           if(action==="spatial")setPanel("spatial");
           else if(action==="memory"){setSettingsTab("工作區");setPanel("settings");}
+          else if(!hermesCanContinue(health)) setError("Hermes 尚未連線，無法查回 Canva 設計。");
           else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
         }}
         onFiles={files=>{

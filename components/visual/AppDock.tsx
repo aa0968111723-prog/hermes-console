@@ -19,6 +19,7 @@ export default function AppDock({
   onAction,
   onFiles,
   busy,
+  canvaReady,
   onOpenChange,
 }: {
   nav: Nav;
@@ -26,6 +27,7 @@ export default function AppDock({
   onAction: (action: "spatial" | "memory" | "canva") => void;
   onFiles: (files: File[]) => void;
   busy: boolean;
+  canvaReady: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
@@ -150,7 +152,11 @@ export default function AppDock({
           <span className="radial-center" aria-hidden="true">
             <Leaf size={30} />
           </span>
-          <button onClick={() => action("canva")} disabled={busy}>
+          <button
+            onClick={() => action("canva")}
+            disabled={busy || !canvaReady}
+            title={canvaReady ? undefined : "Hermes 尚未連線"}
+          >
             <Palette size={24} />
             Canva
           </button>

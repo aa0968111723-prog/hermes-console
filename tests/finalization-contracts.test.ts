@@ -206,3 +206,15 @@ test("direction spec stays in the conversation that picked it, not the empty hom
   assert.doesNotMatch(welcome, /DirectionBrief/);
   assert.match(ui, /setNotice\(""\)/);
 });
+
+test("direction brief shows tone and A4 label, not paper millimetre aspect", async () => {
+  const brief = await readFile(
+    new URL("../components/visual/DirectionBrief.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(brief, /\{COPY_LABEL\[id\]\}/);
+  assert.match(brief, /\{format\.label\}/);
+  assert.match(brief, /data-aspect=\{format\.aspect\}/);
+  assert.doesNotMatch(brief, /\{format\.aspect\} ·/);
+  assert.doesNotMatch(brief, />\{format\.aspect\}</);
+});
