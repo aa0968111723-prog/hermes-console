@@ -146,7 +146,7 @@ test("Console seeds Lumen and Hermes can call lumen_utter through workspace MCP"
     const entry = getMcp("lumen");
     assert.ok(entry);
     const probed = await probeMcp(entry!);
-    assert.equal(probed.status, "partial");
+    assert.equal(probed.status, "verified");
     assert.ok(probed.tools.some((tool) => tool.name === "lumen_utter"));
     assert.ok(calls.includes("initialize"));
     assert.ok(calls.includes("tools/list"));

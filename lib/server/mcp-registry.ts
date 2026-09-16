@@ -430,13 +430,40 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     if (cursor) throw new Error("MCP pagination limit");
     const changed = currentEntry();
     if (changed) return changed;
+    let safeRead = false;
+    const candidate = tools.find(
+      (tool) =>
+        tool.annotations?.readOnlyHint &&
+        !tool.annotations?.destructiveHint &&
+        !((tool.inputSchema?.required as unknown[] | undefined) || []).length,
+    );
+    if (candidate) {
+      try {
+        const result = await client.callTool(
+          { name: candidate.name, arguments: {} },
+          undefined,
+          { timeout: 8_000 },
+        );
+        const failed = Boolean((result as { isError?: boolean }).isError);
+        const encoded = redact(JSON.stringify(result));
+        safeRead = !failed && encoded.length > 24 && encoded !== "{}" && encoded !== "null";
+      } catch {
+        safeRead = false;
+      }
+    }
     return put("mcp_registry", WORKSPACE_OWNER, {
       ...entry,
       ...config,
       tools,
-      status: "partial" as const,
+      status: interpretVerification({
+        initialize: true,
+        toolsList: true,
+        safeRead,
+      }),
       verifiedAt: new Date().toISOString(),
-      lastError: null,
+      lastError: safeRead
+        ? null
+        : "已列出工具；尚未完成可安全讀取的驗證，因此不是 available。",
       serverInfo: JSON.parse(
         redact(JSON.stringify(client.getServerVersion() || {})),
       ),

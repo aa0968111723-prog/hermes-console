@@ -170,11 +170,10 @@ export function runtimeDiff(
 }
 function mcpStatus(entry: McpEntry): RuntimeStatus {
   if (!entry.enabled) return "unknown";
-  return entry.status === "failed"
-    ? "failed"
-    : ["partial", "verified"].includes(entry.status)
-      ? "partial"
-      : "unknown";
+  if (entry.status === "failed") return "failed";
+  if (entry.status === "verified") return "available";
+  if (entry.status === "partial" || entry.status === "connected") return "partial";
+  return "unknown";
 }
 function descriptor(
   name: string,

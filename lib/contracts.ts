@@ -9,6 +9,7 @@ export type TaskState =
   | "queued"
   | "running"
   | "waiting_user"
+  | "waiting_authorization"
   | "stopping"
   | "completed"
   | "failed"

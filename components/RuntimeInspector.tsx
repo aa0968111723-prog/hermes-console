@@ -224,6 +224,22 @@ export default function RuntimeInspector({
     snapshot?.tools.filter(
       (tool) => tool.enabled && tool.status === "available",
     ).length || 0;
+  const mcpServers = snapshot?.mcpServers || [];
+  const mcpState = !mcpServers.length
+    ? "unconfigured"
+    : mcpServers.some((server) => server.status === "available")
+      ? "available"
+      : mcpServers.some((server) => server.status === "partial")
+        ? "partial"
+        : mcpServers.some((server) => server.status === "failed")
+          ? "failed"
+          : "unknown";
+  const mcpLabel =
+    mcpState === "unconfigured"
+      ? "未設定"
+      : mcpState === "available"
+        ? "已驗證"
+        : statusLabel(mcpState);
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>
@@ -285,6 +301,19 @@ export default function RuntimeInspector({
             aria-hidden="true"
           />
           記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+        </span>
+        <span>
+          <i
+            className={
+              !stale && (mcpState === "available" || mcpState === "partial")
+                ? mcpState === "available"
+                  ? "good"
+                  : "unknown"
+                : "unknown"
+            }
+            aria-hidden="true"
+          />
+          MCP {mcpLabel}
         </span>
         {!stale && snapshot?.status === "available" && (
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />
