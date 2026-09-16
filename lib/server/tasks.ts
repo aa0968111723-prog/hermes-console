@@ -40,6 +40,7 @@ import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
+import { localWorkspaceReply } from "./local-workspace";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -182,6 +183,85 @@ function finish(
   }
   return save(owner, task);
 }
+function submitLocalWorkspace(
+  owner: string,
+  conv: Conversation,
+  input: z.infer<typeof taskInput>,
+  payloadHash: string,
+  output: string,
+) {
+  const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
+  const task: Task = {
+    id: randomUUID(),
+    conversationId: conv.id,
+    requestKey: input.requestKey,
+    payloadHash,
+    state: "queued",
+    transport: "chat",
+    remoteId: null,
+    input: input.input,
+    attachments: input.attachments,
+    output: "",
+    createdAt: now(),
+    updatedAt: now(),
+    endedAt: null,
+    error: null,
+    observationError: null,
+    events: [],
+    usage: { ...EMPTY_USAGE },
+    stopSupported: false,
+    budgetMode: "fast",
+  };
+  return transaction(() => {
+    const duplicate = list<Task>("task", owner).find(
+      (t) => t.requestKey === input.requestKey,
+    );
+    if (duplicate) return duplicate;
+    if (
+      list<Task>("task", owner).some(
+        (t) =>
+          t.conversationId === conv.id &&
+          (active(t) || t.state === "uncertain"),
+      )
+    )
+      throw new ApiError(
+        409,
+        "conversation_busy",
+        "此對話尚有執行中或結果未確認的任務，請先查回狀態。",
+      );
+    event(task, "Hermes 未連線，改讀工作區本地索引。不是 live MCP。");
+    event(
+      task,
+      "禪學社 Drive 索引快照已讀取。不是即時 Drive，也不是 IG。",
+      "completed",
+      "zenclub_drive_index",
+    );
+    task.state = "completed";
+    task.output = output;
+    task.endedAt = now();
+    put("task", owner, task);
+    conv.messages.push({
+      id: randomUUID(),
+      role: "user",
+      content: input.input,
+      createdAt: now(),
+      attachments: input.attachments,
+      taskId: task.id,
+    });
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.assistantMode = mode;
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+    return save(owner, task);
+  });
+}
 export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   const conv = conversation(owner, input.conversationId);
   for (const id of input.attachments)
@@ -204,8 +284,12 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   }
   limited("tasks:" + owner, 20, 60_000);
   const connection = await health(owner);
-  if (connection.credential !== "valid")
-    throw new ApiError(503, "hermes_not_ready", connection.message);
+  if (connection.credential !== "valid") {
+    const local = localWorkspaceReply(input.input, conv.projectId);
+    if (!local)
+      throw new ApiError(503, "hermes_not_ready", connection.message);
+    return submitLocalWorkspace(owner, conv, input, payloadHash, local);
+  }
   const native =
     connection.features.run_submission &&
     connection.features.run_status &&

@@ -48,7 +48,7 @@ export interface Message {
   createdAt: string;
   taskId?: string;
   attachments?: string[];
-  provenance?: "hermes" | "legacy_unverified";
+  provenance?: "hermes" | "legacy_unverified" | "workspace";
 }
 export interface Conversation {
   id: string;

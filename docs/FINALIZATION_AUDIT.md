@@ -97,4 +97,4 @@
 9. 工作區輪詢：忙碌 3s、閒置 12s、背景分頁 30s；專案頁 12s。
 10. `npm run rehearse` 驗證 production `next start`：`/`、`/api/health`、`/api/ready`、workspace 401、禁止秘密 JSON。
 12. 登入頁未設定的 Google／淡江都顯示「尚未完成設定」，不假裝可登入。
-13. API 錯誤帶上九類 taxonomy；帳號角色顯示擁有者／管理員／成員。
+14. Hermes 未設定時，禪學社問題改讀本地 Drive 索引；標明不是 live MCP／IG，不假裝 GALLEY。無關問題仍 503。

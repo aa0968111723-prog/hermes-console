@@ -86,6 +86,19 @@ try {
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(
+    "幫我找淡大禪學社茶會宣傳靈感",
+  );
+  await page.getByRole("button", { name: "送出訊息" }).click();
+  await expect(page.getByText("Hermes Agent 尚未連線")).toBeVisible();
+  await expect(page.getByText("本地索引", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Drive 快照/)).toBeVisible();
+  const chat = await page.locator("body").innerText();
+  assert.equal(chat.includes("已搜尋整個 Instagram"), false);
+  await page.screenshot({
+    path: join(output, "chat-local-knowledge-mobile.png"),
+    fullPage: true,
+  });
   const authed = await page.request.post(base + "/api/conversations", {
     headers: { Origin: base },
     data: { title: "登入後對話" },
@@ -125,7 +138,7 @@ try {
   await page.keyboard.press("Escape");
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, honest Google/Tamkang hints, account identities. Not live Zeabur.",
+    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, honest Google/Tamkang hints, local club index without fake MCP, account identities. Not live Zeabur.",
   );
 } finally {
   await browser?.close();

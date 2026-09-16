@@ -1124,6 +1124,9 @@ export default function HermesConsole() {
                           {message.provenance === "legacy_unverified" && (
                             <span>舊資料 · 未驗證</span>
                           )}
+                          {message.provenance === "workspace" && (
+                            <span>本地索引</span>
+                          )}
                         </div>
                         <div className="message-content">
                           <MessageBody text={message.content} />
