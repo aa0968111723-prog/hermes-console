@@ -86,13 +86,8 @@ export default function KnowledgeArchive() {
   const result = payload?.result;
 
   return (
-    <section className="knowledge-archive">
-      <div className="inspiration-heading">
-        <div>
-          <p className="eyebrow">社團事實</p>
-          <h2>Drive 知識</h2>
-        </div>
-      </div>
+    <details className="knowledge-archive inspiration-handoff">
+      <summary>社團知識</summary>
       <p className="muted">
         {result?.notice ||
           "先查禪學社 Drive 索引。沒寫進索引的日期與地點是未知，不會用 IG 補。"}
@@ -122,8 +117,8 @@ export default function KnowledgeArchive() {
       {error && <p role="alert">{error}</p>}
       {payload?.source && (
         <p className="quiet">
-          快照 {new Date(payload.source.snapshotAt).toLocaleString("zh-TW")} ·
-          live={String(payload.source.live)}
+          快照 {new Date(payload.source.snapshotAt).toLocaleString("zh-TW")}
+          {payload.source.live ? " · 即時索引" : " · 離線快照"}
         </p>
       )}
       {result?.conflicts?.length ? (
@@ -163,6 +158,6 @@ export default function KnowledgeArchive() {
       {result && result.hits.length === 0 && (
         <p className="quiet">沒有命中。標 UNKNOWN，不要自行補活動資料。</p>
       )}
-    </section>
+    </details>
   );
 }
