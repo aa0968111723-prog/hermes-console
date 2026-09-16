@@ -356,6 +356,39 @@ try {
   await page.screenshot({
     path: join(output, "chat-direction-artifact-mobile.png"),
   });
+  await page.getByRole("button", { name: "對話列表" }).click();
+  await page
+    .getByRole("dialog", { name: "對話列表" })
+    .getByRole("button", { name: "開啟新對話" })
+    .click();
+  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await page.getByRole("button", { name: "任務與成果" }).click();
+  await page.getByRole("button", { name: "在對話修改這個作品" }).click();
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toHaveValue("請接續修改同一作品。");
+  await expect(
+    page.getByRole("heading", { name: "今天想做什麼？" }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator(".conversation-scroll").getByRole("region", { name: "已選方向規格" }),
+  ).toContainText("V1");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(
+    page.locator(".conversation-scroll").getByText("請接續修改同一作品。"),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.locator(".conversation-scroll").getByRole("region", { name: "已選方向規格" }),
+  ).toContainText("V1");
+  await expect(
+    page.locator(".conversation-scroll").getByRole("region", { name: "已選方向規格" }),
+  ).not.toContainText("V2");
+  await expect(page.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled({
+    timeout: 15_000,
+  });
+  await page.screenshot({
+    path: join(output, "chat-direction-continue-mobile.png"),
+  });
   await dockNav.getByRole("button", { name: "對話", exact: true }).click();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("第二版字放大");
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();

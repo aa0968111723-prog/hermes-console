@@ -123,8 +123,14 @@ test("funnel readonly UI wired to Help + Inspiration fold; no headcount/PII rend
   );
   assert.match(consoleUi, /className="knowledge-fold"/);
   assert.match(consoleUi, /className="secondary-page" key=\{nav\}/);
+  assert.match(consoleUi, /CONTINUE_SAME_WORK_PROMPT/);
   assert.doesNotMatch(consoleUi, /請查回創作流程 /);
-  assert.match(consoleUi, /請接續修改同一作品/);
+  const continuePrompt = await readFile(
+    new URL("../lib/server/inspiration/revise.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(continuePrompt, /請接續修改同一作品/);
+  assert.match(continuePrompt, /isContinueSameWorkRequest/);
   // Fold sits below soft notice — not a permanent main-column card body
   assert.match(card, /FUNNEL_FOLD_SUMMARY|漏斗五階/);
   assert.match(card, /funnel-readonly-fold/);

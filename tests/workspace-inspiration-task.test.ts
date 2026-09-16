@@ -131,6 +131,20 @@ test("non-inspiration chat still refuses when Hermes is unconfigured", async () 
       return true;
     },
   );
+  await assert.rejects(
+    () =>
+      submit("workspace", {
+        conversationId: conv(),
+        requestKey: randomUUID(),
+        input: "請接續修改同一作品。",
+        attachments: [],
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof ApiError);
+      assert.equal(error.code, "hermes_not_ready");
+      return true;
+    },
+  );
   assert.equal(get("agent", "workspace", "verified"), null);
 });
 
@@ -150,6 +164,27 @@ test("unconfigured Hermes revises the same spec when asked to enlarge type", asy
     conversationId,
   });
   assert.equal(picked.workflow.directionBrief?.revision, 1);
+  const continued = await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: "請接續修改同一作品。",
+    attachments: [],
+  });
+  assert.equal(continued.state, "completed");
+  assert.match(continued.output, /同一件規格草稿/);
+  assert.match(continued.output, /還沒出圖/);
+  assert.doesNotMatch(continued.output, /主標加大/);
+  const afterContinue = listWorkflows("workspace").find(
+    (item) => item.conversationId === conversationId,
+  );
+  assert.equal(afterContinue?.directionBrief?.revision, 1);
+  assert.equal(afterContinue?.artifactId, picked.workflow.artifactId);
+  assert.equal(
+    listArtifacts("workspace", "personal").find(
+      (item) => item.id === afterContinue?.artifactId,
+    )?.revisions.length,
+    1,
+  );
   const revised = await submit("workspace", {
     conversationId,
     requestKey: randomUUID(),

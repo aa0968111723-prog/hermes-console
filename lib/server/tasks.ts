@@ -49,6 +49,7 @@ import {
 import { persistSelectedDirectionDraft } from "./inspiration/persist";
 import {
   applyTypeEnlarge,
+  isContinueSameWorkRequest,
   isSpecRevisionRequest,
 } from "./inspiration/revise";
 import { isInspirationSearchPack } from "../inspiration-pack";
@@ -235,25 +236,33 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     conv,
     owner,
   );
+  const localContinue = canFulfillLocalContinue(
+    connection.credential,
+    input.input,
+    conv,
+    owner,
+  );
   if (localImageReview && imageAttachmentIds(owner, input.attachments).length < 1)
     throw new ApiError(
       400,
       "invalid_input",
       "請先附上海報或圖片。沒有畫面時無法審查，也不會假裝已看圖。",
     );
-  if (!localInspiration && !localImageReview && !localSpecRevision)
+  if (!localInspiration && !localImageReview && !localSpecRevision && !localContinue)
     await attachmentParts(owner, input.attachments);
   if (
     connection.credential !== "valid" &&
     !localInspiration &&
     !localImageReview &&
-    !localSpecRevision
+    !localSpecRevision &&
+    !localContinue
   )
     throw new ApiError(503, "hermes_not_ready", connection.message);
   const native =
     !localInspiration &&
     !localImageReview &&
     !localSpecRevision &&
+    !localContinue &&
     connection.features.run_submission &&
     connection.features.run_status &&
     input.attachments.length === 0;
@@ -309,6 +318,8 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
           ? "已在後端保存任務，改由工作區畫面審查；不是 Hermes，也沒有讀像素。"
           : localSpecRevision
             ? "已在後端保存任務，改由工作區規格修訂；不是 Hermes，也沒有出圖。"
+            : localContinue
+              ? "已在後端保存任務，改由工作區接續同一件規格；不是 Hermes，也沒有出圖。"
             : "已在後端保存任務，準備提交 Hermes。",
     );
     put("task", owner, task);
@@ -341,6 +352,12 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     );
   if (localSpecRevision)
     return fulfillSpecRevision(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localContinue)
+    return fulfillContinueSameWork(
       owner,
       reserved,
       conversation(owner, reserved.conversationId),
@@ -394,6 +411,18 @@ function canFulfillLocalSpecRevision(
   return (
     credential !== "valid" &&
     isSpecRevisionRequest(userFacingGoalText(input)) &&
+    !!workflowForConversation(owner, conv)
+  );
+}
+function canFulfillLocalContinue(
+  credential: string,
+  input: string,
+  conv: Conversation,
+  owner: string,
+) {
+  return (
+    credential !== "valid" &&
+    isContinueSameWorkRequest(userFacingGoalText(input)) &&
     !!workflowForConversation(owner, conv)
   );
 }
@@ -600,6 +629,68 @@ function fulfillSpecRevision(
   task.endedAt = now();
   task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
   event(task, "工作區已回傳規格修訂（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillContinueSameWork(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const record = workflowForConversation(owner, conv);
+  const pack = record?.directionBrief;
+  if (!record || !isDirectionBriefPack(pack)) {
+    task.state = "failed";
+    task.error = "這個對話沒有已選方向，不能接續同一件作品。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  if (pack.rendered !== false) {
+    task.state = "failed";
+    task.error = "工作區接續沒有誠實標示未出圖。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  task.goal = interpretGoal(task.input);
+  event(task, "接續同一件規格草稿；不是 Hermes，也沒有出圖。", "plan");
+  event(
+    task,
+    pack.notice,
+    "completed",
+    "workspace_continue_direction_spec",
+    pack,
+  );
+  task.output = [
+    "這是同一件規格草稿。",
+    pack.revision ? "目前是 V" + pack.revision + "。" : "",
+    "還沒出圖，也不是 Canva 或 Hermes 生成。",
+    "請說要改什麼，例如「第二版字放大」。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已帶回同一件規格（不是 Hermes 驗證）。");
   if (
     !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
   ) {

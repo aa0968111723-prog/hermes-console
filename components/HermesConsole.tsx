@@ -82,6 +82,7 @@ import {
   type InspirationSearchPack,
 } from "@/lib/inspiration-pack";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
+import { CONTINUE_SAME_WORK_PROMPT } from "@/lib/server/inspiration/revise";
 import {
   emptyDraft,
   useComposerDraft,
@@ -546,7 +547,8 @@ export default function HermesConsole() {
         (name) =>
           name === "workspace_search_inspiration" ||
           name === "workspace_simulate_audience" ||
-          name === "workspace_revise_direction_spec",
+          name === "workspace_revise_direction_spec" ||
+          name === "workspace_continue_direction_spec",
       )
       .join(",") || "";
   useEffect(() => {
@@ -1906,9 +1908,24 @@ export default function HermesConsole() {
             <ArtifactDeck
               items={workflows.filter((w) => w.projectId === project)}
               artifacts={artifacts.filter((item) => item.projectId === project)}
-              onContinue={() => {
+              onContinue={(id) => {
+                const workflow =
+                  workflows.find((item) => item.id === id) ||
+                  workflows.find((item) => item.artifactId === id);
+                const conversationId = workflow?.conversationId;
+                if (conversationId) {
+                  const conv = data.conversations.find(
+                    (item) => item.id === conversationId,
+                  );
+                  if (conv) {
+                    setActiveId(conv.id);
+                    setProject(conv.projectId);
+                    writePreference("hermes.active.v2", conv.id);
+                    pinBriefAfterPick.current = true;
+                  }
+                }
                 setNav("chat");
-                setText("請接續修改同一作品。");
+                setText(CONTINUE_SAME_WORK_PROMPT);
               }}
               onRestore={async (artifactId, revisionId) => {
                 try {

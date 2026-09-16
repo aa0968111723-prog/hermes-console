@@ -190,6 +190,7 @@ export async function verifyVisualStates(
           {
             id: "ui-fixture-artifact-B",
             projectId: "personal",
+            conversationId: "ui-fixture-conversation",
             brief: "[介面測試資料] 成果預覽與接續修改；不是外部製作紀錄",
             directions: [],
             selected: 1,
@@ -536,6 +537,9 @@ export async function verifyVisualStates(
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toHaveValue("請接續修改同一作品。");
+  await expect(
+    page.getByRole("heading", { name: "今天想做什麼？" }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).not.toContainText("ui-fixture-artifact-B");
