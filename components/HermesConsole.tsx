@@ -130,6 +130,7 @@ export default function HermesConsole() {
     null,
   );
   const [settingsTab, setSettingsTab] = useState("外觀");
+  const [connectionFocus, setConnectionFocus] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [preview, setPreview] = useState<Material | null>(null);
   const draftScope = activeId
@@ -614,6 +615,7 @@ export default function HermesConsole() {
   }
   function closePanel() {
     setPanel(null);
+    setConnectionFocus(null);
   }
   function onComposerTaskPillClick(task: Task) {
     // Offline: refresh only — never open-resend or acknowledge.
@@ -916,6 +918,7 @@ export default function HermesConsole() {
           onOpenDrawer={() => setDrawer(true)}
           onOpenTasks={() => navigate("tasks")}
           onOpenSettings={(tab) => {
+            setConnectionFocus(null);
             setSettingsTab(tab);
             setPanel("settings");
           }}
@@ -935,6 +938,7 @@ export default function HermesConsole() {
                   type="button"
                   className="text-button"
                   onClick={() => {
+                    setConnectionFocus("hermes");
                     setSettingsTab("連線");
                     setPanel("settings");
                   }}
@@ -972,7 +976,6 @@ export default function HermesConsole() {
               turtleSize={prefs.turtleSize}
               offline={offline}
               integrations={integrations}
-              mobile={spatial.mobile}
               legacy={legacy}
               materials={data.materials}
               busy={busy}
@@ -1280,9 +1283,9 @@ export default function HermesConsole() {
         ref={dialog}
         className={"detail-dialog "+(panel==="spatial"?"spatial-sheet":panel==="preview"?"preview-sheet":"")}
         aria-labelledby="detail-panel-title"
-        onCancel={() => setPanel(null)}
+        onCancel={() => closePanel()}
         onClick={(e) => {
-          if (e.target === e.currentTarget) setPanel(null);
+          if (e.target === e.currentTarget) closePanel();
         }}
       >
         <div className="panel-content">
@@ -1314,6 +1317,7 @@ export default function HermesConsole() {
             <SettingsPanel
               settingsTab={settingsTab}
               onTab={setSettingsTab}
+              focusConnection={connectionFocus}
               prefs={prefs}
               onPrefs={setPrefs}
               onResetPrefs={() => setPrefs(DEFAULT_PREFS)}

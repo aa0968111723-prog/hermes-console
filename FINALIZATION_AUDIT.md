@@ -27,7 +27,7 @@
 | Memory scopes | live 契約 | conversation／user_preference／system／project／workspace；digest 標 scope。 |
 | Runtime 一般／Developer | live | 四顆狀態點（Hermes／Memory／Tools／MCP）不含工具計數；工具清單與 Runtime 詳情在關閉的進階區。 |
 | 靈感頁 | live | 主畫面是值得學／先避開視覺卡。Drive 知識與招生／漏斗研究在設定或「進階 · 研究」，不進主靈感板。手機 Dock 切頁後截圖會等到 `aria-current` 與標題落地。 |
-| 未連線送出 | live 契約 | credential 不是 valid 時不建立對話。提示「Hermes 還沒連上」並提供「前往連線」。 |
+| 未連線送出 | live 契約 | credential 不是 valid 時不建立對話。提示「Hermes 還沒連上」並「前往連線」打開 Hermes 憑證欄。 |
 | 長任務中斷 | live 契約 | 啟動時 chat／無 remoteId 改 uncertain；不假裝 still running。 |
 | 設定分類 | live | 帳號／外觀／連線／工作區／進階。 |
 | Liveness | live | `GET /api/live`。Readiness 仍是 `/api/ready`。 |
@@ -60,7 +60,7 @@
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
 | 匿名 Health | live 契約 | required 且未登入時 `/api/health` 不含 models／skills／toolsets。 |
 | 龜龜狀態 | live UI | Idle／Thinking／Planning／Searching／Researching／Creating／Tool／Waiting／Success／Error／Offline 各有姿勢與光。 |
-| 快速開始 | live UI | 只顯示研究／創作／分析／客群／靈感／設計，不放長句。 |
+| 快速開始 | live UI | 研究／創作／分析／客群／靈感／設計六個都在手機首頁（3×2），不放長句。靈感提示只用可取得的公開來源。 |
 | 連線格 | live UI | 名稱 + 狀態點；完整說明在 aria-label。 |
 
 ## 仍為 Partial（禁止打綠勾）

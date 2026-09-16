@@ -216,7 +216,7 @@ try {
       "send button occluded at " + width,
     );
     const mascot = await page.locator(".turtle").boundingBox();
-    await expect(page.locator(".quick-action")).toHaveCount(width<=760 ? 4 : 6);
+    await expect(page.locator(".quick-action")).toHaveCount(6);
     const columns = await page
       .locator(".quick-actions")
       .evaluate(
@@ -224,7 +224,7 @@ try {
       );
     assert.equal(
       columns,
-      width <= 760 ? 2 : width <= 1100 ? 3 : 6,
+      width <= 1100 ? 3 : 6,
       "quick action layout at " + width,
     );
     if (width <= 760) {
@@ -474,6 +474,14 @@ try {
     "aria-selected",
     "true",
   );
+  await expect(page.getByRole("button", { name: /^Hermes：/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByRole("heading", { name: "Hermes 憑證" })).toBeVisible();
+  await page.screenshot({
+    path: join(output, "unconfigured-send-hermes-editor-mobile.png"),
+  });
   await page.getByRole("button", { name: "關閉面板" }).click();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.getByRole("button", { name: "外觀設定" }).click();

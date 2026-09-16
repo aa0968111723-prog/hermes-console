@@ -31,7 +31,6 @@ export default function Conversation({
   turtleSize,
   offline,
   integrations,
-  mobile,
   legacy,
   materials,
   busy,
@@ -61,7 +60,6 @@ export default function Conversation({
   turtleSize: number;
   offline: boolean;
   integrations: Integration[];
-  mobile: boolean;
   legacy: boolean;
   materials: Material[];
   busy: boolean;
@@ -140,7 +138,7 @@ export default function Conversation({
               )}
             </div>
             <h1 id="welcome-title">今天想做什麼？</h1>
-            <QuickActions mobile={mobile} onSelect={onQuickAction} />
+            <QuickActions onSelect={onQuickAction} />
             {legacy && (
               <button className="text-button" onClick={onImportLegacy}>
                 匯入這個瀏覽器中的舊對話（不覆蓋原資料）

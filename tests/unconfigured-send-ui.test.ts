@@ -22,7 +22,13 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
   assert.match(consoleUi, /!health \|\| health\.credential !== "valid"/);
   assert.match(consoleUi, /HERMES_UNCONFIGURED_MESSAGE/);
   assert.match(consoleUi, /前往連線/);
+  assert.match(consoleUi, /setConnectionFocus\("hermes"\)/);
   assert.match(consoleUi, /setSettingsTab\("連線"\)/);
+  const connections = await readFile(
+    new URL("../components/settings/ConnectionSettings.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(connections, /focusId/);
   assert.ok(
     consoleUi.indexOf("health.credential !== \"valid\"") <
       consoleUi.indexOf("createConversation(text.trim())"),

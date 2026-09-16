@@ -2666,7 +2666,7 @@ body::before {
   .connection-label { display: none; }.connection-pill { width: 44px; padding: 0; justify-content: center; }
   .conversation { padding: 10px 14px 18px; }
   .welcome { padding-top: 5px; }.welcome-stage { min-height: 225px; }.hermes-core { height: 220px; }
-  .quick-actions { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 9px; }.quick-action { min-height: 91px; border-radius: 17px; padding: 10px 5px; }.quick-action-icon { width: 39px; height: 39px; border-radius: 13px; }.quick-action-label { font-size: 13px; }.quick-action-detail { display: none; }
+  .quick-actions { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; }.quick-action { min-height: 72px; border-radius: 17px; padding: 10px 5px; }.quick-action-icon { width: 39px; height: 39px; border-radius: 13px; }.quick-action-label { font-size: 13px; }.quick-action-detail { display: none; }
   .mobile-bottom-dock { position: fixed; z-index: var(--z-dock); bottom: 0; left: 0; right: 0; height: calc(58px + env(safe-area-inset-bottom)); padding: 5px 10px env(safe-area-inset-bottom); display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 4px; background: rgba(255,255,255,.94); border-top: 1px solid #dce8d8; box-shadow: 0 -6px 24px rgba(48,78,55,.08); backdrop-filter: blur(14px); }
   .mobile-bottom-dock button { min-height: 44px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; border: 0; background: transparent; color: var(--muted); font-size: 10px; }.mobile-bottom-dock button[aria-current="page"] { color: var(--color-primary); font-weight: 700; }.mobile-bottom-dock button[aria-current="page"] svg { stroke-width: 2.5; }
   .composer-area { padding: 8px 10px max(10px, env(safe-area-inset-bottom)); }.composer { border-radius: 18px; }.composer textarea { min-height: 52px; }.composer-tools .icon-button { min-width: 44px; }.composer-tools .send-button { min-width: 44px; }
@@ -2899,7 +2899,8 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
   .core-glow { width: 150px; height: 150px; }
   .core-orbit-one { width: 155px; } .core-orbit-two { width: 180px; }
   .welcome h1 { font-size: 25px; margin: 0 0 16px; }
-  .quick-action { min-height: 80px; padding: 8px; flex-direction: row; gap: 14px; }
+  .quick-actions { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .quick-action { min-height: 72px; padding: 8px; flex-direction: column; gap: 8px; }
   .quick-action-detail { display: none; }
   .composer-area { padding: 8px 10px 10px; }
   .composer { padding: 7px; }

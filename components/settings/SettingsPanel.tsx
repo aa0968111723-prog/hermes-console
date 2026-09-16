@@ -46,6 +46,7 @@ export type RemoteHistory = Array<{
 export default function SettingsPanel({
   settingsTab,
   onTab,
+  focusConnection = null,
   prefs,
   onPrefs,
   onResetPrefs,
@@ -78,6 +79,7 @@ export default function SettingsPanel({
 }: {
   settingsTab: string;
   onTab: (tab: string) => void;
+  focusConnection?: string | null;
   prefs: AppearancePrefs;
   onPrefs: Dispatch<SetStateAction<AppearancePrefs>>;
   onResetPrefs: () => void;
@@ -320,6 +322,7 @@ export default function SettingsPanel({
               </button>
             </details>
             <ConnectionSettings
+              focusId={focusConnection}
               canvaState={
                 integrations.find((item) => item.id === "canva")?.state ||
                 "unknown"

@@ -124,13 +124,15 @@ export default function ConnectionSettings({
   onChanged,
   canva,
   canvaState = "unknown",
+  focusId = null,
 }: {
   onChanged?: () => Promise<void> | void;
   canva?: ReactNode;
   canvaState?: string;
+  focusId?: string | null;
 }) {
   const [data, setData] = useState<SettingsPayload | null>(null);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(focusId);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -167,6 +169,10 @@ export default function ConnectionSettings({
     token: string;
     payload: Record<string, unknown>;
   } | null>(null);
+
+  useEffect(() => {
+    if (focusId) setSelected(focusId);
+  }, [focusId]);
 
   const apply = useCallback((next: SettingsPayload) => {
     setData(next);

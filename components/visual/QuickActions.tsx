@@ -26,7 +26,7 @@ const actions: QuickAction[] = [
   },
   {
     label: "靈感",
-    prompt: "幫我找 IG 與 Pinterest 參考，貼連結或使用已授權來源。",
+    prompt: "幫我找靈感，只用可取得的公開來源。",
     icon: Image,
     tone: "leaf",
   },
@@ -40,14 +40,12 @@ const actions: QuickAction[] = [
 
 export default function QuickActions({
   onSelect,
-  mobile = false,
 }: {
   onSelect: (prompt: string) => void;
-  mobile?: boolean;
 }) {
   return (
     <div className="quick-actions" aria-label="快速開始">
-      {(mobile ? actions.slice(0, 4) : actions).map(({ label, prompt, icon: Icon, tone }) => (
+      {actions.map(({ label, prompt, icon: Icon, tone }) => (
         <button
           className={`quick-action quick-action-${tone}`}
           key={label}
