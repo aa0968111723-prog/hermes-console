@@ -54,6 +54,41 @@ export interface McpEntry {
   serverInfo?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
 }
+
+export type PublicMcpEntry = {
+  id: string;
+  name: string;
+  status: ReturnType<typeof publicMcpStatus>;
+  enabled: boolean;
+  readonly: boolean;
+  trustedLevel: McpEntry["trustedLevel"];
+  toolsCount: number;
+  lastError: string | null;
+};
+
+/** Student/member view: status only. No endpoint, env names, or tool schemas. */
+export function presentMcpEntry(entry: McpEntry, operator: boolean) {
+  const status = publicMcpStatus(entry.status);
+  const lastError = entry.lastError ? redact(entry.lastError) : null;
+  if (!operator) {
+    return {
+      id: entry.id,
+      name: entry.name,
+      status,
+      enabled: entry.enabled,
+      readonly: entry.readonly,
+      trustedLevel: entry.trustedLevel,
+      toolsCount: entry.tools.length,
+      lastError: null,
+    } satisfies PublicMcpEntry;
+  }
+  return {
+    ...entry,
+    status,
+    lastError,
+  };
+}
+
 const definition = z
   .object({
     id: z.string().regex(/^[a-zA-Z0-9_-]{2,40}$/),

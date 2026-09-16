@@ -199,6 +199,43 @@ function workspaceRoleOf(membership: unknown): WorkspaceRole | null {
   return null;
 }
 
+function sessionToken(request: Request) {
+  const rawSession =
+    (request.headers.get("cookie") || "")
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith("hermes_session="))
+      ?.slice("hermes_session=".length) || "";
+  if (/^[a-f0-9]{64}$/.test(rawSession)) return rawSession;
+  if (rawSession) return "";
+  return (
+    (process.env.NODE_TEST_CONTEXT && process.env.CONSOLE_TEST_SESSION) || ""
+  );
+}
+
+export function readWorkspaceRole(request: Request): WorkspaceRole | null {
+  const token = sessionToken(request);
+  if (!/^[a-f0-9]{64}$/.test(token)) return null;
+  try {
+    const session = get<{ userId: string; expires: number }>(
+      "auth_session",
+      "identity",
+      hash(token),
+    );
+    if (!session || session.expires <= Date.now()) return null;
+    return workspaceRoleOf(
+      get("membership", WORKSPACE_OWNER, session.userId),
+    );
+  } catch {
+    return null;
+  }
+}
+
+export function isWorkspaceOperator(request: Request) {
+  const role = readWorkspaceRole(request);
+  return role === "owner" || role === "admin";
+}
+
 export function authenticate(
   request: Request,
   mutation = false,
@@ -208,19 +245,7 @@ export function authenticate(
     verifyGateway(request);
   if (mutation) checkOrigin(request);
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
-  const rawSession =
-    (request.headers.get("cookie") || "")
-      .split(";")
-      .map((part) => part.trim())
-      .find((part) => part.startsWith("hermes_session="))
-      ?.slice("hermes_session=".length) || "";
-  const token = /^[a-f0-9]{64}$/.test(rawSession)
-    ? rawSession
-    : rawSession
-      ? ""
-      : (process.env.NODE_TEST_CONTEXT &&
-          process.env.CONSOLE_TEST_SESSION) ||
-        "";
+  const token = sessionToken(request);
   if (!/^[a-f0-9]{64}$/.test(token))
     throw new ApiError(401, "sign_in_required", "請先登入。");
   let session: { userId: string; expires: number } | null = null;

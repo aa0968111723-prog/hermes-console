@@ -94,10 +94,12 @@ export default function RuntimeInspector({
   task,
   health = null,
   animation = true,
+  developer = false,
 }: {
   task?: Task;
   health?: Health | null;
   animation?: boolean;
+  developer?: boolean;
 }) {
   const [snapshot, setSnapshot] = useState<HermesRuntimeSnapshot | null>(null);
   const [stale, setStale] = useState(false);
@@ -301,6 +303,7 @@ export default function RuntimeInspector({
         stale={stale}
         animation={animation}
       />
+      {developer ? (
       <details className="runtime-advanced">
         <summary>Developer · 工具與詳情</summary>
         {snapshot && (
@@ -401,6 +404,7 @@ export default function RuntimeInspector({
           </>
         )}
       </details>
+      ) : null}
     </section>
   );
 }

@@ -2,16 +2,21 @@ import { z } from "zod";
 import {
   authenticate,
   authenticateOperator,
+  isWorkspaceOperator,
   jsonBody,
   respond,
   route,
   consumeConfirmation,
 } from "@/lib/server/security";
-import { getMcp, probeMcp, registerMcp, seedRegistry, setMcpEnabled } from "@/lib/server/mcp-registry";
+import { getMcp, presentMcpEntry, probeMcp, registerMcp, seedRegistry, setMcpEnabled } from "@/lib/server/mcp-registry";
 export const runtime = "nodejs";
 export const GET = route(async (req) => {
   authenticate(req);
-  return respond({ servers: seedRegistry() });
+  const operator = isWorkspaceOperator(req);
+  return respond({
+    view: operator ? "developer" : "normal",
+    servers: seedRegistry().map((entry) => presentMcpEntry(entry, operator)),
+  });
 });
 export const POST = route(async (req) => {
   authenticateOperator(req, true);

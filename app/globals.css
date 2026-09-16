@@ -1464,7 +1464,7 @@ dialog {
   padding: 0;
   border: 0;
   max-height: 100%;
-  background: transparent;
+  background: var(--color-canvas);
 }
 dialog::backdrop {
   background: #25332433;

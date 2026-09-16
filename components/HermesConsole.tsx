@@ -1713,7 +1713,9 @@ export default function HermesConsole() {
               task={currentTask}
               health={health}
               animation={prefs.animation}
+              developer={canManageConnections}
             />
+            {canManageConnections ? (
             <details className="agent-profiles">
               <summary>Developer · Agent 設定檔</summary>
               <AgentPanel
@@ -1724,6 +1726,7 @@ export default function HermesConsole() {
                 brain={[]}
               />
             </details>
+            ) : null}
           </section>
         ) : (
           <section className="secondary-page">

@@ -19,6 +19,7 @@ const credentials = await import("../app/api/settings/credentials/route");
 const tamkang = await import("../app/api/settings/tamkang/route");
 const zeabur = await import("../app/api/settings/zeabur/route");
 const mcpRegistry = await import("../app/api/mcp-registry/route");
+const runtime = await import("../app/api/runtime/route");
 const canva = await import("../app/api/canva/route");
 const bindings = await import("../app/api/runtime/bindings/route");
 const workspace = await import("../app/api/workspace/route");
@@ -110,10 +111,60 @@ test("workspace members cannot change connection secrets", async () => {
     ).status,
     403,
   );
-  assert.equal(
-    (await mcpRegistry.GET(request("mcp-registry", member.cookie))).status,
-    200,
+  const memberMcp = await mcpRegistry.GET(
+    request("mcp-registry", member.cookie),
   );
+  assert.equal(memberMcp.status, 200);
+  const memberMcpBody = await memberMcp.json();
+  assert.equal(memberMcpBody.view, "normal");
+  const memberDump = JSON.stringify(memberMcpBody);
+  assert.doesNotMatch(memberDump, /credentialReference/);
+  assert.doesNotMatch(memberDump, /inputSchema/);
+  assert.doesNotMatch(memberDump, /https?:\/\//);
+  assert.doesNotMatch(memberDump, /MCP_BRIDGE|HERMES_API_KEY|_MCP_TOKEN/);
+  assert.ok(
+    (memberMcpBody.servers as Array<Record<string, unknown>>).every(
+      (row) =>
+        row.endpoint === undefined &&
+        row.tools === undefined &&
+        row.lastError === null,
+    ),
+  );
+
+  const ownerMcp = await mcpRegistry.GET(
+    request("mcp-registry", owner.cookie),
+  );
+  assert.equal(ownerMcp.status, 200);
+  const ownerMcpBody = await ownerMcp.json();
+  assert.equal(ownerMcpBody.view, "developer");
+  assert.ok(
+    (ownerMcpBody.servers as Array<{ endpoint?: string }>).some(
+      (row) => typeof row.endpoint === "string",
+    ),
+  );
+
+  const memberRuntime = await runtime.GET(request("runtime", member.cookie));
+  assert.equal(memberRuntime.status, 200);
+  const memberSnap = await memberRuntime.json();
+  const memberRuntimeDump = JSON.stringify(memberSnap);
+  assert.doesNotMatch(memberRuntimeDump, /hermesKeySource/);
+  assert.ok(
+    (
+      memberSnap.snapshot.tools as Array<{
+        canonicalName?: string;
+        inputSchema?: Record<string, unknown>;
+      }>
+    ).every(
+      (tool) =>
+        !tool.canonicalName && Object.keys(tool.inputSchema || {}).length === 0,
+    ),
+  );
+
+  const ownerRuntime = await runtime.GET(request("runtime", owner.cookie));
+  assert.equal(ownerRuntime.status, 200);
+  const ownerSnap = await ownerRuntime.json();
+  assert.ok("hermesKeySource" in (ownerSnap.snapshot.diagnostics || {}));
+
   assert.equal(
     (
       await mcpRegistry.POST(

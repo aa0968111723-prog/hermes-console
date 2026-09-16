@@ -5,6 +5,8 @@ import {
   syncRuntime,
   RUNTIME_STALE_MS,
 } from "./sync-manager";
+import { presentRuntimeSnapshot } from "./runtime-view";
+import { isWorkspaceOperator } from "../security";
 
 // Every connection subscribes to the same publisher, not its own discovery loop.
 export function runtimeStream(
@@ -14,6 +16,7 @@ export function runtimeStream(
   heartbeatMs = 15_000,
 ) {
   const encoder = new TextEncoder();
+  const operator = isWorkspaceOperator(request);
   let closed = false;
   let unsubscribe = () => {};
   let heartbeat: ReturnType<typeof setInterval> | undefined;
@@ -53,11 +56,18 @@ export function runtimeStream(
         const view = snapshot.hash + ":" + snapshot.status;
         if (view === lastView) return;
         lastView = view;
-        send("runtime.snapshot", snapshot, snapshot.hash);
+        send(
+          "runtime.snapshot",
+          presentRuntimeSnapshot(snapshot, operator),
+          snapshot.hash,
+        );
       };
       unsubscribe = subscribeRuntime(owner, (snapshot, diff) => {
         sendSnapshot(snapshot);
-        if (diff.added.length || diff.removed.length || diff.changed.length)
+        if (
+          operator &&
+          (diff.added.length || diff.removed.length || diff.changed.length)
+        )
           send("tools.updated", diff, snapshot.hash);
       });
       request.signal.addEventListener("abort", finish, { once: true });
@@ -86,7 +96,9 @@ export function runtimeStream(
           snapshotHash: current?.hash,
           fetchedAt: current?.fetchedAt,
           lastSyncedAt: current?.lastSyncedAt,
-          diagnostics: current?.diagnostics,
+          diagnostics: current
+            ? presentRuntimeSnapshot(current, operator).diagnostics
+            : undefined,
           expired:
             !current || current.diagnostics.snapshotAgeMs > RUNTIME_STALE_MS,
         });
