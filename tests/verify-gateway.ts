@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { signInConsole } from "./playwright-login";
 
 const data = await mkdtemp(join(tmpdir(), "hermes-gateway-browser-"));
 const backendPort = Number(process.env.GATEWAY_TEST_PORT || 3371);
@@ -76,7 +77,8 @@ const child = spawn(
       CONSOLE_ORIGIN: origin,
       CONSOLE_DATA_DIR: data,
       CONSOLE_GATEWAY_SECRET: secret,
-      CONSOLE_ALLOW_LOCAL_ACCESS: "false",
+      CONSOLE_ALLOW_LOCAL_ACCESS: "true",
+      CONSOLE_WORKSPACE_JOIN: "open",
       HERMES_API_URL: "",
       HERMES_API_KEY: "",
       CANVA_CLIENT_ID: "",
@@ -128,6 +130,7 @@ try {
     assert.ok(!JSON.stringify(request.headers()).includes(secret)),
   );
   await page.goto(origin);
+  await signInConsole(page);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
@@ -165,7 +168,7 @@ try {
   assert.deepEqual(errors, []);
   assert.ok(!logs.includes(secret));
   console.log(
-    "PASS: real browser with invited-session fixture -> access-proxy fixture -> real Console; direct API denied, forged gateway denied, cross-origin write denied, gateway secret absent from browser requests/HTML/logs. NOT live email, SSO or Zeabur validation.",
+    "PASS: real browser with gateway cookie then identity login -> access-proxy fixture -> real Console; direct API denied, forged gateway denied, cross-origin write denied, gateway secret absent from browser requests/HTML/logs. NOT live Google, Tamkang SSO or Zeabur validation.",
   );
 } finally {
   await browser?.close();

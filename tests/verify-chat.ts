@@ -6,6 +6,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { signInConsole } from "./playwright-login";
 
 // Full Console HTTP/browser path against an explicitly isolated protocol fixture.
 // This is NOT proof that the user's Zeabur instance is reachable.
@@ -177,6 +178,7 @@ try {
   });
   const page = await context.newPage();
   await page.goto(base);
+  await signInConsole(page);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
@@ -309,7 +311,7 @@ try {
   assert.match(String(canva.detail), /Needs Canva Authorization|尚未/);
   assert.ok(!logs.includes(fixtureKey));
   console.log(
-    "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",
+    "PASS: signed-in browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",
   );
 } finally {
   await browser.close();

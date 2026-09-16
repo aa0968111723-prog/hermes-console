@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { signInConsole } from "./playwright-login";
 
 const dataDir = await mkdtemp(join(tmpdir(), "hermes-entry-"));
 const port = Number(process.env.ENTRY_TEST_PORT || 3220);
@@ -47,13 +48,13 @@ try {
     await new Promise((r) => setTimeout(r, 100));
   }
   const workspace = await fetch(base + "/api/workspace");
-  assert.equal(workspace.status, 200, "workspace GET must not require invitation");
+  assert.equal(workspace.status, 401, "workspace GET requires a session");
   const health = await fetch(base + "/api/health");
   assert.equal(health.status, 200);
   const runtime = await fetch(base + "/api/runtime");
-  assert.notEqual(runtime.status, 401, "runtime must not require invitation");
+  assert.equal(runtime.status, 401, "runtime requires a session");
   const tasks = await fetch(base + "/api/tasks");
-  assert.equal(tasks.status, 200);
+  assert.equal(tasks.status, 401);
   const cross = await fetch(base + "/api/workspace", {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
@@ -65,15 +66,21 @@ try {
     headers: { "Content-Type": "application/json", Origin: base },
     body: JSON.stringify({ title: "免登入對話" }),
   });
-  assert.equal(created.status, 201);
+  assert.equal(created.status, 401);
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
+  await signInConsole(page);
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
+  const authed = await page.request.post(base + "/api/conversations", {
+    headers: { Origin: base },
+    data: { title: "登入後對話" },
+  });
+  assert.equal(authed.status(), 201);
   const text = await page.locator("body").innerText();
   for (const word of [
     "受邀電子信箱",
@@ -83,7 +90,7 @@ try {
   ])
     assert.ok(!text.includes(word), "invitation UI visible: " + word);
   assert.deepEqual(errors, []);
-  console.log("PASS: no-login root page, workspace/health/tasks APIs, origin-bound mutation, Hermes unconfigured UI. Not live Zeabur.");
+  console.log("PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI. Not live Zeabur.");
 } finally {
   await browser?.close();
   child.kill();

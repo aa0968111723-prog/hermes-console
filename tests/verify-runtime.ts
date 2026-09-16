@@ -6,6 +6,7 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
+import { signInConsole } from "./playwright-login";
 
 // Production Console + real Chrome + isolated HTTP discovery fixture.
 // The fixture declares tools; it never pretends to execute Hermes or Canva.
@@ -79,6 +80,8 @@ const child = spawn(
       CONSOLE_DATA_DIR: dataDir,
       CONSOLE_GATEWAY_SECRET: "",
       CONSOLE_REQUIRE_GATEWAY: "false",
+      CONSOLE_ALLOW_LOCAL_ACCESS: "true",
+      CONSOLE_WORKSPACE_JOIN: "open",
       CONSOLE_MCP_SERVERS_JSON: "[]",
       HERMES_API_URL:
         "http://127.0.0.1:" + (upstream.address() as { port: number }).port,
@@ -114,6 +117,7 @@ try {
     errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
+  await signInConsole(page);
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   const inspector = page.getByRole("region", { name: "Hermes Runtime 狀態" });
   await expect(
@@ -175,8 +179,7 @@ try {
       });
     }
   }
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "任務", exact: true }).click();
+  await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();

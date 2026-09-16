@@ -4,11 +4,13 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
+import { signInConsole } from "./playwright-login";
 const data = await mkdtemp(join(tmpdir(), "hermes-workbench-ui-"));
 const port = Number(process.env.WORKBENCH_TEST_PORT || 3418), base = "http://127.0.0.1:" + port;
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port), "-H", "127.0.0.1"], {
   windowsHide: true, stdio: "pipe", env: { ...process.env, NODE_ENV: "production", CONSOLE_ORIGIN: base,
     CONSOLE_DATA_DIR: data, CONSOLE_GATEWAY_SECRET: "", CONSOLE_REQUIRE_GATEWAY: "false",
+    CONSOLE_ALLOW_LOCAL_ACCESS: "true", CONSOLE_WORKSPACE_JOIN: "open",
     HERMES_API_URL: "", HERMES_API_KEY: "", HERMES_LEARNING_SCOPE_VERIFIED: "false", RESEND_API_KEY: "" },
 });
 let logs = "";
@@ -26,13 +28,13 @@ try {
   const errors: string[] = [];
   page.on("pageerror", e=>errors.push(e.message));
   await page.goto(base);
+  await signInConsole(page);
   await expect(page.getByRole("heading",{name:"今天想做什麼？"})).toBeVisible();
   assert.equal((await context.request.get(base+"/api/workspace")).status(),200);
   const body = await page.locator("body").innerText();
   for (const word of ["受邀電子信箱","寄送登入連結","歡迎回到 Hermes","正在驗證工作區存取"])
     assert.ok(!body.includes(word), "invitation UI visible: "+word);
-  await page.getByRole("button",{name:"開啟導覽"}).click();
-  await page.getByRole("dialog").filter({ has: page.getByRole("navigation") }).getByRole("button",{name:"專案",exact:true}).click();
+  await page.getByRole("button",{name:"專案",exact:true}).click();
   await page.locator(".workbench-disclosure > summary").click();
   await page.getByRole("button",{name:"建立活動資料",exact:true}).click();
   await page.getByLabel("活動資料標題",{exact:true}).fill("驗證活動");
@@ -67,7 +69,7 @@ try {
   assert.match(await exported.text(),/一起看看春日創作/);
   await page.screenshot({path:join(output,"workbench-mobile-390.png"),fullPage:true});
   await page.getByRole("button",{name:"外觀設定"}).click();
-  await page.getByRole("tab",{name:"記憶",exact:true}).click();
+  await page.getByRole("tab",{name:"工作區",exact:true}).click();
   const map = page.getByRole("region",{name:"記憶與學習地圖"});
   await map.getByLabel("學習標題",{exact:true}).fill("社團品牌風格");
   await map.getByLabel("學習分類",{exact:true}).selectOption("brand");
@@ -93,7 +95,7 @@ try {
   assert.equal((await (await context.request.get(base+"/api/learning")).json()).nodes.length,2);
   assert.equal((await context.request.get(base+"/api/creative")).status(),200);
   assert.deepEqual(errors,[]);
-  console.log("PASS: real production browser no-login workbench; activity confirmation; two-page revisions/export; persistent learning tree with honest unconfigured state. Hermes memory and Canva NOT live verified.");
+  console.log("PASS: real production browser signed-in workbench; activity confirmation; two-page revisions/export; persistent learning tree with honest unconfigured state. Hermes memory and Canva NOT live verified.");
 } catch (error) {
   const page = browser.contexts()[0]?.pages()[0];
   if (page) {

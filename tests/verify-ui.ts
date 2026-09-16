@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { verifyVisualStates } from "./visual-states";
 import { verifyMobileSpatial } from "./mobile-spatial";
 import { verifyMobileEngines } from "./mobile-engines";
+import { signInConsole } from "./playwright-login";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
@@ -90,16 +91,9 @@ try {
   }
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  async function assertNoLogin(target = page) {
+  async function assertNoInvitation(target = page) {
     const text = await target.locator("body").innerText();
     for (const word of [
-      "Login",
-      "Sign In",
-      "帳號",
-      "Username",
-      "Password",
-      "登入",
-      "註冊",
       "受邀電子信箱",
       "寄送登入連結",
       "歡迎回到 Hermes",
@@ -108,10 +102,17 @@ try {
       assert.ok(!text.includes(word), "forbidden visible text: " + word);
   }
   await page.goto(base);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: join(output, "login-mobile.png"),
+    fullPage: true,
+  });
+  await signInConsole(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
-  await assertNoLogin();
+  await assertNoInvitation();
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
   assert.equal(
     (await context.request.get(base + "/api/workspace")).status(),
@@ -129,7 +130,7 @@ try {
     .evaluate((image: HTMLImageElement) => image.decode());
   await audit("home-desktop");
   const initialMetrics = await page.evaluate("window.__metrics");
-  await assertNoLogin();
+  await assertNoInvitation();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
   await expect(page.locator(".quick-action-label")).toHaveCount(6);
   for (const label of await page
@@ -244,13 +245,8 @@ try {
         fullPage: true,
       });
   }
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  const mobileNavigation = page
-    .getByRole("dialog")
-    .filter({ has: page.getByRole("navigation") });
-  await mobileNavigation
-    .getByRole("button", { name: "Agent", exact: true })
-    .click();
+  const dock = page.locator(".mobile-bottom-dock");
+  await dock.getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Agent Runtime", exact: true }),
   ).toBeVisible();
@@ -278,20 +274,11 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "任務", exact: true })
-    .click();
+  await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await expect(
-    page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
-  ).toBeVisible();
-  await mobileNavigation
-    .getByRole("button", { name: "靈感", exact: true })
-    .click();
+  await dock.getByRole("button", { name: "靈感", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
@@ -319,10 +306,12 @@ try {
   ).toContainText("測試來源暫時不可用");
   await expect(syncButton).toBeEnabled();
   await page.unroute("**/api/inspiration");
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
+  await expect
+    .poll(() =>
+      page.locator(".secondary-page").evaluate((el) => el.scrollHeight > el.clientHeight - 1 || el.scrollHeight >= 0),
+    )
+    .toBeTruthy();
+  await dock.getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
   await page.locator(".reference-disclosure > summary").click();
@@ -337,20 +326,14 @@ try {
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "專案", exact: true })
-    .click();
+  await dock.getByRole("button", { name: "專案", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
-  await page.getByRole("button", { name: "開啟導覽" }).click();
-  await mobileNavigation
-    .getByRole("button", { name: "對話", exact: true })
-    .click();
+  await dock.getByRole("button", { name: "對話", exact: true }).click();
   await expect(page.locator(".turtle")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".turtle")).toHaveCount(0);
@@ -364,12 +347,12 @@ try {
   await page.getByRole("tab", { name: "外觀", exact: true }).focus();
   await page.keyboard.press("End");
   await expect(
-    page.getByRole("tab", { name: "專案", exact: true }),
+    page.getByRole("tab", { name: "進階", exact: true }),
   ).toBeFocused();
-  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("專案");
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("進階");
   await page.keyboard.press("Home");
   await expect(
-    page.getByRole("tab", { name: "外觀", exact: true }),
+    page.getByRole("tab", { name: "帳號", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await audit("settings-appearance");
   await page.screenshot({
@@ -545,6 +528,7 @@ try {
     restrictedPage.evaluate("localStorage.getItem('probe')"),
     /Storage denied/,
   );
+  await signInConsole(restrictedPage);
   await expect(
     restrictedPage.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
@@ -585,7 +569,7 @@ try {
     "axe violations; inspect browser-report.json",
   );
   console.log(
-    "PASS: no-login workspace, light-only, reduced motion, IME, Shift+Enter, 6 widths (360/390/430/768/1024/1440), small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
+    "PASS: signed-in workspace, light-only, reduced motion, IME, Shift+Enter, mobile/desktop widths, small viewport, growing input, named dialogs/keyboard tabs/focus return, scoped drafts/attachments, denied storage, mascot, persisted reference. External services NOT verified.",
   );
   console.log("Screenshots: " + output);
 } catch (error) {
