@@ -79,7 +79,7 @@ try {
   ])
     assert.ok(!text.includes(word), "invitation UI visible: " + word);
   assert.deepEqual(errors, []);
-  console.log("PASS: no-login root page, workspace/health/tasks APIs, origin-bound mutation, Hermes unconfigured UI. Not live Zeabur.");
+  console.log("PASS: AuthGate root page, session-gated workspace APIs, origin-bound mutation, Hermes unconfigured UI. Not live Zeabur.");
 } finally {
   await browser?.close();
   child.kill();

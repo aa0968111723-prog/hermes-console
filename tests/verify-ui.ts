@@ -381,12 +381,12 @@ try {
   await page.getByRole("tab", { name: "外觀", exact: true }).focus();
   await page.keyboard.press("End");
   await expect(
-    page.getByRole("tab", { name: "工作區", exact: true }),
+    page.getByRole("tab", { name: "進階", exact: true }),
   ).toBeFocused();
-  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("工作區");
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("進階");
   await page.keyboard.press("Home");
   await expect(
-    page.getByRole("tab", { name: "外觀", exact: true }),
+    page.getByRole("tab", { name: "帳號", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
   await audit("settings-appearance");
   await page.screenshot({

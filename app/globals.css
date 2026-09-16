@@ -516,7 +516,6 @@ small {
 .app-shell {
   height: var(--app-height);
   max-height: var(--app-height);
-  margin-top: var(--app-offset-top);
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
   overflow: hidden;
