@@ -70,7 +70,14 @@ export default memo(function AgentOrbit({
     return () => document.removeEventListener("visibilitychange", update);
   }, []);
   const current = stale ? undefined : workingEvent(task);
-  const allNodes = snapshot
+  const allNodes: Array<{
+    id: string;
+    name: string;
+    status: string;
+    detail: string | null;
+    verifiedAt: string | null;
+    tools: string[];
+  }> = snapshot
     ? snapshot.mcpServers.map((server) => ({
         id: server.id,
         name: server.name,
