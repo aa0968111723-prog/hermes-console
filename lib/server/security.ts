@@ -252,6 +252,11 @@ export function isWorkspaceOperator(request: Request) {
   return role === "owner" || role === "admin";
 }
 
+export function canInspectRuntime(request: Request) {
+  if (!isAuthEnforced()) return true;
+  return isWorkspaceOperator(request);
+}
+
 export function authenticate(
   request: Request,
   mutation = false,
