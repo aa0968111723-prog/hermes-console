@@ -240,6 +240,12 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, /顯示維運檢視/);
   assert.match(consoleUi, /說完了，請按送出/);
   assert.doesNotMatch(consoleUi, /setInspectDeveloper\(\(value\) => !value\)/);
+  const settings = await readFile(
+    new URL("../components/settings/ConnectionSettings.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(settings, /填寫網址與權杖/);
+  assert.match(settings, /connection-ops/);
   const pill = consoleUi.slice(
     consoleUi.indexOf('className="connection-pill"'),
     consoleUi.indexOf('className="icon-button"', consoleUi.indexOf('connection-pill')),

@@ -60,6 +60,7 @@ export async function verifyVisualStates(
   });
   await audit("connections-mobile");
   const picker = page.getByRole("group", { name: "選擇連線" });
+  const ops = page.locator("details.connection-ops");
   for (const name of [
     "GALLEY",
     "淡江",
@@ -73,6 +74,14 @@ export async function verifyVisualStates(
     await picker
       .getByRole("button", { name: new RegExp("^" + name + "：") })
       .click();
+    await expect(ops).toBeVisible();
+    if ((await ops.getAttribute("open")) === null) {
+      await expect(ops.locator("summary")).toContainText("填寫網址與權杖");
+      await expect(
+        page.locator(".connection-editor section:visible"),
+      ).toHaveCount(0);
+      await ops.locator("summary").click();
+    }
     await expect(
       page.locator(".connection-editor section:visible"),
     ).toHaveCount(1);
