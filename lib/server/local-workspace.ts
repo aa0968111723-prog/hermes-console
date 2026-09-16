@@ -1,6 +1,36 @@
 import { interpretGoal } from "./orchestrator/goal";
 import { searchZenclubKnowledge, needsZenclubKnowledge } from "./zenclub";
 import { searchInspiration } from "./inspiration/engine";
+import type { KnowledgeClaim, KnowledgeEntity } from "./zenclub/types";
+
+const FIELD_LABEL: Record<string, string> = {
+  date: "日期",
+  dates: "日期",
+  time: "時間",
+  place: "地點",
+  location: "地點",
+  registration: "報名",
+  speaker: "講者",
+  title: "主題",
+};
+
+const STUDENT_FIELDS = new Set(Object.keys(FIELD_LABEL));
+
+function claimLine(claim: KnowledgeClaim) {
+  const label = FIELD_LABEL[claim.field] || claim.field;
+  if (claim.status === "UNKNOWN" || claim.value == null) return `- ${label}：UNKNOWN`;
+  return `- ${label}：${claim.value}`;
+}
+
+function formatEntity(entity: KnowledgeEntity) {
+  const heading = [entity.title, entity.semester].filter(Boolean).join(" · ");
+  const claims = entity.claims
+    .filter((claim) => STUDENT_FIELDS.has(claim.field))
+    .slice(0, 8)
+    .map(claimLine);
+  if (!claims.length) return "";
+  return ["### " + heading, ...claims].join("\n");
+}
 
 export function localWorkspaceReply(
   input: string,
@@ -12,27 +42,25 @@ export function localWorkspaceReply(
   const goal = interpretGoal(text);
   const lines = [
     "Hermes Agent 尚未連線，沒有上網搜尋，也沒有使用 GALLEY 或 Canva。",
-    "以下是工作區已索引的禪學社資料（Drive 快照，不是即時讀檔）。",
     knowledge.notice,
   ];
-  if (!knowledge.hits.length) {
+  const cards = knowledge.hits
+    .map((hit) => formatEntity(hit.entity))
+    .filter(Boolean)
+    .slice(0, 4);
+  if (!cards.length) {
     lines.push("索引沒有命中。缺資料標 UNKNOWN，不得自行補日期或地點。");
+  } else {
+    lines.push(...cards);
   }
-  for (const hit of knowledge.hits.slice(0, 6)) {
-    const heading = [hit.entity.title, hit.entity.semester]
-      .filter(Boolean)
-      .join(" · ");
-    const claims = hit.entity.claims
-      .slice(0, 8)
-      .map(
-        (claim) =>
-          `- ${claim.field}：${claim.value ?? "UNKNOWN"}（${claim.status}）`,
-      );
-    lines.push(["### " + heading, ...claims].join("\n"));
-  }
-  if (knowledge.unknowns.length) {
+  const unknownPlaces = knowledge.unknowns.filter((item) =>
+    /place|location|地點/.test(item),
+  );
+  if (unknownPlaces.length) {
+    lines.push(["### UNKNOWN", ...unknownPlaces.slice(0, 6).map((item) => "- " + item)].join("\n"));
+  } else if (!knowledge.hits.length && knowledge.unknowns.length) {
     lines.push(
-      ["### UNKNOWN", ...knowledge.unknowns.slice(0, 12).map((item) => "- " + item)].join(
+      ["### UNKNOWN", ...knowledge.unknowns.slice(0, 6).map((item) => "- " + item)].join(
         "\n",
       ),
     );
@@ -40,16 +68,16 @@ export function localWorkspaceReply(
   if (knowledge.conflicts.length) {
     lines.push(
       [
-        "### 衝突",
+        "### 不要混用舊標題",
         ...knowledge.conflicts
-          .slice(0, 6)
-          .map((item) => `- ${item.field}：${item.values.join("／")}（${item.note}）`),
+          .slice(0, 4)
+          .map((item) => `- ${item.note || item.values.join("／")}`),
       ].join("\n"),
     );
   }
   if (goal.requiresInspiration) {
     let notice =
-      "未授權來源不會假裝已搜尋整個 Instagram 或 Pinterest。";
+      "沒有搜尋整個 Instagram 或 Pinterest。只使用已保存的參考與可開啟的網址。";
     const saved: string[] = [];
     try {
       const inspiration = searchInspiration({
@@ -71,13 +99,13 @@ export function localWorkspaceReply(
         notice,
         saved.length
           ? saved.join("\n")
-          : "目前沒有已保存的參考素材。連上 Hermes 後才能用已授權來源繼續找。",
+          : "目前沒有已保存的參考圖。連上 Hermes 後才能找參考與出圖。",
       ].join("\n"),
     );
   }
   if (goal.requiresDesign || goal.requiresAudienceEvaluation) {
     lines.push(
-      "創作、Canva 與完整受眾模擬需要 Hermes 連線後才能繼續。受眾評估若出現，只是模擬，不是民調。",
+      "出圖、Canva 與完整受眾模擬需要 Hermes 連線後才能繼續。受眾評估若出現，只是模擬，不是民調。",
     );
   }
   return lines.join("\n\n");

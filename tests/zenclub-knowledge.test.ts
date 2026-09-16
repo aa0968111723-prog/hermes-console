@@ -53,6 +53,21 @@ test("Drive catalog snapshot is not live and redacts rosters", () => {
   assert.equal(raw.includes("電話"), false);
 });
 
+test("natural tea-party query ranks 115-1 tea facts first", () => {
+  const result = searchZenclubKnowledge("幫我找淡大禪學社茶會宣傳靈感");
+  assert.equal(result.hits[0]?.entity.id, "activity:115-1-tea");
+  const tea = result.hits[0].entity;
+  assert.equal(
+    tea.claims.find((claim) => claim.field === "date")?.value,
+    "2026-09-30",
+  );
+  assert.equal(
+    tea.claims.find((claim) => claim.field === "place")?.status,
+    "UNKNOWN",
+  );
+  assert.equal(result.live, false);
+});
+
 test("115-1 tea party facts stay verified and venue stays unknown", () => {
   const result = searchZenclubKnowledge("期初茶會");
   const tea = result.hits.find((hit) =>

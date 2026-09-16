@@ -98,4 +98,4 @@
 10. `npm run rehearse` 驗證 production `next start`：`/`、`/api/health`、`/api/ready`、workspace 401、禁止秘密 JSON。
 12. 登入頁未設定的 Google／淡江都顯示「尚未完成設定」，不假裝可登入。
 14. Hermes 未設定時，禪學社問題改讀本地 Drive 索引；標明不是 live MCP／IG，不假裝 GALLEY。無關問題仍 503。同一任務只顯示一則助手回覆，不把已保存訊息再畫一次。
-15. 關閉的任務面板不再掛上輸出預覽，避免聊天與隱藏 dialog 各畫一次相同回覆。
+16. 自然問句「淡大禪學社茶會宣傳靈感」會命中 115-1 期初茶會索引（日期 2026-09-30，地點 UNKNOWN），不再顯示查無命中。
