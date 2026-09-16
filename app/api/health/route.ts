@@ -1,10 +1,9 @@
-import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
+import { jsonBody, respond, route, WORKSPACE_OWNER, authenticate } from "@/lib/server/security";
 import { health } from "@/lib/server/hermes";
 import { z } from "zod";
 export const runtime = "nodejs";
-export const GET = route(async (request) =>
-  respond(await health(authenticate(request))),
-);
+/** Liveness/status probe: app + store + Hermes. Never returns secrets. No login. */
+export const GET = route(async () => respond(await health(WORKSPACE_OWNER)));
 export const POST = route(async (request) => {
   const owner = authenticate(request, true);
   z.object({})

@@ -49,8 +49,8 @@
 
 ## Health
 
-- `GET /api/ready`：store liveness／readiness（200／503）。不需登入，不回秘密。
-- `GET /api/health`：Hermes 連線探測。不回秘密。App 活著 ≠ Agent 可用。
+- `GET /api/ready`：store 探測（200／503）。不需登入。
+- `GET /api/health`：App + store + Hermes 狀態。不需登入、不回秘密。重新探測仍走 `POST /api/health`（Origin + 授權）。App 活著 ≠ Agent 可用。
 
 ## Backup / Rollback
 
