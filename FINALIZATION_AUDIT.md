@@ -32,7 +32,8 @@
 | Production auth | live 契約 | 正式環境禁止 `CONSOLE_AUTH_MODE=workspace`。 |
 | GALLEY 路由 | live 契約 | 僅 registry 為 partial／verified／connected 才走 `galley_research`；未設定不假裝。 |
 | Lumen 路由 | live 契約 | 僅 registry 可用才走 `lumen_utter`；未設定／failed 不假裝已開畫板。 |
-| 圖片評論 | live 契約 | 「這張哪裡可以改？」不走 fast path；有圖才 `workspace_read_material` 並標受眾模擬。 |
+| 圖片評論 | live 契約 | 「這張哪裡可以改？」不走 fast path；有圖才 `workspace_read_material` 並標受眾模擬。原生 `image_url` 僅在 `HERMES_IMAGE_INPUT=true`；否則仍可送出任務並要求讀素材，不假裝 Hermes 已看圖。 |
+| Email 連結 | live 契約 | 已登入使用者可連結 Email 到同一 User；不得因信箱相同合併他人。無效 `#verify`／`#login` 顯示錯誤。 |
 | 第 N 版 | live 契約 | 「第二版字放大」鎖定 `v2`，不得另開無關作品。 |
 | Email 找回 | live 契約 | 登入頁一律顯示 Magic Link／忘記密碼；寄信未設標「寄信尚未完成設定」。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
