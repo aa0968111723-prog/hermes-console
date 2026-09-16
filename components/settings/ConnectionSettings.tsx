@@ -620,7 +620,7 @@ export default function ConnectionSettings({
               清除已存 GALLEY 權杖
             </label>
             <p className="muted">
-              Hermes 經工作區工具 galley_research 呼叫 GALLEY。填入部署後的
+              Hermes 經工作區研究工具呼叫 GALLEY。填入部署後的
               HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端
               GALLEY_MCP_TOKEN 相同。
             </p>
@@ -717,7 +717,7 @@ export default function ConnectionSettings({
               填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub
               倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN
               相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫
-              lumen_utter；按「測試 Lumen 連線」確認
+              創作台口語工具；按「測試 Lumen 連線」確認
               initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
             </p>
             <label>
@@ -800,7 +800,7 @@ export default function ConnectionSettings({
             <p className="muted">
               填 Planform 的 Streamable HTTP 端點（路徑必須是 /mcp）。不能填 GitHub
               倉庫網址。儲存後按「測試 Planform 連線」，成功後 Hermes 經工作區 MCP 呼叫
-              planform_run_agent。
+              場佈工具。
             </p>
             <label>
               Planform MCP 網址
@@ -912,7 +912,7 @@ export default function ConnectionSettings({
               清除已存淡江權杖
             </label>
             <p className="muted">
-              淡江 MCP 只用網址與 Bearer 權杖。學校登入請走帳號頁的淡江 SSO，會跳轉校方身分服務。Console 不收集學校密碼。
+              淡江 MCP 只用網址與 Bearer 權杖，不是淡江 SSO。學校登入請走帳號頁的淡江 SSO，會跳轉校方身分服務。Console 不收集學校密碼。
             </p>
           </section>
           <section hidden={selected !== "zeabur"} aria-label="Zeabur 部署">

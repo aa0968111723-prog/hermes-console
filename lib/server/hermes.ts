@@ -580,7 +580,7 @@ export const GALLEY_INSTRUCTION_PACK =
   "設計創作、生成模型、NVIDIA NIM、影片工具或來源優先研究時，先呼叫 galley_capability；已連接則用 galley_research 或 galley_intel。GALLEY 未設定時明確說未配置，不得憑記憶填來源。GitHub 網址不是 MCP 端點。";
 
 export const INSPIRATION_INSTRUCTION_PACK =
-  "幫我找靈感時自行決定 Instagram／Pinterest／Web／Canva／Behance／Dribbble／專案歷史；不要假裝已搜尋完整 Instagram 或 Pinterest。";
+  "找靈感時必須呼叫 workspace_search_inspiration。幫我找靈感時自行決定 Instagram／Pinterest／Web／Canva／Behance／Dribbble／專案歷史；不要假裝已搜尋完整 Instagram 或 Pinterest。不得宣稱已搜尋整個 Instagram。";
 
 export const AUDIENCE_INSTRUCTION_PACK =
   "建立 Audience Twin 時分開 Evidence 與 Hypothesis。反向思考必須呼叫 workspace_simulate_audience，用十個淡江新生人格模擬第一眼（住宿／通勤／內向／社牛／課業壓力／想交朋友／怕宗教／對禪好奇／沒興趣／設計系視覺敏感）。分數只是比較工具，禁止寫 90 分以上或轉換率。永遠標 SIMULATION，並說明為什麼會停、為什麼有壓力、看不看得懂、為什麼願或不願填表／走進。沒有視覺描述時標 UNKNOWN，不得假裝已看圖。";
@@ -604,7 +604,7 @@ export const DIRECTION_INSTRUCTION_PACK =
   "提出 3–5 個策略層不同的創作方向（不是只換顏色），等待使用者選擇後再製作草稿。來源上限 30，方向最多 5，受眾角色最多 5，修訂最多 3。";
 
 export const LOCKED_DIRECTION_INSTRUCTION_PACK =
-  "使用者已選定方向。依此方向製作，不要重開無關的新企劃。缺授權時保留阻塞點，不要宣稱設計完成。";
+  "使用者已選定方向。依此方向製作，不要重開無關的新企劃。缺授權時保留阻塞點，不要宣稱設計完成。禁止再呼叫 workspace_search_inspiration。禁止再呼叫 workspace_save_directions。修改時使用 copyId 與最新 expectedRevision。";
 
 export const IMAGE_REVIEW_PACK = [
   "先讀附件畫面再給修改建議。沒讀到像素就標還沒看圖，只根據文字，不要假裝已分析畫面。",

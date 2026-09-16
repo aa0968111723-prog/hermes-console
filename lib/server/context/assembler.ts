@@ -1,5 +1,5 @@
 import type { BudgetMode, Conversation } from "../../contracts";
-import { memoriesForProject } from "../memory";
+import { memoriesForContext, isStaleMemory } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
 import { listMaterials } from "../materials";
 import { searchResearchNotes } from "../research-notes";
@@ -52,23 +52,33 @@ export function assembleContext(input: {
       truth: "FACT",
     }),
   );
-  const scoped = memoriesForProject(input.owner, input.projectId);
-  for (const memory of [...scoped.project, ...scoped.workspacePrefs].slice(
-    0,
-    20,
-  )) {
+  for (const memory of memoriesForContext(input.owner, input.projectId, {
+    conversationId: input.conversation?.id,
+  })) {
+    const stale = isStaleMemory(memory);
+    const stored =
+      typeof memory.confidence === "number" ? memory.confidence : 0.7;
     const text = memory.title + " " + memory.content;
     items.push(
       item({
         id: memory.id,
         source: "shared_memory",
         title: memory.title,
-        content: memory.content.slice(0, 400),
+        content:
+          (stale ? "可能過期，不得當成最新事實。 " : "") +
+          memory.content.slice(0, 400),
         recency: recencyScore(memory.updatedAt),
-        importance: memory.kind === "preference" ? 0.85 : 0.6,
+        importance:
+          typeof memory.importance === "number"
+            ? memory.importance
+            : memory.kind === "preference"
+              ? 0.85
+              : 0.6,
         relevance: relevanceTo(text, query),
-        confidence: 0.7,
+        confidence: stale ? Math.min(0.35, stored) : stored,
         truth: "USER_PROVIDED",
+        layer: memory.layer,
+        stale,
       }),
     );
   }
@@ -218,14 +228,18 @@ export function formatContextForInstructions(packed: ReturnType<typeof assembleC
       entry.source,
       entry.content.replace(/\s+/g, " ").slice(0, 220),
     );
-    return `- [${entry.source}/${entry.truth}] ${entry.title}：\n${body}`;
+    const flags: string[] = [entry.source, entry.truth];
+    if (entry.layer) flags.push(entry.layer);
+    if (entry.stale) flags.push("STALE");
+    if (entry.confidence < 0.45) flags.push("LOW_CONFIDENCE");
+    return `- [${flags.join("/")}] ${entry.title}：\n${body}`;
   });
   return [
     "已依相關性／新近／重要度與 token budget 挑選的上下文（" +
       packed.used +
       "/" +
       packed.limit +
-      "）：",
+      "）。STALE 不得當成最新事實。",
     lines.join("\n"),
   ].join("\n");
 }

@@ -64,7 +64,7 @@ export async function materialBytes(
   const asset = material(owner, id);
   if (asset.kind === "reference")
     throw new ApiError(400, "not_a_file", "連結沒有可下載檔案。");
-  if (variant === "thumb" && asset.kind === "image")
+  if (variant === "thumb")
     return { bytes: await thumbnailBytes(owner, id), mime: "image/webp" };
   return {
     bytes: await readFile(filePath(owner, id)),
@@ -422,31 +422,37 @@ export async function attachmentParts(owner: string, ids: string[]) {
       });
       continue;
     }
-    const content = await readFile(filePath(owner, id));
     if (asset.kind === "image") {
-      if (process.env.HERMES_IMAGE_INPUT !== "true")
-        throw new ApiError(
-          409,
-          "images_unverified",
-          "圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。",
-        );
+      if (process.env.HERMES_IMAGE_INPUT !== "true") {
+        parts.push({
+          type: "text",
+          text: wrapUntrusted(
+            "image",
+            `圖片附件「${asset.title}」已保存。尚未驗證看圖，沒有像素資料。不得描述圖中細節或假裝已看圖。`,
+          ),
+        });
+        continue;
+      }
+      const content = await readFile(filePath(owner, id));
       parts.push({
         type: "image_url",
         image_url: {
           url: "data:image/png;base64," + content.toString("base64"),
         },
       });
-    } else
-      parts.push({
-        type: "text",
-        text:
-          asset.mime === "application/pdf"
-            ? wrapUntrusted(
-                "pdf",
-                `PDF 附件「${asset.title}」已保存；此部署不保證全文解析，不得把檔名當內容。`,
-              )
-            : wrapUntrusted("attachment", content.toString("utf8")),
-      });
+      continue;
+    }
+    const content = await readFile(filePath(owner, id));
+    parts.push({
+      type: "text",
+      text:
+        asset.mime === "application/pdf"
+          ? wrapUntrusted(
+              "pdf",
+              `PDF 附件「${asset.title}」已保存；此部署不保證全文解析，不得把檔名當內容。`,
+            )
+          : wrapUntrusted("attachment", content.toString("utf8")),
+    });
   }
   return parts;
 }

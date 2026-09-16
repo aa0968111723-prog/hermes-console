@@ -22,7 +22,7 @@ export function classifyResume(task: Task, workerAlive: boolean): ResumeState {
 }
 
 export function resumeNotice(state: ResumeState) {
-  if (state === "unknown") return "遠端狀態尚未確認。不會自動重新送出。";
+  if (state === "unknown") return "遠端狀態尚未確認。不會自動重送。";
   if (state === "running") return "任務仍在執行，已查回現況。";
   if (state === "failed") return "任務已失敗或已停止。";
   return "任務已完成。";

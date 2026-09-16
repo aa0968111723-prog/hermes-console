@@ -201,7 +201,11 @@ export function publicSettings() {
   return {
     vault: vaultStatus(),
     fields: publicCredentialFields(),
-    hermes: hermesConnectionStatus(),
+    hermes: {
+      ...hermesConnectionStatus(),
+      urlSource: credentialPresence("HERMES_API_URL").source,
+      keySource: credentialPresence("HERMES_API_KEY").source,
+    },
     mcpBridge: {
       ...credentialPresence("MCP_BRIDGE_TOKEN"),
       state: credentialPresence("MCP_BRIDGE_TOKEN").configured

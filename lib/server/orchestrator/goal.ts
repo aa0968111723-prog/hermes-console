@@ -4,7 +4,8 @@ import { classifyIntent } from "./intent";
 
 const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
-const DESIGN = /海報|網宣|Canva|canva|視覺|設計|稿|文宣|宣傳|做一張/;
+const STRONG_DESIGN =
+  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|做一張|視覺層級|構圖|配色/;
 const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會/;
 const INSPIRATION = /靈感|參考|IG|Pinterest|instagram/i;
 const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA|宣傳|文宣/;
@@ -18,7 +19,7 @@ export function userFacingGoalText(input: string) {
 }
 
 export function wantsNewVisual(text: string): boolean {
-  return DESIGN.test(text.trim());
+  return STRONG_DESIGN.test(text.trim());
 }
 
 export function interpretGoal(
@@ -41,8 +42,19 @@ export function interpretGoal(
   const requiresTamkang = !directionLocked && TAMKANG.test(text);
   const requiresResearch =
     !directionLocked && (RESEARCH.test(text) || requiresTamkang);
+  const inspirationOnly =
+    INSPIRATION.test(text) &&
+    !STRONG_DESIGN.test(text) &&
+    !imageReview &&
+    !directionLocked &&
+    !focused;
   const requiresDesign =
-    DESIGN.test(text) || imageReview || directionLocked || focused;
+    !inspirationOnly &&
+    (STRONG_DESIGN.test(text) ||
+      /宣傳/.test(text) ||
+      imageReview ||
+      directionLocked ||
+      focused);
   const requiresAudienceEvaluation =
     !directionLocked && (AUDIENCE.test(text) || imageReview || requiresImageAnalysis);
   const requiresInspiration = directionLocked
@@ -55,15 +67,19 @@ export function interpretGoal(
     : /受眾|學生/.test(text)
       ? "使用者提到的受眾（待確認）"
       : null;
-  const output = OUTPUT.test(text) || requiresImageAnalysis || focused
-    ? requiresImageAnalysis
-      ? "看圖後的修改建議（模擬受眾，不是已改稿）"
-      : artifactFocused
-        ? "同一作品的下一版，不是無關的新輸出"
-        : OUTPUT.test(text)
-          ? "可審查的創作方向與 Canva 接續草稿"
-          : "依此活動提出方向，不是無關的新企劃"
-    : null;
+  const output = inspirationOnly
+    ? null
+    : OUTPUT.test(text) || requiresImageAnalysis || focused
+      ? requiresImageAnalysis
+        ? "看圖後的修改建議（模擬受眾，不是已改稿）"
+        : artifactFocused
+          ? "同一作品的下一版，不是無關的新輸出"
+          : options?.focus?.activityId
+            ? "依此活動提出方向，不是無關的新企劃"
+            : OUTPUT.test(text)
+              ? "可審查的創作方向與 Canva 接續草稿"
+              : "依此活動提出方向，不是無關的新企劃"
+      : null;
   const constraints: string[] = [];
   if (requiresAudienceEvaluation)
     constraints.push("Audience Twin 只能標 SIMULATION。");

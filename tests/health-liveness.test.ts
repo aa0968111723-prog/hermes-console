@@ -288,7 +288,7 @@ test("POST /api/tasks returns student copy when Hermes is unconfigured", async (
     request("tasks", cookie, "POST", {
       conversationId,
       requestKey: randomUUID(),
-      input: "幫我找淡大禪學社茶會宣傳靈感",
+      input: "只是打個招呼，今天好嗎",
     }),
   );
   assert.equal(response.status, 503);
@@ -326,7 +326,7 @@ test("POST /api/tasks times out hanging Hermes with student copy", async () => {
       request("tasks", cookie, "POST", {
         conversationId,
         requestKey: randomUUID(),
-        input: "幫我找淡大禪學社茶會宣傳靈感",
+        input: "只是打個招呼，今天好嗎",
       }),
     );
     const elapsed = Date.now() - started;
@@ -365,7 +365,7 @@ test("POST /api/tasks maps invalid Hermes keys to student copy", async () => {
       request("tasks", cookie, "POST", {
         conversationId,
         requestKey: randomUUID(),
-        input: "幫我找淡大禪學社茶會宣傳靈感",
+        input: "只是打個招呼，今天好嗎",
       }),
     );
     assert.equal(response.status, 503);

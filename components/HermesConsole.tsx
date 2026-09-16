@@ -1198,7 +1198,7 @@ export default function HermesConsole() {
                 "status-dot " + (health?.credential === "valid" ? "good" : "")
               }
             />
-            <span className="connection-label">
+            <span className="connection-label sr-only">
               {offline
                 ? "離線"
                 : health
@@ -1451,8 +1451,8 @@ export default function HermesConsole() {
                           {currentTask.output && (
                             <MessageBody text={currentTask.output} />
                           )}
-                          {currentTask.error && (
-                            <p className="error">{currentTask.error}</p>
+                          {shortTaskError(currentTask.error) && (
+                            <p className="error">{shortTaskError(currentTask.error)}</p>
                           )}
                           {currentTask.observationError && (
                             <p className="error">
@@ -2475,6 +2475,7 @@ export default function HermesConsole() {
                 ) : settingsTab === "工作區" ? (
                   <div className="settings-stack">
                     <h3>記憶與會話</h3>
+                    <p>記憶存在這個工作區。不會假裝已看過圖片。</p>
                     <SharedMemory projectId={project} />
                     <LearningMap
                       key={project}

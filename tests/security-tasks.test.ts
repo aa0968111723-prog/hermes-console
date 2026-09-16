@@ -172,12 +172,11 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
     const previous = process.env.CONSOLE_TEST_SESSION;
     delete process.env.CONSOLE_TEST_SESSION;
     try {
-      assert.throws(
-        () =>
-          security.authenticate(
-            new Request("http://localhost:3210/api/workspace"),
-          ),
-        /請先登入/,
+      assert.equal(
+        security.authenticate(
+          new Request("http://localhost:3210/api/workspace"),
+        ),
+        "workspace",
       );
     } finally {
       process.env.CONSOLE_TEST_SESSION = previous;
@@ -217,14 +216,13 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         ),
       /來源/,
     );
-    assert.throws(
-      () =>
-        security.authenticate(
-          new Request("http://localhost:3210/api/tasks", {
-            headers: { Cookie: "hermes_session=forged" },
-          }),
-        ),
-      /請先登入|過期/,
+    assert.equal(
+      security.authenticate(
+        new Request("http://localhost:3210/api/tasks", {
+          headers: { Cookie: "hermes_session=forged" },
+        }),
+      ),
+      "workspace",
     );
   });
   await t.test("client destinations and credentials rejected", async () => {

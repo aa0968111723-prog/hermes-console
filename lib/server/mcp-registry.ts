@@ -14,6 +14,7 @@ import { runtimeEnv } from "./credentials";
 export type McpStatus =
   | "unconfigured"
   | "connected"
+  | "available"
   | "partial"
   | "verified"
   | "failed";
@@ -262,7 +263,7 @@ export function seedRegistry(): McpEntry[] {
         old?.enabled === false
           ? "unconfigured"
           : matches
-            ? old.status === "verified"
+            ? old.status === "verified" || old.status === "available"
               ? "partial"
               : old.status
             : "unconfigured",
@@ -333,10 +334,9 @@ export function interpretVerification(steps: {
   initialize: boolean;
   toolsList: boolean;
   safeRead: boolean;
-}): McpStatus {
-  if (!steps.initialize) return "failed";
-  if (!steps.toolsList) return "connected";
-  return steps.safeRead ? "verified" : "partial";
+}): Exclude<McpStatus, "connected" | "verified"> {
+  if (!steps.initialize || !steps.toolsList) return "failed";
+  return steps.safeRead ? "available" : "partial";
 }
 export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
@@ -603,7 +603,7 @@ export function honestConfiguredStatus<T extends { state: string; detail: string
       state: "failed",
       detail: entry.lastError || base.detail,
     };
-  if (entry?.status === "verified")
+  if (entry?.status === "verified" || entry?.status === "available")
     return {
       ...base,
       state: "available",

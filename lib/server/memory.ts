@@ -157,7 +157,15 @@ export function memoriesForContext(
   projectId?: string,
   options?: { conversationId?: string | null },
 ) {
-  return listMemories(owner, projectId || "workspace").filter((item) => {
+  const scope = projectId || "workspace";
+  const rows =
+    scope === "workspace" || scope === "all"
+      ? listMemories(owner, scope)
+      : [...listMemories(owner, scope), ...listMemories(owner, "workspace")];
+  const seen = new Set<string>();
+  return rows.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
     if (item.layer === "runtime") return false;
     if (item.layer === "conversation") {
       if (!options?.conversationId || !item.conversationId) return false;
@@ -303,15 +311,22 @@ function memoryStoreLabel() {
   return storeBackend() === "postgres" ? "Console Postgres" : "Console SQLite";
 }
 
-export function memoryDigest(owner: string, projectId?: string) {
-  const scope = projectId || "workspace";
-  const { project, workspacePrefs } = memoriesForProject(owner, scope);
-  const seen = new Set<string>();
-  const items = [...project, ...workspacePrefs]
-    .filter((item) => {
-      if (seen.has(item.id)) return false;
-      seen.add(item.id);
-      return true;
+export function memoryDigest(
+  owner: string,
+  projectId?: string,
+  conversationId?: string,
+) {
+  const items = memoriesForContext(owner, projectId || "workspace", {
+    conversationId,
+  })
+    .sort((a, b) => {
+      const staleA = isStaleMemory(a) ? 1 : 0;
+      const staleB = isStaleMemory(b) ? 1 : 0;
+      if (staleA !== staleB) return staleA - staleB;
+      const impA = a.importance ?? 0;
+      const impB = b.importance ?? 0;
+      if (impA !== impB) return impB - impA;
+      return b.updatedAt.localeCompare(a.updatedAt);
     })
     .slice(0, 8);
   if (!items.length) return "";
@@ -321,12 +336,13 @@ export function memoryDigest(owner: string, projectId?: string) {
   );
   const lines = items.map((item) => {
     const body = item.content.replace(/\s+/g, " ").slice(0, 200);
-    const meta: string[] = [`${item.kind}/${item.scope}`];
+    const meta: string[] = [`${item.kind}/${item.scope}`, `layer=${item.layer}`];
     if (item.source !== "console") meta.push(`src=${item.source}`);
     if (item.confidence != null)
       meta.push(`conf=${item.confidence.toFixed(2)}`);
     if (item.importance != null)
       meta.push(`imp=${item.importance.toFixed(2)}`);
+    if (isStaleMemory(item)) meta.push("stale");
     return `- [${meta.join(" ")}] ${item.title}：${body}`;
   });
   return (
@@ -369,6 +385,9 @@ export function memoryShareStatus(owner: string, connection?: Health) {
       "importance",
       "lastUsedAt",
       "confidence",
+      "layer",
+      "createdAt",
+      "updatedAt",
       "scope",
     ] as const,
     notice:
