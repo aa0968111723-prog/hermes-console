@@ -1,5 +1,5 @@
 import { ExternalLink, Search, Check, Circle } from "lucide-react";
-import type { Task } from "@/lib/contracts";
+import type { Task, TaskFocus } from "@/lib/contracts";
 import {
   artifactsForConversation,
   progressSteps,
@@ -27,7 +27,7 @@ export default function VisualMessage({
     design: Record<string, unknown> | null;
   }[];
   projectId?: string;
-  onContinue?: (text: string) => void;
+  onContinue?: (text: string, focus?: TaskFocus) => void;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);

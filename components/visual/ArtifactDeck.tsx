@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
+import type { TaskFocus } from "@/lib/contracts";
 import ArtifactStage from "./ArtifactStage";
 export default function ArtifactDeck({
   items,
@@ -11,7 +12,7 @@ export default function ArtifactDeck({
 }: {
   items: Workflow[];
   projectId: string;
-  onContinue: (text: string) => void;
+  onContinue: (text: string, focus?: TaskFocus) => void;
 }) {
   const rail = useRef<HTMLDivElement>(null);
   const [copies, setCopies] = useState<Artifact[]>([]);

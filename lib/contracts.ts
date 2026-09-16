@@ -87,7 +87,14 @@ export interface Task {
   goal?: StructuredGoal;
   plan?: ExecutionPlan;
   budgetMode?: BudgetMode;
+  focus?: TaskFocus | null;
 }
+export type TaskFocus = {
+  copyId?: string;
+  revision?: number;
+  workflowId?: string;
+  direction?: number;
+};
 export type BudgetMode = "fast" | "balanced" | "deep";
 export type IntentTier = "chitchat" | "continue" | "lookup" | "create";
 export interface StructuredGoal {

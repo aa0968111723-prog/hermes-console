@@ -22,8 +22,11 @@ const {
 } = await import("../lib/server/artifacts");
 const { copyDocument } = await import("../lib/server/creative");
 const artifacts = await import("../app/api/artifacts/route");
-const { continueCopyPrompt, revisionLabel } = await import(
+const { continueCopy, revisionLabel } = await import(
   "../lib/client/artifacts"
+);
+const { focusInstructions } = await import(
+  "../lib/server/orchestrator/instructions"
 );
 
 function revision(
@@ -81,14 +84,14 @@ test("copy artifacts keep stable ids, versions, restore and fork", () => {
   assert.notEqual(forked.id, artifactId);
   assert.equal(forked.revisions.length, 1);
   assert.match(forked.revisions[0].pages[0].body, /第一版小字/);
-  assert.equal(
-    continueCopyPrompt(artifactId, 2).includes("v2"),
-    true,
-  );
-  assert.equal(
-    continueCopyPrompt(artifactId, 2).includes("不要重新搜尋或重建無關作品"),
-    true,
-  );
+  const continued = continueCopy(artifactId, 2);
+  assert.match(continued.text, /第 2 版/);
+  assert.doesNotMatch(continued.text, /workspace_/);
+  assert.doesNotMatch(continued.text, new RegExp(artifactId));
+  assert.equal(continued.focus.copyId, artifactId);
+  assert.equal(continued.focus.revision, 2);
+  assert.match(focusInstructions(continued.focus), /workspace_get_copy/);
+  assert.match(focusInstructions(continued.focus), new RegExp(artifactId));
   assert.equal(revisionLabel(3), "V3");
 });
 

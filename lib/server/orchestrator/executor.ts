@@ -19,6 +19,7 @@ export function prepareOrchestration(
 ) {
   const goal = interpretGoal(task.input, {
     hasImage: task.attachments.length > 0,
+    focus: task.focus,
   });
   const fast = isFastTier(goal.intentTier);
   const effectiveBudget: BudgetMode = fast ? "fast" : budgetMode;

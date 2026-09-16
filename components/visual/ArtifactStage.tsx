@@ -10,9 +10,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { Artifact } from "@/lib/server/artifacts";
+import type { TaskFocus } from "@/lib/contracts";
 import {
-  continueCopyPrompt,
-  continueDesignPrompt,
+  continueCopy,
+  continueDesign,
   revisionLabel,
 } from "@/lib/client/artifacts";
 import CanvaResult from "../CanvaResult";
@@ -27,7 +28,7 @@ export default function ArtifactStage({
   design?: Record<string, unknown> | null;
   artifact?: Artifact;
   continueId?: string;
-  onContinue?: (text: string) => void;
+  onContinue?: (text: string, focus?: TaskFocus) => void;
   onRestored?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -50,8 +51,8 @@ export default function ArtifactStage({
     revisions.find((row) => row.revision === artifact?.selectedRevision) ||
     revisions[0];
   function prompt() {
-    if (artifact) return continueCopyPrompt(artifact.artifactId, viewing);
-    return continueDesignPrompt(continueId || "");
+    if (artifact) return continueCopy(artifact.artifactId, viewing);
+    return continueDesign(continueId || "");
   }
   async function restore() {
     if (!artifact || busy) return;
@@ -93,7 +94,10 @@ export default function ArtifactStage({
           <button
             className="icon-button"
             aria-label="在對話修改這個作品"
-            onClick={() => onContinue(prompt())}
+            onClick={() => {
+              const next = prompt();
+              onContinue(next.text, next.focus);
+            }}
           >
             <MessageSquare size={18} />
           </button>
@@ -128,7 +132,13 @@ export default function ArtifactStage({
       )}
       <div className="artifact-actions">
         {onContinue && (
-          <button type="button" onClick={() => onContinue(prompt())}>
+          <button
+            type="button"
+            onClick={() => {
+              const next = prompt();
+              onContinue(next.text, next.focus);
+            }}
+          >
             修改
           </button>
         )}

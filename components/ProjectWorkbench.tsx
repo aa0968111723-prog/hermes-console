@@ -8,7 +8,8 @@ import {
   type CopyRevision,
 } from "@/lib/creative";
 import { fieldLabels } from "@/lib/activity-labels";
-import type { Material } from "@/lib/contracts";
+import type { Material, TaskFocus } from "@/lib/contracts";
+import { continueCopy, continueDesign } from "@/lib/client/artifacts";
 import type { Workflow } from "@/lib/server/workflows";
 import type { CopyReview } from "@/lib/server/copywriting";
 import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
@@ -45,7 +46,7 @@ export default function ProjectWorkbench({
   projectId: string;
   materials: Material[];
   workflows: Workflow[];
-  onCompose: (text: string) => void;
+  onCompose: (text: string, focus?: TaskFocus) => void;
 }) {
   const [data, setData] = useState<Data>({ activities: [], copies: [] });
   const [editing, setEditing] = useState<Activity | null>(null);
@@ -676,18 +677,22 @@ export default function ProjectWorkbench({
                   下載 v{r.revision} 文案
                 </a>
                 <button
-                  onClick={() =>
-                    onCompose(
-                      `請用 workspace_get_copy 讀取文案 ${d.id}，以 v${r.revision} 為修改基礎。先問我要改哪一頁或語氣，再沿用相同 id 保存新版本；不要重新搜尋或重建無關作品。`,
-                    )
-                  }
+                  onClick={() => {
+                    const next = continueCopy(d.id, r.revision);
+                    onCompose(next.text, next.focus);
+                  }}
                 >
                   在對話接續修改
                 </button>
                 {d.selectedRevision === r.revision && r.workflowId && <button
-                  onClick={() => onCompose(
-                    `請用 workspace_get_copy 查回文案 ${d.id} 已選版本 v${r.revision}，並查回方向流程 ${r.workflowId}。確認日期地點與素材後，依真實 Canva 範本欄位製作；若未授權請保留進度，不要宣稱完成。已有設計時先查回，不要重複建立。`
-                  )}>交給 Hermes 接續製作</button>}
+                  onClick={() => {
+                    const next = continueDesign(r.workflowId!);
+                    onCompose(next.text, {
+                      ...next.focus,
+                      copyId: d.id,
+                      revision: r.revision,
+                    });
+                  }}>交給 Hermes 接續製作</button>}
               </div>
             </details>
           ))}

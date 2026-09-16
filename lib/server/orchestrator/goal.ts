@@ -1,5 +1,5 @@
-import type { StructuredGoal } from "../../contracts";
-import { classifyIntent } from "./intent";
+import type { StructuredGoal, TaskFocus } from "../../contracts";
+import { classifyIntent, isFastTier } from "./intent";
 
 const TAMKANG = /淡江|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
@@ -13,14 +13,16 @@ const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CT
 
 export function interpretGoal(
   input: string,
-  options?: { hasImage?: boolean },
+  options?: { hasImage?: boolean; focus?: TaskFocus | null },
 ): StructuredGoal {
   const text = input.trim();
-  const intentTier = classifyIntent(text, options);
+  let intentTier = classifyIntent(text, options);
+  const focused = !!(options?.focus?.copyId || options?.focus?.workflowId);
+  if (focused && isFastTier(intentTier)) intentTier = "create";
   const requiresImageAnalysis = ANALYZE.test(text) || !!options?.hasImage;
   const requiresTamkang = TAMKANG.test(text);
   const requiresResearch = RESEARCH.test(text) || requiresTamkang;
-  const requiresDesign = DESIGN.test(text) || requiresImageAnalysis;
+  const requiresDesign = DESIGN.test(text) || requiresImageAnalysis || focused;
   const requiresAudienceEvaluation =
     AUDIENCE.test(text) || requiresImageAnalysis;
   const requiresInspiration = INSPIRATION.test(text) || requiresDesign;
@@ -30,10 +32,10 @@ export function interpretGoal(
       ? "使用者提到的受眾（待確認）"
       : null;
   const output =
-    OUTPUT.test(text) || requiresImageAnalysis
+    OUTPUT.test(text) || requiresImageAnalysis || focused
       ? requiresImageAnalysis
         ? "看圖後的修改建議（模擬受眾，不是已改稿）"
-        : "可審查的創作方向與 Canva 接續草稿"
+        : "同一作品的下一版，不是無關的新輸出"
       : null;
   const constraints: string[] = [];
   if (requiresAudienceEvaluation)

@@ -78,6 +78,15 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
     assert.equal(taskInput.parse({ ...base, mode: "admin" }).mode, "admin");
     assert.equal(taskInput.parse(base).mode, undefined);
     assert.equal(taskInput.safeParse({ ...base, mode: "silly" }).success, false);
+    const focused = taskInput.parse({
+      ...base,
+      focus: { copyId: randomUUID(), revision: 2 },
+    });
+    assert.equal(focused.focus?.revision, 2);
+    assert.equal(
+      taskInput.safeParse({ ...base, focus: { direction: 1 } }).success,
+      false,
+    );
   });
 
   await t.test("new conversations store the requested assistant mode", async () => {

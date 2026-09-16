@@ -26,7 +26,7 @@ import {
   ExternalLink,
   Download,
 } from "lucide-react";
-import type { Conversation, Health, Material, Task } from "@/lib/contracts";
+import type { Conversation, Health, Material, Task, TaskFocus } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
@@ -65,6 +65,7 @@ import MaterialCover from "./visual/MaterialCover";
 import TaskEventSummary, { EventResult } from "./visual/TaskEventSummary";
 import { progressSteps } from "@/lib/client/activity";
 import { materialFileSrc } from "@/lib/client/media";
+import { selectDirection } from "@/lib/client/artifacts";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -207,6 +208,8 @@ export default function HermesConsole() {
     setUploads,
     references,
     setReferences,
+    focus,
+    setFocus,
     draft,
     replaceDraft,
     clearDrafts,
@@ -522,6 +525,12 @@ export default function HermesConsole() {
     writePreference("hermes.active.v2", null);
     input.current?.focus();
   }
+  function continueDraft(next: string, nextFocus?: TaskFocus | null) {
+    setNav("chat");
+    setText(next);
+    setFocus(nextFocus || null);
+    input.current?.focus();
+  }
   async function createConversation(
     title: string,
     parentId?: string,
@@ -561,6 +570,7 @@ export default function HermesConsole() {
           ...uploads.flatMap((u) => (u.material ? [u.material.id] : [])),
           ...references,
         ],
+        ...(focus ? { focus } : {}),
       };
       const signature = JSON.stringify(payload);
       if (requestKey.current?.payload !== signature)
@@ -648,6 +658,7 @@ export default function HermesConsole() {
           references:
             source.messages.find((m) => m.id === messageId)?.attachments ||
             [],
+          focus: null,
         },
       );
       setNav("chat");
@@ -1150,8 +1161,8 @@ export default function HermesConsole() {
                               }
                               workflows={workflows}
                               projectId={activeConv.projectId}
-                              onContinue={(text) => {
-                                setText(text);
+                              onContinue={(text, nextFocus) => {
+                                continueDraft(text, nextFocus);
                               }}
                             />
                           )}
@@ -1385,7 +1396,10 @@ export default function HermesConsole() {
                     aria-label="訊息"
                     aria-describedby="composer-hint"
                     readOnly={busy}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(e) => {
+                      setText(e.target.value);
+                      if (!e.target.value.trim()) setFocus(null);
+                    }}
                     onCompositionStart={() => {
                       composing.current = true;
                     }}
@@ -1441,9 +1455,7 @@ export default function HermesConsole() {
                       }}
                       onNavigate={(kind) => {
                         if (kind === "canva") {
-                          setText(
-                            "請查回我已有的 Canva 設計，選擇要接續修改的作品。",
-                          );
+                          continueDraft("請接續我現有的設計。");
                           input.current?.focus();
                         } else {
                           setNav("projects");
@@ -1506,9 +1518,8 @@ export default function HermesConsole() {
             <ArtifactDeck
               projectId={project}
               items={workflows.filter((item) => item.projectId === project)}
-              onContinue={(text) => {
-                setNav("chat");
-                setText(text);
+              onContinue={(text, nextFocus) => {
+                continueDraft(text, nextFocus);
               }}
             />
             <details className="workbench-disclosure">
@@ -1518,13 +1529,12 @@ export default function HermesConsole() {
                 projectId={project}
                 materials={data.materials}
                 workflows={workflows}
-                onCompose={(text) => {
+                onCompose={(text, nextFocus) => {
                   if (busy) {
                     setError("請先等目前任務結束或停止，再接續其他作品。");
                     return;
                   }
-                  fresh();
-                  replaceDraft("project:" + project, { ...emptyDraft(), text });
+                  continueDraft(text, nextFocus);
                 }}
               />
             </details>
@@ -1685,9 +1695,8 @@ export default function HermesConsole() {
             <ArtifactDeck
               projectId={project}
               items={workflows.filter((w) => w.projectId === project)}
-              onContinue={(text) => {
-                setNav("chat");
-                setText(text);
+              onContinue={(text, nextFocus) => {
+                continueDraft(text, nextFocus);
               }}
             />
             {workflows
@@ -1742,13 +1751,9 @@ export default function HermesConsole() {
                                 selected: index,
                               });
                               await refresh();
-                              setText(
-                                "已在 Console 選定創作流程 " +
-                                  w.id +
-                                  " 的第 " +
-                                  (index + 1) +
-                                  " 個方向。請查詢可用 Canva 範本欄位，依此方向製作草稿；如缺授權請保留阻塞點。",
-                              );
+                              const next = selectDirection(w.id, index + 1);
+                              setText(next.text);
+                              setFocus(next.focus);
                               setNav("chat");
                             } catch (e) {
                               setError((e as Error).message);
@@ -1826,7 +1831,7 @@ export default function HermesConsole() {
         onAction={action=>{
           if(action==="spatial")setPanel("spatial");
           else if(action==="memory"){setSettingsTab("工作區");setPanel("settings");}
-          else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
+          else { continueDraft("請接續我現有的設計。"); }
         }}
         onFiles={files=>{
           if(files.length+uploads.length+references.length>4){setError("每則訊息最多四個附件。");return;}

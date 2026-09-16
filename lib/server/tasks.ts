@@ -25,6 +25,7 @@ import { classifyIntent, isFastTier } from "./orchestrator/intent";
 import {
   composeTaskInstructions,
   dropOptionalPacks,
+  focusInstructions,
 } from "./orchestrator/instructions";
 import { recordTaskUsage } from "./usage";
 import { attachmentParts, material } from "./materials";
@@ -39,6 +40,8 @@ import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
+import { copyDocument } from "./creative";
+import { workflow } from "./workflows";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -57,6 +60,17 @@ export {
 export const active = (t: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(t.state);
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
+export const taskFocus = z
+  .object({
+    copyId: z.string().uuid().optional(),
+    revision: z.number().int().min(1).max(200).optional(),
+    workflowId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    direction: z.number().int().min(1).max(8).optional(),
+  })
+  .strict()
+  .refine((value) => !!(value.copyId || value.workflowId), {
+    message: "接續目標不完整。",
+  });
 export const taskInput = z
   .object({
     conversationId: z.string().uuid(),
@@ -65,6 +79,7 @@ export const taskInput = z
     attachments: z.array(z.string().uuid()).max(4).default([]),
     mode: z.enum(["creative", "research", "admin"]).optional(),
     budgetMode: z.enum(["fast", "balanced", "deep"]).optional(),
+    focus: taskFocus.optional(),
   })
   .strict();
 function save(owner: string, task: Task) {
@@ -177,6 +192,16 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   for (const id of input.attachments)
     if (material(owner, id).projectId !== conv.projectId)
       throw new ApiError(403, "scope_mismatch", "附件不屬於此專案。");
+  if (input.focus?.copyId) {
+    const doc = copyDocument(owner, input.focus.copyId);
+    if (doc.projectId !== conv.projectId)
+      throw new ApiError(403, "scope_mismatch", "作品不屬於此專案。");
+  }
+  if (input.focus?.workflowId) {
+    const record = workflow(owner, input.focus.workflowId);
+    if (record.projectId !== conv.projectId)
+      throw new ApiError(403, "scope_mismatch", "創作方向不屬於此專案。");
+  }
   // Validate actual attachment support before reserving a task or transmitting anything.
   await attachmentParts(owner, input.attachments);
   const payloadHash = hash(JSON.stringify(input));
@@ -219,11 +244,16 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
-    budgetMode: isFastTier(
-      classifyIntent(input.input, { hasImage: input.attachments.length > 0 }),
-    )
-      ? "fast"
-      : input.budgetMode || "balanced",
+    budgetMode: input.focus
+      ? input.budgetMode || "balanced"
+      : isFastTier(
+            classifyIntent(input.input, {
+              hasImage: input.attachments.length > 0,
+            }),
+          )
+        ? "fast"
+        : input.budgetMode || "balanced",
+    focus: input.focus || null,
   };
   const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
   if (mode === "research") task.researchBundle = researchBundle({ prompt: input.input });
@@ -384,6 +414,7 @@ async function execute(
       mode,
       text: task.input,
       goal: orchestration.goal,
+      intentTier: task.focus ? "create" : orchestration.goal.intentTier,
     });
     const suffix =
       "\n目前專案識別：" +
@@ -402,7 +433,8 @@ async function execute(
       orchestration.instructions +
       (task.researchBundle
         ? "\n" + formatResearchPlanForInstructions(task.researchBundle)
-        : "");
+        : "") +
+      (focusInstructions(task.focus) ? "\n" + focusInstructions(task.focus) : "");
     const extras =
       (composed.includeFramelabManual ? framelabTaskInstructions() : "") +
       (composed.includeLumenManual ? lumenTaskInstructions() : "");

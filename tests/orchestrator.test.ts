@@ -132,3 +132,15 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.match(resumeNotice("unknown"), /尚未確認/);
   });
 });
+
+test("continue-this-work stays on the same artifact without exposing tools in the user line", () => {
+  const copyId = "11111111-1111-1111-1111-111111111111";
+  const goal = interpretGoal("請接續修改這個作品（第 2 版）。不要另做無關的新作品。", {
+    focus: { copyId, revision: 2 },
+  });
+  assert.equal(goal.intentTier, "create");
+  assert.equal(goal.requiresDesign, true);
+  assert.match(goal.output || "", /同一作品/);
+  const fast = interpretGoal("請接續修改這個作品（第 2 版）。不要另做無關的新作品。");
+  assert.equal(fast.intentTier, "continue");
+});
