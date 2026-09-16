@@ -4,12 +4,7 @@ import { Eye, Image, Palette, Search, Sparkles, Users } from "lucide-react";
 
 const actions = [
   { label: "研究", prompt: "幫我找網宣靈感。", icon: Search, tone: "sage" },
-  {
-    label: "創作",
-    prompt: "幫我做一張網宣海報。",
-    icon: Sparkles,
-    tone: "gold",
-  },
+  { label: "創作", prompt: "幫我做一張網宣海報。", icon: Sparkles, tone: "gold" },
   { label: "分析", prompt: "請分析這張文宣。", icon: Eye, tone: "mint" },
   {
     label: "客群",
@@ -42,6 +37,7 @@ export default function QuickActions({
         <button
           className={`quick-action quick-action-${tone}`}
           key={label}
+          title={prompt}
           onClick={() => onSelect(prompt)}
         >
           <span className="quick-action-icon" aria-hidden="true">

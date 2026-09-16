@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { Conversation, EMPTY_USAGE, Task, TaskEvent } from "../contracts";
+export {
+  DESIGN_WITHOUT_PREVIEW,
+  IMAGE_WITHOUT_VISION,
+  RESEARCH_WITHOUT_SOURCES,
+} from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
 import {
@@ -84,6 +89,16 @@ export const taskInput = z
     attachments: z.array(z.string().uuid()).max(4).default([]),
     mode: z.enum(["creative", "research", "admin"]).optional(),
     budgetMode: z.enum(["fast", "balanced", "deep"]).optional(),
+    focus: z
+      .object({
+        copyId: z.string().uuid().optional(),
+        revision: z.number().int().positive().optional(),
+        workflowId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+        direction: z.number().int().positive().optional(),
+        activityId: z.string().uuid().optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 function save(owner: string, task: Task) {
@@ -285,9 +300,10 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
-    budgetMode: isFastTier(classifyIntent(input.input))
+    budgetMode: isFastTier(classifyIntent(input.input, { hasImage: input.attachments.length > 0 }))
       ? "fast"
       : input.budgetMode || "balanced",
+    focus: input.focus || null,
   };
   const mode = parseAssistantMode(input.mode ?? conv.assistantMode);
   if (mode === "research") task.researchBundle = researchBundle({ prompt: input.input });

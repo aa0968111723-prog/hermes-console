@@ -70,6 +70,56 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(fallbacksFromRoutes(routes).length, 0);
   });
 
+  await t.test("Hermes picks GALLEY, Lumen, FrameLab when they are actually usable", () => {
+    const hermes = emptyIntegration("hermes");
+    hermes.capabilities.find((item) => item.id === "hermes.api")!.status =
+      "reachable";
+    const inspiration = interpretGoal("幫我找淡江大學禪學社最近適合的網宣靈感");
+    const galleyRoutes = routeTools(
+      inspiration,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { galley: "partial" },
+    );
+    assert.equal(galleyRoutes.find((item) => item.id === "galley")?.tool, "galley_research");
+    const galleyPlan = buildPlan(inspiration, galleyRoutes, "balanced");
+    assert.ok(galleyPlan.steps.some((step) => step.title === "研究情報"));
+    assert.equal(
+      galleyPlan.steps.find((step) => step.title === "研究情報")?.tool,
+      "galley_research",
+    );
+    assert.equal(
+      JSON.stringify(galleyPlan.steps.map((step) => step.title)).includes("galley_research"),
+      false,
+    );
+
+    const poster = interpretGoal("幫我做一張淡江新生茶會宣傳");
+    const lumenRoutes = routeTools(
+      poster,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { lumen: "partial" },
+    );
+    assert.equal(lumenRoutes.find((item) => item.id === "lumen")?.tool, "lumen_utter");
+    const lumenPlan = buildPlan(poster, lumenRoutes, "balanced");
+    assert.ok(lumenPlan.steps.some((step) => step.title === "創作台"));
+    assert.equal(lumenPlan.steps.find((step) => step.title === "創作台")?.tool, "lumen_utter");
+
+    const animation = interpretGoal("幫我修 FrameLab 中間張");
+    const framed = routeTools(animation, [hermes], { framelab: "partial" });
+    assert.equal(framed.find((item) => item.id === "framelab")?.tool, "framelab_list_projects");
+
+    const booth = interpretGoal("幫我排迎新攤位場佈");
+    const layout = routeTools(booth, [hermes], { planform: "partial" });
+    assert.equal(layout.find((item) => item.id === "planform")?.tool, "planform_run_agent");
+
+    const unconfigured = routeTools(poster, [
+      emptyIntegration("tamkang"),
+      hermes,
+      emptyIntegration("canva"),
+    ]);
+    assert.equal(unconfigured.find((item) => item.id === "lumen"), undefined);
+    assert.equal(unconfigured.find((item) => item.id === "galley"), undefined);
+  });
+
   await t.test("generic freshman wording does not bind Tamkang", () => {
     for (const prompt of [
       "國立臺灣大學新生茶會文宣海報",
@@ -93,7 +143,7 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
   });
 
   await t.test("context budget does not dump the whole memory store", () => {
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 25; i++) {
       saveMemory("workspace", {
         kind: "note",
         scope: "workspace",
@@ -200,4 +250,23 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(goal.requiresDesign, false);
     assert.equal(goal.goal.startsWith("台大大一新生攝影社"), true);
   });
+});
+
+test("continue-this-work stays on the same artifact without exposing tools in the user line", () => {
+  const copyId = "11111111-1111-1111-1111-111111111111";
+  const goal = interpretGoal("請接續修改這個作品（第 2 版）。不要另做無關的新作品。", {
+    focus: { copyId, revision: 2 },
+  });
+  assert.equal(goal.intentTier, "create");
+  assert.equal(goal.requiresDesign, true);
+  assert.match(goal.output || "", /同一作品/);
+  const fast = interpretGoal("請接續修改這個作品（第 2 版）。不要另做無關的新作品。");
+  assert.equal(fast.intentTier, "continue");
+  const activityId = "22222222-2222-2222-2222-222222222222";
+  const activityGoal = interpretGoal(
+    "請依這個活動已確認的資訊提出三個方向，保存後等我選擇。私人資訊不得用於公開文宣。",
+    { focus: { activityId } },
+  );
+  assert.equal(activityGoal.intentTier, "create");
+  assert.match(activityGoal.output || "", /活動/);
 });

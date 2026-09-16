@@ -15,6 +15,16 @@ export type TaskState =
   | "failed"
   | "cancelled"
   | "uncertain";
+
+/** Finish copy when a design task has no copy/Canva/thumbnail. Never treat as visual success. */
+export const DESIGN_WITHOUT_PREVIEW =
+  "還沒有可預覽的作品。規格已保留，沒有假裝設計完成。";
+/** Finish copy when a research/campus task has no https sources. Never treat as found. */
+export const RESEARCH_WITHOUT_SOURCES =
+  "還沒找到可核對的來源。沒有假裝已經搜到資料。";
+/** Finish copy when an image-analysis task ran without verified vision. Never treat as seen. */
+export const IMAGE_WITHOUT_VISION =
+  "還沒驗證看圖。只根據你的文字，沒有假裝已分析畫面。";
 export interface Usage {
   model: string | null;
   inputTokens: number | null;
@@ -87,7 +97,15 @@ export interface Task {
   goal?: StructuredGoal;
   plan?: ExecutionPlan;
   budgetMode?: BudgetMode;
+  focus?: TaskFocus | null;
 }
+export type TaskFocus = {
+  copyId?: string;
+  revision?: number;
+  workflowId?: string;
+  direction?: number;
+  activityId?: string;
+};
 export type BudgetMode = "fast" | "balanced" | "deep";
 export type IntentTier = "chitchat" | "continue" | "lookup" | "create";
 export interface StructuredGoal {
@@ -100,8 +118,9 @@ export interface StructuredGoal {
   requiresAudienceEvaluation: boolean;
   requiresTamkang: boolean;
   requiresInspiration: boolean;
-  requiresImageReview: boolean;
-  directionLocked: boolean;
+  requiresImageReview?: boolean;
+  requiresImageAnalysis?: boolean;
+  directionLocked?: boolean;
   intentTier: IntentTier;
 }
 export interface PlanStep {
@@ -233,9 +252,9 @@ export interface Health {
   dataDir: string;
   storeReady: boolean;
   /** Process is up. Not the same as Hermes being usable. */
-  live: boolean;
+  live?: boolean;
   /** True only after a verified Agent task against the current credentials. */
-  agentReady: boolean;
+  agentReady?: boolean;
 }
 export interface ReadyStatus {
   ready: boolean;

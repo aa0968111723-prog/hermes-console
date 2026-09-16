@@ -9,6 +9,7 @@ import { seedSession } from "./session-fixture";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-copywriting-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3231";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 

@@ -120,14 +120,18 @@ const address = server.address() as { port: number };
 process.env.HERMES_API_URL = "http://127.0.0.1:" + address.port;
 
 const { visibleText, health } = await import("../lib/server/hermes");
-const { put } = await import("../lib/server/store");
+const { put, get, remove } = await import("../lib/server/store");
 const {
   submit,
   reconcile,
   taskFor,
   hasCompletedToolEvents,
+  DESIGN_WITHOUT_PREVIEW,
+  IMAGE_WITHOUT_VISION,
+  RESEARCH_WITHOUT_SOURCES,
 } = await import("../lib/server/tasks");
 const { saveMemory, memoryDigest } = await import("../lib/server/memory");
+const { saveUpload } = await import("../lib/server/materials");
 const { assembleContext, formatContextForInstructions } = await import(
   "../lib/server/context/assembler"
 );
@@ -180,7 +184,11 @@ function fakeEvent(partial: Partial<TaskEvent>): TaskEvent {
   };
 }
 
-function seedRun(events: TaskEvent[], output = "") {
+function seedRun(
+  events: TaskEvent[],
+  output = "",
+  goal?: Task["goal"],
+) {
   const conversationId = conv();
   const id = randomUUID();
   put("task", "workspace", {
@@ -202,6 +210,7 @@ function seedRun(events: TaskEvent[], output = "") {
     events,
     usage: { ...EMPTY_USAGE },
     stopSupported: false,
+    goal,
   } satisfies Task);
   return id;
 }
@@ -247,6 +256,30 @@ test("Cycle 19: completed tools are kind===tool; plan completed does not count",
     stopSupported: false,
   };
   assert.equal(hasCompletedToolEvents(toolDone), true);
+  const emptyPayload = {
+    ...toolDone,
+    events: [
+      fakeEvent({
+        kind: "tool",
+        toolName: "lumen_utter",
+        status: "completed",
+        result: {},
+      }),
+    ],
+  };
+  assert.equal(hasCompletedToolEvents(emptyPayload), false);
+  const emptyString = {
+    ...toolDone,
+    events: [
+      fakeEvent({
+        kind: "tool",
+        toolName: "lumen_utter",
+        status: "completed",
+        result: "   ",
+      }),
+    ],
+  };
+  assert.equal(hasCompletedToolEvents(emptyString), false);
   const planDone = {
     ...toolDone,
     events: [fakeEvent({ status: "completed", toolName: null })],
@@ -259,19 +292,6 @@ test("Cycle 19: completed tools are kind===tool; plan completed does not count",
     ],
   };
   assert.equal(hasCompletedToolEvents(toolRunning), false);
-  const emptyPayload = {
-    ...toolDone,
-    events: [
-      fakeEvent({
-        kind: "tool",
-        toolName: "galley_research",
-        status: "completed",
-        summary: "工具已回傳結果；非同步工作需再查回，不等於製作已完成。",
-        result: {},
-      }),
-    ],
-  };
-  assert.equal(hasCompletedToolEvents(emptyPayload), false);
 });
 
 test("Cycle 19: 社團 does not hijack Lumen; FrameLab note wins over Lumen", () => {
@@ -356,6 +376,15 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
   assert.equal(toolsDone.state, "completed");
   assert.equal(hasCompletedToolEvents(toolsDone), true);
   assert.ok(toolsDone.events.some((event) => event.kind === "tool"));
+  assert.ok(
+    toolsDone.events.some((event) => event.summary === DESIGN_WITHOUT_PREVIEW),
+  );
+  assert.equal(
+    toolsDone.events.some((event) => event.summary === "Hermes 已回傳完成結果。"),
+    false,
+  );
+  assert.match(toolsDone.output, /還沒有可預覽的作品/);
+  assert.equal(get("agent", "workspace", "verified"), null);
 
   mode = "thinking_tool";
   const both = await submit("workspace", {
@@ -367,6 +396,125 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
   const bothDone = await settle(both.id);
   assert.equal(bothDone.state, "completed");
   assert.equal(bothDone.output.includes("內部"), false);
+  assert.equal(get("agent", "workspace", "verified"), null);
+
+  mode = "ok";
+  const lookup = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: "幫我查淡江新生茶會公告",
+    attachments: [],
+  });
+  const lookupDone = await settle(lookup.id);
+  assert.equal(lookupDone.state, "completed");
+  assert.equal(lookupDone.goal?.requiresDesign, false);
+  assert.equal(
+    lookupDone.events.some((event) => event.summary === DESIGN_WITHOUT_PREVIEW),
+    false,
+  );
+  assert.ok(
+    lookupDone.events.some(
+      (event) => event.summary === RESEARCH_WITHOUT_SOURCES,
+    ),
+  );
+  assert.equal(
+    lookupDone.events.some(
+      (event) => event.summary === "Hermes 已回傳完成結果。",
+    ),
+    false,
+  );
+  assert.match(lookupDone.output, /還沒找到可核對的來源/);
+  assert.equal(get("agent", "workspace", "verified"), null);
+});
+
+test("Cycle 19: research with https sources may complete as found", async () => {
+  runOutput = "已讀淡江公告。";
+  const id = seedRun(
+    [
+      fakeEvent({
+        kind: "tool",
+        toolName: "hermes_authorized_web",
+        status: "completed",
+        summary: "已讀官方頁",
+        result: "https://www.tku.edu.tw/news 茶會公告",
+        sources: ["https://www.tku.edu.tw/news"],
+      }),
+    ],
+    "已讀淡江公告。",
+    {
+      goal: "幫我查淡江新生茶會公告",
+      audience: "淡江大一新生（模擬，不是民調）",
+      output: null,
+      constraints: [],
+      requiresResearch: true,
+      requiresDesign: false,
+      requiresAudienceEvaluation: false,
+      requiresTamkang: true,
+      requiresInspiration: false,
+      requiresImageAnalysis: false,
+      intentTier: "lookup",
+    },
+  );
+  const done = await reconcile("workspace", id);
+  assert.equal(done.state, "completed");
+  assert.equal(
+    done.events.some((event) => event.summary === RESEARCH_WITHOUT_SOURCES),
+    false,
+  );
+  assert.ok(
+    done.events.some((event) => event.summary === "Hermes 已回傳完成結果。"),
+  );
+  assert.equal(done.output.includes(RESEARCH_WITHOUT_SOURCES), false);
+  assert.ok(get("agent", "workspace", "verified"));
+});
+
+test("Cycle 19: unverified vision does not claim the image was analyzed", async () => {
+  remove("agent", "workspace", "verified");
+  const previous = process.env.HERMES_IMAGE_INPUT;
+  delete process.env.HERMES_IMAGE_INPUT;
+  const sharp = (await import("sharp")).default;
+  const bytes = await sharp({
+    create: { width: 2, height: 2, channels: 3, background: "#90c070" },
+  })
+    .png()
+    .toBuffer();
+  const asset = await saveUpload(
+    "workspace",
+    "personal",
+    "poster.png",
+    "image/png",
+    bytes,
+  );
+  try {
+    mode = "ok";
+    const seen = await submit("workspace", {
+      conversationId: conv(),
+      requestKey: randomUUID(),
+      input: "這張哪裡可以改？",
+      attachments: [asset.id],
+    });
+    const done = await settle(seen.id);
+    assert.equal(done.state, "completed");
+    assert.equal(done.goal?.requiresImageAnalysis, true);
+    assert.ok(
+      done.events.some((event) => event.summary === IMAGE_WITHOUT_VISION),
+    );
+    assert.equal(
+      done.events.some((event) => event.summary === DESIGN_WITHOUT_PREVIEW),
+      false,
+    );
+    assert.equal(
+      done.events.some(
+        (event) => event.summary === "Hermes 已回傳完成結果。",
+      ),
+      false,
+    );
+    assert.match(done.output, /沒有假裝已分析畫面/);
+    assert.equal(get("agent", "workspace", "verified"), null);
+  } finally {
+    if (previous === undefined) delete process.env.HERMES_IMAGE_INPUT;
+    else process.env.HERMES_IMAGE_INPUT = previous;
+  }
 });
 
 test("Cycle 19: reconcile fails only when no output and no kind===tool completed events", async () => {
@@ -393,32 +541,15 @@ test("Cycle 19: reconcile fails only when no output and no kind===tool completed
   const emptyId = seedRun([
     fakeEvent({
       kind: "tool",
-      toolName: "galley_research",
+      toolName: "workspace_save_memory",
       status: "completed",
-      summary: "工具已回傳結果；非同步工作需再查回，不等於製作已完成。",
+      summary: "已寫入共用記憶。",
       result: {},
     }),
   ]);
   const emptyDone = await reconcile("workspace", emptyId);
   assert.equal(emptyDone.state, "failed");
   assert.match(emptyDone.error || "", /沒有可讀取的成果/);
-
-  runOutput = "可見建議";
-  const mixedId = seedRun([
-    fakeEvent({
-      kind: "tool",
-      toolName: "galley_research",
-      status: "failed",
-      summary: "逾時",
-    }),
-  ]);
-  const mixed = await reconcile("workspace", mixedId);
-  assert.equal(mixed.state, "completed");
-  assert.match(
-    mixed.events.map((event) => event.summary).join("\n"),
-    /有工具沒有成功/,
-  );
-  runOutput = "";
 });
 
 test("Cycle 19: task instructions include assembled memory once, not memoryDigest", async () => {

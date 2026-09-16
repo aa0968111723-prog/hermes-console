@@ -534,6 +534,36 @@ export function getMcp(id: string) {
 }
 
 /** Client-safe registry row: no endpoint, credential name, or tool schemas. */
+export function publicMcpStatus(
+  status: McpStatus,
+): "unconfigured" | "verifying" | "available" | "partial" | "failed" {
+  if (status === "connected") return "verifying";
+  if (status === "verified") return "available";
+  return status;
+}
+
+export function presentMcpEntry(entry: McpEntry, operator: boolean) {
+  const status = publicMcpStatus(entry.status);
+  const lastError = entry.lastError ? redact(entry.lastError) : null;
+  if (!operator) {
+    return {
+      id: entry.id,
+      name: entry.name,
+      status,
+      enabled: entry.enabled,
+      readonly: entry.readonly,
+      trustedLevel: entry.trustedLevel,
+      toolsCount: entry.tools.length,
+      lastError: null,
+    };
+  }
+  return {
+    ...entry,
+    status,
+    lastError,
+  };
+}
+
 export function publicMcpEntry(entry: McpEntry) {
   return {
     id: entry.id,

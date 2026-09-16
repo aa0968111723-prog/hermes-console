@@ -2,10 +2,11 @@ import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
+import { bootstrapOwner } from "./browser-auth";
 
 // Full Console HTTP/browser path against an explicitly isolated protocol fixture.
 // This is NOT proof that the user's Zeabur instance is reachable.
@@ -175,6 +176,7 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
   });
+  await bootstrapOwner(base, context);
   const page = await context.newPage();
   await page.goto(base);
   await expect(
@@ -216,6 +218,9 @@ try {
   await expect(
     page.getByRole("button", { name: "回到最新訊息" }),
   ).not.toBeVisible();
+  const output = resolve("output/playwright");
+  await mkdir(output, { recursive: true });
+  await page.screenshot({ path: join(output, "long-chat.png"), fullPage: true });
   assert.equal(calls, 1);
   const tasks = await (await context.request.get(base + "/api/tasks")).json();
   assert.equal(
@@ -228,9 +233,9 @@ try {
     .getByRole("button", { name: "編輯並建立分支", exact: true })
     .click();
   await expect(textarea).toHaveValue("隔離契約：長任務穿越背景監測週期");
-  await expect(page.locator(".upload-chip")).toContainText(
-    "branch-reference.txt",
-  );
+  await expect(
+    page.getByRole("button", { name: "預覽參考：branch-reference.txt" }),
+  ).toBeVisible();
   const branched = await (
     await context.request.get(base + "/api/workspace")
   ).json();
@@ -309,7 +314,7 @@ try {
   assert.match(String(canva.detail), /Needs Canva Authorization|尚未/);
   assert.ok(!logs.includes(fixtureKey));
   console.log(
-    "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",
+    "PASS: authenticated browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",
   );
 } finally {
   await browser.close();

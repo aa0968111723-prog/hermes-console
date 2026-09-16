@@ -1,6 +1,12 @@
 import type { IntegrationCertification } from "../certification/types";
-import type { StructuredGoal } from "../../contracts";
+import type { IntegrationState, StructuredGoal } from "../../contracts";
 import { needsZenclubKnowledge } from "../zenclub";
+import { isFramelabIntent, isLumenIntent } from "../projects/router";
+import { liveGalleyStatus } from "../galley";
+import { lumenStatus } from "../lumen";
+import { framelabStatus } from "../framelab";
+import { planformStatus } from "../planform";
+import { xunheStatus } from "../xunhe";
 
 export type RoutedTool = {
   id: string;
@@ -9,13 +15,36 @@ export type RoutedTool = {
   fallback: string | null;
 };
 
+export type McpAvailability = {
+  galley?: IntegrationState;
+  lumen?: IntegrationState;
+  framelab?: IntegrationState;
+  planform?: IntegrationState;
+  xunhe?: IntegrationState;
+};
+
 function capStatus(cert: IntegrationCertification | undefined, id: string) {
   return cert?.capabilities.find((item) => item.id === id)?.status;
+}
+
+function usable(state?: IntegrationState) {
+  return state === "partial" || state === "available";
+}
+
+export function liveMcpAvailability(): McpAvailability {
+  return {
+    galley: liveGalleyStatus().state as IntegrationState,
+    lumen: lumenStatus().state as IntegrationState,
+    framelab: framelabStatus().state as IntegrationState,
+    planform: planformStatus().state as IntegrationState,
+    xunhe: xunheStatus().state as IntegrationState,
+  };
 }
 
 export function routeTools(
   goal: StructuredGoal,
   certifications: IntegrationCertification[],
+  availability: McpAvailability = liveMcpAvailability(),
 ): RoutedTool[] {
   const tamkang = certifications.find((item) => item.id === "tamkang");
   const hermes = certifications.find((item) => item.id === "hermes");
@@ -24,6 +53,7 @@ export function routeTools(
   const hermesChat =
     capStatus(hermes, "hermes.chat") === "verified" ||
     capStatus(hermes, "hermes.api") === "reachable";
+  const webFallback = hermesChat ? "hermes_authorized_web" : "ask_user";
 
   if (needsZenclubKnowledge(goal.goal)) {
     routes.push({
@@ -63,13 +93,54 @@ export function routeTools(
       });
     }
   } else if (goal.requiresResearch) {
+    if (usable(availability.galley)) {
+      routes.push({
+        id: "research",
+        tool: "galley_research",
+        reason: "來源優先研究走已列出的 GALLEY；沒有外部 evidence 不得用記憶填空。",
+        fallback: webFallback,
+      });
+    } else if (usable(availability.xunhe)) {
+      routes.push({
+        id: "research",
+        tool: "xunhe_research",
+        reason: "GALLEY 未連線時改用已列出的訊核情報；仍須真實來源。",
+        fallback: webFallback,
+      });
+    } else {
+      routes.push({
+        id: "research",
+        tool: hermesChat ? "hermes_authorized_web" : "ask_user",
+        reason: hermesChat
+          ? "依需求使用 Hermes 已授權網頁研究。"
+          : "Hermes 網頁研究尚未就緒，需要使用者提供來源。",
+        fallback: "official_web_directory",
+      });
+    }
+  }
+
+  if (
+    usable(availability.galley) &&
+    (goal.requiresInspiration || goal.requiresTamkang) &&
+    !routes.some((item) => item.tool === "galley_research")
+  ) {
     routes.push({
-      id: "research",
-      tool: hermesChat ? "hermes_authorized_web" : "ask_user",
-      reason: hermesChat
-        ? "依需求使用 Hermes 已授權網頁研究。"
-        : "Hermes 網頁研究尚未就緒，需要使用者提供來源。",
-      fallback: "official_web_directory",
+      id: "galley",
+      tool: "galley_research",
+      reason: "靈感與校園題先走 GALLEY 來源優先研究，再讀專案收藏。",
+      fallback: webFallback,
+    });
+  }
+
+  if (goal.requiresImageAnalysis) {
+    const imageReady = process.env.HERMES_IMAGE_INPUT === "true";
+    routes.push({
+      id: "image",
+      tool: imageReady ? "workspace_read_material" : "ask_user",
+      reason: imageReady
+        ? "先讀附件圖片再分析構圖與層級。"
+        : "圖片已保存，但還沒驗證看圖，不能假裝已看圖。",
+      fallback: imageReady ? null : "describe_without_pixels",
     });
   }
 
@@ -100,6 +171,36 @@ export function routeTools(
         ? "Canva 已能讀取設計清單，製作仍需個別驗證。"
         : "Canva 未授權；只整理可交給 Canva 的規格，不假裝已出圖。",
       fallback: "canva_spec_only",
+    });
+  }
+
+  if (isLumenIntent(goal.goal) && usable(availability.lumen)) {
+    routes.push({
+      id: "lumen",
+      tool: "lumen_utter",
+      reason: "文宣意圖由 Hermes 呼叫已連線的創作台，不叫使用者自己選 Lumen。",
+      fallback: "canva_spec_only",
+    });
+  }
+
+  if (isFramelabIntent(goal.goal) && usable(availability.framelab)) {
+    routes.push({
+      id: "framelab",
+      tool: "framelab_list_projects",
+      reason: "動畫／中間張由 Hermes 呼叫已連線的 FrameLab，不叫使用者自己選工具。",
+      fallback: "ask_user",
+    });
+  }
+
+  if (
+    /攤位|場佈|教室排座|門口淨空|booth/i.test(goal.goal) &&
+    usable(availability.planform)
+  ) {
+    routes.push({
+      id: "planform",
+      tool: "planform_run_agent",
+      reason: "場佈意圖由 Hermes 呼叫已連線的 Planform；草稿需確認才套用。",
+      fallback: "ask_user",
     });
   }
 

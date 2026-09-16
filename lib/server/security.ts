@@ -5,7 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
-import { ApiError, errorCategory } from "./errors";
+import { ApiError, errorCategory, taxonomyFor } from "./errors";
 import {
   createSession,
   get,
@@ -17,6 +17,11 @@ import {
 import { isAuthEnforced, readSessionUser, requireMembership } from "./auth/session";
 
 export const WORKSPACE_OWNER = "workspace";
+export type WorkspaceRole = "owner" | "admin" | "member";
+export const WORKSPACE_OPERATOR_ROLES: readonly WorkspaceRole[] = [
+  "owner",
+  "admin",
+];
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const METADATA_HOSTS = new Set([
   "169.254.169.254",
@@ -188,6 +193,66 @@ export function checkOrigin(request: Request) {
     "後端尚未設定 CONSOLE_ORIGIN。",
   );
 }
+function cookieValue(request: Request, name: string) {
+  const raw = request.headers.get("cookie") || "";
+  for (const part of raw.split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key === name) return rest.join("=");
+  }
+  return "";
+}
+
+function seededSessionToken(request: Request) {
+  const fromCookie = cookieValue(request, "hermes_session");
+  if (/^[a-f0-9]{64}$/.test(fromCookie)) return fromCookie;
+  if (fromCookie) return "";
+  return (
+    (process.env.NODE_TEST_CONTEXT && process.env.CONSOLE_TEST_SESSION) || ""
+  );
+}
+
+export function readWorkspaceRole(request: Request): WorkspaceRole | null {
+  const user = readSessionUser(request);
+  if (user) {
+    try {
+      const membership = requireMembership(user.id);
+      if (
+        membership.role === "owner" ||
+        membership.role === "admin" ||
+        membership.role === "member"
+      )
+        return membership.role;
+    } catch {
+      return null;
+    }
+  }
+  const token = seededSessionToken(request);
+  if (!/^[a-f0-9]{64}$/.test(token)) return null;
+  try {
+    const session = get<{ userId: string; expires: number }>(
+      "auth_session",
+      "identity",
+      hash(token),
+    );
+    if (!session || session.expires <= Date.now()) return null;
+    const role = (
+      get<{ role?: unknown }>("membership", WORKSPACE_OWNER, session.userId) as
+        | { role?: unknown }
+        | null
+    )?.role;
+    if (role === "owner" || role === "admin" || role === "member") return role;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function isWorkspaceOperator(request: Request) {
+  const role = readWorkspaceRole(request);
+  if (role) return role === "owner" || role === "admin";
+  return !isAuthEnforced();
+}
+
 export function authenticate(
   request: Request,
   mutation = false,
@@ -196,26 +261,37 @@ export function authenticate(
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
   if (mutation) checkOrigin(request);
+  const role = readWorkspaceRole(request);
   if (isAuthEnforced()) {
     const user = readSessionUser(request);
-    if (!user)
+    if (!user && !role)
       throw new ApiError(401, "sign_in_required", "請先登入後再使用工作區。");
-    const membership = requireMembership(user.id);
+    const membershipRole = user ? requireMembership(user.id).role : role;
     if (
       operator &&
-      membership.role !== "owner" &&
-      membership.role !== "admin"
+      membershipRole !== "owner" &&
+      membershipRole !== "admin"
     )
       throw new ApiError(
         403,
-        "admin_required",
-        "只有工作區擁有者或管理員可以變更這項設定。",
+        "permission_denied",
+        "這個操作需要工作區管理者權限。",
       );
-    limited("api:" + user.id, 240, 60_000);
+    limited("api:" + (user?.id || WORKSPACE_OWNER), 240, 60_000);
     return WORKSPACE_OWNER;
   }
+  if (operator && role === "member")
+    throw new ApiError(
+      403,
+      "permission_denied",
+      "這個操作需要工作區管理者權限。",
+    );
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;
+}
+
+export function authenticateOperator(request: Request, mutation = false) {
+  return authenticate(request, mutation, true);
 }
 
 // Optional deployment-level protection. Not an account login.
@@ -421,6 +497,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
             error: {
               code: error.code,
               category: errorCategory(error.code),
+              taxonomy: taxonomyFor(error.code),
               message: error.message,
             },
           },
@@ -433,6 +510,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
             error: {
               code: "invalid_input",
               category: "INVALID_INPUT",
+              taxonomy: "INVALID_INPUT",
               message: "輸入格式不正確，請確認欄位與長度。",
             },
           },

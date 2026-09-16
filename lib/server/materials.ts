@@ -56,6 +56,22 @@ export async function thumbnailBytes(owner: string, id: string) {
   }
 }
 
+export async function materialBytes(
+  owner: string,
+  id: string,
+  variant: "full" | "thumb" = "full",
+) {
+  const asset = material(owner, id);
+  if (asset.kind === "reference")
+    throw new ApiError(400, "not_a_file", "連結沒有可下載檔案。");
+  if (variant === "thumb" && asset.kind === "image")
+    return { bytes: await thumbnailBytes(owner, id), mime: "image/webp" };
+  return {
+    bytes: await readFile(filePath(owner, id)),
+    mime: asset.mime || "application/octet-stream",
+  };
+}
+
 export function includeDuplicatesQuery(url: URL) {
   const value = url.searchParams.get("includeDuplicates");
   return value === "1" || value === "true";

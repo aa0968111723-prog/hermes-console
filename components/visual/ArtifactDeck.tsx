@@ -22,7 +22,12 @@ export default function ArtifactDeck({
   const linked = new Set(
     items.map((item) => item.artifactId).filter(Boolean) as string[],
   );
-  const standalone = artifacts.filter((item) => !linked.has(item.id));
+  const standalone = artifacts.filter(
+    (item) =>
+      item.source !== "copy" &&
+      item.source !== "material" &&
+      !linked.has(item.id),
+  );
   const designs = [
     ...items
       .filter((w) => !!w.design || isDirectionBriefPack(w.directionBrief))

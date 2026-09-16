@@ -107,10 +107,8 @@ export default function ComposerMenu({
             <Folder size={18} />
             專案素材
           </button>
-          <small>
-            PNG / JPG / WebP / TXT / PDF
-            <br />
-            每檔 8 MB，每則最多 4 個附件
+          <small className="sr-only">
+            PNG / JPG / WebP / TXT / PDF，每檔 8 MB，每則最多 4 個附件
           </small>
         </div>
       )}

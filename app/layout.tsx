@@ -4,7 +4,7 @@ import "./globals.css";
 import "./mobile-spatial.css";
 
 export const metadata: Metadata = {
-  title: "Hermes Creative Intelligence",
+  title: "Hermes",
   description: "與 Hermes 一起，把活動想法整理成有來源、可接續的創作。",
 };
 export const viewport: Viewport = {

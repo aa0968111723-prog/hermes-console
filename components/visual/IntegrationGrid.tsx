@@ -60,9 +60,12 @@ export default function IntegrationGrid({
           >
             <Icon size={24} aria-hidden="true" />
             <strong>{item.name}</strong>
-            <span className="connection-state" data-state={item.state}>
-              <i aria-hidden="true" />
-              {labels[item.state] || item.state}
+            <span
+              className="connection-state"
+              data-state={item.state}
+              aria-hidden="true"
+            >
+              <i />
             </span>
           </button>
         );

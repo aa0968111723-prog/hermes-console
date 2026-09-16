@@ -3,6 +3,8 @@ import { memoriesForProject } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
 import { listMaterials } from "../materials";
 import { searchResearchNotes } from "../research-notes";
+import { listArtifacts } from "../artifacts";
+import { listWorkflows } from "../workflows";
 import { estimateTokens, recencyScore, type ContextItem } from "./provenance";
 import { relevanceTo } from "./ranking";
 import { fitBudget } from "./budget";
@@ -146,6 +148,62 @@ export function assembleContext(input: {
         relevance: relevanceTo(note.title + " " + note.finding, query),
         confidence: 0.35,
         truth: "UNKNOWN",
+      }),
+    );
+  }
+  for (const artifact of listArtifacts(input.owner, input.projectId)
+    .filter((row) => row.source === "copy")
+    .slice(0, 8)) {
+    const text = (artifact.title || "") + " " + (artifact.excerpt || "");
+    items.push(
+      item({
+        id: artifact.artifactId,
+        source: "artifact",
+        title: (artifact.title || "作品") + " V" + artifact.revision,
+        content:
+          "沿用同一作品修改，不要另做無關新作。artifactId=" +
+          artifact.artifactId +
+          " revision=" +
+          artifact.revision +
+          (artifact.excerpt ? " " + artifact.excerpt : ""),
+        recency: recencyScore(artifact.createdAt),
+        importance: 0.78,
+        relevance: relevanceTo(text, query),
+        confidence: 0.9,
+        truth: "FACT",
+      }),
+    );
+  }
+  for (const workflow of listWorkflows(input.owner)
+    .filter((row) => row.projectId === input.projectId)
+    .slice(0, 6)) {
+    const picked =
+      workflow.selected != null
+        ? workflow.directions[workflow.selected]
+        : null;
+    const text =
+      workflow.brief + " " + (picked?.title || "") + " " + (picked?.copy || "");
+    items.push(
+      item({
+        id: workflow.id,
+        source: "creative_direction",
+        title: (picked?.title || workflow.brief || "創作方向").slice(0, 80),
+        content:
+          (workflow.selected == null
+            ? "尚未選擇方向。"
+            : "已選方向 " + (workflow.selected + 1) + "。") +
+          (workflow.design
+            ? "已有設計預覽，沿用同一 workflow 修改。"
+            : "尚無設計預覽。") +
+          " workflowId=" +
+          workflow.id +
+          " state=" +
+          workflow.state,
+        recency: recencyScore(workflow.updatedAt),
+        importance: 0.72,
+        relevance: relevanceTo(text, query),
+        confidence: workflow.design ? 0.85 : 0.6,
+        truth: "USER_PROVIDED",
       }),
     );
   }

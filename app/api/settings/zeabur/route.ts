@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  authenticate,
+  authenticateOperator,
   consumeConfirmation,
   jsonBody,
   mintConfirmation,
@@ -69,7 +69,7 @@ function requireMutationConfirmation(body: {
 }
 
 export const POST = route(async (req) => {
-  authenticate(req, true, true);
+  authenticateOperator(req, true);
   const body = z
     .discriminatedUnion("action", [
       z.object({ action: z.literal("test"), ...target }).strict(),

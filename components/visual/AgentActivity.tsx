@@ -11,23 +11,28 @@ import {
   Wrench,
   LoaderCircle,
   Pause,
+  Image as ImageIcon,
+  Sparkles,
 } from "lucide-react";
 import type { Task } from "@/lib/contracts";
 import {
-  activityKind,
-  activityLabels,
-  eventState,
-  taskStateLabel,
-  workingEvent,
+  progressSteps,
+  studentHonestyLabel,
+  studentTaskLabel,
 } from "@/lib/client/activity";
-const icons = {
-  request: Circle,
-  research: Search,
-  creative: Palette,
-  audience: Users,
-  memory: Brain,
-  workspace: Folder,
-  tool: Wrench,
+
+const icons: Record<string, typeof Search> = {
+  理解: Brain,
+  處理: Circle,
+  看圖: ImageIcon,
+  研究: Search,
+  靈感: Sparkles,
+  客群: Users,
+  創作: Palette,
+  完成: Circle,
+  記憶: Brain,
+  素材: Folder,
+  工具: Wrench,
 };
 
 export default function AgentActivity({
@@ -38,32 +43,33 @@ export default function AgentActivity({
   onInspect?: () => void;
 }) {
   if (!task) return null;
-  const current = workingEvent(task);
-  // Only steps with received events appear. Collapse updates of the same call.
-  const calls = new Map<string, (typeof task.events)[number]>();
-  for (const event of task.events)
-    if (event.toolName) calls.set(event.toolCallId || event.toolName, event);
-  const steps = [...calls.values()].slice(-4);
+  const steps = progressSteps(task);
   return (
     <div
       className="agent-activity"
       aria-label="任務進度"
       data-task-state={task.state}
     >
-      {steps.map((event) => {
-        const kind = activityKind(event.toolName),
-          Icon = icons[kind];
-        const state = eventState(event);
+      {steps.map((step) => {
+        const Icon = icons[step.label] || Wrench;
         return (
           <span
-            key={event.id}
-            className={current?.id === event.id ? "activity-active" : ""}
-            title={event.summary}
+            key={step.key}
+            className={
+              step.active
+                ? "activity-active"
+                : step.state === "completed"
+                  ? "activity-complete"
+                  : ["failed", "uncertain"].includes(step.state)
+                    ? "activity-failed"
+                    : ""
+            }
+            title={step.label}
           >
             <Icon size={15} aria-hidden="true" />
-            {activityLabels[kind]}
-            {state === "completed" && <Check size={12} aria-label="已完成" />}
-            {["failed", "uncertain"].includes(state) && (
+            {step.label}
+            {step.state === "completed" && <Check size={12} aria-label="已完成" />}
+            {["failed", "uncertain"].includes(step.state) && (
               <CircleAlert size={12} aria-label="失敗或待確認" />
             )}
           </span>
@@ -74,18 +80,19 @@ export default function AgentActivity({
         onClick={onInspect}
         disabled={!onInspect}
         className="activity-inspect"
-        aria-label={"查看任務：" + taskStateLabel[task.state]}
+        aria-label={"查看任務：" + studentTaskLabel(task)}
       >
-        {task.state === "completed" ? (
-          <Check size={16} />
-        ) : ["failed", "uncertain"].includes(task.state) ? (
+        {studentHonestyLabel(task) ||
+        ["failed", "uncertain"].includes(task.state) ? (
           <CircleAlert size={16} />
+        ) : task.state === "completed" ? (
+          <Check size={16} />
         ) : task.state === "running" ? (
           <LoaderCircle size={16} />
         ) : (
           <Pause size={16} />
         )}
-        {taskStateLabel[task.state]}
+        {studentTaskLabel(task)}
       </button>
     </div>
   );

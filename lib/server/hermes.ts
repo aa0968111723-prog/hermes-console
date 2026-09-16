@@ -1,12 +1,8 @@
 import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
-import {
-  ApiError,
-  assertSafeServiceUrl,
-  redact,
-  WORKSPACE_OWNER,
-} from "./security";
+import { ApiError, assertSafeServiceUrl, redact } from "./security";
+import { studentHermesError } from "./errors";
 import { get, probeStore, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
 import {
@@ -45,8 +41,8 @@ export function resolveAgent(agent?: HermesAgent) {
       503,
       "hermes_unconfigured",
       role === "general"
-        ? "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。"
-        : "此 Agent 尚未設定後端網域與憑證參照。",
+        ? "Hermes 還沒連上。請到設定的連線頁。"
+        : "此 Agent 尚未完成連線設定。",
     );
   return { role, credentialReference, key, url };
 }
@@ -57,7 +53,7 @@ export function target(raw?: string, key?: string) {
     throw new ApiError(
       503,
       "hermes_unconfigured",
-      "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。",
+      "Hermes 還沒連上。請到設定的連線頁。",
     );
   const url = assertSafeServiceUrl(urlValue, "hermes");
   url.pathname = url.pathname.replace(/\/$/, "").replace(/\/v1$/, "");
@@ -208,6 +204,10 @@ function discovery(raw: unknown): DiscoveryItem[] {
     description: redact(item.description || ""),
   }));
 }
+const HEALTH_CACHE_MS = 30_000;
+
+type CachedHealth = Health & { id: string; targetHash: string };
+
 function storeFields() {
   const probe = probeStore();
   return {
@@ -225,41 +225,82 @@ function withConsoleMemoryWriteFeature(
   return { ...features, memory_write_api: storeReady };
 }
 
-
-export async function health(owner: string, refresh = false): Promise<Health> {
-  const store = storeFields();
-  let cached: (Health & { id: string; targetHash: string }) | null = null;
+function readCachedHealth(owner: string): CachedHealth | null {
   try {
-    cached = get<Health & { id: string; targetHash: string }>(
-      "health",
-      owner,
-      "current",
-    );
+    return get<CachedHealth>("health", owner, "current");
   } catch {
-    cached = null;
+    return null;
   }
+}
+
+function publicHealthFromCache(cached: CachedHealth): Health {
+  const { id, targetHash, ...publicState } = cached;
+  void id;
+  void targetHash;
+  return publicState;
+}
+
+function overlayStore(state: Health, store = storeFields()): Health {
+  return {
+    ...state,
+    ...store,
+    features: withConsoleMemoryWriteFeature(
+      state.features || {},
+      store.storeReady,
+    ),
+  };
+}
+
+function hermesCredentialsPresent() {
+  return (
+    credentialPresence("HERMES_API_URL").configured &&
+    credentialPresence("HERMES_API_KEY").configured
+  );
+}
+
+function freshCachedHealth(owner: string): Health | null {
+  const cached = readCachedHealth(owner);
   if (
-    cached &&
-    cached.targetHash === serviceIdentity() &&
-    !refresh &&
-    Date.now() - Date.parse(cached.checkedAt) < 30_000
-  ) {
-    const { id, targetHash, ...publicState } = cached;
-    void id;
-    void targetHash;
-    return withLiveFlags({
-      ...publicState,
-      ...store,
-      features: withConsoleMemoryWriteFeature(publicState.features || {}, store.storeReady),
-    });
-  }
-  const state: Health = {
+    !cached ||
+    cached.targetHash !== serviceIdentity() ||
+    Date.now() - Date.parse(cached.checkedAt) >= HEALTH_CACHE_MS
+  )
+    return null;
+  return overlayStore(publicHealthFromCache(cached));
+}
+
+function fallbackHealth(message: string): Health {
+  const probe = probeStore();
+  return {
     checkedAt: new Date().toISOString(),
     reachable: null,
-    credential: "missing",
+    credential: "unknown",
     agent: "unverified",
     status: "unconfigured",
-    message: "尚未在連線設定或後端環境變數提供 Hermes 網域與新金鑰。",
+    message,
+    httpStatus: null,
+    features: {},
+    models: [],
+    skills: [],
+    toolsets: [],
+    discovery: {},
+    backend: probe.backend,
+    dataDir: probe.dataDir,
+    storeReady: probe.ok,
+  };
+}
+
+function uncheckedHealth(): Health {
+  const present = hermesCredentialsPresent();
+  return overlayStore({
+    checkedAt: new Date().toISOString(),
+    reachable: null,
+    credential: present ? "unknown" : "missing",
+    agent: "unverified",
+    status: present ? "verifying" : "unconfigured",
+    message: present
+      ? "尚未完成連線探測。"
+      : "Hermes 還沒連上。請到設定的連線頁。",
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,
@@ -270,13 +311,83 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     skills: [],
     toolsets: [],
     discovery: {},
-    live: true,
-    agentReady: false,
+    backend: "sqlite",
+    dataDir: "",
+    storeReady: false,
+  });
+}
+
+/** Liveness/readiness snapshot. Never waits on Hermes discovery. */
+export function healthSnapshot(owner: string): Health {
+  try {
+    return freshCachedHealth(owner) || uncheckedHealth();
+  } catch {
+    return fallbackHealth("儲存庫無法使用。");
+  }
+}
+
+export function hermesConnectionStatus() {
+  const hermesUrl = credentialPresence("HERMES_API_URL");
+  const hermesKey = credentialPresence("HERMES_API_KEY");
+  const configured = hermesUrl.configured && hermesKey.configured;
+  return {
+    hermesUrl,
+    hermesKey,
+    configured,
+    status: configured ? ("verifying" as const) : ("unconfigured" as const),
+    message: configured
+      ? "已設定 Hermes 連線，尚未完成探測。"
+      : "Hermes 還沒連上。請到設定的連線頁。",
+  };
+}
+
+/** Task submit: cached valid/unconfigured/failed answers immediately. Probe models only while verifying. */
+export async function ensureHermesReady(owner: string): Promise<Health> {
+  const snapshot = healthSnapshot(owner);
+  if (snapshot.credential === "valid") return snapshot;
+  if (
+    snapshot.credential === "missing" ||
+    snapshot.status === "unconfigured" ||
+    snapshot.status === "failed"
+  )
+    return snapshot;
+  return health(owner, false, { catalog: false });
+}
+
+export async function health(
+  owner: string,
+  refresh = false,
+  options?: { catalog?: boolean },
+): Promise<Health> {
+  const catalog = options?.catalog !== false;
+  const store = storeFields();
+  if (!refresh) {
+    const fresh = freshCachedHealth(owner);
+    if (fresh) return fresh;
+  }
+  const state: Health = {
+    checkedAt: new Date().toISOString(),
+    reachable: null,
+    credential: "missing",
+    agent: "unverified",
+    status: "unconfigured",
+    message: "Hermes 還沒連上。請到設定的連線頁。",
+    configSource: {
+      hermesUrl: credentialPresence("HERMES_API_URL").source,
+      hermesKey: credentialPresence("HERMES_API_KEY").source,
+    },
+    httpStatus: null,
+    features: {},
+    models: [],
+    skills: [],
+    toolsets: [],
+    discovery: {},
     ...store,
   };
-  // Discovery has its own total deadline; this does not shorten creative tasks.
   const signal = AbortSignal.timeout(
-    deadline("HERMES_DISCOVERY_TIMEOUT_MS", 20_000),
+    catalog
+      ? deadline("HERMES_DISCOVERY_TIMEOUT_MS", 20_000)
+      : deadline("HERMES_CONNECT_TIMEOUT_MS", 10_000),
   );
   try {
     target();
@@ -304,53 +415,54 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     state.credential = "valid";
     state.status = "partial";
     state.message = "憑證已通過模型清單驗證；Agent 執行能力需由實際任務確認。";
-    try {
-      const capabilities = await upstream("/v1/capabilities", {}, signal);
-      if (capabilities.status === 404) {
-        state.discovery!.capabilities = "unsupported";
-        await capabilities.body?.cancel();
-      } else {
-        const data = await readJSON(capabilities);
-        if (
-          data.object === "hermes.api_server.capabilities" &&
-          data.features &&
-          typeof data.features === "object"
-        ) {
-          state.features = Object.fromEntries(
-            Object.entries(data.features).filter(
-              (entry): entry is [string, boolean] =>
-                typeof entry[1] === "boolean",
-            ),
-          );
-          state.discovery!.capabilities = "available";
+    if (catalog) {
+      try {
+        const capabilities = await upstream("/v1/capabilities", {}, signal);
+        if (capabilities.status === 404) {
+          state.discovery!.capabilities = "unsupported";
+          await capabilities.body?.cancel();
         } else {
-          state.discovery!.capabilities = "failed";
+          const data = await readJSON(capabilities);
+          if (
+            data.object === "hermes.api_server.capabilities" &&
+            data.features &&
+            typeof data.features === "object"
+          ) {
+            state.features = Object.fromEntries(
+              Object.entries(data.features).filter(
+                (entry): entry is [string, boolean] =>
+                  typeof entry[1] === "boolean",
+              ),
+            );
+            state.discovery!.capabilities = "available";
+          } else {
+            state.discovery!.capabilities = "failed";
+          }
         }
+      } catch {
+        state.discovery!.capabilities = "failed";
       }
-    } catch {
-      state.discovery!.capabilities = "failed";
-    }
-    // Discovery does not execute a tool and never implies that OAuth or a tool works.
-    const lists = await Promise.allSettled(
-      (["skills", "toolsets"] as const).map(async (kind) => {
-        try {
-          const response = await upstream("/v1/" + kind, {}, signal);
-          if (response.status === 404) {
-            await response.body?.cancel();
-            state.discovery![kind] = "unsupported";
+      const lists = await Promise.allSettled(
+        (["skills", "toolsets"] as const).map(async (kind) => {
+          try {
+            const response = await upstream("/v1/" + kind, {}, signal);
+            if (response.status === 404) {
+              await response.body?.cancel();
+              state.discovery![kind] = "unsupported";
+              return [];
+            }
+            const items = discovery(await readJSON(response));
+            state.discovery![kind] = "available";
+            return items;
+          } catch {
+            state.discovery![kind] = "failed";
             return [];
           }
-          const items = discovery(await readJSON(response));
-          state.discovery![kind] = "available";
-          return items;
-        } catch {
-          state.discovery![kind] = "failed";
-          return [];
-        }
-      }),
-    );
-    state.skills = lists[0].status === "fulfilled" ? lists[0].value : [];
-    state.toolsets = lists[1].status === "fulfilled" ? lists[1].value : [];
+        }),
+      );
+      state.skills = lists[0].status === "fulfilled" ? lists[0].value : [];
+      state.toolsets = lists[1].status === "fulfilled" ? lists[1].value : [];
+    }
     let evidence: {
       id: string;
       verifiedAt: string;
@@ -374,10 +486,12 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     state.status = state.credential === "missing" ? "unconfigured" : "failed";
     if (state.reachable === null && state.credential !== "missing")
       state.reachable = false;
-    state.message =
-      error instanceof ApiError
-        ? error.message
-        : "服務設定無效，請檢查連線設定或後端環境變數。";
+    const code = error instanceof ApiError ? error.code : "";
+    const detailed =
+      error instanceof ApiError ? error.message : "現在沒辦法連到 Hermes。";
+    state.message = catalog
+      ? detailed
+      : studentHermesError(detailed, code || undefined);
   }
   try {
     put("health", owner, {
@@ -389,115 +503,15 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     /* storeReady already recorded by probe */
   }
   const latest = storeFields();
-  return withLiveFlags({
+  return {
     ...state,
     ...latest,
     features: withConsoleMemoryWriteFeature(state.features || {}, latest.storeReady),
-  });
-}
-
-function withLiveFlags(state: Omit<Health, "live" | "agentReady"> & Partial<Pick<Health, "live" | "agentReady">>): Health {
-  return {
-    ...state,
-    live: true,
-    agentReady:
-      state.agent === "verified" &&
-      state.storeReady &&
-      state.credential === "valid",
   };
-}
-
-/** Liveness snapshot: store + last Hermes cache. Does not wait on upstream. */
-export function liveHealth(owner: string): Health {
-  const store = storeFields();
-  let cached: (Health & { id: string; targetHash: string }) | null = null;
-  try {
-    cached = get<Health & { id: string; targetHash: string }>(
-      "health",
-      owner,
-      "current",
-    );
-  } catch {
-    cached = null;
-  }
-  if (cached && cached.targetHash === serviceIdentity()) {
-    const { id, targetHash, ...publicState } = cached;
-    void id;
-    void targetHash;
-    return withLiveFlags({
-      ...publicState,
-      ...store,
-      features: withConsoleMemoryWriteFeature(
-        publicState.features || {},
-        store.storeReady,
-      ),
-    });
-  }
-  const connection = hermesConnectionStatus();
-  return withLiveFlags({
-    checkedAt: new Date().toISOString(),
-    reachable: null,
-    credential: connection.configured ? "unknown" : "missing",
-    agent: "unverified",
-    status: connection.state,
-    message: connection.detail,
-    configSource: {
-      hermesUrl: connection.urlSource,
-      hermesKey: connection.keySource,
-    },
-    httpStatus: null,
-    features: withConsoleMemoryWriteFeature({}, store.storeReady),
-    models: [],
-    skills: [],
-    toolsets: [],
-    discovery: {},
-    ...store,
-  });
 }
 import { hash } from "./security";
 export function serviceIdentity() {
   return hash(runtimeEnv("HERMES_API_URL") + "|" + runtimeEnv("HERMES_API_KEY"));
-}
-
-export function hermesConnectionStatus() {
-  const configured = !!(
-    runtimeEnv("HERMES_API_URL") && runtimeEnv("HERMES_API_KEY")
-  );
-  const urlSource = credentialPresence("HERMES_API_URL").source;
-  const keySource = credentialPresence("HERMES_API_KEY").source;
-  if (!configured)
-    return {
-      configured: false,
-      state: "unconfigured" as const,
-      detail: "尚未在連線設定或後端環境變數提供 Hermes 網域與金鑰。",
-      urlSource,
-      keySource,
-    };
-  try {
-    const cached = get<Health & { id: string; targetHash: string }>(
-      "health",
-      WORKSPACE_OWNER,
-      "current",
-    );
-    if (cached?.targetHash === serviceIdentity() && cached.status) {
-      return {
-        configured: true,
-        state: cached.status,
-        detail: cached.message,
-        urlSource,
-        keySource,
-      };
-    }
-  } catch {
-    /* store probe is independent of credential presence */
-  }
-  return {
-    configured: true,
-    state: "awaiting_authorization" as const,
-    detail: "已設定網址與金鑰，尚未完成健康檢查。模型清單成功才算部分可用。",
-    urlSource,
-    keySource,
-  };
 }
 export function usage(
   raw: unknown,
@@ -566,7 +580,7 @@ export const GALLEY_INSTRUCTION_PACK =
   "設計創作、生成模型、NVIDIA NIM、影片工具或來源優先研究時，先呼叫 galley_capability；已連接則用 galley_research 或 galley_intel。GALLEY 未設定時明確說未配置，不得憑記憶填來源。GitHub 網址不是 MCP 端點。";
 
 export const INSPIRATION_INSTRUCTION_PACK =
-  "找靈感時必須呼叫 workspace_search_inspiration。只使用回傳的 clusters／directions／已收藏來源。fullSiteSearch 永遠是 false，不得宣稱已搜尋整個 Instagram 或 Pinterest。沒有 item 就依 visual_language 方向請使用者貼連結，不得編造貼文。";
+  "幫我找靈感時自行決定 Instagram／Pinterest／Web／Canva／Behance／Dribbble／專案歷史；不要假裝已搜尋完整 Instagram 或 Pinterest。";
 
 export const AUDIENCE_INSTRUCTION_PACK =
   "建立 Audience Twin 時分開 Evidence 與 Hypothesis。反向思考必須呼叫 workspace_simulate_audience，用十個淡江新生人格模擬第一眼（住宿／通勤／內向／社牛／課業壓力／想交朋友／怕宗教／對禪好奇／沒興趣／設計系視覺敏感）。分數只是比較工具，禁止寫 90 分以上或轉換率。永遠標 SIMULATION，並說明為什麼會停、為什麼有壓力、看不看得懂、為什麼願或不願填表／走進。沒有視覺描述時標 UNKNOWN，不得假裝已看圖。";
@@ -577,9 +591,6 @@ export const COPYWRITING_INSTRUCTION_PACK = [
   "重要文案至少給 A 最自然、B 最有梗、C 最溫暖。順序：HOOK → 生活場景 → 活動 → 為什麼來 → 時間地點 → CTA。",
   "日期地點未確認就標 UNKNOWN，不要捏造教室。寫完呼叫 workspace_review_copy 做新生視角審核。不得發佈 Instagram。",
 ].join("\n");
-
-export const IMAGE_REVIEW_PACK =
-  "使用者已附圖片或要改現有畫面時，必須先 workspace_read_material 讀取真實像素，才能評論構圖、層級、字級、對比。沒讀到圖就標 UNKNOWN，不得假裝已看圖。接著用 workspace_simulate_audience 做 SIMULATION（不是全體學生民調），只給可執行的修改建議。不要自動發佈或覆蓋原檔。";
 
 export const VISUAL_INSTRUCTION_PACK = [
   "網宣視覺先 workspace_get_activity，再 workspace_get_visual_concepts。",
@@ -593,7 +604,12 @@ export const DIRECTION_INSTRUCTION_PACK =
   "提出 3–5 個策略層不同的創作方向（不是只換顏色），等待使用者選擇後再製作草稿。來源上限 30，方向最多 5，受眾角色最多 5，修訂最多 3。";
 
 export const LOCKED_DIRECTION_INSTRUCTION_PACK =
-  "使用者已在 Console 選定創作方向。必須用 workspace_project_context 的 workflows.selectedTitle、copyId、activityId。已有 copyId 時先 workspace_get_copy，再沿用同一 id 與最新 expectedRevision 保存修改。禁止再呼叫 workspace_search_inspiration，禁止再呼叫 workspace_save_directions，禁止改選其他方向，禁止假裝已出圖或已發佈。日期地點未確認維持 UNKNOWN。";
+  "使用者已選定方向。依此方向製作，不要重開無關的新企劃。缺授權時保留阻塞點，不要宣稱設計完成。";
+
+export const IMAGE_REVIEW_PACK = [
+  "先讀附件畫面再給修改建議。沒讀到像素就標還沒看圖，只根據文字，不要假裝已分析畫面。",
+  "Audience Twin 只能標 SIMULATION。這不是已改稿。",
+].join("\n");
 
 export const CANVA_INSTRUCTION_PACK = [
   "Canva 未授權時研究與創意流程仍完成，最後標記 Needs Canva Authorization，不得假裝設計成功。",
@@ -608,8 +624,8 @@ export const TRUTH_QA_INSTRUCTION_PACK = [
 ].join("\n");
 
 export const WORKSPACE_INSTRUCTION_PACK = [
-  "若已連接 Console workspace MCP，先用 workspace_project_context 找回活動、文案、成果與已選定創作方向；workspace_get_activity 只提供公開資訊，候選資料用 workspace_save_activity 保存並等待使用者核對。來源日期只是提供的紀錄，不等於你已查證。",
-  "使用 workspace_list_references 取得專案素材。找靈感先 workspace_search_inspiration，不要自行假裝已搜 Instagram。使用者在 Console 點選方向後，用 project context 的 workflows.selectedTitle，不要叫使用者貼流程識別。網宣視覺用 workspace_get_visual_concepts 編譯 4:5／9:16／A4 三概念，缺資料標 UNKNOWN，不得補造或假裝已出圖。使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
+  "若已連接 Console workspace MCP，先用 workspace_project_context 找回活動、文案及成果；workspace_get_activity 只提供公開資訊，候選資料用 workspace_save_activity 保存並等待使用者核對。來源日期只是提供的紀錄，不等於你已查證。",
+  "使用 workspace_list_references 取得專案素材。網宣視覺用 workspace_get_visual_concepts 編譯 4:5／9:16／A4 三概念，缺資料標 UNKNOWN，不得補造或假裝已出圖。使用 workspace_save_directions 保存方向及 activityId，等待使用者於 Console 選擇；再用 workspace_save_copy 保存逐頁文案，附 activityId 與已選方向的 workflowId。修改用 workspace_get_copy 讀取，再沿用 id、最新 expectedRevision 與固定 operationId 保存新版本。不要自動選版本或聲稱已發佈。",
   "保存或修改文案後呼叫 workspace_audit_copy。claim 不是 VERIFIED 就不得當成已確認事實。",
   "Console MCP 呼叫必須帶目前 taskId，可附 toolCallId；工具上限或停止錯誤不可自行繞過。用 workspace_read_material 取得真實圖片或文字後才分析內容；只有來源網址不代表已讀圖。",
 ].join("\n");
@@ -630,7 +646,6 @@ export const creativeInstructions = [
   GALLEY_INSTRUCTION_PACK,
   INSPIRATION_INSTRUCTION_PACK,
   AUDIENCE_INSTRUCTION_PACK,
-  IMAGE_REVIEW_PACK,
   VISUAL_INSTRUCTION_PACK,
   COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,

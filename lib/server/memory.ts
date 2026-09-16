@@ -33,6 +33,10 @@ export const memoryInput = z
     createdBy: z.string().trim().min(1).max(80).optional(),
     importance: z.number().min(0).max(1).nullable().optional(),
     confidence: z.number().min(0).max(1).nullable().optional(),
+    layer: z
+      .enum(["conversation", "project", "workspace", "preference", "runtime"])
+      .optional(),
+    conversationId: z.string().trim().min(1).max(80).optional(),
   })
   .strict();
 
@@ -56,11 +60,35 @@ export type SharedMemory = {
   lastUsedAt: string | null;
   /** 0–1 confidence in the content, or null if unset. */
   confidence: number | null;
+  layer: "conversation" | "project" | "workspace" | "preference" | "runtime";
+  conversationId: string | null;
 };
 
 const KIND = "shared_memory";
 const SECRETISH =
   /(API[_-]?KEY|TOKEN|PASSWORD|SECRET|AUTHORIZATION|BEARER)\s*[:=]/i;
+const STALE_MEMORY_DAYS = 30;
+
+function inferMemoryLayer(
+  kind: SharedMemory["kind"],
+  scope: string,
+  conversationId?: string | null,
+): SharedMemory["layer"] {
+  if (kind === "preference") return "preference";
+  if (conversationId) return "conversation";
+  if (scope === "workspace") return "workspace";
+  return "project";
+}
+
+export function memoryAgeDays(item: SharedMemory, now = Date.now()) {
+  const age = now - Date.parse(item.updatedAt);
+  if (!Number.isFinite(age) || age < 0) return Number.POSITIVE_INFINITY;
+  return age / 86_400_000;
+}
+
+export function isStaleMemory(item: SharedMemory, now = Date.now()) {
+  return memoryAgeDays(item, now) >= STALE_MEMORY_DAYS;
+}
 
 function storeOp<T>(fn: () => T): T {
   try {
@@ -78,6 +106,7 @@ function rejectSecrets(value: unknown) {
 }
 
 function normalizeMemory(raw: SharedMemory): SharedMemory {
+  const conversationId = raw.conversationId || null;
   return {
     ...raw,
     source: raw.source || "console",
@@ -91,6 +120,8 @@ function normalizeMemory(raw: SharedMemory): SharedMemory {
       typeof raw.confidence === "number" && Number.isFinite(raw.confidence)
         ? Math.min(1, Math.max(0, raw.confidence))
         : null,
+    conversationId,
+    layer: raw.layer || inferMemoryLayer(raw.kind, raw.scope, conversationId),
   };
 }
 
@@ -119,6 +150,21 @@ export function memoriesForProject(owner: string, projectId: string) {
           (item) => item.kind === "preference",
         );
   return { project, workspacePrefs };
+}
+
+export function memoriesForContext(
+  owner: string,
+  projectId?: string,
+  options?: { conversationId?: string | null },
+) {
+  return listMemories(owner, projectId || "workspace").filter((item) => {
+    if (item.layer === "runtime") return false;
+    if (item.layer === "conversation") {
+      if (!options?.conversationId || !item.conversationId) return false;
+      return item.conversationId === options.conversationId;
+    }
+    return true;
+  });
 }
 
 export function saveMemory(
@@ -165,6 +211,16 @@ export function saveMemory(
         input.confidence !== undefined
           ? input.confidence
           : (previous?.confidence ?? null),
+      conversationId:
+        input.conversationId || previous?.conversationId || null,
+      layer:
+        input.layer ||
+        previous?.layer ||
+        inferMemoryLayer(
+          input.kind,
+          input.scope,
+          input.conversationId || previous?.conversationId || null,
+        ),
     } satisfies SharedMemory),
   );
 }

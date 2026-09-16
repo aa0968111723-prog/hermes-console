@@ -1,20 +1,36 @@
-import { ExternalLink, Search, Check, Circle } from "lucide-react";
-import type { Task } from "@/lib/contracts";
-import { eventState, highLevelProgress, safeSource } from "@/lib/client/activity";
+import { ExternalLink, Search, Check, Circle, CircleHelp } from "lucide-react";
+import type { Task, TaskFocus } from "@/lib/contracts";
+import {
+  artifactsForConversation,
+  progressSteps,
+  safeSource,
+  studentHonestyLabel,
+  studentProcessDone,
+  visualProcessCaption,
+} from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
-import { isInspirationSearchPack, type InspirationSearchPack } from "@/lib/inspiration-pack";
+import {
+  isInspirationSearchPack,
+  type InspirationSearchPack,
+} from "@/lib/inspiration-pack";
 import { isImageReviewPack } from "@/lib/image-review";
 import InspirationResult from "./InspirationResult";
 import ImageReviewResult from "./ImageReviewResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
+import ArtifactStage from "./ArtifactStage";
+import { continueDesign } from "@/lib/client/artifacts";
+
 export default function VisualMessage({
   task,
   onInspect,
   onPickInspiration,
   pickingInspiration = false,
   selectedInspiration = null,
+  workflows = [],
+  projectId,
+  onContinue,
 }: {
   task?: Task;
   onInspect: () => void;
@@ -24,38 +40,45 @@ export default function VisualMessage({
   ) => void;
   pickingInspiration?: boolean;
   selectedInspiration?: "A" | "B" | "C" | null;
+  workflows?: {
+    id: string;
+    projectId: string;
+    design: Record<string, unknown> | null;
+  }[];
+  projectId?: string;
+  onContinue?: (text: string, focus?: TaskFocus) => void;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
   const sources = [...new Set(task.events.flatMap((event) => event.sources))]
     .map(safeSource)
     .filter((value): value is string => !!value);
-  const calls = new Map<string, string>();
-  for (const event of task.events)
-    if (event.toolName)
-      calls.set(event.toolCallId || event.toolName, eventState(event));
-  const completed = [...calls.values()].filter(
-    (state) => state === "completed",
-  ).length;
+  const steps = progressSteps(task);
+  const twinPanel =
+    task.events.map((event) => event.result).find(isTwinPanel);
   const imageReview = task.events
     .map((event) => event.result)
     .find(isImageReviewPack);
-  const twinPanel =
-    imageReview?.twinPanel ||
-    task.events.map((event) => event.result).find(isTwinPanel);
   const inspiration = task.events
     .map((event) => event.result)
     .find(isInspirationSearchPack);
-  const progress = highLevelProgress(task);
+  const artifacts = artifactsForConversation(
+    task,
+    workflows,
+    projectId || "",
+  );
   if (
     !sources.length &&
-    !calls.size &&
+    !artifacts.length &&
     !twinPanel &&
     !layout &&
+    !steps.length &&
     !inspiration &&
     !imageReview
   )
     return null;
+  const honesty = studentHonestyLabel(task);
+  const done = studentProcessDone(task, steps);
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
@@ -72,16 +95,32 @@ export default function VisualMessage({
         />
       )}
       {imageReview && <ImageReviewResult pack={imageReview} />}
-      {!!calls.size && !inspiration && !imageReview && progress && (
+      {!!steps.length && !inspiration && !imageReview && (
         <button className="tool-result-summary" onClick={onInspect}>
-          {completed === calls.size ? (
+          {done ? (
             <Check size={15} />
+          ) : honesty ? (
+            <CircleHelp size={15} />
           ) : (
             <Circle size={15} />
           )}
-          {completed === calls.size ? progress : "進行中"}
+          {visualProcessCaption(task, steps)}
         </button>
       )}
+      {artifacts.map((item) => (
+        <ArtifactStage
+          key={item.id}
+          design={item.design}
+          onContinue={
+            onContinue
+              ? () => {
+                  const next = continueDesign(item.id);
+                  onContinue(next.text, next.focus);
+                }
+              : undefined
+          }
+        />
+      ))}
       {!!sources.length && (
         <details className="source-cards">
           <summary>

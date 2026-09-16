@@ -3,6 +3,7 @@ import { health, serviceIdentity } from "../hermes";
 import { listAgents, capabilityFromHealth } from "../agents";
 import {
   configuredMcp,
+  publicMcpStatus,
   seedRegistry,
   probeMcp,
   type McpEntry,
@@ -170,10 +171,12 @@ export function runtimeDiff(
 }
 function mcpStatus(entry: McpEntry): RuntimeStatus {
   if (!entry.enabled) return "unknown";
-  if (entry.status === "failed") return "failed";
-  if (entry.status === "verified") return "available";
-  if (entry.status === "partial") return "partial";
-  return "unknown";
+  const status = publicMcpStatus(entry.status);
+  return status === "failed"
+    ? "failed"
+    : ["partial", "available"].includes(status)
+      ? "partial"
+      : "unknown";
 }
 function descriptor(
   name: string,
@@ -287,7 +290,7 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
   if (mcpResult.status === "rejected")
     errors.push("MCP 核准清單或探索失敗，請檢查後端設定。");
   for (const entry of entries) {
-    if (entry.enabled && ["failed", "connected"].includes(entry.status))
+    if (entry.enabled && ["failed", "verifying", "connected"].includes(entry.status))
       errors.push(`MCP ${entry.id} 探索失敗；請檢查授權或服務。`);
     for (const tool of entry.tools)
       tools.push({
@@ -314,7 +317,7 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
           bindingSupported: false,
         },
       });
-    if (entry.enabled && ["failed", "connected"].includes(entry.status))
+    if (entry.enabled && ["failed", "verifying", "connected"].includes(entry.status))
       tools.push(
         ...(before?.tools || [])
           .filter((t) => t.source === "mcp" && t.sourceServer === entry.id)
@@ -429,8 +432,7 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
     runsSupport: capability("run_submission"),
     memorySupport: capability("memory"),
     responsesSupport: capability("responses_api"),
-    imageInputSupport:
-      process.env.HERMES_IMAGE_INPUT === "true" ? "available" : "unsupported",
+    imageInputSupport: "unknown",
     status:
       !online && before
         ? "stale"

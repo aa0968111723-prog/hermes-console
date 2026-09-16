@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from "node:crypto";
 import { z } from "zod";
 import { get, put, transaction } from "./store";
-import { ApiError, hash } from "./security";
+import { ApiError, hash, redact } from "./security";
 import { readJSON } from "./hermes";
 import { seal, unseal } from "./vault";
 
@@ -248,6 +248,21 @@ export function canvaStatus(owner: string) {
     needsAuthorization:
       canvaConfigured() &&
       (status?.state === "awaiting_authorization" || !status),
+  };
+}
+
+/** Members see configured/state only. Connect copy stays on the operator connection page. */
+export function presentCanvaStatus(
+  status: ReturnType<typeof canvaStatus>,
+  operator: boolean,
+) {
+  if (operator) return { ...status, message: redact(status.message) };
+  return {
+    configured: status.configured,
+    state: status.state,
+    verifiedAt: status.verifiedAt,
+    needsAuthorization: status.needsAuthorization,
+    message: "",
   };
 }
 

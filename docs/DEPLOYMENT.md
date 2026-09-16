@@ -1,5 +1,9 @@
 # 部署與接續整合
 
+正式產品部署步驟見 [PRODUCTION.md](PRODUCTION.md)。身份、秘密與 SSRF 見 [SECURITY.md](SECURITY.md)。
+
+**2026-09 起產品需要登入。** `/` 先經過 AuthGate（Google / 淡江 SSO / Email），工作區 API 驗證 `hermes_session` 與 membership。下文若仍提到「免登入」，視為歷史部署備註，以 PRODUCTION.md 為準。
+
 ## Console
 
 使用 Dockerfile 建立長駐 Node.js 服務；正式部署由擁有者明確授權後執行。不能直接沿用無狀態 serverless 部署。
@@ -8,10 +12,10 @@
 - 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（不是 ai_os）。SRE 另行掛上；此變更不修改正式環境變數。未設定或空白時仍用 SQLite 開機。
 - `GET /api/ready` 探測 `CONSOLE_DATA_DIR` 與目前 backend（SQLite 或 Postgres）。成功 200、儲存庫不可用 503。不回傳連線字串或秘密，也不需閘道標頭。`GET /api/health` 另附 `backend`／`dataDir`／`storeReady`。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
-- 產品為免登入單一工作區。打開網站即可使用，不要求電子信箱、邀請連結或成員 session。邀請相關模組為休眠選項，不得擋住主入口或工作區 API。
+- 產品需要登入。`/` 先經過 AuthGate，工作區 API 驗證 `hermes_session` 與 membership。邀請模組仍休眠，不得取代正式身份。
 - 寫入請求驗證 Origin；本機未設定 `CONSOLE_ORIGIN` 時，僅允許與實際 loopback origin 相符的來源。正式環境未設定 `CONSOLE_ORIGIN` 必須 fail closed。
-- 邀請模組目前休眠，工作區 API 不檢查成員 cookie。不要將邀請模組測試通過誤當作正式環境存取保護。
-- 正式環境應設定 `CONSOLE_REQUIRE_GATEWAY=true` 及至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`。兩者均未設定時，工作區 API 可公開存取，沒有邀請登入作為備援。閘道需先驗證身份或私人網路，再覆寫 `X-Console-Gateway`。不要把秘密放前端。
+- 不要將邀請模組測試通過誤當作正式環境存取保護。
+- 正式環境應設定 `CONSOLE_REQUIRE_GATEWAY=true` 及至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`。閘道是部署層保護，仍需帳號 session。閘道需先驗證身份或私人網路，再覆寫 `X-Console-Gateway`。不要把秘密放前端。
 - 閘道本身必須驗證存取權；一個公開且無條件注入標頭的 reverse proxy 不算保護。建議限制 Console upstream 僅由 gateway 的私人網路可達。不要相信未驗證的 X-Forwarded-User 或僅靠 Origin。
 - `CONSOLE_ALLOW_LOCAL_ACCESS` 僅供明確的 loopback 開發／測試環境使用；公開部署不要啟用。
 - 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。撤銷所有曾公開的 Hermes API Key 並重新產生。

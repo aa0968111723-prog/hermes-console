@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import {
   ApiError,
@@ -9,13 +8,12 @@ import {
 } from "@/lib/server/security";
 import { get } from "@/lib/server/store";
 import {
-  filePath,
   includeDuplicatesQuery,
   listMaterials,
   material,
+  materialBytes,
   saveReference,
   saveUpload,
-  thumbnailBytes,
 } from "@/lib/server/materials";
 export const runtime = "nodejs";
 const projectSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
@@ -36,19 +34,17 @@ export const GET = route(async (req) => {
   const id = z.string().uuid().parse(rawId);
   const asset = material(owner, id);
   if (asset.kind === "reference") return respond({ material: asset });
-  const thumb = url.searchParams.get("variant") === "thumb";
-  if (thumb) {
-    return new Response(new Uint8Array(await thumbnailBytes(owner, id)), {
-      headers: {
-        "Content-Type": "image/webp",
-        "Cache-Control": "private, max-age=3600",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
-  }
-  return new Response(new Uint8Array(await readFile(filePath(owner, id))), {
+  const variant = url.searchParams.get("variant");
+  if (variant && variant !== "thumb")
+    throw new ApiError(400, "invalid_variant", "只支援縮圖或原檔。");
+  const file = await materialBytes(
+    owner,
+    id,
+    variant === "thumb" ? "thumb" : "full",
+  );
+  return new Response(new Uint8Array(file.bytes), {
     headers: {
-      "Content-Type": asset.mime || "application/octet-stream",
+      "Content-Type": file.mime,
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
       "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(asset.title)}`,

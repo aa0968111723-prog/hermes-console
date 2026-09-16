@@ -3,8 +3,9 @@ import { Activity, Check, ChevronRight, CircleHelp, Clock, RefreshCw, TriangleAl
 import type { Task } from "@/lib/contracts";
 import {
   activityKind,
-  taskStateLabel,
-  toolDisplayLabel,
+  eventPhaseLabel,
+  studentHonestyLabel,
+  studentTaskLabel,
   workingEvent,
 } from "@/lib/client/activity";
 
@@ -26,7 +27,7 @@ export function recoveryOnReconnectAction(): "refresh_only" {
   return "refresh_only";
 }
 
-/** Short user-facing error; strip stack frames and hard-cap length. */
+/** Short user-facing error; strip stacks, env-var wording, and hard-cap length. */
 export function shortTaskError(text: string | null | undefined, max = 240): string | null {
   if (!text) return null;
   const cutStack = text
@@ -34,6 +35,10 @@ export function shortTaskError(text: string | null | undefined, max = 240): stri
     .replace(/\s+/g, " ")
     .trim();
   if (!cutStack) return null;
+  if (
+    /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key/i.test(cutStack)
+  )
+    return "現在沒辦法連到 Hermes。";
   return cutStack.length > max ? cutStack.slice(0, max - 1) + "…" : cutStack;
 }
 
@@ -41,6 +46,14 @@ export function composerTaskStatus(task: Task, offline: boolean) {
   if (offline) return { label: OFFLINE_PILL_LABEL, tone: "warning", tool: null };
   if (task.observationError)
     return { label: "連線異常 · 狀態待確認", tone: "warning", tool: null };
+  if (studentHonestyLabel(task))
+    return {
+      label: studentTaskLabel(task),
+      tone: "warning",
+      tool: null,
+      toolName: null,
+      toolKind: null,
+    };
   const tone = task.state === "failed" ? "error"
     : task.state === "uncertain" ? "warning"
     : task.state === "completed" ? "success"
@@ -48,9 +61,9 @@ export function composerTaskStatus(task: Task, offline: boolean) {
     : "neutral";
   const current = workingEvent(task);
   return {
-    label: taskStateLabel[task.state] || "狀態未知",
+    label: studentTaskLabel(task),
     tone,
-    tool: toolDisplayLabel(current?.toolName || null),
+    tool: current ? eventPhaseLabel(current, task) : null,
     toolName: current?.toolName || null,
     toolKind: current ? activityKind(current.toolName) : null,
   };
@@ -85,7 +98,6 @@ export default function ComposerTaskStatus({ task, offline, onClick }: {
         <span
           className="composer-task-tool"
           data-activity={status.toolKind}
-          title={status.toolName ? `技術名稱：${status.toolName}` : undefined}
         >
           {status.tool}
         </span>

@@ -240,6 +240,7 @@ export default function HermesConsole() {
     setUploads,
     references,
     setReferences,
+    setFocus,
     draft,
     replaceDraft,
     clearDrafts,
@@ -811,6 +812,7 @@ export default function HermesConsole() {
           references:
             source.messages.find((m) => m.id === messageId)?.attachments ||
             [],
+          focus: null,
         },
       );
       setNav("chat");
@@ -1360,6 +1362,14 @@ export default function HermesConsole() {
                               onPickInspiration={pickInspirationDirection}
                               pickingInspiration={pickingInspiration}
                               selectedInspiration={selectedInspiration}
+                              workflows={workflows}
+                              projectId={activeConv.projectId}
+                              onContinue={(nextText, nextFocus) => {
+                                setText(nextText);
+                                if (nextFocus) setFocus(nextFocus);
+                                setNav("chat");
+                                input.current?.focus();
+                              }}
                             />
                           )}
                           {!!message.attachments?.length && (
