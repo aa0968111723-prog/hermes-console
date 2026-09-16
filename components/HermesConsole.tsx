@@ -2197,13 +2197,7 @@ export default function HermesConsole() {
                       }}
                     />
                     <p>{data.memory.scope}</p>
-                    <p className="muted">
-                      上方「共用記憶庫」是 Console 持久化庫（DATABASE_URL
-                      Postgres，未設定時為 CONSOLE_DATA_DIR SQLite），Hermes
-                      可經 Workspace MCP 與任務指示讀寫同一批資料。
-                      學習地圖仍是「請 Hermes
-                      學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
-                    </p>
+                    <p className="muted">學習地圖是請求紀錄，不是遠端記憶鏡像。</p>
                     <button
                       disabled={!activeConv?.hermesSessionId}
                       onClick={async () => {
