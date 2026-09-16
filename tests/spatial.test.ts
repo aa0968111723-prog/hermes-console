@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { spatialMode, importantNodes } from "../lib/client/spatial";
 test("spatial rendering follows preferences, not invented performance scores", () => {
   const base = {
@@ -33,4 +34,16 @@ test("important nodes are bounded, prioritize actual tool activity and never inv
     [],
   );
   assert.deepEqual(importantNodes(nodes, null, 0), []);
+});
+
+test("mobile composer add sheet stays above dock chrome and safe area", async () => {
+  const css = await readFile(new URL("../app/mobile-spatial.css", import.meta.url), "utf8");
+  assert.match(
+    css,
+    /\.composer-popover\s*\{[\s\S]*?inset:\s*auto 0 calc\(90px \+ var\(--safe-area-bottom\)\)/,
+  );
+  assert.match(
+    css,
+    /\.composer-popover\s*\{[\s\S]*?overflow-y:\s*auto/,
+  );
 });
