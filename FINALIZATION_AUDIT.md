@@ -1,6 +1,6 @@
 # Hermes Console 正式化盤點
 
-基準：`origin/main` @ `57b658b`，本分支 `cursor/hermes-production-finalization-a689`。不是新 App、不是新 Dashboard。
+基準：`origin/main` @ `3224208`，本分支 `cursor/hermes-production-finalization-a689`。不是新 App、不是新 Dashboard。
 
 評等：`可用`＝主路徑已接通且不假裝成功；`部分`＝有實作但缺真實憑證或校方 IdP；`研究`＝Markdown，未進主 UI。
 
@@ -20,14 +20,16 @@
 | 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。工具 JSON 只在「原始結果」。創作回覆帶 ArtifactStage 大圖，不是工具計數。 |
 | Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。 |
 | 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。 |
+| 首頁 | 可用（契約） | 龜龜 + 今天想做什麼？ + 六個短標籤。手機與桌面同一組。無 MCP 軌道、無英文 welcome overlay。 |
+| Drive 知識 | 可用（契約） | 靈感頁預設折疊「社團知識」；不顯示 `live=`。 |
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 
 ## 本輪驗證（2026-09-16）
 
 - `npm test`：387 tests, 385 pass, 2 skipped, 0 fail。
-- `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 238 kB（shared 103 kB）。
-- Playwright Chromium：`test:ui` 與 `test:runtime` 本輪重跑通過。Agent 預設頁沒有工具清單；Developer 展開後可搜尋 300 個 fixture 工具。axe 0 violations。LCP 104ms、CLS 0.00008。
+- `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 237 kB（shared 103 kB）。
+- Playwright Chromium：`test:ui` 本輪重跑通過。首頁 360／390 為龜龜 + 六個短標籤 + composer + dock。axe 0。LCP 92ms、CLS 0.00008。
 - Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
 - axe wcag2a/aa + 2.1：0 violations（`output/playwright/browser-report.json`）。
 - 本機 Chromium LCP 136ms、CLS 0.00008。不是 field 裝置實驗室。
