@@ -77,9 +77,9 @@ Set `CONSOLE_ORIGIN` to the public origin. Cookies use `Secure` on HTTPS. Mutati
 
 | Path | Auth | Meaning |
 | --- | --- | --- |
-| `GET /api/health` | public | Process live, store probe, Hermes discovery if configured. Includes `live`, `ready`, `agentReady`. No secrets. |
+| `GET /api/health` | public | Process live, store probe, Hermes credential/agent status. Includes `live`, `ready`, `agentReady`. No secrets, no tool names, no vault/env sources. Owner/admin cookies receive the developer probe. |
 | `GET /api/ready` | public | Store writable. 200 or 503. |
-| `POST /api/health` | session + origin | Forced refresh. |
+| `POST /api/health` | owner or admin + origin | Forced refresh with models / skills / toolsets. Members receive 403. |
 | `GET/POST /api/settings/credentials` | owner or admin | Connection secrets. Members receive 403. |
 
 ## Backup / rollback
