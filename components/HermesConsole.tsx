@@ -1393,7 +1393,7 @@ export default function HermesConsole() {
               ) &&
                 !data.imageInput && (
                   <p className="composer-image-notice" role="status">
-                    圖片已保存。此部署尚未驗證看圖，送出後不會假裝已讀像素。
+                    圖片已保存。還沒驗證看圖，送出後只會根據你的文字，不會假裝已看過圖片。
                   </p>
                 )}
               {uncertain && (

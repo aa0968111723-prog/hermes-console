@@ -31,7 +31,7 @@ export function userVisibleFallback(route: RoutedTool) {
   if (route.id === "planform")
     return "場佈工具未連線時不會假裝已排版。";
   if (route.id === "image")
-    return "圖片已保存，但此部署尚未驗證看圖，不會假裝已讀像素。";
+    return "圖片已保存，但還沒驗證看圖，不會假裝已讀像素。";
   if (route.tool === "hermes_authorized_web")
     return "淡江 MCP 暫時不可用，已改用 Hermes 已授權網頁來源。";
   if (route.tool === "official_web_directory")

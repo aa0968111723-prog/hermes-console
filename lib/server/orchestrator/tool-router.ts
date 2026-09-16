@@ -139,7 +139,7 @@ export function routeTools(
       tool: imageReady ? "workspace_read_material" : "ask_user",
       reason: imageReady
         ? "先讀附件圖片再分析構圖與層級。"
-        : "圖片已保存，但此部署尚未驗證圖片輸入，不能假裝已看圖。",
+        : "圖片已保存，但還沒驗證看圖，不能假裝已看圖。",
       fallback: imageReady ? null : "describe_without_pixels",
     });
   }
