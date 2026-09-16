@@ -15,7 +15,7 @@ delete process.env.TAMKANG_SSO_CLIENT_ID;
 delete process.env.RESEND_API_KEY;
 delete process.env.CONSOLE_TEST_SESSION;
 
-const { hashPassword, verifyPasswordHash, loginWithIdentity, registerEmail, loginEmail, linkEmailIdentity, users, identitiesFor } =
+const { hashPassword, verifyPasswordHash, loginWithIdentity, registerEmail, loginEmail, linkEmailIdentity, users, identitiesFor, verifyEmail } =
   await import("../lib/server/identity");
 const auth = await import("../app/api/auth/route");
 const google = await import("../app/api/auth/google/route");
@@ -87,14 +87,76 @@ test("password hashing, identity linking and unconfigured SSO", async (t) => {
     assert.equal(identitiesFor(owner.id).some((row) => row.provider === "google"), true);
   });
 
-  await t.test("email link refuses another user's mailbox", () => {
+  await t.test("email link refuses another user's mailbox", async () => {
     const owner = users().find((row) => row.passwordHash)!;
     const other = users().find((row) => row.id !== owner.id)!;
-    assert.throws(
+    await assert.rejects(
       () =>
         linkEmailIdentity(other.id, "owner@example.test", "Another-Password-14"),
       /不會因信箱相同而自動合併/,
     );
+  });
+
+  await t.test("email link stays honest without mail and verifies before password login", async () => {
+    const googleToken = loginWithIdentity({
+      provider: "google",
+      providerId: "google-sub-link-mail",
+      email: "link-mail@example.test",
+      emailVerified: true,
+      name: "連結信箱",
+    });
+    assert.match(googleToken, /^[a-f0-9]{64}$/);
+    const googleUser = users().find((row) =>
+      identitiesFor(row.id).some((row) => row.providerId === "google-sub-link-mail"),
+    )!;
+    await assert.rejects(
+      () =>
+        linkEmailIdentity(
+          googleUser.id,
+          "linked-pass@example.test",
+          "Linked-Password-14",
+        ),
+      /尚未設定寄件/,
+    );
+    process.env.RESEND_API_KEY = "test-resend-not-for-production-use";
+    process.env.CONSOLE_EMAIL_FROM = "console@example.test";
+    const emails: Array<{ text: string }> = [];
+    const original = globalThis.fetch;
+    globalThis.fetch = async (url, init) => {
+      if (String(url) === "https://api.resend.com/emails") {
+        emails.push(JSON.parse(String(init?.body)));
+        return Response.json({ id: "link-mail" });
+      }
+      return original(url as never, init);
+    };
+    try {
+      const linked = await linkEmailIdentity(
+        googleUser.id,
+        "linked-pass@example.test",
+        "Linked-Password-14",
+      );
+      assert.equal(linked.verificationSent, true);
+      assert.equal(emails.length, 1);
+      assert.throws(
+        () =>
+          loginEmail({
+            email: "linked-pass@example.test",
+            password: "Linked-Password-14",
+          }),
+        /請先完成電子信箱驗證/,
+      );
+      const verifyToken = emails[0].text.match(/#verify=([a-f0-9]{64})/)![1];
+      verifyEmail(verifyToken);
+      const session = loginEmail({
+        email: "linked-pass@example.test",
+        password: "Linked-Password-14",
+      });
+      assert.match(session, /^[a-f0-9]{64}$/);
+    } finally {
+      globalThis.fetch = original;
+      delete process.env.RESEND_API_KEY;
+      delete process.env.CONSOLE_EMAIL_FROM;
+    }
   });
 
   await t.test("revoke others keeps the current session", async () => {

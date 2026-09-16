@@ -219,9 +219,43 @@ try {
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await page.screenshot({ path: join(output, "login-verify.png"), fullPage: true });
 
+  await signOut();
+  await context.clearCookies();
+  const googleSession = identity.loginWithIdentity({
+    provider: "google",
+    providerId: "google-sub-link-ui",
+    email: "google-link@example.test",
+    emailVerified: true,
+    name: "Google 連結",
+  });
+  await context.addCookies([
+    {
+      name: "hermes_session",
+      value: googleSession,
+      url: base,
+      httpOnly: true,
+      sameSite: "Lax",
+    },
+  ]);
+  await page.goto(base, { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("tab", { name: "帳號", exact: true }).click();
+  const account = page.getByRole("tabpanel", { name: "帳號" });
+  await expect(account.getByText("電子信箱")).toBeVisible();
+  await expect(
+    account.locator(".identity-list li").filter({ hasText: "電子信箱" }),
+  ).toContainText("未連結");
+  await expect(account.getByText("尚未設定寄件，無法連結並驗證電子信箱")).toBeVisible();
+  await expect(account.getByRole("button", { name: "連結信箱" })).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "settings-account-link-unconfigured.png"),
+    fullPage: true,
+  });
+
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate, unconfigured Google/Tamkang/mail, invalid magic link, first owner register, magic redeem, password reset, email verify. Not live Zeabur.",
+    "PASS: login gate, unconfigured Google/Tamkang/mail, invalid magic link, first owner register, magic redeem, password reset, email verify, email-link honesty. Not live Zeabur.",
   );
 } finally {
   await browser?.close();
