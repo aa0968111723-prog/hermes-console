@@ -22,7 +22,7 @@
 | 作品版本 | 可用（契約） | 文案 V1／V2 比較、還原確認、匯出、修改同一作品。不自動重建無關輸出。任務上下文會帶入專案 copy artifact 與創作方向，讓「第二版字放大」沿用同一作品。 |
 | 視覺附件 | 可用（契約） | 列表與 chips 用 WebP 縮圖。上傳中的圖片先用本機檔案預覽，保存後再換成伺服器 thumb。PDF／連結顯示種類或 hostname。不抓取任意網頁當預覽。手機 Composer 附件換行鋪滿寬度，不使用 245px 橫向 carousel。 |
 | Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。成員 API 不含 endpoint、credentialReference、tool schema、hermesKeySource。公開 `GET /api/health` 不含 models／skills／toolsets／configSource；`POST /api/health` 僅 owner／admin。 |
-| 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。 |
+| 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。`hasCompletedToolEvents` 不算沒有可讀內容的 tool.completed。只有空 `{}` 的任務 reconcile 為 failed。 |
 | 首頁 | 可用（契約） | 龜龜 + 今天想做什麼？ + 六個短標籤。手機與桌面同一組。無 MCP 軌道、無英文 welcome overlay。 |
 | 專案頁 | 可用（契約） | 標題為「專案」。封面架 + 作品預覽 + 素材縮圖。空狀態不再把 Instagram 文案混進專案頁。 |
 | Drive 知識 | 可用（契約） | 靈感頁預設折疊「社團知識」；不顯示 `live=`。 |
@@ -47,8 +47,8 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`npm run check:secrets` 通過。UI 未改，未重跑 Playwright。
-- `npm test`：418 tests, 416 pass, 2 skipped, 0 fail。含 OAuth link 必須同一 session、未登入 `?mode=link` 為 401、login 302 不含 secret。
+- 本輪指令：`lint`（未改 UI）、`typecheck`、`npm test`、`npm run check:secrets` 通過。UI 未改，未重跑 Playwright。
+- `npm test`：418 tests, 416 pass, 2 skipped, 0 fail。含 OAuth link 同一 session；空 `{}` 工具結果不得當成 completed。
 - Production First Load JS `/`：109 kB（page 6.13 kB，shared 103 kB）。
 - 上一輪 `test:ui` 本地 Chrome：LCP 364ms，CLS 0，axe 0。含 360×800、390×844、412×915、430×932、768×1024。
 - 已 merge `origin/main` 研究筆記 `6591e40`，未回退產品路徑。本輪 `HEAD..origin/main` 為空。
