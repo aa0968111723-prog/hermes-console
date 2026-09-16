@@ -219,7 +219,8 @@ try {
   const clubFacts = page.getByRole("region", { name: "社團資料" });
   await expect(clubFacts).toBeVisible({ timeout: 15_000 });
   await expect(clubFacts).toContainText(/社博|攤位/);
-  await expect(clubFacts).toContainText("尚未確認");
+  await expect(clubFacts).toContainText("不是即時");
+  await expect(clubFacts).toContainText(/已核對|尚未確認/);
   await expect(clubFacts).toBeInViewport();
   await expect(page.locator(".conversation-scroll")).not.toContainText("UNKNOWN");
   await page.screenshot({ path: join(output, "spoken-lookup-results.png") });
