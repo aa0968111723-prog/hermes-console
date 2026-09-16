@@ -253,8 +253,10 @@ export function isWorkspaceOperator(request: Request) {
 }
 
 export function canInspectRuntime(request: Request) {
-  if (!isAuthEnforced()) return true;
-  return isWorkspaceOperator(request);
+  const role = readWorkspaceRole(request);
+  if (role === "member") return false;
+  if (role === "owner" || role === "admin") return true;
+  return !isAuthEnforced();
 }
 
 export function authenticate(

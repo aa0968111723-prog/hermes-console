@@ -32,7 +32,7 @@ const runtimeMcp = await import("../app/api/runtime/mcp/route");
 const runtimeAgents = await import("../app/api/runtime/agents/route");
 const healthRoute = await import("../app/api/health/route");
 const { presentHealth } = await import("../lib/server/hermes/health-view");
-const { authenticate, authenticateOperator } = await import(
+const { authenticate, authenticateOperator, canInspectRuntime } = await import(
   "../lib/server/security"
 );
 const { requireWorkspaceRole } = await import("../lib/server/identity");
@@ -151,6 +151,10 @@ test("workspace members cannot change connection secrets", async () => {
       (row) => typeof row.endpoint === "string",
     ),
   );
+
+  assert.equal(canInspectRuntime(request("runtime", member.cookie)), false);
+  assert.equal(canInspectRuntime(request("runtime", owner.cookie)), true);
+  assert.equal(canInspectRuntime(request("runtime", admin.cookie)), true);
 
   const memberRuntime = await runtime.GET(request("runtime", member.cookie));
   assert.equal(memberRuntime.status, 200);

@@ -91,10 +91,13 @@ test("no-login entry contracts", async (t) => {
       delete process.env.CONSOLE_ALLOW_LOCAL_ACCESS;
       delete process.env.CONSOLE_AUTH_REQUIRED;
       assert.equal(isAuthEnforced(), false);
+      assert.equal(security.canInspectRuntime(request("runtime")), true);
       process.env.CONSOLE_AUTH_REQUIRED = "true";
       assert.equal(isAuthEnforced(), true);
+      assert.equal(security.canInspectRuntime(request("runtime")), false);
       process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
       assert.equal(isAuthEnforced(), false);
+      assert.equal(security.canInspectRuntime(request("runtime")), true);
     } finally {
       process.env.CONSOLE_ALLOW_LOCAL_ACCESS = allow;
       if (required === undefined) delete process.env.CONSOLE_AUTH_REQUIRED;
