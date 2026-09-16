@@ -202,6 +202,7 @@ export default function HermesConsole() {
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | "spatial" | null>(
     null,
   );
@@ -1604,6 +1605,40 @@ export default function HermesConsole() {
                 setSettingsTab("工作區");
               }}
             />
+            <ArtifactDeck
+              items={workflows.filter((w) => w.projectId === project)}
+              onContinue={(id) => {
+                setNav("chat");
+                setText(
+                  "請查回創作流程 " +
+                    id +
+                    " 的現有設計，接續修改同一作品，不要另建無關作品。",
+                );
+              }}
+              onRestore={async (id, revision) => {
+                try {
+                  await api("workflows", "PATCH", {
+                    id,
+                    restoreRevision: revision,
+                  });
+                  await refresh();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+              onFork={async (id, revision) => {
+                try {
+                  await api("workflows", "PATCH", {
+                    id,
+                    fork: true,
+                    forkRevision: revision,
+                  });
+                  await refresh();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            />
             <details className="workbench-disclosure">
               <summary>活動與文案</summary>
               <ProjectWorkbench
@@ -1746,7 +1781,15 @@ export default function HermesConsole() {
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />
-            <KnowledgeArchive />
+            <details
+              className="knowledge-disclosure"
+              onToggle={(event) =>
+                setKnowledgeOpen(event.currentTarget.open)
+              }
+            >
+              <summary>進階 · Drive 索引</summary>
+              {knowledgeOpen ? <KnowledgeArchive /> : null}
+            </details>
           </section>
         ) : nav === "agents" ? (
           <section
@@ -2128,56 +2171,6 @@ export default function HermesConsole() {
                   </div>
                 ) : settingsTab === "連線" ? (
                   <div className="settings-stack">
-                    <details className="connection-storage">
-                      <summary>Hermes · 健康與驗證</summary>
-                      <p>{health?.message || "尚未取得狀態。"}</p>
-                      <dl className="facts">
-                        <dt>服務可達</dt>
-                        <dd>
-                          {health?.reachable === null || !health
-                            ? "未知"
-                            : health.reachable
-                              ? "是"
-                              : "否"}
-                        </dd>
-                        <dt>憑證驗證</dt>
-                        <dd>
-                          {health?.credential === "valid"
-                            ? "有效"
-                            : health?.credential === "invalid"
-                              ? "無效"
-                              : "尚未確認"}
-                        </dd>
-                        <dt>Agent 執行</dt>
-                        <dd>
-                          {health?.agent === "verified"
-                            ? "已有成功任務"
-                            : "未驗證"}
-                        </dd>
-                        <dt>最後連線檢查</dt>
-                        <dd>{health ? time(health.checkedAt) : "未知"}</dd>
-                      </dl>
-                      <button
-                        onClick={async () => {
-                          setBusy(true);
-                          try {
-                            setHealth(await api<Health>("health", "POST", {}));
-                            const result = await api<{
-                              integrations: Integration[];
-                            }>("integrations");
-                            setIntegrations(result.integrations);
-                          } catch (e) {
-                            setError((e as Error).message);
-                          } finally {
-                            setBusy(false);
-                          }
-                        }}
-                        disabled={busy}
-                      >
-                        <RefreshCw size={16} />
-                        {busy ? "驗證中…" : "重新驗證連線"}
-                      </button>
-                    </details>
                     <ConnectionSettings
                       canvaState={
                         integrations.find((item) => item.id === "canva")
@@ -2361,6 +2354,56 @@ export default function HermesConsole() {
                   </div>
                 ) : (
                   <div className="settings-stack">
+                    <details className="connection-storage">
+                      <summary>Hermes · 健康與驗證</summary>
+                      <p>{health?.message || "尚未取得狀態。"}</p>
+                      <dl className="facts">
+                        <dt>服務可達</dt>
+                        <dd>
+                          {health?.reachable === null || !health
+                            ? "未知"
+                            : health.reachable
+                              ? "是"
+                              : "否"}
+                        </dd>
+                        <dt>憑證驗證</dt>
+                        <dd>
+                          {health?.credential === "valid"
+                            ? "有效"
+                            : health?.credential === "invalid"
+                              ? "無效"
+                              : "尚未確認"}
+                        </dd>
+                        <dt>Agent 執行</dt>
+                        <dd>
+                          {health?.agent === "verified"
+                            ? "已有成功任務"
+                            : "未驗證"}
+                        </dd>
+                        <dt>最後連線檢查</dt>
+                        <dd>{health ? time(health.checkedAt) : "未知"}</dd>
+                      </dl>
+                      <button
+                        onClick={async () => {
+                          setBusy(true);
+                          try {
+                            setHealth(await api<Health>("health", "POST", {}));
+                            const result = await api<{
+                              integrations: Integration[];
+                            }>("integrations");
+                            setIntegrations(result.integrations);
+                          } catch (e) {
+                            setError((e as Error).message);
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                        disabled={busy}
+                      >
+                        <RefreshCw size={16} />
+                        {busy ? "驗證中…" : "重新驗證連線"}
+                      </button>
+                    </details>
                     <HelpPage />
                     <p>
                       僅顯示 Hermes

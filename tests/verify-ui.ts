@@ -282,6 +282,10 @@ try {
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Drive 知識" })).toHaveCount(0);
+  await expect(
+    page.locator(".knowledge-disclosure > summary"),
+  ).toHaveText("進階 · Drive 索引");
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(

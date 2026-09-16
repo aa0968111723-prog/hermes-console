@@ -159,8 +159,8 @@ export default function AccountSettings() {
           .filter((row) => row.active)
           .map((row) => (
             <li key={row.id}>
-              <span>
-                {row.current ? "目前裝置" : "其他裝置"} · {row.id}
+            <span>
+                {row.current ? "目前裝置" : "其他裝置"}
               </span>
               <span className="muted">
                 {new Date(row.createdAt).toLocaleString("zh-TW")}
