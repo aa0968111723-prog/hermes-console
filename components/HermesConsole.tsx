@@ -644,6 +644,10 @@ export default function HermesConsole() {
       sending.current = false;
       setBusy(false);
     }
+  }
+  async function send() {
+    await sendPrompt(text);
+  }
   async function pickInspirationDirection(
     id: "A" | "B" | "C",
     pack: InspirationSearchPack,
