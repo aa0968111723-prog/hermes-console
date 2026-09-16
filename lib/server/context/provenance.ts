@@ -9,6 +9,7 @@ export type ContextSourceKind =
   | "creative_direction"
   | "audience"
   | "runtime"
+  | "research_notes"
   | "goal";
 
 export interface ContextItem {

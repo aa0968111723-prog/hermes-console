@@ -230,6 +230,10 @@ export interface Health {
   backend: "sqlite" | "postgres";
   dataDir: string;
   storeReady: boolean;
+  /** Process is up. Not the same as Hermes being usable. */
+  live: boolean;
+  /** True only after a verified Agent task against the current credentials. */
+  agentReady: boolean;
 }
 export interface ReadyStatus {
   ready: boolean;

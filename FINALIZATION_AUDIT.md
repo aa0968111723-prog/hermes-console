@@ -54,3 +54,5 @@
 12. 作品並排預覽比較；圖片素材縮圖 WebP 320
 13. 手機 Bottom Dock 為主導覽；漢堡改為對話列表
 14. 閒置輪詢 8s、執行中 3s；`*_unconfigured` 歸 TOOL_UNAVAILABLE（auth_unconfigured 仍是 AUTH_ERROR）
+15. `GET /api/health` 存活不等待 Hermes；`agentReady` 與 store ready 分開
+16. Hermes 可搜尋本地 `data/ai-agent-research` 筆記（標明 local_notes，不是即時論文庫）

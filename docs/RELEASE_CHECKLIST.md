@@ -47,5 +47,5 @@
 
 - [ ] `npm run lint` `typecheck` `test` `build`
 - [ ] CI GitHub Actions 全過
-- [ ] `GET /api/ready`、`GET /api/health` 不回秘密
+- [ ] `GET /api/ready`、`GET /api/health` 不回秘密；health 不等待 Hermes；agentReady 與 App 存活分開
 - [ ] 回滾步驟已確認

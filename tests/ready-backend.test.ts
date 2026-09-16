@@ -126,11 +126,37 @@ test("health and ready backend fields omit secrets", async () => {
     assert.equal(healthBody.backend, "sqlite");
     assert.equal(healthBody.dataDir, dataDir);
     assert.equal(healthBody.storeReady, true);
+    assert.equal(healthBody.live, true);
+    assert.equal(healthBody.agentReady, false);
     assert.ok(healthBody.configSource);
     assertNoSecrets(healthBody, [secret]);
   } finally {
     delete process.env.DATABASE_URL;
     resetStoreForTests();
+  }
+});
+
+test("GET /api/health is live even when Hermes would hang", async () => {
+  const previousUrl = process.env.HERMES_API_URL;
+  const previousKey = process.env.HERMES_API_KEY;
+  process.env.HERMES_API_URL = "https://192.0.2.1";
+  process.env.HERMES_API_KEY = "h".repeat(40);
+  try {
+    const started = Date.now();
+    const response = await healthRoute.GET(request("health"));
+    const elapsed = Date.now() - started;
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.live, true);
+    assert.equal(body.agentReady, false);
+    assert.notEqual(body.status, "available");
+    assert.ok(elapsed < 3000, "liveness waited on Hermes: " + elapsed + "ms");
+    assertNoSecrets(body, [process.env.HERMES_API_KEY || ""]);
+  } finally {
+    if (previousUrl === undefined) delete process.env.HERMES_API_URL;
+    else process.env.HERMES_API_URL = previousUrl;
+    if (previousKey === undefined) delete process.env.HERMES_API_KEY;
+    else process.env.HERMES_API_KEY = previousKey;
   }
 });
 

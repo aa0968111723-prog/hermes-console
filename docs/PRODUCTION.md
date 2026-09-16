@@ -49,8 +49,9 @@
 
 ## Health
 
-- `GET /api/ready`：store 探測（200／503）。不需登入。
-- `GET /api/health`：App + store + Hermes 狀態。不需登入、不回秘密。重新探測仍走 `POST /api/health`（Origin + 授權）。App 活著 ≠ Agent 可用。
+- `GET /api/ready`：store 就緒（200／503）。不需登入。App 能寫資料 ≠ Hermes 可用。
+- `GET /api/health`：**存活**探針。App + 最後一次 Hermes 快取／未設定狀態。`live=true` 代表行程活著；`agentReady=true` 只有在目前憑證已有成功 Agent 任務。不需登入、不回秘密、**不等待**上游 Hermes。
+- `POST /api/health`：才會探測 Hermes（Origin + 授權）。未探測不得把 Agent 標成可用。
 
 ## Backup / Rollback
 

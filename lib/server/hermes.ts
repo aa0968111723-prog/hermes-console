@@ -247,11 +247,11 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     const { id, targetHash, ...publicState } = cached;
     void id;
     void targetHash;
-    return {
+    return withLiveFlags({
       ...publicState,
       ...store,
       features: withConsoleMemoryWriteFeature(publicState.features || {}, store.storeReady),
-    };
+    });
   }
   const state: Health = {
     checkedAt: new Date().toISOString(),
@@ -270,6 +270,8 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     skills: [],
     toolsets: [],
     discovery: {},
+    live: true,
+    agentReady: false,
     ...store,
   };
   // Discovery has its own total deadline; this does not shorten creative tasks.
@@ -387,11 +389,70 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     /* storeReady already recorded by probe */
   }
   const latest = storeFields();
-  return {
+  return withLiveFlags({
     ...state,
     ...latest,
     features: withConsoleMemoryWriteFeature(state.features || {}, latest.storeReady),
+  });
+}
+
+function withLiveFlags(state: Omit<Health, "live" | "agentReady"> & Partial<Pick<Health, "live" | "agentReady">>): Health {
+  return {
+    ...state,
+    live: true,
+    agentReady:
+      state.agent === "verified" &&
+      state.storeReady &&
+      state.credential === "valid",
   };
+}
+
+/** Liveness snapshot: store + last Hermes cache. Does not wait on upstream. */
+export function liveHealth(owner: string): Health {
+  const store = storeFields();
+  let cached: (Health & { id: string; targetHash: string }) | null = null;
+  try {
+    cached = get<Health & { id: string; targetHash: string }>(
+      "health",
+      owner,
+      "current",
+    );
+  } catch {
+    cached = null;
+  }
+  if (cached && cached.targetHash === serviceIdentity()) {
+    const { id, targetHash, ...publicState } = cached;
+    void id;
+    void targetHash;
+    return withLiveFlags({
+      ...publicState,
+      ...store,
+      features: withConsoleMemoryWriteFeature(
+        publicState.features || {},
+        store.storeReady,
+      ),
+    });
+  }
+  const connection = hermesConnectionStatus();
+  return withLiveFlags({
+    checkedAt: new Date().toISOString(),
+    reachable: null,
+    credential: connection.configured ? "unknown" : "missing",
+    agent: "unverified",
+    status: connection.state,
+    message: connection.detail,
+    configSource: {
+      hermesUrl: connection.urlSource,
+      hermesKey: connection.keySource,
+    },
+    httpStatus: null,
+    features: withConsoleMemoryWriteFeature({}, store.storeReady),
+    models: [],
+    skills: [],
+    toolsets: [],
+    discovery: {},
+    ...store,
+  });
 }
 import { hash } from "./security";
 export function serviceIdentity() {

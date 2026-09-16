@@ -2,6 +2,7 @@ import type { BudgetMode, Conversation } from "../../contracts";
 import { memoriesForProject } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
 import { listMaterials } from "../materials";
+import { searchResearchNotes } from "../research-notes";
 import { estimateTokens, recencyScore, type ContextItem } from "./provenance";
 import { relevanceTo } from "./ranking";
 import { fitBudget } from "./budget";
@@ -116,6 +117,25 @@ export function assembleContext(input: {
         ),
         confidence: 0.5,
         truth: "USER_PROVIDED",
+      }),
+    );
+  }
+  for (const note of searchResearchNotes(query, 3)) {
+    items.push(
+      item({
+        id: note.id,
+        source: "research_notes",
+        title: note.title,
+        content:
+          note.finding +
+          "（本地研究筆記，不是即時論文庫；source=" +
+          note.source +
+          "）",
+        recency: recencyScore(note.updatedAt),
+        importance: 0.28,
+        relevance: relevanceTo(note.title + " " + note.finding, query),
+        confidence: 0.35,
+        truth: "UNKNOWN",
       }),
     );
   }

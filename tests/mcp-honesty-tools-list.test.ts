@@ -67,6 +67,8 @@ const health: Health = {
   backend: "sqlite",
   dataDir: process.env.CONSOLE_DATA_DIR!,
   storeReady: true,
+  live: true,
+  agentReady: true,
 };
 
 test("past bug: tools/list done must not stay awaiting_authorization", () => {
