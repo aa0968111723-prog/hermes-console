@@ -293,7 +293,17 @@ try {
   await expect(
     page.locator(".inspiration-research > summary"),
   ).toHaveText("進階 · 招生與現場觀察");
+  await expect(
+    page.getByText("公開可取得來源，不是完整 Instagram／Pinterest。"),
+  ).toBeVisible();
+  await expect(
+    page.locator(".inspiration-sync > summary"),
+  ).toHaveText("進階 · 來源匯入");
+  const syncDetails = page.locator(".inspiration-sync");
+  await expect(syncDetails).not.toHaveAttribute("open", "");
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
+  await syncDetails.locator("summary").click();
+  await expect(syncDetails).toHaveAttribute("open", "");
   await expect(syncButton).toBeVisible();
   assert.equal(
     (await (await context.request.get(base + "/api/inspiration")).json())

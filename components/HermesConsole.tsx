@@ -39,7 +39,12 @@ import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
 import CapabilityCertification from "./settings/CapabilityCertification";
 import AccountSettings from "./settings/AccountSettings";
+import AppearanceSettings, {
+  DEFAULT_APPEARANCE,
+  type AppearancePreferences,
+} from "./settings/AppearanceSettings";
 import ConnectionSettings from "./settings/ConnectionSettings";
+import SettingsTabs, { type SettingsTab } from "./settings/SettingsTabs";
 import SharedMemory from "./settings/SharedMemory";
 import AttachmentCover from "./visual/AttachmentCover";
 import TopBar from "./visual/TopBar";
@@ -96,22 +101,8 @@ type Workspace = {
   imageInput: boolean;
   memory: { status: string; scope: string; synced: boolean };
 };
-type Preferences = {
-  font: number;
-  width: number;
-  compact: boolean;
-  turtle: boolean;
-  animation: boolean;
-  turtleSize: number;
-};
-const DEFAULT_PREFS: Preferences = {
-  font: 16,
-  width: 780,
-  compact: false,
-  turtle: true,
-  animation: true,
-  turtleSize: 100,
-};
+type Preferences = AppearancePreferences;
+const DEFAULT_PREFS = DEFAULT_APPEARANCE;
 const EMPTY: Workspace = {
   conversations: [],
   projects: [],
@@ -196,7 +187,7 @@ export default function HermesConsole() {
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | "spatial" | null>(
     null,
   );
-  const [settingsTab, setSettingsTab] = useState("外觀");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("外觀");
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [preview, setPreview] = useState<Material | null>(null);
   const draftScope = activeId
@@ -1734,7 +1725,7 @@ export default function HermesConsole() {
                 setInspiration(updated.items);
                 setData(workspace);
               }}
-              notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
+              notice="公開可取得來源，不是完整 Instagram／Pinterest。"
             />
             <details
               className="knowledge-disclosure"
@@ -1982,53 +1973,7 @@ export default function HermesConsole() {
             onMemory={()=>{setSettingsTab("工作區");setPanel("settings");}}
             onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
             <>
-              <div
-                className="setting-tabs"
-                role="tablist"
-                aria-label="設定分類"
-                onKeyDown={(event) => {
-                  if (
-                    !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
-                      event.key,
-                    )
-                  )
-                    return;
-                  const tabs = Array.from(
-                    event.currentTarget.querySelectorAll<HTMLButtonElement>(
-                      '[role="tab"]',
-                    ),
-                  );
-                  const index = tabs.indexOf(
-                    document.activeElement as HTMLButtonElement,
-                  );
-                  const next =
-                    event.key === "Home"
-                      ? 0
-                      : event.key === "End"
-                        ? tabs.length - 1
-                        : (index +
-                            (event.key === "ArrowRight" ? 1 : -1) +
-                            tabs.length) %
-                          tabs.length;
-                  event.preventDefault();
-                  tabs[next]?.focus();
-                  tabs[next]?.click();
-                }}
-              >
-                {["帳號", "外觀", "連線", "工作區", "進階"].map((tab) => (
-                  <button
-                    key={tab}
-                    role="tab"
-                    id={"setting-tab-" + tab}
-                    aria-controls="setting-panel"
-                    aria-selected={settingsTab === tab}
-                    tabIndex={settingsTab === tab ? 0 : -1}
-                    onClick={() => setSettingsTab(tab)}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
+              <SettingsTabs value={settingsTab} onChange={setSettingsTab} />
               <div
                 role="tabpanel"
                 id="setting-panel"
@@ -2038,92 +1983,11 @@ export default function HermesConsole() {
                 {settingsTab === "帳號" ? (
                   <AccountSettings />
                 ) : settingsTab === "外觀" ? (
-                  <div className="settings-stack">
-                    <p className="muted">
-                      固定明亮介面。外觀偏好只儲存在此瀏覽器。
-                    </p>
-                    <label>
-                      文字大小
-                      <select
-                        value={prefs.font}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, font: Number(e.target.value) })
-                        }
-                      >
-                        {[14, 16, 18, 20].map((n) => (
-                          <option key={n} value={n}>
-                            {n} px
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      閱讀寬度
-                      <select
-                        value={prefs.width}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, width: Number(e.target.value) })
-                        }
-                      >
-                        {[680, 780, 920].map((n) => (
-                          <option key={n} value={n}>
-                            {n} px
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={prefs.compact}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, compact: e.target.checked })
-                        }
-                      />
-                      緊湊訊息間距
-                    </label>
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={prefs.turtle}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, turtle: e.target.checked })
-                        }
-                      />
-                      顯示龜龜
-                    </label>
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={prefs.animation}
-                        onChange={(e) =>
-                          setPrefs({ ...prefs, animation: e.target.checked })
-                        }
-                      />
-                      輕柔動畫（尊重系統減少動畫設定）
-                    </label>
-                    <label>
-                      龜龜大小
-                      <select
-                        value={prefs.turtleSize}
-                        onChange={(e) =>
-                          setPrefs({
-                            ...prefs,
-                            turtleSize: Number(e.target.value),
-                          })
-                        }
-                      >
-                        {[72, 100, 128].map((n) => (
-                          <option key={n} value={n}>
-                            {n} px
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button onClick={() => setPrefs(DEFAULT_PREFS)}>
-                      重設外觀
-                    </button>
-                  </div>
+                  <AppearanceSettings
+                    prefs={prefs}
+                    onChange={setPrefs}
+                    onReset={() => setPrefs(DEFAULT_PREFS)}
+                  />
                 ) : settingsTab === "連線" ? (
                   <div className="settings-stack">
                     <ConnectionSettings
@@ -2175,7 +2039,7 @@ export default function HermesConsole() {
                     />
 
                     <details className="connection-advanced">
-                      <summary>Advanced · 工具、技能與驗證證據</summary>
+                      <summary>進階 · 工具、技能與驗證證據</summary>
                       <IntegrationHealth items={integrations} />
                       <CapabilityCertification />
                       <label>

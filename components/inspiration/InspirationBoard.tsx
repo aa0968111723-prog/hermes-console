@@ -64,34 +64,9 @@ export default function InspirationBoard({
         ))}
       </ul>
 
-      <button type="button" disabled={busy} onClick={sync} style={{ minHeight: 44 }}>
-        {busy ? "讀取中…" : "匯入已設定來源"}
-      </button>
-      <p className="muted">只讀取已設定來源；不會自動排程或更改權限。</p>
-      {error && <p role="alert">{error}</p>}
-      {syncStatus && (
-        <div role="status">
-          <p>
-            最近匯入：{new Date(syncStatus.finishedAt).toLocaleString("zh-TW")}；
-            讀取 {syncStatus.read}、新增 {syncStatus.created}、略過重複 {syncStatus.skipped}、
-            失敗 {syncStatus.failed}。
-          </p>
-          {syncStatus.errors.length > 0 && (
-            <details>
-              <summary>查看失敗原因</summary>
-              <ul>
-                {syncStatus.errors.map((message, index) => (
-                  <li key={index}>{message}</li>
-                ))}
-              </ul>
-              <p>確認來源可讀後可重試；已收藏項目不會重複建立或覆蓋。</p>
-            </details>
-          )}
-        </div>
-      )}
       {notice && <p className="muted">{notice}</p>}
       {!items.length && (
-        <p className="quiet">貼上 IG／Pinterest／網址，或直接在對話說「幫我找靈感」。</p>
+        <p className="quiet">在對話說「幫我找靈感」，或貼上已授權來源。</p>
       )}
       <ul>
         {items.map((item) => (
@@ -120,6 +95,35 @@ export default function InspirationBoard({
           </li>
         ))}
       </ul>
+
+      <details className="inspiration-sync">
+        <summary>進階 · 來源匯入</summary>
+        <button type="button" disabled={busy} onClick={sync}>
+          {busy ? "讀取中…" : "匯入已設定來源"}
+        </button>
+        <p className="muted">只讀取已設定來源；不會自動排程或更改權限。</p>
+        {error && <p role="alert">{error}</p>}
+        {syncStatus && (
+          <div role="status">
+            <p>
+              最近匯入：{new Date(syncStatus.finishedAt).toLocaleString("zh-TW")}；
+              讀取 {syncStatus.read}、新增 {syncStatus.created}、略過重複 {syncStatus.skipped}、
+              失敗 {syncStatus.failed}。
+            </p>
+            {syncStatus.errors.length > 0 && (
+              <details>
+                <summary>查看失敗原因</summary>
+                <ul>
+                  {syncStatus.errors.map((message, index) => (
+                    <li key={index}>{message}</li>
+                  ))}
+                </ul>
+                <p>確認來源可讀後可重試；已收藏項目不會重複建立或覆蓋。</p>
+              </details>
+            )}
+          </div>
+        )}
+      </details>
 
       <details className="inspiration-research">
         <summary>進階 · 招生與現場觀察</summary>
@@ -217,9 +221,9 @@ function PatternCard({
       </p>
       <strong>{pattern.title}</strong>
       <p>{pattern.summary}</p>
-      <p className="muted">{pattern.why}</p>
       <details>
-        <summary>證據與交接</summary>
+        <summary>為什麼</summary>
+        <p className="muted">{pattern.why}</p>
         <ul>
           {pattern.evidence.map((item) => (
             <li key={item.source + item.note}>
@@ -227,8 +231,6 @@ function PatternCard({
             </li>
           ))}
         </ul>
-        <p>Visual：{pattern.visualAgentInput}</p>
-        <p>文案：{pattern.copywritingAgentInput}</p>
       </details>
     </li>
   );

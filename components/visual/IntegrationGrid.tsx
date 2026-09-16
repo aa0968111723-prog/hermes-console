@@ -6,6 +6,7 @@ import {
   Palette,
   Film,
   Layers,
+  LayoutTemplate,
   School,
   Cloud,
   Network,
@@ -24,7 +25,7 @@ const icons: Record<string, typeof Bot> = {
   duigao: PenLine,
   tamkang: School,
   zeabur: Cloud,
-  canva: Palette,
+  canva: LayoutTemplate,
 };
 export default function IntegrationGrid({
   items,

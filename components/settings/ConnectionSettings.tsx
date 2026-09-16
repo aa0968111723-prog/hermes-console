@@ -299,7 +299,7 @@ export default function ConnectionSettings({
 
   return (
     <div className="settings-stack credential-settings">
-      <p className="credential-warning">{data?.openSettingsWarning}</p>
+      <p className="credential-warning">連線與部署設定僅限工作區管理員。</p>
       {error && (
         <p role="alert" className="error">
           {error}
@@ -308,6 +308,9 @@ export default function ConnectionSettings({
       {notice && <p className="muted">{notice}</p>}
       <details className="connection-storage">
         <summary>儲存與驗證詳情</summary>
+        {data?.openSettingsWarning && (
+          <p className="muted">{data.openSettingsWarning}</p>
+        )}
         <p className="muted">
           金鑰只送到後端加密保存，不會寫進前端程式。讀取時只顯示是否已設定與末四碼。
           環境變數仍可作為後備；工作區儲存優先。
