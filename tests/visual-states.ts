@@ -409,7 +409,7 @@ export async function verifyVisualStates(
     "[介面測試回覆] 已接收一個工具結果。\n\n| 方向 | 用途 |\n| --- | --- |\n| 春日共創 | 活動宣傳 |";
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("完成");
-  await expect(page.locator(".visual-message")).toContainText("已整理資料");
+  await expect(page.locator(".visual-message")).toContainText("過程完成");
   await expect(page.locator(".visual-message")).not.toContainText("個工具完成");
   await page.setViewportSize({ width: 390, height: 420 });
   await page.locator(".composer-task-status").click();
