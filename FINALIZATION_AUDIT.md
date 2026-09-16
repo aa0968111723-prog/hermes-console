@@ -23,6 +23,7 @@
 | Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。成員 API 不含 endpoint、credentialReference、tool schema、hermesKeySource。公開 `GET /api/health` 不含 models／skills／toolsets／configSource；`POST /api/health` 僅 owner／admin。 |
 | 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。 |
 | 首頁 | 可用（契約） | 龜龜 + 今天想做什麼？ + 六個短標籤。手機與桌面同一組。無 MCP 軌道、無英文 welcome overlay。 |
+| 專案頁 | 可用（契約） | 標題為「專案」。封面架 + 作品預覽 + 素材縮圖。空狀態不再把 Instagram 文案混進專案頁。 |
 | Drive 知識 | 可用（契約） | 靈感頁預設折疊「社團知識」；不顯示 `live=`。 |
 | Memory layers | 可用（契約） | conversation／project／workspace／preference／runtime 分層。Runtime 不進任務上下文；conversation 只進同一對話。過期（≥30 天）標 STALE／LOW_CONFIDENCE，不得當成最新事實。設定頁仍可看全部列。 |
 | 學生接續同一作品 | 可用（契約） | Composer 只放人話。copyId／workflowId／activityId 只走 `task.focus`。Canva 接續使用專案最新 workflow。 |
@@ -34,11 +35,12 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry` 通過。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry`、`test:ui` 通過。
 - `npm test`：399 tests, 397 pass, 2 skipped, 0 fail。含 memory layer 隔離（runtime 不進任務、conversation 只進同一對話）、過期事實標 STALE、copy artifact 進入任務上下文、公開 `GET /api/health` 不含 models／skills／toolsets／configSource。
 - `/` First Load JS 239 kB（shared 103 kB）。
 - `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊且可開連線設定；magic redeem；密碼重設；email 驗證；成員看不到連線／進階且 GET credentials 為 403。
-- 本輪未重跑：`test:chat`、`test:workbench`、`test:ui`、`test:runtime`、`test:gateway`。
+- `test:ui`：390／412／430／360／768／1024／1440；專案頁標題「專案」；axe 無 violation；LCP 100ms／CLS ~0.00008（本機 Chrome 契約，不是實機）。
+- 本輪未重跑：`test:chat`、`test:workbench`、`test:runtime`、`test:gateway`。
 
 ## 仍是 Partial（禁止標綠）
 
