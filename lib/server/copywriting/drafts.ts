@@ -10,7 +10,7 @@ export const VARIANT_LABELS = {
 function placeLine(facts: CopyFacts) {
   if (facts.location.kind === "FACT" && facts.location.value)
     return "地點 " + facts.location.value;
-  return "地點還沒定，先標 UNKNOWN，確定再補。";
+  return "地點還沒定，確定再補。";
 }
 
 function whenLine(facts: CopyFacts) {

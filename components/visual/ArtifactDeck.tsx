@@ -1,43 +1,54 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
-import type { TaskFocus } from "@/lib/contracts";
 import ArtifactStage from "./ArtifactStage";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
 export default function ArtifactDeck({
   items,
-  projectId,
+  artifacts = [],
   onContinue,
+  onRestore,
+  onFork,
 }: {
   items: Workflow[];
-  projectId: string;
-  onContinue: (text: string, focus?: TaskFocus) => void;
+  artifacts?: Artifact[];
+  onContinue: (id: string) => void;
+  onRestore?: (artifactId: string, revisionId: string) => void;
+  onFork?: (artifactId: string) => void;
 }) {
   const rail = useRef<HTMLDivElement>(null);
-  const [copies, setCopies] = useState<Artifact[]>([]);
-  const designs = items.filter((workflow) => !!workflow.design);
-  useEffect(() => {
-    let gone = false;
-    fetch("/api/artifacts?projectId=" + encodeURIComponent(projectId), {
-      credentials: "same-origin",
-      cache: "no-store",
-    })
-      .then((response) => (response.ok ? response.json() : { artifacts: [] }))
-      .then((data: { artifacts?: Artifact[] }) => {
-        if (!gone)
-          setCopies(
-            (data.artifacts || []).filter((row) => row.source === "copy"),
-          );
-      })
-      .catch(() => {
-        if (!gone) setCopies([]);
-      });
-    return () => {
-      gone = true;
-    };
-  }, [projectId, items.length]);
-  if (!designs.length && !copies.length) return null;
+  const linked = new Set(
+    items.map((item) => item.artifactId).filter(Boolean) as string[],
+  );
+  const standalone = artifacts.filter(
+    (item) =>
+      item.source !== "copy" &&
+      item.source !== "material" &&
+      !linked.has(item.id),
+  );
+  const designs = [
+    ...items
+      .filter((w) => !!w.design || isDirectionBriefPack(w.directionBrief))
+      .map((w) => ({
+        key: w.id,
+        design: w.design || { ...w.directionBrief! },
+        workflowId: w.id,
+        artifact: artifacts.find(
+          (item) => item.id === w.artifactId || item.workflowId === w.id,
+        ),
+      })),
+    ...standalone.map((artifact) => ({
+      key: artifact.id,
+      design: (artifact.revisions.find(
+        (item) => item.revisionId === artifact.currentRevisionId,
+      ) || artifact.revisions.at(-1))!.design,
+      workflowId: artifact.id,
+      artifact,
+    })),
+  ];
+  if (!designs.length) return null;
   const move = (direction: number) =>
     rail.current?.scrollBy({
       left: direction * rail.current.clientWidth,
@@ -47,14 +58,13 @@ export default function ArtifactDeck({
           ? "instant"
           : "smooth",
     });
-  const count = designs.length + copies.length;
   return (
     <section className="artifact-deck" aria-label="專案作品">
       <header>
         <h2>
-          作品 <small>{count}</small>
+          作品 <small>{designs.length}</small>
         </h2>
-        {count > 1 && (
+        {designs.length > 1 && (
           <div>
             <button aria-label="上一件作品" onClick={() => move(-1)}>
               <ChevronLeft size={22} />
@@ -72,19 +82,22 @@ export default function ArtifactDeck({
         aria-label="左右滑動查看作品"
         tabIndex={0}
       >
-        {designs.map((workflow) => (
+        {designs.map((item) => (
           <ArtifactStage
-            key={workflow.id}
-            design={workflow.design!}
-            continueId={workflow.id}
-            onContinue={onContinue}
-          />
-        ))}
-        {copies.map((item) => (
-          <ArtifactStage
-            key={item.artifactId}
-            artifact={item}
-            onContinue={onContinue}
+            key={item.key}
+            design={item.design}
+            artifact={item.artifact}
+            onContinue={() => onContinue(item.workflowId)}
+            onRestore={
+              item.artifact && onRestore
+                ? (revisionId) => onRestore(item.artifact!.id, revisionId)
+                : undefined
+            }
+            onFork={
+              item.artifact && onFork
+                ? () => onFork(item.artifact!.id)
+                : undefined
+            }
           />
         ))}
       </div>

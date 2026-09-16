@@ -58,7 +58,7 @@ export function lintCopy(input: {
     add(
       "placeholder",
       term,
-      "地點或欄位尚未確認，標 UNKNOWN，不要用假資料上稿。",
+      "地點或欄位尚未確認，標未確認，不要用假資料上稿。",
       "block",
     );
   }

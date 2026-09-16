@@ -23,6 +23,7 @@ const child = spawn(
       NODE_ENV: "production",
       CONSOLE_ORIGIN: base,
       CONSOLE_ALLOW_LOCAL_ACCESS: "true",
+      CONSOLE_AUTH_REQUIRED: "",
       CONSOLE_GATEWAY_SECRET: "",
       CONSOLE_REQUIRE_GATEWAY: "false",
       CONSOLE_ADMIN_EMAILS: "",
@@ -42,38 +43,6 @@ child.stderr?.on("data", (chunk) => {
   logs += chunk;
 });
 
-async function captureMail(run: () => Promise<void>) {
-  const previousKey = process.env.RESEND_API_KEY;
-  const previousFrom = process.env.CONSOLE_EMAIL_FROM;
-  process.env.RESEND_API_KEY = "test-resend-not-for-production-use";
-  process.env.CONSOLE_EMAIL_FROM = "console@example.test";
-  const emails: Array<{ text: string }> = [];
-  const original = globalThis.fetch;
-  globalThis.fetch = async (url, init) => {
-    if (String(url) === "https://api.resend.com/emails") {
-      emails.push(JSON.parse(String(init?.body)));
-      return Response.json({ id: "fixture-mail-" + emails.length });
-    }
-    return original(url as never, init);
-  };
-  try {
-    await run();
-    return emails;
-  } finally {
-    globalThis.fetch = original;
-    if (previousKey === undefined) delete process.env.RESEND_API_KEY;
-    else process.env.RESEND_API_KEY = previousKey;
-    if (previousFrom === undefined) delete process.env.CONSOLE_EMAIL_FROM;
-    else process.env.CONSOLE_EMAIL_FROM = previousFrom;
-  }
-}
-
-function tokenFrom(text: string, kind: "login" | "reset" | "verify") {
-  const match = text.match(new RegExp("#" + kind + "=([a-f0-9]{64})"));
-  assert.ok(match, kind + " token missing from mail");
-  return match[1];
-}
-
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 try {
   for (let i = 0; i < 100; i++) {
@@ -84,16 +53,23 @@ try {
     await new Promise((r) => setTimeout(r, 100));
   }
   const workspace = await fetch(base + "/api/workspace");
-  assert.equal(workspace.status, 401, "workspace GET requires a session");
+  assert.equal(workspace.status, 200, "no-login workspace GET");
   const health = await fetch(base + "/api/health");
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.live, true);
+  assert.match(String(healthBody.message || ""), /還沒準備好/);
+  assert.doesNotMatch(
+    String(healthBody.message || ""),
+    /連線頁|HERMES_API|環境變數/,
+  );
   assert.doesNotMatch(JSON.stringify(healthBody), /Bearer |sk-|postgres(?:ql)?:\/\//i);
   const runtime = await fetch(base + "/api/runtime");
-  assert.equal(runtime.status, 401);
+  assert.notEqual(runtime.status, 401);
   const tasks = await fetch(base + "/api/tasks");
-  assert.equal(tasks.status, 401);
+  assert.equal(tasks.status, 200);
+  const artifacts = await fetch(base + "/api/artifacts");
+  assert.equal(artifacts.status, 200);
   const cross = await fetch(base + "/api/workspace", {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
@@ -103,197 +79,269 @@ try {
   const created = await fetch(base + "/api/conversations", {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: base },
-    body: JSON.stringify({ title: "匿名對話" }),
+    body: JSON.stringify({ title: "免登入對話" }),
   });
-  assert.equal(created.status, 401);
+  assert.equal(created.status, 201);
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
   });
+  await context.addInitScript(`
+    class FakeSpeechRecognition {
+      lang = "";
+      interimResults = false;
+      continuous = false;
+      onresult = null;
+      onerror = null;
+      onend = null;
+      start() { window.__hermesSpeech = this; }
+      stop() { if (this.onend) this.onend(); }
+    }
+    window.SpeechRecognition = FakeSpeechRecognition;
+    window.webkitSpeechRecognition = FakeSpeechRecognition;
+  `);
   const page = await context.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   const output = resolve("output/playwright");
   await mkdir(output, { recursive: true });
 
-  async function signOut() {
-    await page.evaluate(async () => {
-      await fetch("/api/auth", {
-        method: "DELETE",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-    });
-  }
-
-  async function openAuthHash(kind: "login" | "reset" | "verify", value: string) {
-    await page.goto("about:blank");
-    await page.goto(base + "/#" + kind + "=" + value, {
-      waitUntil: "domcontentloaded",
-    });
-  }
-
   await page.goto(base);
-  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toBeVisible();
-  await expect(page.getByText("淡江 SSO 尚未完成設定")).toBeVisible();
-  await expect(page.getByText("Google 登入尚未完成設定")).toBeVisible();
-  await expect(page.getByText("尚未設定寄件，無法寄送登入或重設連結")).toBeVisible();
-  await page.screenshot({ path: join(output, "login-mobile.png"), fullPage: true });
-
-  await page.getByRole("button", { name: "登入連結", exact: true }).click();
-  await expect(page.getByRole("button", { name: "寄送登入連結" })).toHaveCount(0);
-  await expect(page.getByText("尚未設定寄件，無法寄送登入或重設連結")).toBeVisible();
-  await page.screenshot({
-    path: join(output, "login-magic-unconfigured.png"),
-    fullPage: true,
-  });
-
-  await page.getByRole("button", { name: "忘記密碼", exact: true }).click();
-  await expect(page.getByRole("button", { name: "寄送重設連結" })).toHaveCount(0);
-  await expect(page.getByText("尚未設定寄件，無法寄送登入或重設連結")).toBeVisible();
-  await page.screenshot({
-    path: join(output, "login-forgot-unconfigured.png"),
-    fullPage: true,
-  });
-
-  await openAuthHash("login", "a".repeat(64));
-  await expect(page.getByRole("button", { name: "確認登入" })).toBeVisible();
-  await page.getByRole("button", { name: "確認登入" }).click();
-  await expect(page.locator(".login-card [role='alert']")).toContainText(
-    "連結已使用、已過期或不存在",
-  );
-  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toBeVisible();
-
-  await page.getByRole("button", { name: "建立帳號", exact: true }).click();
-  await page.getByLabel("名稱").fill("測試擁有者");
-  await page.getByLabel("電子信箱").fill("owner@example.test");
-  await page.getByLabel("密碼").fill("Test-Password-14");
-  await page.locator("form").getByRole("button", { name: "建立帳號" }).click();
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
+  await expect(page.getByText("無法確認登入狀態")).toHaveCount(0);
+  await expect(page.getByText("正在確認身分")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
-  await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
-  const session = (await context.cookies()).find((row) => row.name === "hermes_session")?.value;
-  assert.ok(session);
-  const signed = await fetch(base + "/api/workspace", {
-    headers: { Cookie: "hermes_session=" + session },
+  const voice = page.getByRole("button", { name: "語音輸入" });
+  await expect(voice).toBeVisible();
+  const box = await voice.boundingBox();
+  assert.ok(box && box.width >= 44 && box.height >= 44);
+  await voice.click();
+  const rec = await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: { lang: string; continuous: boolean };
+      }
+    ).__hermesSpeech;
+    return current ? { lang: current.lang, continuous: current.continuous } : null;
   });
-  assert.equal(signed.status, 200);
-  const ownerCredentials = await fetch(base + "/api/settings/credentials", {
-    headers: { Cookie: "hermes_session=" + session },
-  });
-  assert.equal(ownerCredentials.status, 200);
-  await page.getByRole("button", { name: "外觀設定" }).click();
-  await expect(page.getByRole("heading", { name: "工作區設定" })).toBeVisible();
-  await expect(page.locator(".setting-tabs")).toHaveAttribute(
-    "data-workspace-role",
-    "owner",
-  );
-  await expect(page.getByRole("tab", { name: "連線", exact: true })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "進階", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "關閉面板" }).click();
-
-  await signOut();
-  const identity = await import("../lib/server/identity");
-  const magicMail = await captureMail(async () => {
-    await identity.requestMagicLink("owner@example.test");
-  });
-  const magicToken = tokenFrom(magicMail[0].text, "login");
-  await openAuthHash("login", magicToken);
-  await expect(page.getByRole("button", { name: "確認登入" })).toBeVisible();
-  await page.getByRole("button", { name: "確認登入" }).click();
-  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
-  await page.screenshot({ path: join(output, "login-magic-redeem.png"), fullPage: true });
-
-  await signOut();
-  const resetMail = await captureMail(async () => {
-    await identity.requestPasswordReset("owner@example.test");
-  });
-  const resetToken = tokenFrom(resetMail[0].text, "reset");
-  await openAuthHash("reset", resetToken);
-  await expect(page.getByLabel("新密碼")).toBeVisible();
-  await page.getByLabel("新密碼").fill("New-Password-14");
-  await page.getByRole("button", { name: "重設密碼" }).click();
-  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
-  await page.screenshot({ path: join(output, "login-reset.png"), fullPage: true });
-
-  await signOut();
-  const verifyMail = await captureMail(async () => {
-    await identity.registerEmail({
-      email: "member@example.test",
-      password: "Member-Password-14",
-      name: "成員",
+  assert.equal(rec?.lang, "zh-TW");
+  assert.equal(rec?.continuous, true);
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "我想辦茶會" } }],
+    });
+    current?.onresult?.({
+      resultIndex: 1,
+      results: [
+        { isFinal: true, 0: { transcript: "我想辦茶會" } },
+        { isFinal: true, 0: { transcript: "再幫我看場佈" } },
+      ],
     });
   });
-  const verifyToken = tokenFrom(verifyMail[0].text, "verify");
-  await openAuthHash("verify", verifyToken);
-  await expect(page.getByRole("button", { name: "完成驗證" })).toBeVisible();
-  await page.getByRole("button", { name: "完成驗證" }).click();
-  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
-  await page.screenshot({ path: join(output, "login-verify.png"), fullPage: true });
-  const memberSession = (await context.cookies()).find(
-    (row) => row.name === "hermes_session",
-  )?.value;
-  assert.ok(memberSession);
-  const memberCredentials = await fetch(base + "/api/settings/credentials", {
-    headers: { Cookie: "hermes_session=" + memberSession },
-  });
-  assert.equal(memberCredentials.status, 403);
-  const memberDenied = await memberCredentials.json();
-  assert.equal(memberDenied.error?.code, "permission_denied");
-  await page.getByRole("button", { name: "外觀設定" }).click();
-  await expect(page.getByRole("heading", { name: "工作區設定" })).toBeVisible();
-  await expect(page.locator(".setting-tabs")).toHaveAttribute(
-    "data-workspace-role",
-    "member",
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "我想辦茶會 再幫我看場佈",
   );
-  await expect(page.getByRole("tab", { name: "帳號", exact: true })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "工作區", exact: true })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "連線", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("tab", { name: "進階", exact: true })).toHaveCount(0);
-  await page.screenshot({
-    path: join(output, "settings-member-no-connections.png"),
-    fullPage: true,
+  await expect(page.getByText("說完了，請按送出")).toHaveCount(0);
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onerror: ((event?: { error?: string }) => void) | null;
+          onend: (() => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onerror?.({ error: "no-speech" });
+    current?.onend?.();
   });
-  await page.getByRole("button", { name: "關閉面板" }).click();
-
-  await signOut();
-  await context.clearCookies();
-  const googleSession = identity.loginWithIdentity({
-    provider: "google",
-    providerId: "google-sub-link-ui",
-    email: "google-link@example.test",
-    emailVerified: true,
-    name: "Google 連結",
+  await expect(page.getByRole("button", { name: "停止語音輸入" })).toBeVisible();
+  await expect(page.getByText("說完了，請按送出")).toHaveCount(0);
+  await expect(page.locator(".notice-bar.warning")).toHaveCount(0);
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByText("說完了，請按送出")).toBeVisible();
+  await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
+  await page.screenshot({ path: join(output, "voice-ready-hint.png") });
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(page.getByRole("button", { name: /選方向 A/ })).toBeVisible({
+    timeout: 15_000,
   });
-  await context.addCookies([
-    {
-      name: "hermes_session",
-      value: googleSession,
-      url: base,
-      httpOnly: true,
-      sameSite: "Lax",
-    },
-  ]);
-  await page.goto(base, { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
-  await page.getByRole("button", { name: "外觀設定" }).click();
-  await page.getByRole("tab", { name: "帳號", exact: true }).click();
-  const account = page.getByRole("tabpanel", { name: "帳號" });
-  await expect(account.getByText("電子信箱", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
+  await expect(page.getByText("不是 Hermes", { exact: true })).toBeVisible();
+  await expect(page.getByText("沒有已收藏來源 · 未搜全站")).toBeVisible();
+  await expect(page.getByText("連線頁")).toHaveCount(0);
+  await expect(page.getByText("環境變數")).toHaveCount(0);
+  await page.screenshot({ path: join(output, "spoken-goal-results.png") });
+  await page.getByRole("button", { name: /選方向 A/ }).click();
+  await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("region", { name: "已選方向規格" })).toBeInViewport();
+  await expect(page.getByText(/不是已出圖/)).toBeVisible();
+  await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
+  await expect(page.locator(".conversation-scroll")).not.toContainText("210:297");
+  await page.screenshot({ path: join(output, "spoken-goal-spec.png") });
+  const dismiss = page.getByRole("button", { name: "關閉提示" });
+  if ((await dismiss.count()) > 0) await dismiss.click();
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "今天社博在哪" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "今天社博在哪",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const clubFacts = page.getByRole("region", { name: "社團資料" });
+  await expect(clubFacts).toBeVisible({ timeout: 15_000 });
+  await expect(clubFacts).toContainText(/社博|攤位/);
+  await expect(clubFacts).toContainText("不是即時");
+  await expect(clubFacts).toContainText(/已核對|尚未確認/);
+  await expect(clubFacts).toBeInViewport();
+  await expect(page.locator(".conversation-scroll")).not.toContainText("UNKNOWN");
+  await page.screenshot({ path: join(output, "spoken-lookup-results.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "幫我出圖" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "幫我出圖",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const specAfterRenderAsk = page.getByRole("region", { name: "已選方向規格" });
+  await expect(specAfterRenderAsk).toBeVisible({ timeout: 15_000 });
+  await expect(specAfterRenderAsk).toBeInViewport();
+  await expect(specAfterRenderAsk).toContainText("V1");
+  await expect(specAfterRenderAsk).toContainText("未出圖");
+  await expect(page.getByRole("region", { name: "靈感方向" })).toHaveCount(1);
+  await expect(page.locator(".composer-task-status")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
   await expect(
-    account.locator(".identity-list li").filter({ hasText: "電子信箱" }),
-  ).toContainText("未連結");
-  await expect(account.getByText("尚未設定寄件，無法連結並驗證電子信箱")).toBeVisible();
-  await expect(account.getByRole("button", { name: "連結信箱" })).toHaveCount(0);
+    page.getByRole("button", { name: "查看目前任務：完成了" }),
+  ).toHaveCount(0);
+  await page.screenshot({ path: join(output, "spoken-make-poster.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "顏色改暖一點" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "顏色改暖一點",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const warmed = page.getByRole("region", { name: "已選方向規格" });
+  await expect(warmed).toBeVisible({ timeout: 15_000 });
+  await expect(warmed).toContainText("V2");
+  await expect(warmed).toContainText("配色偏暖");
+  await expect(warmed).toContainText("未出圖");
+  await expect(warmed.locator(".direction-format-copy").first()).toHaveAttribute(
+    "data-palette",
+    "warm",
+  );
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
+  await page.screenshot({ path: join(output, "spoken-warm-revision.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onerror: ((event?: { error?: string }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onerror?.({ error: "no-speech" });
+  });
+  await expect(page.locator(".notice-bar.warning")).toContainText("沒聽到語音");
+  await page.screenshot({ path: join(output, "voice-no-speech.png") });
+  await page.getByRole("button", { name: "關閉提示" }).click();
+
+  await page.locator(".connection-pill").click();
+  await expect(page.getByRole("heading", { name: "能力", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
+  await expect(page.getByText("Hermes 憑證")).toHaveCount(0);
+  await expect(page.getByText("填寫網址與權杖")).toHaveCount(0);
+  await expect(page.getByText("尚未取得工具清單")).toHaveCount(0);
   await page.screenshot({
-    path: join(output, "settings-account-link-unconfigured.png"),
+    path: join(output, "agent-status-mobile.png"),
     fullPage: true,
   });
+  await page
+    .getByRole("navigation", { name: "快速導覽" })
+    .getByRole("button", { name: "對話", exact: true })
+    .click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("今天好嗎");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const notice = page.locator(".notice-bar.warning");
+  await expect(notice).toContainText("還沒準備好", { timeout: 15_000 });
+  await expect(notice).not.toContainText("連線頁");
+
+  await page.goto(base + "/#reset=" + "a".repeat(64));
+  await expect(page.getByRole("heading", { name: "重設密碼" })).toBeVisible();
+  await expect(page.getByLabel("新密碼")).toBeVisible();
+  await page.screenshot({ path: join(output, "login-reset-hash.png"), fullPage: true });
+  await page.getByRole("button", { name: "密碼登入" }).click();
+  await expect(page.getByRole("heading", { name: "重設密碼" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }),
+  ).toBeVisible();
 
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate, unconfigured Google/Tamkang/mail, invalid magic link, first owner register, magic redeem, password reset, email verify, member cannot open connection settings, email-link honesty. Not live Zeabur.",
+    "PASS: no-login `/` enters workspace, APIs are not a login wall, reset hash still opens the dormant form. Dismissing it returns to the open conversation. Not live Zeabur.",
   );
 } finally {
   await browser?.close();

@@ -111,12 +111,22 @@ async function graphql<T>(
 }
 
 export function zeaburPublicStatus() {
+  const token = credentialPresence("ZEABUR_API_TOKEN");
+  const projectId = runtimeEnv("ZEABUR_PROJECT_ID") || "";
+  const serviceId = runtimeEnv("ZEABUR_SERVICE_ID") || "";
+  const environmentId = runtimeEnv("ZEABUR_ENVIRONMENT_ID") || "";
   return {
-    token: credentialPresence("ZEABUR_API_TOKEN"),
-    projectId: runtimeEnv("ZEABUR_PROJECT_ID") || "",
-    serviceId: runtimeEnv("ZEABUR_SERVICE_ID") || "",
-    environmentId: runtimeEnv("ZEABUR_ENVIRONMENT_ID") || "",
+    token,
+    projectId,
+    serviceId,
+    environmentId,
     endpoint: DEFAULT_API,
+    state: token.configured
+      ? ("awaiting_authorization" as const)
+      : ("unconfigured" as const),
+    detail: token.configured
+      ? "已保存權杖，尚未通過 Zeabur 身分探測。權杖存在不是部署成功。"
+      : "尚未設定 ZEABUR_API_TOKEN。",
     notice:
       "權杖在 Zeabur 控制台 Settings → API Keys 建立。能開啟此網站的人都可以覆寫權杖並變更部署環境變數。",
   };

@@ -1,286 +1,212 @@
 "use client";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useAuth } from "../auth/AuthProvider";
 
-import { useEffect, useState, type FormEvent } from "react";
-
-type Identity = {
-  provider: "google" | "tamkang" | "email";
-  email: string | null;
-  emailVerified: boolean;
-};
-
-type Account = {
-  user: {
-    id: string;
-    name: string;
-    email: string | null;
-    avatarUrl: string | null;
-    emailVerified: boolean;
-  };
-  membership: { role: string } | null;
-  identities: Identity[];
-  sessions: { id: string; current?: boolean; createdAt: string; expiresAt: string }[];
-  providers: {
-    google: { configured: boolean; label: string };
-    tamkang: { configured: boolean; label: string };
-    email: { configured: boolean; mail: boolean; label: string };
-  };
+type AuthSessionRow = {
+  id: string;
+  current: boolean;
+  createdAt: string;
+  expiresAt: string;
+  device: string;
 };
 
 export default function AccountSettings() {
-  const [account, setAccount] = useState<Account | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [notice, setNotice] = useState("");
+  const auth = useAuth();
   const [busy, setBusy] = useState(false);
-  const [confirmOthers, setConfirmOthers] = useState(false);
-
-  async function load() {
-    const response = await fetch("/api/auth", {
-      cache: "no-store",
-      credentials: "same-origin",
-    });
-    if (response.ok) setAccount(await response.json());
-  }
-
-  useEffect(() => {
-    void load();
-  }, []);
-
-  const has = (provider: Identity["provider"]) =>
-    account?.identities.some((row) => row.provider === provider);
-  const emailIdentity = account?.identities.find((row) => row.provider === "email");
-
-  async function logout() {
-    setBusy(true);
-    try {
-      await fetch("/api/auth", {
-        method: "DELETE",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      window.location.assign("/");
-    } finally {
-      setBusy(false);
+  const [notice, setNotice] = useState("");
+  const [sessions, setSessions] = useState<AuthSessionRow[] | null>(null);
+  const [pending, setPending] = useState<string | null>(null);
+  const [linkEmail, setLinkEmail] = useState("");
+  const [linkPassword, setLinkPassword] = useState("");
+  const loadSessions = useCallback(async () => {
+    const response = await fetch("/api/auth/sessions", { cache: "no-store" });
+    if (!response.ok) {
+      setSessions([]);
+      return;
     }
+    const body = await response.json();
+    setSessions(body.sessions || []);
+  }, []);
+  useEffect(() => {
+    if (auth?.user) void loadSessions();
+  }, [auth?.user, loadSessions]);
+  if (!auth?.user)
+    return (
+      <div className="settings-stack">
+        <p className="muted">本機測試略過登入閘時，沒有帳號工作階段。</p>
+      </div>
+    );
+  const linked = new Set(auth.user.identities);
+  async function logout() {
+    if (busy) return;
+    setBusy(true);
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.reload();
   }
-
-  async function postAuth(body: unknown) {
-    const response = await fetch("/api/auth", {
+  async function link(provider: "google" | "tamkang") {
+    setNotice("");
+    const response = await fetch("/api/auth/link", {
       method: "POST",
-      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ provider }),
     });
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error?.message || "無法完成。");
-    return result;
-  }
-
-  async function revokeOthers() {
-    if (busy) return;
-    setBusy(true);
-    setNotice("");
-    try {
-      await postAuth({ action: "revoke_others" });
-      setConfirmOthers(false);
-      setNotice("已結束其他裝置的登入。");
-      await load();
-    } catch (error) {
-      setNotice((error as Error).message);
-    } finally {
-      setBusy(false);
+    if (!response.ok) {
+      setNotice(result.error?.message || "無法連結。");
+      return;
     }
+    window.location.href = result.url;
   }
-
-  async function revokeSession(sessionId: string) {
-    if (busy) return;
-    setBusy(true);
-    setNotice("");
-    try {
-      await postAuth({ action: "revoke_session", sessionId });
-      setNotice("已結束該工作階段。");
-      await load();
-    } catch (error) {
-      setNotice((error as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function linkEmail(event: FormEvent) {
+  async function attachEmail(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
     setBusy(true);
     setNotice("");
     try {
-      const response = await fetch("/api/auth", {
+      const response = await fetch("/api/auth/email", {
         method: "POST",
-        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "link_email", email, password }),
+        body: JSON.stringify({
+          action: "link",
+          email: linkEmail,
+          password: linkPassword,
+        }),
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.error?.message || "無法連結。");
-      setNotice(
-        result.verificationSent
-          ? "請至信箱完成驗證後再以密碼登入。"
-          : "已連結電子信箱。",
-      );
-      setPassword("");
-      await load();
+      if (!response.ok)
+        throw new Error(result.error?.message || "無法連結電子信箱。");
+      window.location.reload();
+    } catch (error) {
+      setNotice((error as Error).message);
+      setBusy(false);
+    }
+  }
+  async function revoke(id: string) {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth/sessions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error?.message || "無法結束工作階段。");
+      setPending(null);
+      await loadSessions();
     } catch (error) {
       setNotice((error as Error).message);
     } finally {
       setBusy(false);
     }
   }
-
-  if (!account) return <p className="muted">讀取帳號…</p>;
-
+  const google = auth.providers.find((item) => item.id === "google");
+  const tamkang = auth.providers.find((item) => item.id === "tamkang");
   return (
     <div className="settings-stack account-settings">
-      <div className="account-card">
-        {account.user.avatarUrl ? (
-          <img src={account.user.avatarUrl} alt="" width={56} height={56} />
+      <div className="account-identity">
+        {auth.user.avatarUrl ? (
+          <img src={auth.user.avatarUrl} alt="" width={56} height={56} />
         ) : (
-          <span className="account-avatar" aria-hidden="true">
-            {(account.user.name || "?").slice(0, 1)}
+          <span aria-hidden="true">
+            {(auth.user.displayName || "H").slice(0, 1)}
           </span>
         )}
-        <div>
-          <strong>{account.user.name}</strong>
-          <p>{account.user.email || "尚未連結電子信箱"}</p>
-          <p className="muted">
-            {account.membership?.role === "owner"
-              ? "工作區擁有者"
-              : account.membership?.role === "admin"
-                ? "管理者"
-                : "成員"}
-          </p>
-        </div>
-      </div>
-      {notice && (
-        <p className="error" role="alert">
-          {notice}
+        <p>
+          <strong>{auth.user.displayName}</strong>
+          <small>{auth.user.email || "尚未連結電子信箱"}</small>
         </p>
-      )}
+      </div>
       <ul className="identity-list">
-        <li>
-          <span>Google</span>
-          <span>{has("google") ? "已連結" : "未連結"}</span>
-          {!has("google") &&
-            (account.providers.google.configured ? (
-              <a href="/api/auth/google?mode=link">連結</a>
-            ) : (
-              <small>{account.providers.google.label}</small>
-            ))}
-        </li>
-        <li>
-          <span>淡江 SSO</span>
-          <span>{has("tamkang") ? "已連結" : "未連結"}</span>
-          {!has("tamkang") &&
-            (account.providers.tamkang.configured ? (
-              <a href="/api/auth/tamkang?mode=link">連結</a>
-            ) : (
-              <small>{account.providers.tamkang.label}</small>
-            ))}
-        </li>
-        <li>
-          <span>電子信箱</span>
-          <span>
-            {has("email")
-              ? emailIdentity?.emailVerified
-                ? "已連結"
-                : "已連結 · 未驗證"
-              : "未連結"}
-          </span>
-        </li>
+        <li>Google {linked.has("google") ? "✓" : "○"}</li>
+        <li>淡江 SSO {linked.has("tamkang") ? "✓" : "○"}</li>
+        <li>電子信箱 {linked.has("email") ? "✓" : "○"}</li>
       </ul>
-      {!has("email") &&
-        (account.providers.email.mail ? (
-          <form onSubmit={(event) => void linkEmail(event)}>
-            <label>
-              連結電子信箱
-              <input
-                type="email"
-                value={email}
-                autoComplete="email"
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </label>
-            <label>
-              設定密碼
-              <input
-                type="password"
-                value={password}
-                autoComplete="new-password"
-                minLength={12}
-                onChange={(event) => setPassword(event.target.value)}
-                required
-              />
-            </label>
-            <button className="primary" disabled={busy}>
-              連結信箱
-            </button>
-          </form>
-        ) : (
-          <p className="muted">尚未設定寄件，無法連結並驗證電子信箱</p>
-        ))}
+      {!linked.has("google") && (
+        <button
+          onClick={() => void link("google")}
+          disabled={!google?.configured}
+        >
+          {google?.configured ? "連結 Google" : "Google 登入尚未完成設定"}
+        </button>
+      )}
+      {!linked.has("tamkang") && (
+        <button
+          onClick={() => void link("tamkang")}
+          disabled={!tamkang?.configured}
+        >
+          {tamkang?.configured ? "連結淡江 SSO" : "淡江 SSO 尚未完成設定"}
+        </button>
+      )}
+      {!linked.has("email") && (
+        <form className="email-link-form" onSubmit={(event) => void attachEmail(event)}>
+          <label>
+            電子信箱
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={linkEmail}
+              onChange={(event) => setLinkEmail(event.target.value)}
+            />
+          </label>
+          <label>
+            密碼
+            <input
+              type="password"
+              required
+              minLength={10}
+              autoComplete="new-password"
+              value={linkPassword}
+              onChange={(event) => setLinkPassword(event.target.value)}
+            />
+          </label>
+          <button className="primary" disabled={busy}>
+            連結電子信箱
+          </button>
+        </form>
+      )}
+      {auth.membership && (
+        <p className="muted">工作區角色：{auth.membership.role}</p>
+      )}
       <h3>工作階段</h3>
       <ul className="session-list">
-        {account.sessions.map((row) => (
-          <li key={row.id}>
+        {(sessions || []).map((item) => (
+          <li key={item.id}>
             <span>
-              {row.current ? "目前這台" : "其他裝置"}
-              <span className="muted">
-                {" "}
-                · {new Date(row.createdAt).toLocaleString("zh-TW")}
-              </span>
+              <strong>{item.device}</strong>
+              <small>
+                {item.current ? "目前這個瀏覽器 · " : ""}
+                {new Date(item.createdAt).toLocaleString("zh-TW")}
+              </small>
             </span>
-            {!row.current && (
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void revokeSession(row.id)}
-              >
+            {item.current ? (
+              <span className="muted">使用中</span>
+            ) : pending === item.id ? (
+              <span className="session-confirm">
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={() => void revoke(item.id)}
+                >
+                  確定結束
+                </button>
+                <button disabled={busy} onClick={() => setPending(null)}>
+                  取消
+                </button>
+              </span>
+            ) : (
+              <button disabled={busy} onClick={() => setPending(item.id)}>
                 結束
               </button>
             )}
           </li>
         ))}
       </ul>
-      {account.sessions.some((row) => !row.current) &&
-        (confirmOthers ? (
-          <div className="artifact-confirm" role="alertdialog" aria-label="結束其他登入">
-            <p>結束其他裝置的登入？目前這次不會退出。</p>
-            <button
-              type="button"
-              className="primary"
-              disabled={busy}
-              onClick={() => void revokeOthers()}
-            >
-              確定結束
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setConfirmOthers(false)}
-            >
-              取消
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setConfirmOthers(true)}
-          >
-            結束其他工作階段
-          </button>
-        ))}
-      <button onClick={() => void logout()} disabled={busy}>
+      {notice && <p role="status">{notice}</p>}
+      <button className="primary" onClick={() => void logout()}>
         登出
       </button>
     </div>

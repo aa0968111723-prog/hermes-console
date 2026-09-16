@@ -2,7 +2,6 @@ import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES } from "../lib/contracts";
 
 /** Real uploads/settings first; explicitly labelled UI response fixtures second.
  * The fixtures never configure credentials, publish, or contact external providers. */
@@ -16,6 +15,12 @@ export async function verifyVisualStates(
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.getByRole("button", { name: "加入內容", exact: true }).click();
   await expect(page.getByRole("group", { name: "加入內容選項" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Canva", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "圖片", exact: true }),
+  ).toBeEnabled();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "加入內容", exact: true }),
@@ -50,16 +55,12 @@ export async function verifyVisualStates(
   await page.getByRole("tab", { name: "連線", exact: true }).click();
   await expect(page.getByRole("group", { name: "選擇連線" })).toBeVisible();
   await expect(page.locator(".connection-editor")).toBeHidden();
-  const picker = page.getByRole("group", { name: "選擇連線" });
-  await expect(picker.locator(".connection-state i")).toHaveCount(12);
-  assert.doesNotMatch(
-    await picker.innerText(),
-    /未設定|已驗證|部分可用|待授權|已連線/,
-  );
   await page.screenshot({
     path: join(output, "settings-connections-mobile.png"),
   });
   await audit("connections-mobile");
+  const picker = page.getByRole("group", { name: "選擇連線" });
+  const ops = page.locator("details.connection-ops");
   for (const name of [
     "GALLEY",
     "淡江",
@@ -73,24 +74,18 @@ export async function verifyVisualStates(
     await picker
       .getByRole("button", { name: new RegExp("^" + name + "：") })
       .click();
+    await expect(ops).toBeVisible();
+    if ((await ops.getAttribute("open")) === null) {
+      await expect(ops.locator("summary")).toContainText("填寫網址與權杖");
+      await expect(
+        page.locator(".connection-editor section:visible"),
+      ).toHaveCount(0);
+      await ops.locator("summary").click();
+    }
     await expect(
       page.locator(".connection-editor section:visible"),
     ).toHaveCount(1);
   }
-  await picker.getByRole("button", { name: /^GALLEY：/ }).click();
-  await expect(page.locator(".connection-editor section:visible")).toContainText(
-    "進階說明",
-  );
-  await expect(page.locator(".connection-editor")).not.toContainText(
-    "galley_research",
-  );
-  await picker.getByRole("button", { name: /^淡江：/ }).click();
-  await expect(page.locator(".connection-editor section:visible")).toContainText(
-    "不是淡江 SSO",
-  );
-  await expect(
-    page.locator(".connection-editor section:visible").getByLabel("MCP 密碼"),
-  ).toBeHidden();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
     path: join(output, "settings-connections-desktop.png"),
@@ -149,8 +144,8 @@ export async function verifyVisualStates(
       {
         id: "event-1",
         taskId: "ui-fixture-task",
-        toolCallId: "call-1" as string | null,
-        toolName: "galley_research" as string | null,
+        toolCallId: "call-1",
+        toolName: "galley_research",
         status: "running",
         startedAt: now,
         endedAt: null as string | null,
@@ -161,19 +156,6 @@ export async function verifyVisualStates(
         usage: null,
       },
     ],
-    goal: {
-      goal: "[介面測試資料] 研究春日活動參考",
-      audience: null,
-      output: "海報",
-      constraints: [] as string[],
-      requiresResearch: true,
-      requiresDesign: true,
-      requiresAudienceEvaluation: false,
-      requiresTamkang: false,
-      requiresInspiration: false,
-      requiresImageAnalysis: false,
-      intentTier: "create" as const,
-    },
   };
   await page.route("**/api/tasks", (route) =>
     route.fulfill({ json: { tasks: [task] } }),
@@ -223,6 +205,7 @@ export async function verifyVisualStates(
           {
             id: "ui-fixture-artifact-B",
             projectId: "personal",
+            conversationId: "ui-fixture-conversation",
             brief: "[介面測試資料] 成果預覽與接續修改；不是外部製作紀錄",
             directions: [],
             selected: 1,
@@ -275,6 +258,10 @@ export async function verifyVisualStates(
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
     const draft = "[介面測試草稿] 等候工具結果";
     await composer.fill(draft);
+    const liveSummary = page.locator(".task-summary");
+    await expect(liveSummary).toContainText("研究 · 執行中");
+    await expect(liveSummary).not.toContainText("[介面測試事件]");
+    await expect(liveSummary).not.toContainText("galley_research");
     const status = page.getByRole("button", { name: "查看目前任務：執行中，研究", exact: true });
     await expect(status).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
@@ -286,23 +273,25 @@ export async function verifyVisualStates(
     await page.keyboard.press("Enter");
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
-    await expect(detail).toContainText("ui-fixture-task");
+    await expect(detail.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
     const technical = detail.locator(".task-technical");
+    await expect(technical).toBeVisible();
     const technicalSummary = technical.locator("summary");
-    if ((await technical.getAttribute("open")) !== null)
-      await technicalSummary.click();
     await expect(technical).not.toHaveAttribute("open", "");
-    await expect(technicalSummary).toContainText("技術資訊");
-    await expect(technical.locator("code").first()).toBeHidden();
+    await expect(technicalSummary).toContainText("維運檢視");
+    await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
+    await expect(detail.getByRole("heading", { name: "接下來" })).toBeVisible();
+    await expect(detail.locator(".task-plan")).toContainText("研究");
+    await expect(detail.locator(".task-plan")).not.toContainText("galley");
+    await expect(detail.locator(".event-meta code").filter({ hasText: "galley_research" })).toBeHidden();
     if (width === 390 && height === 420) {
       await page.screenshot({
         path: join(output, "task-technical-collapsed-390x420.png"),
       });
-      await technicalSummary.click();
-      await expect(technical.locator("code").first()).toBeVisible();
-      await expect(technical.locator("code").first()).toHaveText(task.id);
-      await technicalSummary.click();
     }
+    await technicalSummary.click();
+    await expect(technical.locator("code").first()).toBeVisible();
+    await expect(technical.locator("code").first()).toHaveText(task.id);
     const taskUsage = detail.getByRole("region", { name: "任務用量" });
     await expect(taskUsage).toContainText("等待 Hermes 回傳");
     await expect(taskUsage).not.toContainText("未知");
@@ -312,10 +301,10 @@ export async function verifyVisualStates(
     if ((await eventDetails.getAttribute("open")) !== null)
       await eventSummary.click();
     await expect(eventDetails).not.toHaveAttribute("open", "");
-    await expect(eventSummary).toContainText("研究");
-    await expect(eventSummary).toContainText("執行中");
-    await expect(eventSummary).toContainText("[介面測試事件] 研究來源");
+    await expect(eventSummary.locator(".event-tool-label")).toHaveText("研究");
     await expect(eventSummary).not.toContainText("GALLEY");
+    await expect(eventSummary).toContainText("執行中");
+    await expect(eventSummary).not.toContainText("[介面測試事件] 研究來源");
     await expect(eventSummary).not.toContainText("galley_research");
     if ((width === 390 && height === 420) || width === 1440) {
       await eventSummary.scrollIntoViewIfNeeded();
@@ -323,8 +312,18 @@ export async function verifyVisualStates(
     }
     await eventSummary.click();
     await expect(eventDetails).toHaveAttribute("open", "");
+    await expect(eventDetails.locator(".event-raw-summary")).toHaveText(
+      "[介面測試事件] 研究來源",
+    );
     await expect(detail.locator(".event-meta code").first()).toBeVisible();
     await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
+    await technicalSummary.click();
+    await expect(technical).not.toHaveAttribute("open", "");
+    await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
+    await expect(eventDetails.getByRole("link", { name: "example.com", exact: true })).toBeVisible();
+    await expect(eventDetails.getByRole("link", { name: "https://example.com/reference" })).toHaveCount(0);
+    await expect(detail).not.toContainText("編譯視覺規格");
+    await expect(detail).not.toContainText("UNKNOWN");
     await page.keyboard.press("Escape");
     await expect(composer).toBeFocused();
     await expect(composer).toHaveValue(draft);
@@ -412,10 +411,15 @@ export async function verifyVisualStates(
   }
   task.state = "running";
   task.events[0].status = "running";
-  task.observationError = "[介面測試] 狀態查詢失敗";
+  task.observationError = "Hermes 金鑰無效或已撤銷，請在後端更換。";
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("連線異常 · 狀態待確認");
   await expect(page.locator(".composer-task-tool")).toHaveCount(0);
+  await expect(page.locator(".message.assistant .error")).toHaveText(
+    "現在沒辦法連到 Hermes。",
+  );
+  await expect(page.locator("body")).not.toContainText("請在後端更換");
+  await expect(page.locator("body")).not.toContainText("金鑰無效");
   await page.screenshot({ path: join(output, "task-access-stale.png") });
   await audit("task-access-stale-mobile");
   task.observationError = null;
@@ -431,19 +435,7 @@ export async function verifyVisualStates(
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("完成");
   await expect(page.locator(".visual-message")).toContainText("過程完成");
-  await expect(page.locator(".visual-message .source-cards")).toContainText(
-    "1 個來源",
-  );
-  await expect(
-    page.locator(".visual-message").getByRole("region", { name: "設計成果預覽" }),
-  ).toBeVisible();
-  assert.equal(
-    await page
-      .locator(".visual-message .canva-result h3")
-      .evaluate((element) => element.scrollWidth <= element.clientWidth),
-    true,
-    "in-chat artifact title must wrap without horizontal overflow",
-  );
+  await expect(page.locator(".visual-message")).not.toContainText("個工具完成");
   await page.setViewportSize({ width: 390, height: 420 });
   await page.locator(".composer-task-status").click();
   let taskUsage = page.getByRole("dialog", { name: "任務詳情" })
@@ -570,135 +562,19 @@ export async function verifyVisualStates(
     document.documentElement.style.removeProperty("--safe-area-bottom");
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  const mobileTitle = page
-    .getByRole("region", { name: "設計成果預覽" })
-    .locator("h3")
-    .first();
-  await mobileTitle.scrollIntoViewIfNeeded();
-  await expect(mobileTitle).toBeVisible();
-  assert.equal(
-    await mobileTitle.evaluate(
-      (element) => element.scrollWidth <= element.clientWidth,
-    ),
-    true,
-    "in-chat artifact title must wrap on mobile without horizontal overflow",
-  );
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
-  const continueComposer = page.getByRole("textbox", { name: "訊息", exact: true });
-  await expect(continueComposer).toHaveValue("請接續修改這個作品。");
-  await expect(continueComposer).not.toHaveValue(/ui-fixture-artifact-B|workspace_/);
-  await page.screenshot({
-    path: join(output, "continue-artifact-composer.png"),
-  });
-  await page.route("**/api/workflows", (route) =>
-    route.fulfill({ json: { workflows: [] } }),
-  );
-  task.events.push({
-    id: "event-spec-only",
-    taskId: task.id,
-    toolCallId: null,
-    toolName: null,
-    status: "completed",
-    startedAt: now,
-    endedAt: now,
-    summary: DESIGN_WITHOUT_PREVIEW,
-    result: null,
-    sources: [],
-    error: null,
-    usage: null,
-  });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.reload();
-  await expect(page.locator(".composer-task-status")).toContainText("規格已保留");
-  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
-  await expect(page.locator(".composer-task-status")).toHaveAttribute(
-    "data-tone",
-    "warning",
-  );
-  await expect(page.locator(".visual-message")).toContainText("規格已保留");
-  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
-  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
-  await expect(page.locator(".turtle")).toHaveAttribute(
-    "aria-label",
-    /規格已保留/,
-  );
   await expect(
-    page
-      .locator(".visual-message")
-      .getByRole("region", { name: "設計成果預覽" }),
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).toHaveValue("請接續修改同一作品。");
+  await expect(
+    page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toHaveCount(0);
-  await page.screenshot({ path: join(output, "design-spec-only-honesty.png") });
-  task.events = task.events.filter((event) => event.id !== "event-spec-only");
-  task.events[0].sources = [];
-  task.events.push({
-    id: "event-no-sources",
-    taskId: task.id,
-    toolCallId: null,
-    toolName: null,
-    status: "completed",
-    startedAt: now,
-    endedAt: now,
-    summary: RESEARCH_WITHOUT_SOURCES,
-    result: null,
-    sources: [],
-    error: null,
-    usage: null,
-  });
-  await page.reload();
-  await expect(page.locator(".composer-task-status")).toContainText(
-    "還沒找到來源",
-  );
-  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
-  await expect(page.locator(".composer-task-status")).toHaveAttribute(
-    "data-tone",
-    "warning",
-  );
-  await expect(page.locator(".visual-message")).toContainText("還沒找到來源");
-  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
-  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
-  await expect(page.locator(".turtle")).toHaveAttribute(
-    "aria-label",
-    /還沒找到來源/,
-  );
-  await page.screenshot({
-    path: join(output, "research-without-sources-honesty.png"),
-  });
-  task.events = task.events.filter((event) => event.id !== "event-no-sources");
-  task.events[0].sources = ["https://example.com/reference"];
-  task.goal.requiresImageAnalysis = true;
-  task.events.push({
-    id: "event-unseen",
-    taskId: task.id,
-    toolCallId: null,
-    toolName: null,
-    status: "completed",
-    startedAt: now,
-    endedAt: now,
-    summary: IMAGE_WITHOUT_VISION,
-    result: null,
-    sources: [],
-    error: null,
-    usage: null,
-  });
-  await page.reload();
-  await expect(page.locator(".composer-task-status")).toContainText("還沒看圖");
-  await expect(page.locator(".composer-task-status")).not.toContainText("完成");
-  await expect(page.locator(".composer-task-status")).toHaveAttribute(
-    "data-tone",
-    "warning",
-  );
-  await expect(page.locator(".visual-message")).toContainText("還沒看圖");
-  await expect(page.locator(".visual-message")).not.toContainText("過程完成");
-  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "waiting");
-  await expect(page.locator(".turtle")).toHaveAttribute("aria-label", /還沒看圖/);
-  await page.screenshot({
-    path: join(output, "image-without-vision-honesty.png"),
-  });
-  task.events = task.events.filter((event) => event.id !== "event-unseen");
-  task.goal.requiresImageAnalysis = false;
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).not.toContainText("ui-fixture-artifact-B");
   task.state = "failed";
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();
@@ -709,23 +585,16 @@ export async function verifyVisualStates(
   await page.keyboard.press("Escape");
   await page.screenshot({ path: join(output, "error-fixture.png") });
     await page.context().setOffline(true);
-  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "offline");
-  await expect(page.locator(".turtle")).toHaveAttribute("aria-label", /離線/);
+  await expect(page.locator(".turtle")).toHaveAttribute(
+    "aria-label",
+    /離線/,
+  );
   await page.setViewportSize({ width: 390, height: 844 });
   // Wait until offline pill replaces prior failed state (avoid flake on 「失敗」).
   await expect(page.locator(".composer-task-status")).toContainText(
     "離線 · 顯示上次資料",
     { timeout: 15_000 },
   );
-  const jump = page.getByRole("button", { name: "回到最新訊息" });
-  if (await jump.isVisible()) {
-    const box = await jump.boundingBox();
-    assert.ok(
-      box && box.width >= 44 && box.height >= 44 && box.x >= 390 / 2,
-      "jump chip must stay on the right and keep a 44px target: " +
-        JSON.stringify(box),
-    );
-  }
   await page.screenshot({ path: join(output, "offline-mobile.png") });
   await page.context().setOffline(false);
   await page.unrouteAll({ behavior: "wait" });

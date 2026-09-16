@@ -1,228 +1,182 @@
 "use client";
 
-import {
-  Download,
-  GitCompare,
-  Layers,
-  MessageSquare,
-  RotateCcw,
-  X,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { Artifact } from "@/lib/server/artifacts";
-import type { TaskFocus } from "@/lib/contracts";
-import {
-  continueCopy,
-  continueDesign,
-  revisionLabel,
-} from "@/lib/client/artifacts";
+import { GitBranch, Layers, MessageSquare, RotateCcw, X } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 import CanvaResult from "../CanvaResult";
+import type { Artifact } from "@/lib/server/artifacts";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
+import DirectionBrief from "./DirectionBrief";
 
 export default function ArtifactStage({
   design,
   artifact,
-  continueId,
   onContinue,
-  onRestored,
+  onRestore,
+  onFork,
 }: {
-  design?: Record<string, unknown> | null;
+  design: Record<string, unknown>;
   artifact?: Artifact;
-  continueId?: string;
-  onContinue?: (text: string, focus?: TaskFocus) => void;
-  onRestored?: () => void;
+  onContinue?: () => void;
+  onRestore?: (revisionId: string) => void;
+  onFork?: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
-  const [viewing, setViewing] = useState(
-    artifact?.selectedRevision || artifact?.revision || 1,
-  );
   const [compare, setCompare] = useState(false);
-  const [confirmRestore, setConfirmRestore] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [busy, setBusy] = useState(false);
+  const revisions = artifact?.revisions || [];
+  const current = revisions.find(
+    (item) => item.revisionId === artifact?.currentRevisionId,
+  );
+  const previous =
+    revisions.find((item) => item.revisionId !== artifact?.currentRevisionId) ||
+    revisions[0];
+  const [leftId, setLeftId] = useState(previous?.revisionId || "");
+  const [rightId, setRightId] = useState(
+    artifact?.currentRevisionId || "",
+  );
   useEffect(() => {
     if (open) dialog.current?.showModal();
     else dialog.current?.close();
   }, [open]);
-  const revisions = artifact?.revisions || [];
-  const current =
-    revisions.find((row) => row.revision === viewing) || revisions.at(-1);
-  const baseline =
-    revisions.find((row) => row.revision === artifact?.selectedRevision) ||
-    revisions[0];
-  function prompt() {
-    if (artifact) return continueCopy(artifact.artifactId, viewing);
-    return continueDesign(continueId || "");
-  }
-  async function restore() {
-    if (!artifact || busy) return;
-    setBusy(true);
-    setNotice("");
-    try {
-      const response = await fetch("/api/artifacts", {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "restore",
-          artifactId: artifact.artifactId,
-          revisionId: String(viewing),
-          expectedRevision: artifact.expectedRevision,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok)
-        throw new Error(payload.error?.message || "無法還原此版本。");
-      setNotice("已還原成 " + revisionLabel(viewing) + "。");
-      setConfirmRestore(false);
-      onRestored?.();
-    } catch (error) {
-      setNotice((error as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  useEffect(() => {
+    setLeftId(previous?.revisionId || "");
+    setRightId(artifact?.currentRevisionId || "");
+  }, [artifact?.currentRevisionId, previous?.revisionId]);
+  const left = revisions.find((item) => item.revisionId === leftId);
+  const right = revisions.find((item) => item.revisionId === rightId);
+  const spec = isDirectionBriefPack(design);
+  const leftSpec = left && isDirectionBriefPack(left.design) ? left.design : null;
+  const rightSpec = right && isDirectionBriefPack(right.design) ? right.design : null;
   return (
-    <section className="artifact-stage" aria-label="設計成果預覽">
+    <section
+      className="artifact-stage"
+      aria-label={spec ? "規格草稿預覽" : "設計成果預覽"}
+    >
       <header>
         <span>
           <Layers size={16} />
-          成果
-          {current ? " · " + revisionLabel(current.revision) : ""}
+          {spec ? "規格草稿" : "成果"}
+          {current && <small> V{current.revision}</small>}
         </span>
-        {onContinue && (
-          <button
-            className="icon-button"
-            aria-label="在對話修改這個作品"
-            onClick={() => {
-              const next = prompt();
-              onContinue(next.text, next.focus);
-            }}
-          >
-            <MessageSquare size={18} />
-          </button>
-        )}
-      </header>
-      {design ? (
-        <CanvaResult design={design} onPreview={() => setOpen(true)} />
-      ) : current ? (
-        <article className="copy-result">
-          <h3>{current.title}</h3>
-          <p className="artifact-excerpt">{current.excerpt}</p>
-        </article>
-      ) : artifact?.previewUrl ? (
-        <img src={artifact.previewUrl} alt="" loading="lazy" />
-      ) : null}
-      {revisions.length > 1 && (
-        <div className="artifact-revisions" role="group" aria-label="作品版本">
-          {revisions.map((row) => (
+        <div className="artifact-actions">
+          {artifact && artifact.revisions.length > 1 && onRestore && (
+            <label>
+              版本
+              <select
+                aria-label="還原作品版本"
+                value={artifact.currentRevisionId}
+                onChange={(event) => {
+                  if (event.target.value !== artifact.currentRevisionId)
+                    onRestore(event.target.value);
+                }}
+              >
+                {artifact.revisions.map((item) => (
+                  <option key={item.revisionId} value={item.revisionId}>
+                    V{item.revision}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {revisions.length > 1 && (
             <button
-              key={row.revisionId}
-              type="button"
-              aria-pressed={row.revision === viewing}
-              onClick={() => {
-                setViewing(row.revision);
-                setConfirmRestore(false);
-              }}
+              className="icon-button"
+              aria-pressed={compare}
+              aria-label="比較版本"
+              onClick={() => setCompare((value) => !value)}
             >
-              {revisionLabel(row.revision)}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="artifact-actions">
-        {onContinue && (
-          <button
-            type="button"
-            onClick={() => {
-              const next = prompt();
-              onContinue(next.text, next.focus);
-            }}
-          >
-            修改
-          </button>
-        )}
-        {revisions.length > 1 && (
-          <button
-            type="button"
-            aria-pressed={compare}
-            onClick={() => setCompare((value) => !value)}
-          >
-            <GitCompare size={16} />
-            比較
-          </button>
-        )}
-        {artifact?.source === "copy" && (
-          <a
-            className="button-link"
-            href={
-              "/api/creative?download=" +
-              artifact.artifactId +
-              "&revision=" +
-              viewing
-            }
-          >
-            <Download size={16} />
-            匯出
-          </a>
-        )}
-        {artifact?.source === "copy" &&
-          revisions.length > 1 &&
-          viewing !== artifact.selectedRevision && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setConfirmRestore(true)}
-            >
-              <RotateCcw size={16} />
-              還原
+              比較
             </button>
           )}
-      </div>
-      {compare && current && baseline && current.revision !== baseline.revision && (
-        <div className="artifact-compare">
-          <article>
-            <h4>{revisionLabel(baseline.revision)}</h4>
-            <p>{baseline.excerpt}</p>
-          </article>
-          <article>
-            <h4>{revisionLabel(current.revision)}</h4>
-            <p>{current.excerpt}</p>
-          </article>
+          {onFork && (
+            <button
+              className="icon-button"
+              aria-label="分叉這個作品"
+              onClick={onFork}
+            >
+              <GitBranch size={18} />
+            </button>
+          )}
+          {onRestore && current && artifact && artifact.revisions.length > 1 && (
+            <button
+              className="icon-button"
+              aria-label="還原成目前選取版本"
+              onClick={() => onRestore(artifact.currentRevisionId)}
+            >
+              <RotateCcw size={18} />
+            </button>
+          )}
+          {onContinue && (
+            <button
+              className="icon-button"
+              aria-label="在對話修改這個作品"
+              onClick={onContinue}
+            >
+              <MessageSquare size={18} />
+            </button>
+          )}
         </div>
-      )}
-      {confirmRestore && (
-        <div className="artifact-confirm" role="alertdialog" aria-label="還原確認">
-          <p>確定還原成 {revisionLabel(viewing)}？目前選定版本不會刪除。</p>
-          <button
-            type="button"
-            className="primary"
-            disabled={busy}
-            onClick={() => void restore()}
-          >
-            確定還原
-          </button>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setConfirmRestore(false)}
-          >
-            取消
-          </button>
+      </header>
+      {compare && left && right ? (
+        <div className="artifact-compare" aria-label="版本並排預覽">
+          <p className="muted">並排預覽，不是像素差異。還原仍走版本選單。</p>
+          <div className="artifact-compare-panes">
+            <figure>
+              <label>
+                左側
+                <select
+                  aria-label="比較左側版本"
+                  value={leftId}
+                  onChange={(event) => setLeftId(event.target.value)}
+                >
+                  {revisions.map((item) => (
+                    <option key={item.revisionId} value={item.revisionId}>
+                      V{item.revision}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {leftSpec ? (
+                <DirectionBrief brief={leftSpec} />
+              ) : (
+                <CanvaResult design={left.design} />
+              )}
+            </figure>
+            <figure>
+              <label>
+                右側
+                <select
+                  aria-label="比較右側版本"
+                  value={rightId}
+                  onChange={(event) => setRightId(event.target.value)}
+                >
+                  {revisions.map((item) => (
+                    <option key={item.revisionId} value={item.revisionId}>
+                      V{item.revision}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {rightSpec ? (
+                <DirectionBrief brief={rightSpec} />
+              ) : (
+                <CanvaResult design={right.design} />
+              )}
+            </figure>
+          </div>
         </div>
-      )}
-      {notice && (
-        <p className="muted" role="status">
-          {notice}
-        </p>
+      ) : spec ? (
+        <DirectionBrief brief={design} />
+      ) : (
+        <CanvaResult design={design} onPreview={() => setOpen(true)} />
       )}
       <dialog
         ref={dialog}
         className="artifact-preview"
         aria-label="作品全螢幕預覽"
         onCancel={() => setOpen(false)}
-        onClick={(event) => {
-          if (event.currentTarget === event.target) setOpen(false);
+        onClick={(e) => {
+          if (e.currentTarget === e.target) setOpen(false);
         }}
       >
         <header>
@@ -235,7 +189,7 @@ export default function ArtifactStage({
             <X size={22} />
           </button>
         </header>
-        {open && design && <CanvaResult design={design} />}
+        {open && <CanvaResult design={design} />}
       </dialog>
     </section>
   );

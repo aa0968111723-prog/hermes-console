@@ -58,7 +58,7 @@ export interface Message {
   createdAt: string;
   taskId?: string;
   attachments?: string[];
-  provenance?: "hermes" | "legacy_unverified";
+  provenance?: "hermes" | "legacy_unverified" | "workspace";
 }
 export interface Conversation {
   id: string;
@@ -118,7 +118,9 @@ export interface StructuredGoal {
   requiresAudienceEvaluation: boolean;
   requiresTamkang: boolean;
   requiresInspiration: boolean;
-  requiresImageAnalysis: boolean;
+  requiresImageReview?: boolean;
+  requiresImageAnalysis?: boolean;
+  directionLocked?: boolean;
   intentTier: IntentTier;
 }
 export interface PlanStep {
@@ -249,6 +251,10 @@ export interface Health {
   backend: "sqlite" | "postgres";
   dataDir: string;
   storeReady: boolean;
+  /** Process is up. Not the same as Hermes being usable. */
+  live?: boolean;
+  /** True only after a verified Agent task against the current credentials. */
+  agentReady?: boolean;
 }
 export interface ReadyStatus {
   ready: boolean;
@@ -308,4 +314,23 @@ export type RecruitmentFunnelRead = {
     formReplies: "omitted";
     attendanceRows: "omitted";
   };
+};
+
+export type PublicAuthProviderId = "google" | "tamkang" | "email";
+export type PublicProviderStatus = {
+  id: PublicAuthProviderId;
+  configured: boolean;
+  message: string | null;
+};
+export type PublicSession = {
+  required: boolean;
+  user: {
+    id: string;
+    displayName: string;
+    email: string | null;
+    avatarUrl: string | null;
+    identities: PublicAuthProviderId[];
+  } | null;
+  membership: { role: "owner" | "admin" | "member" } | null;
+  providers: PublicProviderStatus[];
 };

@@ -22,6 +22,7 @@ const {
   saveUpload,
   thumbnailPath,
 } = await import("../lib/server/materials");
+const { materialImageSrc } = await import("../lib/client/materials");
 const { put, list } = await import("../lib/server/store");
 const { ingestUrl } = await import("../lib/server/inspiration");
 const materialsRoute = await import("../app/api/materials/route");
@@ -174,6 +175,57 @@ test("uploading the same PNG twice marks the second as duplicate and keeps both 
   assert.equal(
     workspaceAdminBody.materials.some((item) => item.id === second.id),
     true,
+  );
+});
+
+test("image GET serves a compressed webp thumbnail, not the original PNG", async () => {
+  const png = await sharp({
+    create: { width: 640, height: 480, channels: 3, background: "#356b45" },
+  })
+    .png()
+    .toBuffer();
+  const saved = await saveUpload(
+    "workspace",
+    "personal",
+    "cover-thumb.png",
+    "image/png",
+    png,
+  );
+  assert.equal(
+    materialImageSrc(saved.id, "thumb"),
+    "/api/materials?id=" + saved.id + "&variant=thumb",
+  );
+  assert.equal(
+    materialImageSrc(saved.id, "full"),
+    "/api/materials?id=" + saved.id,
+  );
+  const full = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + saved.id),
+  );
+  const thumb = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + saved.id + "&variant=thumb"),
+  );
+  assert.equal(full.status, 200);
+  assert.equal(thumb.status, 200);
+  assert.equal(full.headers.get("content-type"), "image/png");
+  assert.equal(thumb.headers.get("content-type"), "image/webp");
+  const fullBytes = Buffer.from(await full.arrayBuffer());
+  const thumbBytes = Buffer.from(await thumb.arrayBuffer());
+  assert.ok(thumbBytes.length < fullBytes.length);
+  const pdf = await saveUpload(
+    "workspace",
+    "personal",
+    "notes.pdf",
+    "application/pdf",
+    Buffer.from("%PDF-1.4\n% notes"),
+  );
+  assert.equal(
+    (
+      await materialsRoute.GET(
+        originRequest("/api/materials?id=" + pdf.id + "&variant=thumb"),
+      )
+    ).status,
+    400,
   );
 });
 

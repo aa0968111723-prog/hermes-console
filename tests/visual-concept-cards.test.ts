@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   isVisualConceptPack,
   parseVisualConceptPack,
+  studentFormatLabel,
+  studentUnknownNotice,
 } from "../lib/client/visual-pack";
 
 const pack = {
@@ -34,4 +36,12 @@ test("visual pack guard rejects fake renders and incomplete concepts", () => {
   assert.equal(parseVisualConceptPack(JSON.stringify(pack))?.format.width, 1080);
   assert.equal(parseVisualConceptPack("請幫我做海報"), null);
   assert.equal(parseVisualConceptPack("{not json"), null);
+});
+
+test("student visual cards hide pixels and UNKNOWN", () => {
+  assert.equal(studentFormatLabel(pack.format.label), "貼文");
+  assert.equal(studentFormatLabel("Instagram 限時動態 9:16"), "限時動態");
+  assert.equal(studentFormatLabel("海報 A4"), "海報 A4");
+  assert.equal(studentUnknownNotice(pack.unknownFields), "未提供：日期、地點，畫面上留空。");
+  assert.doesNotMatch(studentUnknownNotice(pack.unknownFields), /UNKNOWN/);
 });

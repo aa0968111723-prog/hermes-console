@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import IntegrationGrid from "../visual/IntegrationGrid";
+import { useAuth } from "../auth/AuthProvider";
 
 type FieldStatus = {
   configured: boolean;
@@ -16,10 +17,12 @@ type SettingsPayload = {
   fields: Record<string, FieldStatus>;
   hermes: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     keySource: string;
   };
-  mcpBridge: FieldStatus;
+  mcpBridge: FieldStatus & { state?: string; detail?: string };
   tamkang: {
     state: string;
     detail: string;
@@ -53,6 +56,8 @@ type SettingsPayload = {
   };
   atlas?: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     tokenSource: string;
   };
@@ -89,6 +94,8 @@ type SettingsPayload = {
     serviceId: string;
     environmentId: string;
     notice: string;
+    state?: string;
+    detail?: string;
   };
   openSettingsWarning: string;
   probe?: { status: string; toolsCount: number; lastError: string | null };
@@ -120,15 +127,6 @@ function secretHint(field?: FieldStatus) {
   );
 }
 
-function ConnectionNote({ children }: { children: ReactNode }) {
-  return (
-    <details className="connection-advanced">
-      <summary>進階說明</summary>
-      <p className="muted">{children}</p>
-    </details>
-  );
-}
-
 export default function ConnectionSettings({
   onChanged,
   canva,
@@ -138,6 +136,11 @@ export default function ConnectionSettings({
   canva?: ReactNode;
   canvaState?: string;
 }) {
+  const auth = useAuth();
+  const canEditConnections =
+    !auth?.required ||
+    auth.membership?.role === "owner" ||
+    auth.membership?.role === "admin";
   const [data, setData] = useState<SettingsPayload | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -162,8 +165,6 @@ export default function ConnectionSettings({
   const [framelabToken, setFramelabToken] = useState("");
   const [duigaoUrl, setDuigaoUrl] = useState("");
   const [duigaoToken, setDuigaoToken] = useState("");
-  const [tkuUser, setTkuUser] = useState("");
-  const [tkuPassword, setTkuPassword] = useState("");
   const [galleyUrl, setGalleyUrl] = useState("");
   const [galleyToken, setGalleyToken] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -212,7 +213,6 @@ export default function ConnectionSettings({
     setLumenToken("");
     setFramelabToken("");
     setDuigaoToken("");
-    setTkuPassword("");
     setGalleyToken("");
     setZeaburToken("");
     setZeaburValue("");
@@ -322,9 +322,9 @@ export default function ConnectionSettings({
           </dd>
           <dt>Hermes</dt>
           <dd>
-            {data?.hermes.configured
-              ? `已設定（網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}）`
-              : "尚未設定"}
+            {data
+              ? `${TAMKANG[data.hermes.state || ""] || data.hermes.state || (data.hermes.configured ? "待驗證" : "未設定")} · ${data.hermes.detail || (data.hermes.configured ? `網址 ${SOURCE[data.hermes.urlSource]}／金鑰 ${SOURCE[data.hermes.keySource]}` : "尚未設定")}`
+              : "讀取中"}
           </dd>
           <dt>淡江 MCP</dt>
           <dd>
@@ -352,8 +352,8 @@ export default function ConnectionSettings({
           </dd>
           <dt>場圖 Atlas</dt>
           <dd>
-            {data?.atlas?.configured
-              ? `已設定（網址 ${SOURCE[data.atlas.urlSource]}／權杖 ${SOURCE[data.atlas.tokenSource]}）`
+            {data?.atlas
+              ? `${TAMKANG[data.atlas.state || ""] || data.atlas.state || "未設定"} · ${data.atlas.detail || "尚未回報"}`
               : "尚未設定"}
           </dd>
           <dt>Lumen 創作台</dt>
@@ -384,12 +384,12 @@ export default function ConnectionSettings({
           {
             id: "hermes",
             name: "Hermes",
-            state: data?.hermes.configured ? "configured" : "unconfigured",
+            state: data?.hermes.state || "unconfigured",
           },
           {
             id: "workspace",
             name: "Workspace",
-            state: data?.mcpBridge.configured ? "configured" : "unconfigured",
+            state: data?.mcpBridge.state || "unconfigured",
           },
           {
             id: "galley",
@@ -399,7 +399,7 @@ export default function ConnectionSettings({
           {
             id: "atlas",
             name: "Atlas",
-            state: data?.atlas?.configured ? "configured" : "unconfigured",
+            state: data?.atlas?.state || "unconfigured",
           },
           {
             id: "framelab",
@@ -434,17 +434,20 @@ export default function ConnectionSettings({
           {
             id: "zeabur",
             name: "Zeabur",
-            state: data?.zeabur?.token.configured
-              ? "configured"
-              : "unconfigured",
+            state: data?.zeabur?.state || "unconfigured",
           },
         ]}
       />
       {selected === "canva" && canva}
-      <div
-        className="connection-editor"
-        hidden={!selected || selected === "canva"}
+      {!canEditConnections && (
+        <p className="muted">連線與權杖由工作區管理員設定。一般成員看不到也改不了密鑰。</p>
+      )}
+      <details
+        className="connection-ops"
+        hidden={!canEditConnections || !selected || selected === "canva"}
       >
+        <summary>填寫網址與權杖</summary>
+      <div className="connection-editor">
         <form
           onSubmit={async (event) => {
             event.preventDefault();
@@ -574,10 +577,11 @@ export default function ConnectionSettings({
                 spellCheck={false}
               />
             </label>
-            <ConnectionNote>
-              JSON 只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江、訊核與
-              GALLEY 用各自卡片設定。
-            </ConnectionNote>
+            <p className="muted">
+              JSON
+              只放端點與憑證變數名稱，不要把權杖寫進清單。場圖、Lumen、FrameLab、淡江、訊核與
+              GALLEY 可用下方專用欄位。
+            </p>
           </section>
           <section
             hidden={selected !== "galley"}
@@ -617,16 +621,19 @@ export default function ConnectionSettings({
               />
               清除已存 GALLEY 權杖
             </label>
-            <ConnectionNote>
-              填公開 HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端相同。
-            </ConnectionNote>
+            <p className="muted">
+              Hermes 經工作區研究工具呼叫 GALLEY。填入部署後的
+              HTTPS /mcp，不要填 GitHub 網址。權杖需與 GALLEY 後端
+              GALLEY_MCP_TOKEN 相同。
+            </p>
           </section>
           <section hidden={selected !== "atlas"} aria-label="場圖 Atlas MCP">
             <h3>場圖 Atlas MCP</h3>
-            <ConnectionNote>
+            <p className="muted">
               端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 localhost 或 GitHub
-              網址。儲存後按「測試場圖連線」。
-            </ConnectionNote>
+              網址。 權杖與場圖後端 ATLAS_MCP_TOKEN
+              相同。儲存後按「測試場圖連線」，Hermes 即可呼叫 mcp.atlas.*。
+            </p>
             <label>
               場圖 MCP 網址
               <input
@@ -666,10 +673,12 @@ export default function ConnectionSettings({
             aria-label="FrameLab 動畫 MCP"
           >
             <h3>FrameLab 動畫 MCP</h3>
-            <ConnectionNote>
+            <p className="muted">
               端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
-              權杖從 FrameLab 首頁複製，開頭為 fl_。儲存後按「測試 FrameLab 連線」。
-            </ConnectionNote>
+              權杖從 FrameLab 首頁「產生連線權杖」複製，開頭為
+              fl_。儲存後按「測試 FrameLab 連線」，Hermes 即可呼叫
+              mcp.framelab.* 與 framelab_*。
+            </p>
             <label>
               FrameLab MCP 網址
               <input
@@ -706,11 +715,13 @@ export default function ConnectionSettings({
           </section>
           <section hidden={selected !== "lumen"} aria-label="Lumen 創作台">
             <h3>Lumen 創作台</h3>
-            <ConnectionNote>
+            <p className="muted">
               填 Lumen 的 Streamable HTTP 端點（路徑 /api/mcp）。不能填 GitHub
-              倉庫網址。權杖至少 32 字元。按「測試 Lumen 連線」確認後才算可用。
-              選定方向留給使用者。
-            </ConnectionNote>
+              倉庫網址。權杖至少 32 字元，與 Lumen 首頁複製的 LUMEN_MCP_TOKEN
+              相同。網址與權杖都存好後 Hermes 即可經 Workspace MCP 呼叫
+              創作台口語工具；按「測試 Lumen 連線」確認
+              initialize／tools/list。選定方向留給使用者，不要呼叫 choose。
+            </p>
             <label>
               Lumen MCP 網址
               <input
@@ -747,10 +758,11 @@ export default function ConnectionSettings({
           </section>
           <section hidden={selected !== "xunhe"} aria-label="訊核即時情報 MCP">
             <h3>訊核即時情報 MCP</h3>
-            <ConnectionNote>
+            <p className="muted">
               填訊核的 Streamable HTTP 端點（路徑 /mcp 或 /api/mcp）。不能填
-              GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表可用。
-            </ConnectionNote>
+              GitHub 倉庫網址。儲存後按「測試訊核連線」，成功才代表 Hermes
+              能呼叫 xunhe_research。
+            </p>
             <label>
               訊核 MCP 網址
               <input
@@ -787,10 +799,11 @@ export default function ConnectionSettings({
           </section>
           <section hidden={selected !== "planform"} aria-label="Planform 場佈 MCP">
             <h3>Planform 場佈 MCP</h3>
-            <ConnectionNote>
+            <p className="muted">
               填 Planform 的 Streamable HTTP 端點（路徑必須是 /mcp）。不能填 GitHub
-              倉庫網址。儲存後按「測試 Planform 連線」，成功才代表可用。
-            </ConnectionNote>
+              倉庫網址。儲存後按「測試 Planform 連線」，成功後 Hermes 經工作區 MCP 呼叫
+              場佈工具。
+            </p>
             <label>
               Planform MCP 網址
               <input
@@ -828,10 +841,11 @@ export default function ConnectionSettings({
 
           <section hidden={selected !== "duigao"} aria-label="對稿工作室 MCP">
             <h3>對稿工作室 MCP</h3>
-            <ConnectionNote>
+            <p className="muted">
               端點必須是公開 HTTPS，路徑為 /api/mcp，不可用 GitHub 倉庫網址。
-              權杖從對稿「MCP」頁複製，開頭為 dg_。儲存後按「測試對稿連線」。
-            </ConnectionNote>
+              權杖從對稿「MCP」頁複製，開頭為 dg_。儲存後按「測試對稿連線」，Hermes
+              即可呼叫 mcp.duigao.* 與 duigao_*。
+            </p>
             <label>
               對稿 MCP 網址
               <input
@@ -899,55 +913,9 @@ export default function ConnectionSettings({
               />
               清除已存淡江權杖
             </label>
-            <details className="connection-advanced">
-              <summary>MCP 權杖交換（不是淡江 SSO）</summary>
-              <p className="muted">
-                這不是學校登入。學生請用「帳號」分頁的淡江 SSO。只有淡江 MCP
-                伺服器在同一來源提供 /auth/login 時，才用管理者憑證換成 Bearer
-                權杖；沒有該端點時請直接貼權杖。
-              </p>
-              <label>
-                MCP 使用者名稱
-                <input
-                  value={tkuUser}
-                  onChange={(e) => setTkuUser(e.target.value)}
-                  autoComplete="off"
-                />
-              </label>
-              <label>
-                MCP 密碼
-                <input
-                  type="password"
-                  value={tkuPassword}
-                  onChange={(e) => setTkuPassword(e.target.value)}
-                  autoComplete="off"
-                />
-              </label>
-              <button
-                type="button"
-                disabled={busy || !tkuUser || !tkuPassword}
-                onClick={async () => {
-                  setBusy(true);
-                  setError("");
-                  setNotice("");
-                  try {
-                    const result = (await postJson("settings/tamkang", {
-                      action: "login",
-                      username: tkuUser,
-                      password: tkuPassword,
-                    })) as SettingsPayload;
-                    setTkuUser("");
-                    await afterSave(result, "已用 MCP 憑證交換權杖並探測連線。");
-                  } catch (e) {
-                    setError((e as Error).message);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                以 MCP 憑證交換權杖
-              </button>
-            </details>
+            <p className="muted">
+              淡江 MCP 只用網址與 Bearer 權杖，不是淡江 SSO。學校登入請走帳號頁的淡江 SSO，會跳轉校方身分服務。Console 不收集學校密碼。
+            </p>
           </section>
           <section hidden={selected !== "zeabur"} aria-label="Zeabur 部署">
             <h3>Zeabur 部署</h3>
@@ -1353,6 +1321,7 @@ export default function ConnectionSettings({
           </div>
         </form>
       </div>
+      </details>
     </div>
   );
 }

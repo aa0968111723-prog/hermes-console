@@ -30,39 +30,29 @@ export function thumbnailPath(owner: string, id: string) {
   return filePath(owner, id) + ".thumb.webp";
 }
 
-async function ensureImageThumbnail(
-  owner: string,
-  id: string,
-  source?: Buffer,
-) {
-  const path = thumbnailPath(owner, id);
+export async function thumbnailBytes(owner: string, id: string) {
+  const asset = material(owner, id);
+  if (asset.kind !== "image")
+    throw new ApiError(400, "invalid_input", "只有圖片可以產生縮圖。");
+  const cached = thumbnailPath(owner, id);
   try {
-    return { bytes: await readFile(path), mime: "image/webp" as const };
+    return await readFile(cached);
   } catch {
-    const input = source || (await readFile(filePath(owner, id)));
-    const bytes = await sharp(input, {
+    const thumb = await sharp(await readFile(filePath(owner, id)), {
       limitInputPixels: 25_000_000,
       animated: false,
     })
       .rotate()
       .resize({
-        width: 480,
-        height: 480,
+        width: 320,
+        height: 320,
         fit: "inside",
         withoutEnlargement: true,
       })
       .webp({ quality: 72 })
       .toBuffer();
-    try {
-      await writeFile(path, bytes, { flag: "wx", mode: 0o600 });
-    } catch {
-      try {
-        return { bytes: await readFile(path), mime: "image/webp" as const };
-      } catch {
-        /* serve the in-memory thumbnail if two writers raced */
-      }
-    }
-    return { bytes, mime: "image/webp" as const };
+    await writeFile(cached, thumb, { mode: 0o600 });
+    return thumb;
   }
 }
 
@@ -74,8 +64,8 @@ export async function materialBytes(
   const asset = material(owner, id);
   if (asset.kind === "reference")
     throw new ApiError(400, "not_a_file", "連結沒有可下載檔案。");
-  if (variant === "thumb" && asset.kind === "image")
-    return ensureImageThumbnail(owner, id);
+  if (variant === "thumb")
+    return { bytes: await thumbnailBytes(owner, id), mime: "image/webp" };
   return {
     bytes: await readFile(filePath(owner, id)),
     mime: asset.mime || "application/octet-stream",
@@ -396,7 +386,6 @@ export async function saveUpload(
     mode: 0o700,
   });
   await writeFile(filePath(owner, id), content, { flag: "wx", mode: 0o600 });
-  if (kind === "image") await ensureImageThumbnail(owner, id, content);
   const fingerprint = fingerprintBytes(content);
   return put(
     "material",

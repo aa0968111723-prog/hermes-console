@@ -6,7 +6,6 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
-import { bootstrapOwner } from "./browser-auth";
 
 // Production Console + real Chrome + isolated HTTP discovery fixture.
 // The fixture declares tools; it never pretends to execute Hermes or Canva.
@@ -111,18 +110,20 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
   });
-  await bootstrapOwner(base, context);
   const page = await context.newPage(),
     errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   const inspector = page.getByRole("region", { name: "Hermes Runtime 狀態" });
-  await expect(inspector.locator(".runtime-human-summary")).toBeVisible();
-  await expect(
-    inspector.getByText("fixture_tool_000", { exact: true }),
-  ).not.toBeVisible();
-  await inspector.locator(".runtime-advanced > summary").click();
+  await expect(inspector.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
+  await expect(inspector.getByText("fixture_tool_000", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "外觀設定", exact: true }).click();
+  await page.getByRole("tab", { name: "進階", exact: true }).click();
+  await page.getByRole("checkbox", { name: /顯示維運檢視/ }).check();
+  await page.getByRole("button", { name: "關閉面板", exact: true }).click();
+  await expect(inspector.getByRole("button", { name: "開發者檢視", exact: true })).toBeVisible();
+  await inspector.getByRole("button", { name: "開發者檢視", exact: true }).click();
   await expect(
     inspector.getByText("fixture_tool_000", { exact: true }),
   ).toBeVisible();
@@ -182,7 +183,7 @@ try {
       });
     }
   }
-  await page.getByRole("button", { name: "任務與成果", exact: true }).click();
+  await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
@@ -194,11 +195,18 @@ try {
     .getByRole("button", { name: "選擇這個方向" })
     .click();
   await expect(
-    page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).toHaveValue("已選定方向 2。請依此製作。");
+    page.getByRole("heading", { name: "任務", exact: true }),
+  ).toBeVisible();
   await expect(
-    page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).not.toHaveValue(new RegExp(workflow.id));
+    page
+      .locator(".direction.selected")
+      .getByRole("heading", { name: "測試方向 2", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("缺授權")).toHaveCount(0);
+  await expect(page.getByText("阻塞點")).toHaveCount(0);
   const saved = await (
     await context.request.get(base + "/api/workflows")
   ).json();

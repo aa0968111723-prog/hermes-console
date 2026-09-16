@@ -8,34 +8,112 @@ export class ApiError extends Error {
   }
 }
 
-export const ErrorTaxonomy = [
-  "AUTH_ERROR",
-  "PERMISSION_ERROR",
-  "TOOL_UNAVAILABLE",
-  "TOOL_TIMEOUT",
-  "RATE_LIMIT",
-  "INVALID_INPUT",
-  "NETWORK_ERROR",
-  "UPSTREAM_ERROR",
-  "UNKNOWN",
-] as const;
-export type ErrorTaxonomy = (typeof ErrorTaxonomy)[number];
+export const ERROR_CATEGORY = {
+  AUTH_ERROR: "AUTH_ERROR",
+  PERMISSION_ERROR: "PERMISSION_ERROR",
+  TOOL_UNAVAILABLE: "TOOL_UNAVAILABLE",
+  TOOL_TIMEOUT: "TOOL_TIMEOUT",
+  RATE_LIMIT: "RATE_LIMIT",
+  INVALID_INPUT: "INVALID_INPUT",
+  NETWORK_ERROR: "NETWORK_ERROR",
+  UPSTREAM_ERROR: "UPSTREAM_ERROR",
+  UNKNOWN: "UNKNOWN",
+} as const;
 
-const AUTH = /^(sign_in_required|session_expired|invalid_login|invalid_link|auth_|oauth_|unverified_email|invalid_password)/i;
-const PERMISSION = /^(admin_required|permission|forbidden|membership|confirmation_|mcp_target)/i;
-const TOOL = /^(tool_unavailable|empty_tool_result|mcp_|github_is_not_mcp|hermes_unconfigured)/i;
-const TIMEOUT = /(timeout|timed_out)/i;
-const RATE = /^(rate_limited|too_many)/i;
-const INPUT = /^(invalid_|content_type|too_large|invalid_json|invalid_body|invalid_url|invalid_id)/i;
-const NETWORK = /^(network_error|store_unavailable|gateway_unconfigured)/i;
-const UPSTREAM = /^(upstream|email_failed|connect_|hermes_not_ready|interrupted)/i;
+export type ErrorCategory =
+  (typeof ERROR_CATEGORY)[keyof typeof ERROR_CATEGORY];
+
+const AUTH = new Set([
+  "AUTH_ERROR",
+  "invalid_login",
+  "sign_in_required",
+  "session_expired",
+  "session_not_found",
+  "current_session",
+  "gateway_required",
+  "gateway_unconfigured",
+  "email_unverified",
+  "auth_unconfigured",
+  "identity_conflict",
+]);
+const PERMISSION = new Set([
+  "PERMISSION_ERROR",
+  "origin_rejected",
+  "admin_required",
+  "permission_denied",
+  "membership_required",
+  "confirmation_required",
+  "confirmation_invalid",
+  "confirmation_mismatch",
+  "ssrf_rejected",
+]);
+const TIMEOUT = new Set(["TOOL_TIMEOUT", "tool_timeout", "connect_timeout"]);
+const UNAVAILABLE = new Set([
+  "TOOL_UNAVAILABLE",
+  "tool_unavailable",
+  "mcp_unconfigured",
+  "mcp_credential_missing",
+  "invalid_mcp_target",
+  "images_unverified",
+  "hermes_not_ready",
+  "hermes_unconfigured",
+]);
+const RATE = new Set(["RATE_LIMIT", "rate_limited"]);
+const INPUT = new Set([
+  "INVALID_INPUT",
+  "invalid_input",
+  "invalid_json",
+  "invalid_url",
+  "invalid_body",
+  "content_type",
+  "too_large",
+]);
+const NETWORK = new Set([
+  "NETWORK_ERROR",
+  "network_error",
+  "store_unavailable",
+]);
+const UPSTREAM = new Set([
+  "UPSTREAM_ERROR",
+  "upstream_401",
+  "upstream_403",
+  "upstream_error",
+  "empty_tool_result",
+  "empty_output",
+  "empty_stream",
+]);
+
+export function errorCategory(code: string): ErrorCategory {
+  if (AUTH.has(code)) return ERROR_CATEGORY.AUTH_ERROR;
+  if (PERMISSION.has(code)) return ERROR_CATEGORY.PERMISSION_ERROR;
+  if (TIMEOUT.has(code)) return ERROR_CATEGORY.TOOL_TIMEOUT;
+  if (UNAVAILABLE.has(code) || /_unconfigured$/.test(code))
+    return ERROR_CATEGORY.TOOL_UNAVAILABLE;
+  if (RATE.has(code)) return ERROR_CATEGORY.RATE_LIMIT;
+  if (INPUT.has(code)) return ERROR_CATEGORY.INVALID_INPUT;
+  if (NETWORK.has(code)) return ERROR_CATEGORY.NETWORK_ERROR;
+  if (UPSTREAM.has(code) || code.startsWith("upstream_"))
+    return ERROR_CATEGORY.UPSTREAM_ERROR;
+  return ERROR_CATEGORY.UNKNOWN;
+}
+
+export type ErrorTaxonomy = ErrorCategory;
+
+export function taxonomyFor(code: string): ErrorCategory {
+  if (code === "empty_tool_result") return ERROR_CATEGORY.TOOL_UNAVAILABLE;
+  if (code === "hermes_not_ready") return ERROR_CATEGORY.UPSTREAM_ERROR;
+  if (code === "hermes_unconfigured") return ERROR_CATEGORY.TOOL_UNAVAILABLE;
+  return errorCategory(code);
+}
 
 export const STUDENT_HERMES_UNCONFIGURED =
-  "Hermes 還沒連上。請到設定的連線頁。";
+  "Hermes 還沒準備好。可以先找靈感，或稍後再試。";
 export const STUDENT_HERMES_UNAVAILABLE = "現在沒辦法連到 Hermes。";
+export const STUDENT_IMAGE_UNVERIFIED =
+  "圖片已保存，但還沒辦法讀圖。可以先拿掉附件，或改問這張哪裡可以改。";
 
 const HERMES_ENGINEERING =
-  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization/i;
+  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i;
 
 /** Chat and member APIs never name env vars, keys, or vault internals. */
 export function studentHermesError(message: string, code?: string): string {
@@ -45,6 +123,7 @@ export function studentHermesError(message: string, code?: string): string {
     code === "invalid_credential_ref"
   )
     return STUDENT_HERMES_UNCONFIGURED;
+  if (code === "images_unverified") return STUDENT_IMAGE_UNVERIFIED;
   if (
     code &&
     /^(connect_timeout|network_error|interrupted|upstream_)/.test(code)
@@ -54,31 +133,4 @@ export function studentHermesError(message: string, code?: string): string {
   return message;
 }
 
-export function taxonomyFor(code: string): ErrorTaxonomy {
-  if (code === "rate_limited") return "RATE_LIMIT";
-  if (AUTH.test(code)) return "AUTH_ERROR";
-  if (PERMISSION.test(code)) return "PERMISSION_ERROR";
-  if (TIMEOUT.test(code)) return "TOOL_TIMEOUT";
-  if (TOOL.test(code)) return "TOOL_UNAVAILABLE";
-  if (RATE.test(code)) return "RATE_LIMIT";
-  if (INPUT.test(code)) return "INVALID_INPUT";
-  if (NETWORK.test(code)) return "NETWORK_ERROR";
-  if (UPSTREAM.test(code)) return "UPSTREAM_ERROR";
-  return "UNKNOWN";
-}
-
-/** HTTP 200 with no readable payload is not success. */
-export function isEmptyToolResult(value: unknown): boolean {
-  if (value == null) return true;
-  if (typeof value === "string") return !value.trim();
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value !== "object") return false;
-  const record = value as Record<string, unknown>;
-  const keys = Object.keys(record);
-  if (!keys.length) return true;
-  if (keys.length === 1 && "content" in record)
-    return isEmptyToolResult(record.content);
-  if (keys.length === 1 && "result" in record)
-    return isEmptyToolResult(record.result);
-  return false;
-}
+export { isEmptyToolResult } from "./tool-result";

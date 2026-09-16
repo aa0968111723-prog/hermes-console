@@ -3,7 +3,6 @@ import { z } from "zod";
 import { projectKey } from "../creative";
 import { ApiError, redact } from "./security";
 import { get, list, put, remove, storeBackend, probeStore } from "./store";
-import { researchDigest } from "./research-index";
 import type { Health } from "../contracts";
 
 export const memoryKinds = {
@@ -68,25 +67,9 @@ export type SharedMemory = {
 const KIND = "shared_memory";
 const SECRETISH =
   /(API[_-]?KEY|TOKEN|PASSWORD|SECRET|AUTHORIZATION|BEARER)\s*[:=]/i;
+const STALE_MEMORY_DAYS = 30;
 
-function storeOp<T>(fn: () => T): T {
-  try {
-    return fn();
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    throw new ApiError(503, "store_unavailable", "儲存庫無法使用。");
-  }
-}
-
-function rejectSecrets(value: unknown) {
-  const text = JSON.stringify(value);
-  if (redact(text) !== text || SECRETISH.test(text))
-    throw new ApiError(400, "sensitive_content", "共用記憶不得包含憑證或金鑰。");
-}
-
-export const STALE_MEMORY_DAYS = 30;
-
-export function inferMemoryLayer(
+function inferMemoryLayer(
   kind: SharedMemory["kind"],
   scope: string,
   conversationId?: string | null,
@@ -107,6 +90,21 @@ export function isStaleMemory(item: SharedMemory, now = Date.now()) {
   return memoryAgeDays(item, now) >= STALE_MEMORY_DAYS;
 }
 
+function storeOp<T>(fn: () => T): T {
+  try {
+    return fn();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(503, "store_unavailable", "儲存庫無法使用。");
+  }
+}
+
+function rejectSecrets(value: unknown) {
+  const text = JSON.stringify(value);
+  if (redact(text) !== text || SECRETISH.test(text))
+    throw new ApiError(400, "sensitive_content", "共用記憶不得包含憑證或金鑰。");
+}
+
 function normalizeMemory(raw: SharedMemory): SharedMemory {
   const conversationId = raw.conversationId || null;
   return {
@@ -123,8 +121,7 @@ function normalizeMemory(raw: SharedMemory): SharedMemory {
         ? Math.min(1, Math.max(0, raw.confidence))
         : null,
     conversationId,
-    layer:
-      raw.layer || inferMemoryLayer(raw.kind, raw.scope, conversationId),
+    layer: raw.layer || inferMemoryLayer(raw.kind, raw.scope, conversationId),
   };
 }
 
@@ -139,17 +136,36 @@ export function listMemories(owner: string, scope?: string) {
     .map(normalizeMemory)
     .filter((item) => {
       if (!scope || scope === "all") return true;
-      return item.scope === scope || item.scope === "workspace";
+      return item.scope === scope;
     });
 }
 
-/** Memories Hermes may use as task context. Runtime state stays out; conversation rows stay in their thread. */
+/** Project rows plus workspace preferences, each keeping its own scope label. */
+export function memoriesForProject(owner: string, projectId: string) {
+  const project = listMemories(owner, projectId);
+  const workspacePrefs =
+    projectId === "workspace"
+      ? []
+      : listMemories(owner, "workspace").filter(
+          (item) => item.kind === "preference",
+        );
+  return { project, workspacePrefs };
+}
+
 export function memoriesForContext(
   owner: string,
   projectId?: string,
   options?: { conversationId?: string | null },
 ) {
-  return listMemories(owner, projectId || "workspace").filter((item) => {
+  const scope = projectId || "workspace";
+  const rows =
+    scope === "workspace" || scope === "all"
+      ? listMemories(owner, scope)
+      : [...listMemories(owner, scope), ...listMemories(owner, "workspace")];
+  const seen = new Set<string>();
+  return rows.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
     if (item.layer === "runtime") return false;
     if (item.layer === "conversation") {
       if (!options?.conversationId || !item.conversationId) return false;
@@ -181,8 +197,6 @@ export function saveMemory(
   )
     throw new ApiError(409, "revision_conflict", "記憶已被更新，請重新讀取後修改。");
   const now = new Date().toISOString();
-  const conversationId =
-    input.conversationId || previous?.conversationId || null;
   return storeOp(() =>
     put(KIND, owner, {
       id: previous?.id || randomUUID(),
@@ -205,11 +219,16 @@ export function saveMemory(
         input.confidence !== undefined
           ? input.confidence
           : (previous?.confidence ?? null),
-      conversationId,
+      conversationId:
+        input.conversationId || previous?.conversationId || null,
       layer:
         input.layer ||
         previous?.layer ||
-        inferMemoryLayer(input.kind, input.scope, conversationId),
+        inferMemoryLayer(
+          input.kind,
+          input.scope,
+          input.conversationId || previous?.conversationId || null,
+        ),
     } satisfies SharedMemory),
   );
 }
@@ -317,10 +336,7 @@ export function memoryDigest(
   );
   const lines = items.map((item) => {
     const body = item.content.replace(/\s+/g, " ").slice(0, 200);
-    const meta: string[] = [
-      `${item.kind}/${item.scope}`,
-      `layer=${item.layer}`,
-    ];
+    const meta: string[] = [`${item.kind}/${item.scope}`, `layer=${item.layer}`];
     if (item.source !== "console") meta.push(`src=${item.source}`);
     if (item.confidence != null)
       meta.push(`conf=${item.confidence.toFixed(2)}`);
@@ -333,8 +349,7 @@ export function memoryDigest(
     "\n工作區共用記憶（" +
     memoryStoreLabel() +
     "，經 Workspace MCP 與任務指示共用；不是 Hermes 遠端記憶鏡像）：\n" +
-    lines.join("\n") +
-    researchDigest(6)
+    lines.join("\n")
   );
 }
 

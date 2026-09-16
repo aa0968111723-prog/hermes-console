@@ -41,7 +41,7 @@ export function continueProjectDraft() {
 export function continueCaptionSet() {
   return {
     text:
-      "請先查回活動日期與地點；未確認標 UNKNOWN，不要捏造。" +
+      "請先查回活動日期與地點；未確認就標未確認，不要捏造。" +
       "產出 IG caption A 最自然、B 最有梗、C 最溫暖三版，順序 " +
       "HOOK→生活場景→活動→為什麼來→時間地點→CTA。" +
       "不要宗教宣傳。寫完後做新生視角審核，不要發佈。",

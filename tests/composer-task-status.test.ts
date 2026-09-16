@@ -8,6 +8,7 @@ import {
   composerTaskStatus,
   recoveryOnReconnectAction,
   shortTaskError,
+  showComposerTask,
 } from "../components/visual/ComposerTaskStatus";
 
 const task = (state: Task["state"], observationError: string | null = null) => ({
@@ -29,6 +30,7 @@ test("composer exposes observed task state and only active tool evidence", () =>
 
 test("composer shows student phases, not vendor tool names", () => {
   for (const [name, label] of Object.entries({
+    zenclub_drive_index: "研究",
     tamkang_lookup: "研究",
     instagram_search: "靈感",
     pinterest_fetch: "靈感",
@@ -145,7 +147,55 @@ test("shortTaskError hides long stacks", () => {
     shortTaskError("Hermes 金鑰無效或已撤銷，請在後端更換。"),
     "現在沒辦法連到 Hermes。",
   );
+  assert.equal(
+    shortTaskError("Hermes 回應異常，請檢查部署服務。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    shortTaskError("Hermes 回報任務失敗；請檢查工具授權與服務日誌。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    shortTaskError("圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。"),
+    "現在沒辦法連到 Hermes。",
+  );
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
   assert.equal(shortTaskError(""), null);
   assert.equal(shortTaskError(null), null);
+});
+
+test("workspace visual results hide the completed composer pill", () => {
+  const continueTask = task("completed");
+  continueTask.id = "continue-1";
+  continueTask.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "workspace_continue_direction_spec",
+      status: "completed",
+    } as TaskEvent,
+  ];
+  assert.equal(showComposerTask(continueTask), false);
+  const hermes = task("completed");
+  hermes.id = "hermes-1";
+  hermes.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "galley_research",
+      status: "completed",
+    } as TaskEvent,
+  ];
+  assert.equal(showComposerTask(hermes), true);
+  assert.equal(
+    showComposerTask(hermes, {
+      messages: [
+        {
+          taskId: "hermes-1",
+          role: "assistant",
+          provenance: "workspace",
+        },
+      ],
+    }),
+    false,
+  );
+  assert.equal(showComposerTask(task("running"), undefined), true);
 });

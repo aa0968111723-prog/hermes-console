@@ -290,7 +290,7 @@ function unknownsFor(
     ["poster", "ig", "booth", "layout"].includes(kind) &&
     !signals.visualDescribed
   )
-    items.push("沒有視覺描述，無法假裝已看圖");
+    items.push("沒有視覺描述，不能當成看過畫面");
   if (!signals.timePlace && (kind === "event" || kind === "poster" || kind === "ig"))
     items.push("時間或地點不清楚");
   if (signals.unknownPlace) items.push("地點尚未確認");

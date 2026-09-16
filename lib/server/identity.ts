@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
-import { argon2id } from "@noble/hashes/argon2";
-import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
+import { argon2id } from "@noble/hashes/argon2.js";
+import { bytesToHex, hexToBytes } from "@noble/hashes/utils.js";
 import { z } from "zod";
 import { ApiError } from "./errors";
 import { get, list, put, remove, transaction } from "./store";

@@ -1,6 +1,10 @@
 "use client";
 
-import type { VisualPackView } from "@/lib/client/visual-pack";
+import {
+  studentFormatLabel,
+  studentUnknownNotice,
+  type VisualPackView,
+} from "@/lib/client/visual-pack";
 
 function Frame({
   aspect,
@@ -37,19 +41,18 @@ export default function VisualConceptCards({ pack }: { pack: VisualPackView }) {
     <section className="visual-concept-deck" aria-label="視覺概念規格">
       <header className="visual-concept-meta">
         <p className="visual-concept-format">
-          {pack.format.label}
-          <span>
-            {pack.format.width}×{pack.format.height}
-          </span>
+          {studentFormatLabel(pack.format.label)}
         </p>
         <p className="visual-concept-status">尚未出圖 · 未發佈</p>
       </header>
       {pack.unknownFields.length > 0 && (
         <p className="visual-concept-unknown">
-          UNKNOWN：{pack.unknownFields.join("、")}，畫面上留空。
+          {studentUnknownNotice(pack.unknownFields)}
         </p>
       )}
-      <p className="visual-concept-notice">{pack.notice}</p>
+      <p className="visual-concept-notice">
+        {pack.notice.replace(/UNKNOWN/g, "未確認")}
+      </p>
       <div className="visual-concept-grid">
         {pack.concepts.map((concept) => (
           <article key={concept.id} className="visual-concept-card">

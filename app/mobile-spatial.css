@@ -16,11 +16,8 @@
   position: relative;
 }
 .app-shell > main {
-  transform-origin: center 20%;
-  transition: transform var(--motion-standard) var(--ease-spatial);
-}
-.app-shell[data-sheet-open="true"] > main {
-  transform: translateY(-3px) scale(0.985);
+  min-height: 0;
+  height: 100%;
 }
 .spatial-panel {
   min-width: 0;
@@ -140,9 +137,9 @@
   padding: 18px;
   width: min(380px, calc(100% - 24px));
   max-height: calc(
-    min(100dvh, var(--app-height)) - var(--dock-offset, 72px) - 28px
+    min(100dvh, var(--app-height)) - 100px - var(--safe-area-bottom)
   );
-  inset: auto 0 var(--dock-offset, calc(72px + var(--safe-area-bottom)));
+  inset: auto 0 calc(90px + var(--safe-area-bottom));
   margin: 0 auto;
   box-shadow: var(--depth-overlay);
   overflow-y: auto;
@@ -309,9 +306,6 @@
 [data-spatial="static"] .hermes-core {
   transform: none !important;
 }
-[data-spatial="static"][data-sheet-open="true"] > main {
-  transform: none;
-}
 [data-spatial="reduced"] .topbar,
 [data-spatial="reduced"] .mobile-bottom-dock {
   backdrop-filter: none;
@@ -327,7 +321,7 @@
 @media (max-width: 760px) {
   .app-shell,
   .app-shell.sidebar-closed {
-    padding-bottom: var(--dock-offset);
+    padding-bottom: calc(90px + var(--safe-area-bottom));
   }
   .topbar {
     padding: 8px 12px;
@@ -335,35 +329,7 @@
     flex: none;
   }
   .topbar-title {
-    width: 44px;
-    min-width: 44px;
-    max-width: 44px;
-    height: 44px;
-    overflow: hidden;
-    font-size: 0;
-    line-height: 0;
-    color: transparent;
-    pointer-events: none;
-    gap: 0;
-  }
-  .hermes-actions-trigger {
-    position: fixed;
-    z-index: var(--z-dock, 20);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    top: calc(8px + var(--safe-area-top));
-    left: calc(12px + 44px + 5px);
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0;
-    border: 0;
-    border-radius: 14px;
-    color: var(--color-primary, #356b45);
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: var(--depth-1);
+    font-size: 17px;
   }
   .welcome {
     padding: 0 0 12px;
@@ -423,14 +389,14 @@
   }
   .spatial-dock {
     position: fixed;
-    z-index: var(--z-dock, 20);
+    z-index: var(--z-dock);
     left: 12px;
     right: 12px;
     bottom: calc(8px + var(--safe-area-bottom));
     height: 64px;
     padding: 5px 7px;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 3px;
     border: 0;
     border-radius: 25px;
@@ -466,7 +432,7 @@
     background: var(--color-primary-soft);
   }
   .composer-area {
-    padding: 6px 12px 4px;
+    padding: 6px 12px max(4px, var(--safe-area-bottom));
     background: transparent;
   }
   .composer {
@@ -489,28 +455,25 @@
   }
   .context-tray {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-width: 0;
-    max-width: 100%;
-    overflow: visible;
-    padding: 4px 0 8px;
-    max-height: none;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding: 7px 1px 12px;
+    max-height: 120px;
   }
   .context-card {
-    flex: 1 1 100%;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    min-height: 64px;
+    flex: 0 0 245px;
+    scroll-snap-align: start;
     border: 0;
     box-shadow: var(--spatial-highlight), var(--depth-1);
     border-radius: 17px;
     padding: 5px;
+    min-height: 64px;
   }
   .context-card > span {
-    max-height: none;
-    overflow: hidden;
+    max-height: 80px;
+    overflow-y: auto;
   }
   .context-preview img {
     object-fit: cover;
@@ -629,14 +592,8 @@
   .artifact-preview-trigger img {
     max-height: 32dvh;
   }
-  .artifact-stage .canva-result h3,
-  .artifact-stage .copy-result h3 {
+  .artifact-stage .canva-result h3 {
     font-size: 17px;
-    min-width: 0;
-    max-width: 100%;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-    padding-inline-end: 52px;
   }
   .artifact-rail {
     gap: 12px;
@@ -700,93 +657,5 @@
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
-  }
-  .app-shell[data-sheet-open="true"] > main {
-    transform: none;
-  }
-}
-
-/* P0 mobile scroll ownership.
-   Root cause was not a missing overflow-y:auto. The shell used
-   height:min(100dvh, var(--app-height)) with overflow:hidden while JS copied
-   visualViewport.height into --app-height even after the keyboard closed.
-   Combined with conflicting dock padding and a transform on main, secondary
-   pages and long chats could not scroll. */
-:root {
-  --dock-offset: 0px;
-}
-html:has(.app-shell),
-body:has(.app-shell) {
-  height: 100%;
-  overflow: hidden;
-}
-.app-shell {
-  height: var(--app-height, 100dvh);
-  max-height: var(--app-height, 100dvh);
-  min-height: 0;
-}
-.app-shell > main.workspace-main {
-  min-width: 0;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.app-shell[data-sheet-open="true"] > main {
-  transform: none;
-}
-.app-shell[data-scroll-mode="chat"] .conversation-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-}
-.app-shell[data-scroll-mode="page"] > main.workspace-main {
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-}
-.app-shell[data-scroll-mode="page"] .secondary-page {
-  flex: none;
-  height: auto;
-  min-height: 0;
-  overflow: visible;
-}
-.hermes-actions-trigger {
-  display: none;
-}
-
-@media (max-width: 760px) {
-  :root {
-    --dock-offset: calc(72px + var(--safe-area-bottom));
-  }
-  .hermes-actions-trigger {
-    display: inline-flex;
-  }
-  .app-shell,
-  .app-shell.sidebar-closed {
-    padding-bottom: var(--dock-offset);
-  }
-  .app-shell[data-scroll-mode="page"] .secondary-page {
-    padding-bottom: 24px;
-  }
-  html[data-composer-keyboard="open"] .app-shell,
-  html[data-composer-keyboard="open"] .app-shell.sidebar-closed {
-    padding-bottom: 0;
-  }
-  html[data-composer-keyboard="open"] .mobile-bottom-dock {
-    display: none;
-  }
-  .composer-area {
-    padding-bottom: 8px;
-  }
-  html[data-composer-keyboard="open"] .composer-area {
-    padding-bottom: max(8px, var(--safe-area-bottom));
   }
 }

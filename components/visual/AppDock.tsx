@@ -19,6 +19,7 @@ export default function AppDock({
   onAction,
   onFiles,
   busy,
+  canvaReady,
   onOpenChange,
 }: {
   nav: Nav;
@@ -26,6 +27,7 @@ export default function AppDock({
   onAction: (action: "spatial" | "memory" | "canva") => void;
   onFiles: (files: File[]) => void;
   busy: boolean;
+  canvaReady: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
@@ -33,7 +35,7 @@ export default function AppDock({
     input = useRef<HTMLInputElement>(null);
   const close = () => {
     sheet.current?.close();
-    trigger.current?.focus({ preventScroll: true });
+    trigger.current?.focus({preventScroll:true});
     onOpenChange(false);
   };
   const action = (next: "spatial" | "memory" | "canva") => {
@@ -48,11 +50,6 @@ export default function AppDock({
           : "text/plain,application/pdf";
       input.current.click();
     }
-  };
-  const openSheet = () => {
-    trigger.current?.focus({ preventScroll: true });
-    sheet.current?.showModal();
-    onOpenChange(true);
   };
   return (
     <>
@@ -74,6 +71,22 @@ export default function AppDock({
           <span>專案</span>
         </button>
         <button
+        className="dock-core"
+        ref={trigger}
+          aria-label="Hermes 操作"
+          aria-haspopup="dialog"
+        onClick={() => {
+          trigger.current?.focus({preventScroll:true});
+            sheet.current?.showModal();
+            onOpenChange(true);
+          }}
+        >
+          <span>
+            <Leaf size={25} />
+          </span>
+          <span className="sr-only">Hermes</span>
+        </button>
+        <button
           aria-label="靈感"
           aria-current={nav === "inspiration" ? "page" : undefined}
           onClick={() => onNavigate("inspiration")}
@@ -90,15 +103,6 @@ export default function AppDock({
           <span>Agent</span>
         </button>
       </nav>
-      <button
-        className="hermes-actions-trigger"
-        ref={trigger}
-        aria-label="Hermes 操作"
-        aria-haspopup="dialog"
-        onClick={openSheet}
-      >
-        <Leaf size={20} />
-      </button>
       <input
         ref={input}
         type="file"
@@ -148,7 +152,11 @@ export default function AppDock({
           <span className="radial-center" aria-hidden="true">
             <Leaf size={30} />
           </span>
-          <button onClick={() => action("canva")} disabled={busy}>
+          <button
+            onClick={() => action("canva")}
+            disabled={busy || !canvaReady}
+            title={canvaReady ? undefined : "Hermes 尚未連線"}
+          >
             <Palette size={24} />
             Canva
           </button>

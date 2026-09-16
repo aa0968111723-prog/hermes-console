@@ -11,7 +11,7 @@ import {
 } from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
-import { isEmptyToolResult, studentHermesError } from "./errors";
+import { studentHermesError, STUDENT_IMAGE_UNVERIFIED } from "./errors";
 import { studentConnectionMessage } from "./hermes/health-view";
 import {
   deadline,
@@ -33,7 +33,6 @@ import {
   windowConversationHistory,
 } from "./context/history";
 import { classifyIntent, isFastTier } from "./orchestrator/intent";
-import { wantsNewVisual } from "./orchestrator/goal";
 import {
   composeTaskInstructions,
   dropOptionalPacks,
@@ -52,9 +51,42 @@ import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
-import { activity, copyDocument } from "./creative";
-import { workflow, listWorkflows } from "./workflows";
+import { classifyResume, resumeNotice } from "./orchestrator/recovery";
+import { toolEventHasUsableOutput } from "./tool-result";
+import {
+  interpretGoal,
+  userFacingGoalText,
+  wantsNewVisual,
+  wantsWorkspaceAudience,
+  wantsWorkspaceInspiration,
+  wantsWorkspaceKnowledge,
+} from "./orchestrator/goal";
+import { searchZenclubKnowledge } from "./zenclub";
 import { listArtifacts } from "./artifacts";
+import {
+  searchInspiration,
+  toInspirationPack,
+} from "./inspiration/engine";
+import { persistSelectedDirectionDraft } from "./inspiration/persist";
+import {
+  applySpecRevision,
+  isContinueSameWorkRequest,
+  isSpecRevisionRequest,
+  specRevisionKind,
+  specRevisionLabel,
+} from "./inspiration/revise";
+import { isInspirationSearchPack } from "../inspiration-pack";
+import {
+  isClubKnowledgePack,
+  KNOWLEDGE_TOOL,
+  toClubKnowledgePack,
+} from "../knowledge-pack";
+import { isImageReviewPack, workspaceImageReview } from "../image-review";
+import { isDirectionBriefPack } from "../direction-brief";
+import { simulateFreshmanReactions } from "./audience/personas";
+import { attachDirectionBrief, listWorkflows, workflow } from "./workflows";
+import { activity, copyDocument } from "./creative";
+import type { StructuredGoal } from "../contracts";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -70,24 +102,22 @@ export {
   fitTaskInputBudget,
   windowConversationHistory,
 } from "./context/history";
+export { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES };
 export const active = (t: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(t.state);
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
-export const taskFocus = z
+const taskFocus = z
   .object({
     copyId: z.string().uuid().optional(),
-    revision: z.number().int().min(1).max(200).optional(),
+    revision: z.number().int().positive().optional(),
     workflowId: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-    direction: z.number().int().min(1).max(8).optional(),
+    direction: z.number().int().positive().optional(),
     activityId: z.string().uuid().optional(),
   })
   .strict()
-  .refine(
-    (value) => !!(value.copyId || value.workflowId || value.activityId),
-    {
-      message: "接續目標不完整。",
-    },
-  );
+  .refine((value) => !!(value.copyId || value.workflowId || value.activityId), {
+    message: "接續目標不完整。",
+  });
 export const taskInput = z
   .object({
     conversationId: z.string().uuid(),
@@ -124,18 +154,12 @@ export function taskFor(owner: string, id: string) {
   if (!value) throw new ApiError(404, "not_found", "找不到任務。");
   return value;
 }
-function toolEventHasContent(result: unknown, summary = "") {
-  if (result != null) return !isEmptyToolResult(result);
-  const preview = summary.trim();
-  return preview.length > 0 && preview !== "Hermes 回報工具活動。";
-}
-
 export function hasCompletedToolEvents(task: Task) {
   return task.events.some((event) => {
     const isTool = event.kind === "tool" || Boolean(event.toolName);
     const done =
       event.status === "completed" || event.status === "tool.completed";
-    return isTool && done && toolEventHasContent(event.result, event.summary);
+    return isTool && done && toolEventHasUsableOutput(event);
   });
 }
 function event(
@@ -176,8 +200,6 @@ function failedToolEvents(task: Task) {
   });
 }
 
-export { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES };
-
 export function isGroundedSource(value: string): boolean {
   try {
     const url = new URL(value);
@@ -194,34 +216,37 @@ export function taskHasGroundedSources(task: Task): boolean {
 }
 
 export function taskHasVisualArtifact(owner: string, task: Task) {
-  const conv = conversation(owner, task.conversationId);
-  const started = Date.parse(task.createdAt) - 2000;
-  if (
-    listArtifacts(owner, conv.projectId).some(
-      (row) => row.source === "copy" && Date.parse(row.createdAt) >= started,
+  try {
+    const conv = conversation(owner, task.conversationId);
+    const started = Date.parse(task.createdAt) - 2000;
+    if (
+      listArtifacts(owner, conv.projectId).some(
+        (row) => row.source === "copy" && Date.parse(row.createdAt) >= started,
+      )
     )
-  )
-    return true;
-  if (
-    listWorkflows(owner).some(
-      (row) =>
-        row.projectId === conv.projectId &&
-        row.design &&
-        Date.parse(row.updatedAt) >= started,
+      return true;
+    if (
+      listWorkflows(owner).some(
+        (row) =>
+          row.projectId === conv.projectId &&
+          row.design &&
+          Date.parse(row.updatedAt) >= started,
+      )
     )
-  )
-    return true;
-  return task.events.some((event) => {
-    const done =
-      event.status === "completed" || event.status === "tool.completed";
-    if (!done || !toolEventHasContent(event.result, event.summary))
-      return false;
-    const text =
-      (typeof event.result === "string"
-        ? event.result
-        : JSON.stringify(event.result ?? "")) + event.summary;
-    return /canva\.com\/design|"thumbnail"|preview_url/i.test(text);
-  });
+      return true;
+    return task.events.some((event) => {
+      const done =
+        event.status === "completed" || event.status === "tool.completed";
+      if (!done || !toolEventHasUsableOutput(event)) return false;
+      const text =
+        (typeof event.result === "string"
+          ? event.result
+          : JSON.stringify(event.result ?? "")) + event.summary;
+      return /canva\.com\/design|"thumbnail"|preview_url/i.test(text);
+    });
+  } catch {
+    return false;
+  }
 }
 
 function honestyMark(notice: string): string {
@@ -272,11 +297,7 @@ function finish(
   error: string | null = null,
 ) {
   if (state === "completed" && failedToolEvents(task).length)
-    event(
-      task,
-      "部分步驟目前做不到，只保留已確認的內容。",
-      "fallback",
-    );
+    event(task, "部分步驟目前做不到，只保留已確認的內容。", "fallback");
   const notices = honestyNotices(owner, task, state);
   for (const notice of notices) {
     const mark = honestyMark(notice);
@@ -284,12 +305,12 @@ function finish(
       event(task, notice, "fallback");
   }
   task.state = state;
-  task.error = error;
+  task.error = error ? studentHermesError(error) : null;
   task.endedAt = now();
   task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
   event(
     task,
-    error ||
+    task.error ||
       (state === "completed"
         ? notices[0] || "Hermes 已回傳完成結果。"
         : state === "cancelled"
@@ -345,8 +366,6 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     if (record.projectId !== conv.projectId)
       throw new ApiError(403, "scope_mismatch", "活動不屬於此專案。");
   }
-  // Validate actual attachment support before reserving a task or transmitting anything.
-  await attachmentParts(owner, input.attachments);
   const payloadHash = hash(JSON.stringify(input));
   const existing = list<Task>("task", owner).find(
     (t) => t.requestKey === input.requestKey,
@@ -362,13 +381,80 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   }
   limited("tasks:" + owner, 20, 60_000);
   const connection = await ensureHermesReady(owner);
-  if (connection.credential !== "valid")
+  const goal = interpretGoal(input.input, {
+    hasImage: input.attachments.length > 0,
+    focus: input.focus,
+  });
+  const delegated = input.input.includes("BEGIN_UNTRUSTED_DATA");
+  const localSpecRevision =
+    !delegated &&
+    canFulfillLocalSpecRevision(
+      connection.credential,
+      input.input,
+      conv,
+      owner,
+    );
+  const localContinue =
+    !delegated &&
+    canFulfillLocalContinue(
+      connection.credential,
+      input.input,
+      conv,
+      owner,
+    );
+  const localInspiration =
+    !delegated &&
+    !localContinue &&
+    !localSpecRevision &&
+    canFulfillLocalInspiration(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
+  const localKnowledge =
+    !delegated &&
+    canFulfillLocalKnowledge(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
+  const localImageReview =
+    !delegated &&
+    canFulfillLocalImageReview(connection.credential, goal);
+  const localAudience =
+    !delegated &&
+    canFulfillLocalAudience(
+      connection.credential,
+      goal,
+      input.attachments,
+    );
+  const localWorkspace =
+    localInspiration ||
+    localKnowledge ||
+    localAudience ||
+    localImageReview ||
+    localSpecRevision ||
+    localContinue;
+  if (
+    connection.credential !== "valid" &&
+    !localImageReview &&
+    process.env.HERMES_IMAGE_INPUT !== "true" &&
+    imageAttachmentIds(owner, input.attachments).length > 0
+  )
+    throw new ApiError(
+      409,
+      "images_unverified",
+      STUDENT_IMAGE_UNVERIFIED,
+    );
+  if (!localWorkspace) await attachmentParts(owner, input.attachments);
+  if (connection.credential !== "valid" && !localWorkspace)
     throw new ApiError(
       503,
       "hermes_not_ready",
       studentConnectionMessage(connection),
     );
   const native =
+    !localWorkspace &&
     connection.features.run_submission &&
     connection.features.run_status &&
     input.attachments.length === 0;
@@ -423,7 +509,22 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       );
     if (list<Task>("task", owner).filter(active).length >= 3)
       throw new ApiError(429, "concurrency_limit", "最多同時執行三項任務。");
-    event(task, "已在後端保存任務，準備提交 Hermes。");
+    event(
+      task,
+      localKnowledge
+        ? "已在後端保存任務，改由工作區社團索引；不是 Hermes。"
+        : localInspiration
+          ? "已在後端保存任務，改由工作區靈感搜尋；不是 Hermes。"
+          : localAudience
+            ? "已在後端保存任務，改由工作區客群模擬；不是 Hermes，也沒有看圖。"
+            : localImageReview
+            ? "已在後端保存任務，改由工作區畫面審查；不是 Hermes，也沒有讀像素。"
+            : localSpecRevision
+              ? "已在後端保存任務，改由工作區規格修訂；不是 Hermes，也沒有出圖。"
+              : localContinue
+                ? "已在後端保存任務，改由工作區接續同一件規格；不是 Hermes，也沒有出圖。"
+                : "已在後端保存任務，準備提交 Hermes。",
+    );
     put("task", owner, task);
     conv.messages.push({
       id: randomUUID(),
@@ -440,6 +541,42 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     return task;
   });
   if (reserved.id !== task.id) return reserved;
+  if (localKnowledge)
+    return fulfillWorkspaceKnowledge(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localSpecRevision)
+    return fulfillSpecRevision(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localContinue)
+    return fulfillContinueSameWork(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localInspiration)
+    return fulfillWorkspaceInspiration(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localImageReview)
+    return fulfillImageReview(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localAudience)
+    return fulfillWorkspaceAudience(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
   const controller = new AbortController();
   workers.set(task.id, controller);
   // Requires a persistent Node process (not a serverless invocation).
@@ -447,6 +584,465 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     workers.delete(task.id),
   );
   return task;
+}
+function canFulfillLocalInspiration(
+  credential: string,
+  goal: StructuredGoal,
+  attachments: string[],
+) {
+  return (
+    credential !== "valid" &&
+    wantsWorkspaceInspiration(goal) &&
+    attachments.length === 0
+  );
+}
+function canFulfillLocalKnowledge(
+  credential: string,
+  goal: StructuredGoal,
+  attachments: string[],
+) {
+  return (
+    credential !== "valid" &&
+    wantsWorkspaceKnowledge(goal) &&
+    attachments.length === 0
+  );
+}
+function canFulfillLocalImageReview(credential: string, goal: StructuredGoal) {
+  return credential !== "valid" && goal.requiresImageReview;
+}
+function canFulfillLocalAudience(
+  credential: string,
+  goal: StructuredGoal,
+  attachments: string[],
+) {
+  return (
+    credential !== "valid" &&
+    wantsWorkspaceAudience(goal) &&
+    attachments.length === 0
+  );
+}
+function workflowForConversation(owner: string, conv: Conversation) {
+  return listWorkflows(owner).find(
+    (item) =>
+      item.projectId === conv.projectId &&
+      item.conversationId === conv.id &&
+      item.selected !== null &&
+      isDirectionBriefPack(item.directionBrief) &&
+      !!item.copyId,
+  );
+}
+function canFulfillLocalSpecRevision(
+  credential: string,
+  input: string,
+  conv: Conversation,
+  owner: string,
+) {
+  return (
+    credential !== "valid" &&
+    isSpecRevisionRequest(userFacingGoalText(input)) &&
+    !!workflowForConversation(owner, conv)
+  );
+}
+function canFulfillLocalContinue(
+  credential: string,
+  input: string,
+  conv: Conversation,
+  owner: string,
+) {
+  return (
+    credential !== "valid" &&
+    isContinueSameWorkRequest(userFacingGoalText(input)) &&
+    !!workflowForConversation(owner, conv)
+  );
+}
+function imageAttachmentIds(owner: string, ids: string[]) {
+  return ids.filter((id) => material(owner, id).kind === "image");
+}
+function httpsEventSources(urls: string[]) {
+  return urls.filter((value) => {
+    try {
+      return new URL(value).protocol === "https:";
+    } catch {
+      return false;
+    }
+  });
+}
+function fulfillWorkspaceKnowledge(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const goal = interpretGoal(task.input);
+  task.goal = goal;
+  const prompt = userFacingGoalText(task.input);
+  const pack = toClubKnowledgePack(searchZenclubKnowledge(prompt));
+  if (!isClubKnowledgePack(pack) || pack.live !== false || pack.tamkangLive !== false) {
+    task.state = "failed";
+    task.error = "工作區社團索引沒有誠實標示快照；沒有用假資料補上。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  event(task, "已查社團 Drive 索引快照；不是 Hermes 執行。", "plan");
+  event(task, pack.notice, "completed", KNOWLEDGE_TOOL, pack);
+  task.output = [
+    pack.hits.length ? "已從社團索引整理活動資料。" : "索引裡沒有對應資料。",
+    pack.notice,
+    "這不是 Hermes Agent 執行，也沒有搜尋整個 Instagram。",
+    "沒有連到淡江資料源。",
+  ].join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳社團索引（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillWorkspaceInspiration(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const goal = interpretGoal(task.input);
+  task.goal = goal;
+  const prompt = userFacingGoalText(task.input);
+  const found = searchInspiration({
+    prompt,
+    projectId: conv.projectId,
+  });
+  const pack = toInspirationPack({
+    prompt,
+    projectId: conv.projectId,
+    items: found.items,
+    query: found.query,
+  });
+  if (!isInspirationSearchPack(pack) || pack.directions.length < 1) {
+    task.state = "failed";
+    task.error = "工作區靈感沒有可用方向；沒有用假資料補上。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  event(task, "已整理工作區靈感方向；不是 Hermes 執行。", "plan");
+  event(
+    task,
+    pack.notice,
+    "completed",
+    "workspace_search_inspiration",
+    pack,
+  );
+  const last = task.events[task.events.length - 1];
+  last.sources = httpsEventSources([
+    ...pack.directions.flatMap((item) => item.evidenceUrls),
+    ...pack.cards.map((item) => item.sourceUrl),
+  ]).slice(0, 20);
+  task.output = [
+    "已從工作區整理創作方向。",
+    pack.notice,
+    "這不是 Hermes Agent 執行，也沒有搜尋整個 Instagram 或 Pinterest。",
+    goal.requiresDesign
+      ? "視覺出圖與 Canva 需要 Hermes 連線後才能做；現在沒有假裝已出圖。"
+      : "",
+    goal.requiresTamkang
+      ? "沒有連到淡江資料源；校園細節標為未驗證。"
+      : "",
+    "選一個方向後可整理文案規格。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳靈感方向（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillImageReview(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const goal = interpretGoal(task.input);
+  task.goal = goal;
+  const images = imageAttachmentIds(owner, task.attachments).map((id) =>
+    material(owner, id),
+  );
+  const titles = images.map((item) => item.title).join("、");
+  const twin = simulateFreshmanReactions({
+    kind: "poster",
+    title: titles,
+    copy: [userFacingGoalText(task.input), titles].filter(Boolean).join("\n"),
+    visualNotes: "",
+  });
+  const pack = workspaceImageReview({
+    materialIds: images.map((item) => item.id),
+    twinPanel: twin,
+  });
+  if (!isImageReviewPack(pack) || pack.pixelRead !== false) {
+    task.state = "failed";
+    task.error = "工作區畫面審查沒有誠實標示未讀像素。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  event(task, "沒有讀取圖片像素。", "plan");
+  event(task, IMAGE_WITHOUT_VISION, "fallback");
+  event(
+    task,
+    pack.notice,
+    "completed",
+    "workspace_simulate_audience",
+    pack,
+  );
+  task.output = [
+    images.length
+      ? "已附上海報，但沒有讀取像素。"
+      : "沒有附圖，也沒有讀取像素。不會假裝已看圖。",
+    pack.notice,
+    "這不是 Hermes Agent 執行，也沒有分析構圖、字級或對比。",
+    "客群反應是模擬，不是民調。",
+    ...pack.suggestions,
+  ].join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳畫面審查草稿（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillWorkspaceAudience(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const goal = interpretGoal(task.input);
+  task.goal = goal;
+  const prompt = userFacingGoalText(task.input);
+  const panel = simulateFreshmanReactions({
+    kind: "copy",
+    title: prompt,
+    copy: prompt,
+    visualNotes: "",
+  });
+  if (!panel.simulation || panel.truth !== "SIMULATION") {
+    task.state = "failed";
+    task.error = "工作區客群模擬沒有誠實標示模擬；沒有用假民調補上。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  event(task, "已做新生第一眼模擬；不是 Hermes 執行，也沒有看圖。", "plan");
+  event(
+    task,
+    panel.disclaimer,
+    "completed",
+    "workspace_simulate_audience",
+    panel,
+  );
+  task.output = [
+    "已用十個淡江新生人格做第一眼模擬。",
+    panel.disclaimer,
+    "這不是 Hermes Agent 執行，也沒有讀取海報像素。",
+    "客群反應是模擬，不是民調。",
+  ].join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳客群模擬（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillSpecRevision(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const record = workflowForConversation(owner, conv);
+  const brief = record?.directionBrief;
+  if (!record || !isDirectionBriefPack(brief)) {
+    task.state = "failed";
+    task.error = "這個對話沒有已選方向，不能修規格。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  const kind = specRevisionKind(userFacingGoalText(task.input)) || "type_enlarge";
+  const label = specRevisionLabel(kind);
+  const revised = applySpecRevision(brief, kind);
+  const saved = persistSelectedDirectionDraft(
+    owner,
+    attachDirectionBrief(owner, record.id, revised),
+  );
+  const pack = saved.directionBrief;
+  if (!isDirectionBriefPack(pack) || pack.rendered !== false) {
+    task.state = "failed";
+    task.error = "工作區規格修訂沒有誠實標示未出圖。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  task.goal = interpretGoal(task.input);
+  event(task, "已套用" + label + "；不是 Hermes，也沒有出圖。", "plan");
+  event(
+    task,
+    pack.visualNote || pack.notice,
+    "completed",
+    "workspace_revise_direction_spec",
+    pack,
+  );
+  task.output = [
+    "已在同一件規格上套用" + label + "。",
+    pack.visualNote || pack.notice,
+    "這不是 Hermes Agent 執行，不是已出圖，也不是 Canva。",
+    pack.revision ? "目前是 V" + pack.revision + "。" : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳規格修訂（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillContinueSameWork(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const record = workflowForConversation(owner, conv);
+  const pack = record?.directionBrief;
+  if (!record || !isDirectionBriefPack(pack)) {
+    task.state = "failed";
+    task.error = "這個對話沒有已選方向，不能接續同一件作品。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  if (pack.rendered !== false) {
+    task.state = "failed";
+    task.error = "工作區接續沒有誠實標示未出圖。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  task.goal = interpretGoal(task.input);
+  event(task, "接續同一件規格草稿；不是 Hermes，也沒有出圖。", "plan");
+  event(
+    task,
+    pack.notice,
+    "completed",
+    "workspace_continue_direction_spec",
+    pack,
+  );
+  task.output = [
+    "這是同一件規格草稿。",
+    pack.revision ? "目前是 V" + pack.revision + "。" : "",
+    "還沒出圖，也不是 Canva 或 Hermes 生成。",
+    "請說要改什麼，例如「第二版字放大」或「顏色改暖一點」。",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已帶回同一件規格（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
 }
 async function execute(
   owner: string,
@@ -549,6 +1145,13 @@ async function execute(
       text: task.input,
       goal: orchestration.goal,
       intentTier: task.focus ? "create" : orchestration.goal.intentTier,
+      hasImageAttachments: task.attachments.some((id) => {
+        try {
+          return material(owner, id).kind === "image";
+        } catch {
+          return false;
+        }
+      }),
     });
     const suffix =
       "\n目前專案識別：" +
@@ -702,7 +1305,7 @@ async function execute(
         throw new ApiError(
           502,
           "agent_error",
-          "Hermes 回報執行失敗，請檢查 Agent／工具授權。",
+          "這次沒有完成。可以稍後再試。",
         );
       const parsed = z
         .object({
@@ -730,7 +1333,7 @@ async function execute(
           throw new ApiError(
             502,
             "client_tools_unsupported",
-            "上游要求客戶端執行工具；此工作區只接受由 Hermes 執行的工具，已停止。",
+            "這次沒辦法用那個工具。",
           );
         raw += choice.delta?.content || "";
         if (raw.length > 1_000_000)
@@ -801,7 +1404,7 @@ function toolEvent(task: Task, data: Record<string, unknown>) {
     typeof data.preview === "string" ? data.preview : "Hermes 回報工具活動。";
   if (
     (state === "completed" || state === "tool.completed") &&
-    !toolEventHasContent(result, preview)
+    !toolEventHasUsableOutput({ result, summary: preview })
   )
     state = "failed";
   event(task, preview, state, name, result);
@@ -876,23 +1479,16 @@ async function observe(owner: string, id: string) {
 export async function reconcile(owner: string, id: string) {
   let task = taskFor(owner, id);
   if (!active(task)) return task;
-  if (task.transport === "chat") {
-    if (!workers.has(id))
+  const resume = classifyResume(task, workers.has(id));
+  if (task.transport === "chat" || !task.remoteId) {
+    if (resume === "unknown")
       return finish(
         owner,
         task,
         "uncertain",
-        "Console 程序曾中斷，無法確認串流上游結果；不會自動重送。",
-      );
-    return task;
-  }
-  if (!task.remoteId) {
-    if (!workers.has(id))
-      return finish(
-        owner,
-        task,
-        "uncertain",
-        "任務提交時程序中斷，需確認 Hermes 是否接受；不會重複送出。",
+        task.transport === "chat"
+          ? resumeNotice("unknown")
+          : "任務提交時程序中斷，需確認 Hermes 是否接受；不會重複送出。",
       );
     return task;
   }
@@ -918,14 +1514,14 @@ export async function reconcile(owner: string, id: string) {
             owner,
             task,
             "failed",
-            "Hermes 回報完成，但沒有可讀取的成果；請檢查原始會話。",
+            "Hermes 回報完成，但沒有可讀取的成果。",
           );
     if (remote.status === "failed")
       return finish(
         owner,
         task,
         "failed",
-        "Hermes 回報任務失敗；請檢查工具授權與服務日誌。",
+        "這次沒有完成。可以稍後再試。",
       );
     if (remote.status === "cancelled") return finish(owner, task, "cancelled");
     if (remote.status === "stopping") task.state = "stopping";
@@ -949,17 +1545,14 @@ export async function reconcile(owner: string, id: string) {
       task.state !== "stopping"
     ) {
       if (task.stopSupported) return stop(owner, id);
-      task.observationError =
-        "任務超過整體期限，但此版本不能確認停止；請至 Hermes 檢查。";
+      task.observationError = "這次等太久了，結果還不確定。";
     }
     void observe(owner, id);
   } catch (error) {
-    task.observationError = studentHermesError(
+    task.observationError =
       error instanceof ApiError
-        ? error.message
-        : "查回任務失敗，保留上次已知狀態。",
-      error instanceof ApiError ? error.code : undefined,
-    );
+        ? studentHermesError(error.message, error.code)
+        : "查回任務失敗，保留上次已知狀態。";
   }
   return save(owner, task);
 }

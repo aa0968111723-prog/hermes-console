@@ -4,6 +4,8 @@ import { ApiError, hash, redact } from "./security";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest } from "./canva";
 import { activity } from "./creative";
+import { recordDesignRevision } from "./artifacts";
+import type { DirectionBriefPack } from "../direction-brief";
 const url = z
   .string()
   .url()
@@ -56,7 +58,12 @@ export interface Workflow {
   updatedAt: string;
   canvaJobId: string | null;
   design: Record<string, unknown> | null;
+  artifactId?: string | null;
+  revisionId?: string | null;
   error: string | null;
+  directionBrief?: DirectionBriefPack | null;
+  copyId?: string | null;
+  conversationId?: string | null;
 }
 export function saveDirections(
   owner: string,
@@ -88,6 +95,8 @@ export function saveDirections(
     updatedAt: new Date().toISOString(),
     canvaJobId: null,
     design: null,
+    artifactId: null,
+    revisionId: null,
     error: null,
   };
   return put("workflow", owner, record);
@@ -117,6 +126,32 @@ export function chooseDirection(owner: string, id: string, selected: number) {
       ...record,
       selected,
       state: "ready",
+      updatedAt: new Date().toISOString(),
+    } satisfies Workflow);
+  });
+}
+export function attachDirectionBrief(
+  owner: string,
+  id: string,
+  directionBrief: DirectionBriefPack,
+) {
+  return bindWorkflowDraft(owner, id, { directionBrief });
+}
+export function bindWorkflowDraft(
+  owner: string,
+  id: string,
+  patch: {
+    activityId?: string;
+    copyId?: string | null;
+    directionBrief?: DirectionBriefPack | null;
+    conversationId?: string | null;
+  },
+) {
+  return transaction(() => {
+    const record = workflow(owner, id);
+    return put("workflow", owner, {
+      ...record,
+      ...patch,
       updatedAt: new Date().toISOString(),
     } satisfies Workflow);
   });
@@ -238,7 +273,19 @@ export async function pollDraft(owner: string, id: string) {
     | { status?: string; result?: { design?: Record<string, unknown> } }
     | undefined;
   if (job?.status === "success" && job.result?.design) {
-    record.design = JSON.parse(redact(JSON.stringify(job.result.design)));
+    const design = JSON.parse(
+      redact(JSON.stringify(job.result.design)),
+    ) as Record<string, unknown>;
+    record.design = design;
+    const artifact = recordDesignRevision(owner, {
+      artifactId: record.artifactId || undefined,
+      projectId: record.projectId,
+      workflowId: record.id,
+      source: "canva",
+      design,
+    });
+    record.artifactId = artifact.id;
+    record.revisionId = artifact.currentRevisionId;
     record.state = "draft_ready";
   } else if (job?.status === "failed") {
     record.state = "failed";

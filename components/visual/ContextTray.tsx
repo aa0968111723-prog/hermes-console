@@ -1,12 +1,13 @@
 "use client";
-import { Check, RefreshCw, X } from "lucide-react";
+import { Check, FileText, Link, RefreshCw, X } from "lucide-react";
 import type { Material } from "@/lib/contracts";
+import { materialImageSrc } from "@/lib/client/materials";
 import type { Upload } from "../useComposerDraft";
-import MaterialCover from "./MaterialCover";
 export default function ContextTray({
   uploads,
   references,
   materials,
+  imageInput,
   disabled,
   onPreview,
   onRetry,
@@ -16,6 +17,7 @@ export default function ContextTray({
   uploads: Upload[];
   references: string[];
   materials: Material[];
+  imageInput: boolean;
   disabled: boolean;
   onPreview: (material: Material) => void;
   onRetry: (upload: Upload) => void;
@@ -34,19 +36,26 @@ export default function ContextTray({
             aria-label={"預覽附件：" + upload.file.name}
             onClick={() => upload.material && onPreview(upload.material)}
           >
-            <MaterialCover
-              material={upload.material}
-              fileName={upload.file.name}
-              file={upload.file}
-            />
+            {upload.material?.kind === "image" ? (
+              <img
+                src={materialImageSrc(upload.material.id, "thumb")}
+                alt={upload.file.name}
+                loading="lazy"
+              />
+            ) : (
+              <FileText size={24} />
+            )}
           </button>
           <span title={upload.file.name}>
+            {upload.file.name}
             <small role={upload.error ? "alert" : "status"}>
               {upload.error ||
                 (upload.material ? (
                   <>
                     <Check size={12} />
-                    已保存
+                    {upload.material.kind === "image" && !imageInput
+                      ? "已保存 · 尚未驗證讀圖"
+                      : "已保存"}
                   </>
                 ) : (
                   "上傳 " + upload.progress + "%"
@@ -91,13 +100,24 @@ export default function ContextTray({
               aria-label={"預覽參考：" + (material?.title || "素材已移除")}
               onClick={() => material && onPreview(material)}
             >
-              <MaterialCover material={material} />
+              {material?.kind === "image" ? (
+                <img
+                  src={materialImageSrc(id, "thumb")}
+                  alt={material.title}
+                  loading="lazy"
+                />
+              ) : (
+                <Link size={24} />
+              )}
             </button>
-            <span title={material?.title || ""}>
+            <span>
+              {material?.title || "素材已移除"}
               <small>
-                {material?.rights === "reference_only"
-                  ? "僅供參考"
-                  : "專案素材"}
+                {material?.kind === "image" && !imageInput
+                  ? "尚未驗證讀圖"
+                  : material?.rights === "reference_only"
+                    ? "僅供參考"
+                    : "專案素材"}
               </small>
             </span>
             <button

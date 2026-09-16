@@ -6,6 +6,7 @@ import {
   eventState,
   studentHonestyLabel,
   studentTaskLabel,
+  taskHasWorkspaceResult,
   workingEvent,
 } from "@/lib/client/activity";
 export function turtleState(task: Task | undefined, offline: boolean) {
@@ -19,7 +20,9 @@ export function turtleState(task: Task | undefined, offline: boolean) {
       label: task.state === "uncertain" ? "結果待確認" : "需要你看一下",
     };
   if (task.state === "completed")
-    return { id: "success", label: "完成了" };
+    return taskHasWorkspaceResult(task)
+      ? { id: "idle", label: "準備好了" }
+      : { id: "success", label: "完成了" };
   if (task.state === "waiting_user")
     return { id: "waiting", label: "等你確認" };
   if (task.state === "waiting_authorization")
@@ -64,7 +67,7 @@ export default memo(function Turtle({
   offline: boolean;
   animation: boolean;
   size: number;
-  onClick: () => void;
+  onClick?: () => void;
   compact?: boolean;
   label?: string;
 }) {

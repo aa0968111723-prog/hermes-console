@@ -9,15 +9,20 @@ import {
   eventUserResult,
   progressSteps,
   safeSource,
+  studentSourceHost,
   IMAGE_WITHOUT_VISION_LABEL,
   SPEC_ONLY_DESIGN_LABEL,
+  studentEventCaption,
   studentProcessDone,
+  studentTaskCaption,
   studentTaskLabel,
   taskKeptSpecOnly,
   taskMissingSources,
   taskUnverifiedVision,
   visualProcessCaption,
   workingEvent,
+  showComposerTask,
+  showVisualProcessSummary,
 } from "../lib/client/activity";
 import {
   DESIGN_WITHOUT_PREVIEW,
@@ -83,6 +88,7 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("galley_research"), "research");
   assert.equal(activityKind("canva_create_design"), "creative");
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
+  assert.equal(activityKind("zenclub_drive_index"), "research");
   assert.equal(activityKind("planform_run_agent"), "creative");
   assert.equal(activityKind("unrecognized_tool"), "tool");
   assert.equal(eventPhaseLabel(event("g", "running")), "研究");
@@ -99,6 +105,20 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
     "靈感",
   );
 });
+
+test("student captions never use Hermes preview text", () => {
+  const running = task("running", [
+    {
+      ...event("g", "running"),
+      summary: "GET /v1/tools galley_research schema={type:object}",
+    },
+  ]);
+  assert.equal(studentEventCaption(running.events[0], running), "研究 · 執行中");
+  assert.equal(studentTaskCaption(running), "研究 · 執行中");
+  assert.doesNotMatch(studentTaskCaption(running), /schema|galley_research|GET \//);
+  const empty = task("running", []);
+  assert.equal(studentTaskCaption(empty), "查看任務進度");
+});
 test("source actions never accept script, credentials or relative destinations", () => {
   for (const value of [
     "javascript:alert(1)",
@@ -112,6 +132,8 @@ test("source actions never accept script, credentials or relative destinations",
     safeSource("https://example.com/source"),
     "https://example.com/source",
   );
+  assert.equal(studentSourceHost("https://www.example.com/reference?q=1"), "example.com");
+  assert.equal(studentSourceHost("https://user:secret@example.com"), null);
 });
 
 test("plan phases collapse engineering steps into student-facing progress", () => {
@@ -313,4 +335,40 @@ test("creative tasks attach Canva designs as conversation artifacts", () => {
     ).length,
     0,
   );
+  assert.equal(
+    artifactsForConversation(
+      {
+        ...task("completed", [
+          event("review", "completed", "workspace_simulate_audience"),
+        ]),
+        goal: { requiresDesign: true, requiresImageReview: true },
+      } as Task,
+      [
+        {
+          id: "wf-spec",
+          projectId: "personal",
+          design: { title: "舊規格" },
+        },
+      ],
+      "personal",
+    ).length,
+    0,
+  );
+});
+
+test("workspace continue and revise hide the visual 過程完成 summary", () => {
+  const continueTask = task("completed", [
+    event("spec", "completed", "workspace_continue_direction_spec"),
+  ]);
+  assert.equal(showVisualProcessSummary(continueTask), false);
+  assert.equal(showComposerTask(continueTask), false);
+  const revise = task("completed", [
+    event("spec", "completed", "workspace_revise_direction_spec"),
+  ]);
+  assert.equal(showVisualProcessSummary(revise), false);
+  const hermes = task("completed", [
+    event("research", "completed", "galley_research"),
+  ]);
+  assert.equal(showVisualProcessSummary(hermes), true);
+  assert.equal(showComposerTask(hermes), true);
 });

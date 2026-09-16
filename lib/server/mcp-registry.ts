@@ -13,20 +13,11 @@ import { runtimeEnv } from "./credentials";
 
 export type McpStatus =
   | "unconfigured"
-  | "verifying"
+  | "connected"
   | "available"
   | "partial"
-  | "failed"
-  | "connected"
-  | "verified";
-
-export function publicMcpStatus(
-  status: McpStatus,
-): "unconfigured" | "verifying" | "available" | "partial" | "failed" {
-  if (status === "connected") return "verifying";
-  if (status === "verified") return "available";
-  return status;
-}
+  | "verified"
+  | "failed";
 export interface McpEntry {
   id: string;
   name: string;
@@ -54,41 +45,6 @@ export interface McpEntry {
   serverInfo?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
 }
-
-export type PublicMcpEntry = {
-  id: string;
-  name: string;
-  status: ReturnType<typeof publicMcpStatus>;
-  enabled: boolean;
-  readonly: boolean;
-  trustedLevel: McpEntry["trustedLevel"];
-  toolsCount: number;
-  lastError: string | null;
-};
-
-/** Student/member view: status only. No endpoint, env names, or tool schemas. */
-export function presentMcpEntry(entry: McpEntry, operator: boolean) {
-  const status = publicMcpStatus(entry.status);
-  const lastError = entry.lastError ? redact(entry.lastError) : null;
-  if (!operator) {
-    return {
-      id: entry.id,
-      name: entry.name,
-      status,
-      enabled: entry.enabled,
-      readonly: entry.readonly,
-      trustedLevel: entry.trustedLevel,
-      toolsCount: entry.tools.length,
-      lastError: null,
-    } satisfies PublicMcpEntry;
-  }
-  return {
-    ...entry,
-    status,
-    lastError,
-  };
-}
-
 const definition = z
   .object({
     id: z.string().regex(/^[a-zA-Z0-9_-]{2,40}$/),
@@ -233,6 +189,36 @@ export function configuredMcp() {
     );
   return configs.map((c) => ({ ...c, endpoint: validateEndpoint(c.endpoint) }));
 }
+export function atlasStatus() {
+  const url = runtimeEnv("ATLAS_MCP_URL");
+  if (!url)
+    return {
+      id: "atlas",
+      name: "場圖 Atlas",
+      state: "unconfigured" as const,
+      detail: "尚未設定 ATLAS_MCP_URL 與 ATLAS_MCP_TOKEN。GitHub 倉庫網址不是 MCP。",
+    };
+  if (githubIsNotMcp(url))
+    return {
+      id: "atlas",
+      name: "場圖 Atlas",
+      state: "failed" as const,
+      detail: "GitHub 網址不是 MCP 端點。請改填場圖 /api/mcp。",
+    };
+  if (!runtimeEnv("ATLAS_MCP_TOKEN"))
+    return {
+      id: "atlas",
+      name: "場圖 Atlas",
+      state: "unconfigured" as const,
+      detail: "尚未提供 ATLAS_MCP_TOKEN，不能標成已連線。",
+    };
+  return honestConfiguredStatus("atlas", {
+    id: "atlas",
+    name: "場圖 Atlas",
+    state: "awaiting_authorization" as const,
+    detail: "已設定端點與權杖，尚未完成 initialize／tools/list。",
+  });
+}
 function controlled(id: string) {
   const config = configuredMcp().find((c) => c.id === id);
   if (!config)
@@ -277,11 +263,9 @@ export function seedRegistry(): McpEntry[] {
         old?.enabled === false
           ? "unconfigured"
           : matches
-            ? old.status === "verified"
+            ? old.status === "verified" || old.status === "available"
               ? "partial"
-              : old.status === "connected"
-                ? "verifying"
-                : old.status
+              : old.status
             : "unconfigured",
       verifiedAt: matches ? old.verifiedAt : null,
       lastError:
@@ -351,14 +335,24 @@ export function interpretVerification(steps: {
   toolsList: boolean;
   safeRead: boolean;
 }): Exclude<McpStatus, "connected" | "verified"> {
-  if (!steps.initialize) return "failed";
-  if (!steps.toolsList) return "failed";
+  if (!steps.initialize || !steps.toolsList) return "failed";
   return steps.safeRead ? "available" : "partial";
 }
 export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
+  if (config.credentialReference && !runtimeEnv(config.credentialReference)) {
+    return put("mcp_registry", WORKSPACE_OWNER, {
+      ...entry,
+      ...config,
+      tools: [],
+      status: "unconfigured" as const,
+      verifiedAt: null,
+      lastError: "此 MCP 缺少後端服務憑證。",
+    });
+  }
   const client = new Client({ name: "hermes-console-discovery", version: "2" });
+  let connected = false;
   const deadline = AbortSignal.timeout(20_000);
   const credential = config.credentialReference
     ? runtimeEnv(config.credentialReference)
@@ -398,14 +392,11 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     if (config.credentialReference) {
       const token = runtimeEnv(config.credentialReference);
       if (!token)
-        return put("mcp_registry", WORKSPACE_OWNER, {
-          ...entry,
-          ...config,
-          tools: [],
-          status: "unconfigured" as const,
-          verifiedAt: null,
-          lastError: "尚未設定權杖。",
-        });
+        throw new ApiError(
+          503,
+          "mcp_credential_missing",
+          "此 MCP 缺少後端服务憑證。",
+        );
       headers.Authorization = "Bearer " + token;
     }
     const target = new URL(config.endpoint);
@@ -445,6 +436,7 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       },
     });
     await client.connect(transport, { timeout: 10_000 });
+    connected = true;
     let cursor: string | undefined;
     const tools: McpEntry["tools"] = [];
     for (let page = 0; page < 10; page++) {
@@ -482,7 +474,11 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       ...entry,
       ...config,
       tools,
-      status: "partial" as const,
+      status: interpretVerification({
+        initialize: true,
+        toolsList: tools.length > 0,
+        safeRead: false,
+      }),
       verifiedAt: new Date().toISOString(),
       lastError: null,
       serverInfo: JSON.parse(
@@ -500,7 +496,14 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       ...entry,
       ...config,
       tools: [],
-      status: "failed" as const,
+      status:
+        !connected &&
+        error instanceof ApiError &&
+        error.code === "mcp_credential_missing"
+          ? ("unconfigured" as const)
+          : connected
+            ? ("connected" as const)
+            : ("failed" as const),
       verifiedAt: null,
       lastError:
         error instanceof ApiError
@@ -528,4 +531,93 @@ export function setMcpEnabled(id: string, enabled: boolean) {
 }
 export function getMcp(id: string) {
   return seedRegistry().find((item) => item.id === id) || null;
+}
+
+/** Client-safe registry row: no endpoint, credential name, or tool schemas. */
+export function publicMcpStatus(
+  status: McpStatus,
+): "unconfigured" | "verifying" | "available" | "partial" | "failed" {
+  if (status === "connected") return "verifying";
+  if (status === "verified") return "available";
+  return status;
+}
+
+export function presentMcpEntry(entry: McpEntry, operator: boolean) {
+  const status = publicMcpStatus(entry.status);
+  const lastError = entry.lastError ? redact(entry.lastError) : null;
+  if (!operator) {
+    return {
+      id: entry.id,
+      name: entry.name,
+      status,
+      enabled: entry.enabled,
+      readonly: entry.readonly,
+      trustedLevel: entry.trustedLevel,
+      toolsCount: entry.tools.length,
+      lastError: null,
+    };
+  }
+  return {
+    ...entry,
+    status,
+    lastError,
+  };
+}
+
+export function publicMcpEntry(entry: McpEntry) {
+  return {
+    id: entry.id,
+    name: entry.name,
+    status: entry.status,
+    enabled: entry.enabled,
+    readonly: entry.readonly,
+    trustedLevel: entry.trustedLevel,
+    toolsCount: entry.tools.length,
+    tools: entry.tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      annotations: tool.annotations,
+    })),
+    verifiedAt: entry.verifiedAt,
+    lastError: entry.lastError,
+  };
+}
+
+export function seedPublicRegistry() {
+  return seedRegistry().map(publicMcpEntry);
+}
+
+/**
+ * Config-only MCP is awaiting verification, never "partial"/"available".
+ * Overlay live registry after initialize／tools/list／safe-read.
+ */
+export function honestConfiguredStatus<T extends { state: string; detail: string }>(
+  id: string,
+  base: T,
+): T {
+  if (base.state === "unconfigured" || base.state === "failed") return base;
+  const entry = getMcp(id);
+  if (entry?.status === "failed")
+    return {
+      ...base,
+      state: "failed",
+      detail: entry.lastError || base.detail,
+    };
+  if (entry?.status === "verified" || entry?.status === "available")
+    return {
+      ...base,
+      state: "available",
+      detail: "已通過安全讀取工具驗證。",
+    };
+  if (entry?.status === "partial" && entry.tools.length)
+    return {
+      ...base,
+      state: "partial",
+      detail: "已列出工具，尚未完成安全讀取驗證。",
+    };
+  return {
+    ...base,
+    state: "awaiting_authorization",
+    detail: "已設定端點，尚未完成 initialize／tools/list。",
+  };
 }

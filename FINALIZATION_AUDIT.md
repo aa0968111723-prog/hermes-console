@@ -1,72 +1,110 @@
-# Hermes Console 正式化盤點
+# Hermes Console 正式產品化盤點
 
-基準：`origin/main` @ `3224208`，本分支 `cursor/hermes-production-finalization-a689`。不是新 App、不是新 Dashboard。
+基準：`cursor/hermes-production-finalization-cf7e`（接續 `origin/main`）。這不是新 App，也不是第二套 Dashboard。狀態以程式與測試為準，不以文件宣稱為準。
 
-評等：`可用`＝主路徑已接通且不假裝成功；`部分`＝有實作但缺真實憑證或校方 IdP；`研究`＝Markdown，未進主 UI。
+## 總覽
 
-## 已收斂（本輪）
-
-| 項目 | 狀態 | 依據 |
+| 區域 | 判斷 | 說明 |
 | --- | --- | --- |
-| 手機捲動所有權 | 可用（契約） | Chat 只捲 conversation；其他頁 `data-scroll-mode=page`。`--app-height` 只在鍵盤開啟時寫入。Android 實機仍 Partial。 |
-| Bottom dock | 可用 | 對話 / 專案 / 靈感 / Agent；設定在齒輪。 |
-| 手機頂欄 | 可用（契約） | Hermes 操作葉片不再蓋住標題殘字。Playwright 斷言 trigger 在選單右側。 |
-| AuthGate | 可用 | `/` 先登入。Google／淡江未設定顯示尚未完成設定。未設定寄件時不出現寄送表單，並顯示「尚未設定寄件，無法寄送登入或重設連結」。驗證按鈕為「完成驗證」。Magic／重設／驗證有 Playwright。 |
-| 身份模型 | 可用 | User / Identity / Session / Membership。禁止 email 自動合併。連結電子信箱要驗證；未設定寄件時不出現連結表單。密碼登入看 email identity 驗證旗標，不是 Google 的 user.emailVerified。 |
-| API 授權 | 可用 | `authenticate()` 要 session + membership。連線／MCP／Zeabur／Canva 授權／runtime bindings 變更走 `authenticateOperator()`（owner／admin）。成員 403 `permission_denied`。GET `/api/integrations` 與 `/api/agents` 成員為 `view: normal`，不含工具名與 `*_MCP_TOKEN`。`/api/runtime/tools|mcp|agents|bindings`、`/api/certification`、`/api/usage` 僅 owner／admin。Health/ready 仍公開且不含秘密。 |
-| MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。GET `/api/mcp-registry` 成員只得 status；endpoint／schema 僅 owner／admin。 |
-| 設定分頁 | 可用 | 擁有者／管理者：帳號 / 外觀 / 連線 / 工作區 / 進階。成員看不到連線與進階；API 仍拒絕。 |
-| Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。GALLEY／Lumen／FrameLab／Planform 只有 status 為 partial 或 available 才進計畫；未設定不假裝。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
-| 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。Composer 與折疊事件只顯示這些高階進度，不顯示 GALLEY／Canva。工具 JSON 與 toolName 只在展開的技術資訊。創作回覆帶 ArtifactStage 大圖。 |
-| 龜龜狀態 | 可用（契約） | Idle／思考／規劃／搜尋／研究／創作／整理／等待／完成／錯誤／離線。姿勢、光、陰影分開；標籤不出現廠商名。reduced-motion 停止動畫。 |
-| 作品版本 | 可用（契約） | 文案 V1／V2 比較、還原確認、匯出、修改同一作品。不自動重建無關輸出。任務上下文會帶入專案 copy artifact 與創作方向，讓「第二版字放大」沿用同一作品。創作任務結束時若沒有 copy／Canva／縮圖，事件與助理回覆為「還沒有可預覽的作品」，不得說已回傳完成結果。學生 UI 顯示「規格已保留」（warning，龜龜 waiting），不得綠勾「完成」或「過程完成」。有預覽時仍顯示「過程完成」。研究／淡江任務沒有 https 來源時，事件與回覆為「還沒找到可核對的來源」，學生 UI「還沒找到來源」，不得假裝已搜到資料。 |
-| 視覺附件 | 可用（契約） | 列表與 chips 用 WebP 縮圖。上傳中的圖片先用本機檔案預覽，保存後再換成伺服器 thumb。PDF／連結顯示種類或 hostname。不抓取任意網頁當預覽。手機 Composer 附件換行鋪滿寬度，不使用 245px 橫向 carousel。 |
-| Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。成員 API 不含 endpoint、credentialReference、tool schema、hermesKeySource。公開 `GET /api/health` 不含 models／skills／toolsets／configSource；`POST /api/health` 僅 owner／admin。 |
-| 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。`hasCompletedToolEvents` 不算沒有可讀內容的 tool.completed。只有空 `{}` 的任務 reconcile 為 failed。 |
-| 首頁 | 可用（契約） | 龜龜 + 今天想做什麼？ + 六個短標籤。手機與桌面同一組。無 MCP 軌道、無英文 welcome overlay。 |
-| 專案頁 | 可用（契約） | 標題為「專案」。封面架 + 作品預覽 + 素材縮圖。空狀態不再把 Instagram 文案混進專案頁。 |
-| Drive 知識 | 可用（契約） | 靈感頁預設折疊「社團知識」；不顯示 `live=`。 |
-| Memory layers | 可用（契約） | conversation／project／workspace／preference／runtime 分層。Runtime 不進任務上下文；conversation 只進同一對話。過期（≥30 天）標 STALE／LOW_CONFIDENCE，不得當成最新事實。設定頁仍可看全部列。 |
-| 學生接續同一作品 | 可用（契約） | Composer 只放人話。copyId／workflowId／activityId 只走 `task.focus`。Canva 接續使用專案最新 workflow。 |
-| 回到最新訊息 | 可用（契約） | 右側 44px 圓鈕，不再蓋住作品標題中央。 |
-| 對話內長標題 | 可用（契約） | `.canva-result h3` wrap，並在手機預留右側 52px 給 jump 圓鈕。 |
-| 帳號工作階段 | 可用（契約） | 列出目前／其他裝置。結束其他登入需確認。目前這次只能登出。`test:ui` 帳號頁斷言「目前這台」、Google／淡江尚未完成設定、登出，且不洩漏 session hash。 |
-| 連線格 | 可用（契約） | 名稱 + 狀態點。狀態文字只在 aria-label。點卡片才開設定。工具名與 MCP 密碼交換收進「進階說明」。 |
-| 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
-| 登入包體 | 可用（契約） | `/` First Load JS 109 kB。AuthGate 先出現；工作區、設定、靈感、活動工作台進場後再載。 |
-| 正式啟動檢查 | 可用（契約） | 缺 `CONSOLE_ORIGIN`、公開 HTTP、非本機 `CONSOLE_ALLOW_LOCAL_ACCESS`、測試 session 會在 production startup 直接失敗。 |
-| Health liveness | 可用（契約） | `GET /api/health` 不等 Hermes。`live` 在 store／Hermes 掛掉時仍為 true。憑證在但還沒探測是 verifying，不是 available。 |
-| 備份／演練 | 可用（契約） | `npm run backup` 複製 sqlite／WAL／vault.key，不印秘密。`npm run rehearse` 只報告已設定／未設定。不是 Zeabur 實機快照。 |
-| 對話／記憶讀取 | 可用（契約） | 沒有 Hermes session 的對話 GET、記憶 GET、Brain GET 不等 discovery。任務提交在 unconfigured／failed 快取上立即 503。 |
-| 任務提交探測 | 可用（契約） | `ensureHermesReady` 只打 `/v1/models`，逾時用 `HERMES_CONNECT_TIMEOUT_MS`（契約 hanging 1s → ~1s failed）。不跑 skills／toolsets。學生 503 為「Hermes 還沒連上。請到設定的連線頁。」或「現在沒辦法連到 Hermes。」，不含環境變數字樣。 |
-| 長任務重啟 | 可用（契約） | 程序啟動立即 `recoverOrphanedTasks`。沒有 in-memory worker 的 chat 任務改 `uncertain`，訊息含「不會自動重送」。已完成任務不動。 |
-| 學生連線錯誤 | 可用（契約） | 公開 health、成員 health、`POST /api/tasks`、對話錯誤都不出現金鑰／後端／環境變數。401 金鑰 →「還沒連上」。Hanging POST `/api/tasks` ~1s 503。`hermes_unconfigured`→TOOL_UNAVAILABLE，`hermes_not_ready`→UPSTREAM_ERROR。Operator `POST /api/health` 仍保留探測原文。 |
-| 未驗證看圖 | 可用（契約） | `HERMES_IMAGE_INPUT` 未開時，圖片附件改送「已保存、沒有像素」文字，不 409 擋送出，也不把 base64 傳給 Hermes。Composer 提示不會假裝已看圖。開旗標後仍送 `image_url`。看圖任務結束時事件與回覆為「還沒驗證看圖」，學生 UI「還沒看圖」，不得綠勾完成或說已分析畫面。分析-only 不會被誤標成「規格已保留」。390×844 Playwright：提示可見、兩張 chip 與 44px 移除鈕都在 Composer 內、送出不被蓋住。誠實未完成（規格已保留／還沒找到來源／還沒看圖）不得把 `health.agent` 標 `verified`，設定頁不得因此顯示「已有成功任務」。有 https 來源的研究完成仍可蓋章。 |
-| 連線狀態點 | 可用（契約） | 頂欄只顯示 44px 狀態點。文案在 `aria-label` 與 `.sr-only`。 |
-| OAuth 帳號連結 | 可用（契約） | `mode=link` 必須是啟動 OAuth 的同一個 session。State 的 userId 與當下登入不符則 401，不會把 Google 掛到別人帳號。未登入的 `?mode=link` 為 401。Login 302 不含 client secret。實機 Google／淡江 round-trip 仍 Partial。 |
+| AuthGate / User / Identity | 可選／dormant | 預設免登入。session 讀取失敗仍進入工作區。`CONSOLE_AUTH_REQUIRED=true` 才開 Google／Email／淡江閘。InvitationGate 不得擋 `/` |
+| 手機捲動 | 部分可用 | App shell 鎖定；主捲動在 `.conversation-scroll`／`.secondary-page`；dock `fixed`。契約測試有 nested scrollport，非正式真機 |
+| Runtime Inspector | 部分可用 | 一般檢視只顯示 Hermes／記憶／工具／MCP。開發者檢視才露出 schema 與工具清單 |
+| MCP Registry | 部分可用 | GET 不回 endpoint／憑證名／schema。未探測的已設定 MCP 是 `awaiting_authorization`，不是 partial。tools/list 成功才是 partial；缺 token 是 unconfigured |
+| Artifacts / 版本 | 部分可用 | `artifactId`／`revisionId`、還原、fork、並排預覽（不是像素 diff）。Canva poll 成功會寫入 |
+| Memory 分層 | 部分可用 | `listMemories` 依 scope 精確過濾；`memoriesForProject` 才把工作區偏好併入專案脈絡並保留 scope 標籤 |
+| 設定頁 | 部分可用 | 帳號／外觀／連線／工作區／進階 |
+| CI | 部分可用 | lint／typecheck／unit／Playwright／build／secrets |
+| 部署 | Partial | 文件齊；本輪不執行公開 Zeabur 佈署 |
 
-## 本輪驗證（2026-09-16）
+## 完全可用（契約層）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`check:secrets`、`build`、`test:ui`／`entry`／`chat`／`workbench`／`gateway`／`runtime` 通過。
-- `npm test`：429 tests, 427 pass, 2 skipped, 0 fail。含未驗證看圖不得說已分析畫面；分析-only 不誤標規格已保留。
-- `test:ui`：`design-spec-only-honesty.png`、`research-without-sources-honesty.png`、`image-without-vision-honesty.png`。Composer 為 warning，無「過程完成」。本地 Chrome LCP 360ms，CLS 0，axe 0。
-- Production First Load JS `/`：110 kB（page 6.67 kB，shared 103 kB）。
-- 含 360×800、390×844、412×915、430×932、768×1024。
-- 已 merge `origin/main` `24b4fb8`、`295fac2`，未回退產品路徑。本輪 `HEAD..origin/main` 為空。
+- Origin 驗證、rate limit、確認 token、工具權限分級
+- SQLite／Postgres 雙後端
+- `/api/ready`、`GET /api/health` 不回秘密
+- SSRF 守衛
+- 龜龜狀態（含 offline／planning／creating）
 
-## 仍是 Partial（禁止標綠）
+## 部分可用
 
-- 淡江 SSO：沒有校方 Client / Metadata，不能假裝成功。
-- Google Login：程式有，部署未填 `GOOGLE_CLIENT_ID` 前不可用。
-- 實機 Android Chrome 鍵盤：Playwright 只模擬 visualViewport。
-- Hermes 對真實 MCP 工具鏈：需部署憑證；契約用 fixture。
-- Instagram / Pinterest 全庫搜尋：沒有官方完整 API，不得宣稱。
-- Tamkang 校園密碼交換 MCP token：仍是 MCP，不是 SSO。
-- 正式 Zeabur 部署與 DB backup：本環境未授權部署。
-- 帳號連結 Google↔淡江↔Email 的實機 round-trip：缺真實 IdP。
+- 正式 Auth：Google／Email 需部署端密鑰；淡江 SSO 缺校方 metadata。帳號頁可列出／結束其他工作階段；目前這個瀏覽器只能登出
+- MCP 真實探測需各服務 URL／TOKEN
+- Artifact 比較是並排預覽，不是像素 diff；PDF／連結沒有偽造封面
+- Inspiration／Audience Twin／研究 Markdown 檢索。靈感已接到 `workspace_search_inspiration`：分群＋三個方向，不假裝 IG 全站搜尋
 
-## 危險項（已處理方向）
+## 危險／誠實限制
 
-- 未登入可改連線憑證：改為需 session。公開設定頁警告改寫。
-- MCP `verified` 只因 listTools：改為 partial；舊 verified 列降為 partial。
-- 測試 session 不得覆蓋偽造 cookie：無效 cookie 不再落入 `CONSOLE_TEST_SESSION`。
+- 公開部署若無閘道或 Auth 密鑰，行為必須 fail closed
+- Tamkang MCP 權杖 ≠ 淡江 SSO
+- 曾暴露金鑰一律視為 compromised
+- 本輪沒有 live Zeabur／校方 IdP／Google 實機登入證據
+
+## 本次已修
+
+1. 手機捲動所有權（前一輪）
+2. 統一 AuthGate（前一輪）
+3. MCP 誠實狀態 + 公開 registry 消毒
+4. Artifact 版本／還原／fork
+5. Memory scope 隔離
+6. Runtime／任務 JSON 收到開發者檢視
+7. 設定頁收斂
+8. Android 鍵盤：`--app-height` 只在鍵盤開啟時跟隨 visualViewport，關閉後回到 `100dvh`
+9. 連線格：Hermes／Workspace／Atlas／Zeabur 不再把「已填密鑰」顯示成已連線
+10. 首頁快捷：手機與桌面同一組六個短標籤（研究／創作／分析／客群／靈感／設計）
+11. 帳號工作階段清單與結束其他裝置（目前瀏覽器走登出）
+12. 作品並排預覽比較；圖片素材縮圖 WebP 320
+13. 手機 Bottom Dock 為主導覽；漢堡改為對話列表
+14. 閒置輪詢 8s、執行中 3s；`*_unconfigured` 歸 TOOL_UNAVAILABLE（auth_unconfigured 仍是 AUTH_ERROR）
+15. `GET /api/health` 存活不等待 Hermes；`agentReady` 與 store ready 分開
+16. Hermes 可搜尋本地 `data/ai-agent-research` 筆記（標明 local_notes，不是即時論文庫）
+17. 工具空結果（`{}`／空白字串）記為 `empty_tool_result`，不得當完成；啟動 monitor 立刻 reconcile 中斷任務為 `uncertain`
+18. 設定頁不再收集淡江學校密碼；連線密鑰變更限 owner／admin；附圖／「這張哪裡可以改」走讀圖 + 受眾模擬
+19. 已登入帳號可連結 Email；Google → 淡江 → Email 後用淡江回來仍是同一 User。淡江 OIDC 以本機 mock IdP 契約測試（discovery + PKCE）；SAML／CAS 誠實未設定
+20. 忘記密碼信件的 `/#reset=` 會打開重設密碼表單，不會把 token 當成登入／驗證一次用掉
+21. 未設 `HERMES_IMAGE_INPUT=true` 時，附圖顯示「尚未驗證讀圖」。一般附圖送 Hermes 仍拒絕；「這張哪裡可以改」走工作區模擬，明確標沒有讀像素。Runtime 開發者檢視的讀圖狀態跟 env 走，不是 unknown
+22. Planner 不再指向不存在的 `project_inspiration_then_web`／`creative_directions`／`audience_simulation`。找靈感走 `workspace_search_inspiration`（已收藏分群＋三個方向）；受眾走 `workspace_simulate_audience`；方向保存走 `workspace_save_directions`。`淡大` 視為淡江。對話與靈感板顯示方向卡，不丟連結清單或 JSON
+23. 方向卡可點選：寫入既有 workflow、`chooseDirection`，並自動送出「我選方向 A/B/C」接續整理文案。`workspace_project_context` 帶出已選定方向，不必叫使用者貼流程 ID
+24. 選定方向後 `directionLocked`：不再找靈感、不再 `workspace_save_directions`；計畫改為專案上下文 → 視覺規格 → 文案 → Canva 規格。即使跟進句含「文案／視覺／淡大」也不重跑靈感搜尋。token 裁切後仍保留鎖定指示，不會退回「再找靈感」
+25. 選定方向後立刻編譯可見的文案 A／B／C 與 4:5／9:16／A4 規格卡（規則草稿）。不是 Hermes 生成、不是已出圖。Hermes 未連線時仍可看到規格，並誠實提示尚未連線
+26. 選定方向會寫入候選活動（無捏造日期地點）與可改版文案 `copyId`。同一方向的後續修改沿用同一文案 id；專案脈絡帶出 `activityId`／`copyId`
+27. Hermes 未設定時，對話「找靈感」仍走工作區 `workspace_search_inspiration`，顯示方向卡。 provenance=`workspace`，不寫 Agent verified，不假裝已搜 Instagram／已連淡江／已出圖。非靈感對話仍回 `hermes_not_ready`
+28. 對話選方向 A/B/C 後，同一捲動區顯示文案／規格草稿（未出圖）。一般訊息不顯示「N/N 個工具完成」；執行紀錄改為圖示，accessible name 仍保留
+29. 上傳海報問「這張哪裡可以改」：未驗證讀圖時仍可送出。回傳畫面審查清單＋新生模擬，provenance=`workspace`，`pixelRead=false`，不寫 Agent verified，不假裝已看像素。沒有附件則 `invalid_input`，不走靈感假路徑
+30. 學生可見文案把日期地點寫成「未確認」，資料模型仍用 `UNKNOWN`。已選方向的 4:5／9:16／A4 規格框加大
+31. 選定方向的規格草稿綁在選方向的那則對話。新對話首頁只留龜龜與「今天想做什麼？」，不把上一則規格或「規格已整理」橫幅貼上去。靈感板仍顯示專案最新規格
+32. 規格框直接放進 A/B/C 文案（未出圖）。手機單欄壓低框高，避免 9:16 整屏空白；≥640px 才用比例框。選方向後把規格捲到可見，不跳去底部說明。跳至輸入區未聚焦時不佔畫面。客群十人細節預設折疊，只先顯示較會停／較會滑掉
+33. 找靈感回覆以方向卡為主畫面。有結構化卡片時不重複貼長段誠實說明。空 cluster 不顯示。送出後把方向卡釘在可視區
+34. 工作區已把結果畫在對話裡時，composer 不再掛「完成」列，避免蓋住方向卡與規格框。Hermes／測試 fixture 的完成任務列仍保留以便打開詳情
+35. 360px 方向卡改水平 snap rail：A 可見、B 露出、橫滑可到 C。對話主捲動仍是 `.conversation-scroll`；rail 另開 `pan-x`。方向卡／審查／規格在可視區時不顯示「回到最新訊息」。畫面審查不再重複貼與 checklist 相同的說明段落
+36. 選定方向會寫入 source=`workspace` 的作品版本（V1／V2），任務頁顯示規格草稿預覽。不是 Canva 設計、不是已出圖、不是 Hermes 生成。同一方向重複選不會另開作品
+37. Hermes 未連線時，「第二版字放大」修同一件規格（主標加大、V2），不 503、不出假圖。任務頁有規格草稿時不再重複貼舊的文字方向清單
+38. 靈感頁第一屏是方向卡。招生說明／漏斗／社團視覺語言在卡片之後；Drive 知識預設摺疊。任務頁「接續修改」寫「請接續修改同一作品」，不再把 workflow UUID 塞進輸入框。次頁 `.secondary-page` 以 `key={nav}` 重掛，切換靈感／專案／任務時不會沿用上一頁捲動位置
+39. 任務頁「接續修改」會回到擁有該規格的對話，不是空的「今天想做什麼？」。送出「請接續修改同一作品」走工作區接續：同一件 V1，不 503、不另開版本。沒有已選方向的對話仍是 `hermes_not_ready`
+40. 「回到最新訊息」看所有可見的方向卡／審查／規格，不是只看 DOM 裡第一個靈感卡。接續後規格在畫面裡時不蓋住 A4 文案
+41. 專案「活動與文案」接續不再把 `workspace_*` 或活動／文案 id 塞進輸入框。有綁定對話時跳回該對話，與任務頁接續同一件作品
+42. Hermes 未連線時，工作臺「寫 A／B／C」「整理三個方向」與 Composer／Dock 的 Canva 查回改為停用並標「尚未連線」，不把學生送進 503。規格框只顯示語氣與「海報 A4」，不再露出紙張比例 `210:297`。同一作品接續仍可用
+43. Agent 分頁給學生看 Hermes／記憶／工具／MCP 狀態點，不在一般檢視顯示 0/300 工具數或 Agent OS 設定檔。任務頁選方向只保存選擇；沒有綁定對話且 Hermes 未連線時不把「缺授權／阻塞點」塞進輸入框。首頁快捷不再寫 Canva 授權失敗稿
+44. `/` 免登入：session 讀取失敗不再停在「無法確認登入狀態」。畫面審查從 `image_review.twinPanel` 畫出「新生第一眼模擬」。未支援 Web Speech 時不顯示語音鈕；支援時為 44px、zh-TW、不打斷 IME
+45. Hermes 未準備好時學生文案改為「可以先找靈感」，不再指向連線設定。頂欄連線點改開「能力」頁。首頁能力軌道與一般檢視不列出工具名稱；網址／權杖表單收在「填寫網址與權杖」
+46. 能力頁預設沒有開發者檢視；需在設定 → 進階勾選「顯示維運檢視」才出現工具清單與 schema。任務詳情的 UUID／原始 JSON 收在摺疊「維運檢視」。語音說完後提示「說完了，請按送出」，不自動送出
+47. `Permissions-Policy` 允許同源麥克風（`microphone=(self)`）。Web Speech 被拒時顯示「無法使用麥克風」，不靜默失敗。說完後的「說完了，請按送出」改為可見提示
+48. 對話中的查回失敗與任務結束錯誤走學生文案，不再寫金鑰、部署、服務日誌、原始會話或請至 Hermes
+49. 進行中任務按鈕與事件列只顯示「研究 · 執行中」這類階段，Hermes preview／工具原文收在維運檢視
+50. 任務詳情「接下來」只顯示階段；執行計畫原文、UNKNOWN 與完整來源網址收在維運檢視。Esc／點背景關閉會清掉維運檢視
+51. 未驗證讀圖的附圖送出改為「還沒辦法讀圖」，不再寫部署端。不確定結果改「再試一次」，不再寫重試分支或遠端已停止
+52. Hermes 未設定時，口語「我想辦茶會」走工作區靈感方向卡；「幫我查淡大禪學社茶會」「今天社博在哪」走社團 Drive 索引快照，不是海報工廠，也不是 503。仍標明不是 Hermes、沒有 IG 全站搜尋、沒有連到淡江資料源。純「幫我查論文」、招呼、未選方向的接續仍是 `hermes_not_ready`
+53. 學生畫面不再露出 UNKNOWN、像素尺寸或 `live=false`：視覺卡寫「貼文／未提供」，社團索引寫「尚未確認／不是即時」。口語查茶會的 Playwright 會等到社團資料卡；靈感頁證據標改為中文，不再寫 FACT／UNKNOWN
+54. 口語「我想辦迎新」／「我想辦活動」／攤位／場佈／「我想擺攤」走工作區靈感；「淡江迎新在哪」「茶會幾點」「擺攤在哪」這類事實問句（在哪／幾點／什麼時候）先當 lookup，走 Drive 索引而不是海報工廠。不必先說淡江或幫我查。「這張哪裡可以改？」仍是創作審查，不用裸「哪裡」當事實問句
+55. 同一對話先查社團資料再畫面審查時，捲動釘在最新一張結果卡（畫面審查），不會停在上面的索引卡外畫面。新生模擬卡在審查下方，不搶釘選
+56. Hermes 未設定時，首頁「客群」與口語「路人會不會滑掉」走工作區新生第一眼模擬，不是 503，也不是已看圖。學生畫面寫「模擬」，不寫 SIMULATION
+57. 首頁「分析」或「這張哪裡可以改」沒附圖時仍回畫面審查＋新生模擬，明確標沒有附圖、沒有讀像素，不 400、不假裝已看圖。學生卡寫「還沒讀圖」
+58. 語音連續辨識：停頓不會結束這一輪。說完（學生按停止）才出現「說完了，請按送出」。沒聽到時寫「沒聽到語音。請靠近再試一次。」不自動送出
+59. Android Chrome 在思考停頓後仍可能送 no-speech 並結束辨識。已聽到內容時會自動再開始聽，直到學生按停止；空白的 no-speech 才提示靠近再試
+60. 語音填入時不搶 textarea 焦點，避免手機鍵盤在說話途中彈出擋住送出。說完按送出後，口語「我想辦茶會 再幫我看場佈」走工作區靈感方向卡，不是 503、不露出 HERMES_ / MCP_
+61. 靈感卡眉標改為「沒有已收藏來源／工作區收藏 · 未搜全站」，不再寫「0 筆已收藏」或信心「低／中」。口語送出後可按「用這個」拿到已選方向規格（不是已出圖）
+62. 同一對話接著口說「今天社博在哪」並送出，走社團 Drive 索引卡（已核對或尚未確認／不是即時），釘在最新社團資料，不是再出一輪海報工廠
+63. 選定規格後的社團資料／畫面審查優先釘在可視區，不會被對話尾端的規格草稿蓋掉；還沒有後續結果時仍釘規格框
+64. 選定規格後口說「幫我出圖」或首頁「創作」那句「幫我做一張網宣海報」接續同一件規格草稿，誠實標還沒出圖，不重開靈感、不假裝 Canva。沒有已選方向時，「幫我做一張網宣海報」仍走工作區靈感
+65. 工作區靈感／社團資料／審查／接續規格已畫在對話時，composer 不掛「完成」列；不必等對話 refresh 才收掉
+66. 工作區接續／修規格／出圖不在對話裡掛「過程完成」，龜龜也不說「完成了」；規格卡已佔畫面
+67. 休眠 `/#reset=` 表單按「密碼登入」關閉後回到開著的對話（composer 可見），不要求空白「今天想做什麼？」
+68. 選定規格後口說「顏色改暖一點」「語氣軟一點」走工作區規則修訂（V2／V3、未出圖），不 503、不重開靈感、不假裝 Canva。沒有已選方向時仍是 `hermes_not_ready`

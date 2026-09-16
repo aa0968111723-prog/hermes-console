@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ApiError, redact, WORKSPACE_OWNER } from "./security";
 import { runtimeEnv } from "./credentials";
 import { get, put } from "./store";
-import { getMcp, githubIsNotMcp, probeMcp } from "./mcp-registry";
+import { getMcp, githubIsNotMcp, honestConfiguredStatus, probeMcp } from "./mcp-registry";
 
 const context = {
   taskId: z.string().uuid().optional(),
@@ -131,14 +131,12 @@ export function planformStatus() {
       state: "failed" as const,
       detail: "GitHub 網址不是 MCP 端點。請改填 Planform 的 https://…/mcp。",
     };
-  return {
+  return honestConfiguredStatus("planform", {
     id: "planform",
     name: "Planform 場佈",
-    state: "partial" as const,
-    detail: runtimeEnv("PLANFORM_MCP_TOKEN")
-      ? "已設定端點與服務憑證。Hermes 經 Workspace MCP 呼叫 planform_run_agent；草稿需 confirm_preview 才套用。"
-      : "已設定端點。可選 PLANFORM_MCP_TOKEN。Hermes 經工作區 MCP 呼叫 planform_*，不要另連 GitHub。",
-  };
+    state: "awaiting_authorization" as const,
+    detail: "已設定端點，尚未完成 initialize／tools/list。",
+  });
 }
 
 export async function testPlanformConnection() {

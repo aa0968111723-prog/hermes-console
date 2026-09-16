@@ -26,40 +26,67 @@ import {
   ExternalLink,
   Download,
 } from "lucide-react";
-import type { Conversation, Health, Material, Task, TaskFocus } from "@/lib/contracts";
+import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
+import {
+  applyComposerKeyboardStyle,
+  clearComposerKeyboardStyle,
+  isComposerKeyboardOpen,
+} from "@/lib/client/composer-keyboard";
+import { materialImageSrc } from "@/lib/client/materials";
+import { studentTaskCaption, progressSteps, safeSource, studentSourceHost } from "@/lib/client/activity";
 import type { Workflow } from "@/lib/server/workflows";
-import dynamic from "next/dynamic";
+import type { Artifact } from "@/lib/server/artifacts";
 import MessageBody from "./MessageBody";
 import Turtle from "./Turtle";
+import AgentPanel from "./agents/AgentPanel";
+import RuntimeInspector from "./RuntimeInspector";
+import InspirationBoard from "./inspiration/InspirationBoard";
+import HelpPage from "./help/HelpPage";
+import KnowledgeArchive from "./knowledge/KnowledgeArchive";
+import ProjectWorkbench from "./ProjectWorkbench";
+import LearningMap from "./LearningMap";
+import IntegrationHealth from "./settings/IntegrationHealth";
+import CapabilityCertification from "./settings/CapabilityCertification";
+import ConnectionSettings from "./settings/ConnectionSettings";
+import SharedMemory from "./settings/SharedMemory";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
+import AgentOrbit from "./visual/AgentOrbit";
 import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
+import AccountMenu from "./auth/AccountMenu";
+import AccountSettings from "./settings/AccountSettings";
 import SpatialPanel from "./visual/SpatialPanel";
 import { useSpatialMode } from "./visual/useSpatialMode";
 import ArtifactDeck from "./visual/ArtifactDeck";
 import ComposerMenu from "./visual/ComposerMenu";
+import ComposerVoiceButton from "./visual/ComposerVoiceButton";
 import ComposerTaskStatus, {
   OFFLINE_NOTICE,
   OFFLINE_PILL_LABEL,
   composerTaskPillAction,
+  isWorkspaceResultTool,
   shortTaskError,
+  showComposerTask,
 } from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
+import DirectionBrief from "./visual/DirectionBrief";
 import VisualMessage from "./visual/VisualMessage";
-import MaterialCover from "./visual/MaterialCover";
-import TaskEventSummary, { EventResult } from "./visual/TaskEventSummary";
-import { progressSteps } from "@/lib/client/activity";
-import { materialFileSrc } from "@/lib/client/media";
-import { continueCurrentDesign, selectDirection } from "@/lib/client/artifacts";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
+import TaskEventSummary from "./visual/TaskEventSummary";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
+import {
+  directionPickFollowUp,
+  type InspirationSearchPack,
+} from "@/lib/inspiration-pack";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
+import { CONTINUE_SAME_WORK_PROMPT } from "@/lib/server/inspiration/revise";
 import {
   emptyDraft,
   useComposerDraft,
@@ -71,52 +98,11 @@ import {
   writePreference,
   removeLegacyPreference,
 } from "@/lib/client/storage";
-
-const paneStatus = () => (
-  <p className="muted" role="status">
-    載入中
-  </p>
-);
-const AgentPanel = dynamic(() => import("./agents/AgentPanel"), {
-  loading: paneStatus,
-});
-const RuntimeInspector = dynamic(() => import("./RuntimeInspector"), {
-  loading: paneStatus,
-});
-const InspirationBoard = dynamic(
-  () => import("./inspiration/InspirationBoard"),
-  { loading: paneStatus },
-);
-const HelpPage = dynamic(() => import("./help/HelpPage"), {
-  loading: paneStatus,
-});
-const KnowledgeArchive = dynamic(() => import("./knowledge/KnowledgeArchive"), {
-  loading: paneStatus,
-});
-const ProjectWorkbench = dynamic(() => import("./ProjectWorkbench"), {
-  loading: paneStatus,
-});
-const LearningMap = dynamic(() => import("./LearningMap"), {
-  loading: paneStatus,
-});
-const IntegrationHealth = dynamic(
-  () => import("./settings/IntegrationHealth"),
-  { loading: paneStatus },
-);
-const CapabilityCertification = dynamic(
-  () => import("./settings/CapabilityCertification"),
-  { loading: paneStatus },
-);
-const AccountSettings = dynamic(() => import("./settings/AccountSettings"), {
-  loading: paneStatus,
-});
-const ConnectionSettings = dynamic(
-  () => import("./settings/ConnectionSettings"),
-  { loading: paneStatus },
-);
-const SharedMemory = dynamic(() => import("./settings/SharedMemory"), {
-  loading: paneStatus,
-});
+import {
+  CONVERSATION_VISUAL_SELECTOR,
+  conversationVisualInView,
+  preferredPinnedVisual,
+} from "@/lib/client/conversation-visual";
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -169,14 +155,18 @@ const connectionLabels: Record<string, string> = {
   unconfigured: "未設定",
   awaiting_authorization: "待授權",
   verifying: "驗證中",
-  connected: "驗證中",
-  verified: "可用",
   available: "可用",
   partial: "部分可用",
   failed: "失敗",
 };
 const isActive = (task: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
+const POLL_ACTIVE_MS = 3000;
+const POLL_IDLE_MS = 8000;
+const DIRECTION_LETTERS = ["A", "B", "C"] as const;
+function hermesCanContinue(health: Health | null) {
+  return health?.credential === "valid" && health.reachable === true;
+}
 const time = (value: string) =>
   new Date(value).toLocaleString("zh-TW", {
     month: "numeric",
@@ -211,13 +201,11 @@ async function api<T>(
 export default function HermesConsole() {
   const [auth, setAuth] = useState<"loading" | "ready">("loading");
   const [data, setData] = useState<Workspace>(EMPTY);
-  const [workspaceRole, setWorkspaceRole] = useState<
-    "owner" | "admin" | "member" | null
-  >(null);
   const [health, setHealth] = useState<Health | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [canvaConfigured, setCanvaConfigured] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
@@ -226,6 +214,7 @@ export default function HermesConsole() {
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
+  const [inspirationPack, setInspirationPack] = useState<InspirationSearchPack | null>(null);
   const [sheetsSync, setSheetsSync] = useState<SheetSyncResult | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(false);
@@ -233,6 +222,9 @@ export default function HermesConsole() {
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | "spatial" | null>(
     null,
   );
+  const [inspectDeveloper, setInspectDeveloper] = useState(false);
+  const [runtimeOps, setRuntimeOps] = useState(false);
+  const [voiceReady, setVoiceReady] = useState(false);
   const [settingsTab, setSettingsTab] = useState("外觀");
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [preview, setPreview] = useState<Material | null>(null);
@@ -246,13 +238,16 @@ export default function HermesConsole() {
     setUploads,
     references,
     setReferences,
-    focus,
     setFocus,
     draft,
     replaceDraft,
     clearDrafts,
   } = useComposerDraft(draftScope);
   const [busy, setBusy] = useState(false);
+  const [pickingInspiration, setPickingInspiration] = useState(false);
+  const [pickedDirection, setPickedDirection] = useState<"A" | "B" | "C" | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [offline, setOffline] = useState(false);
@@ -286,11 +281,15 @@ export default function HermesConsole() {
   const input = useRef<HTMLTextAreaElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
+  const pinnedScrollTop = useRef<number | null>(null);
   const composing = useRef(false);
+  const sending = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
   const pendingXHR = useRef(new Map<string, XMLHttpRequest>());
   const activeConv = data.conversations.find((c) => c.id === activeId);
-  const currentTasks = tasks.filter((t) => t.conversationId === activeId);
+  const currentTasks = tasks
+    .filter((t) => t.conversationId === activeId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const currentTask = currentTasks[0];
   const pending = currentTasks.find(isActive);
   const uncertain = currentTasks.find((t) => t.state === "uncertain");
@@ -298,40 +297,42 @@ export default function HermesConsole() {
   const blocked = currentTasks.some(
     (t) => isActive(t) || t.state === "uncertain",
   );
-  const canManageConnections =
-    workspaceRole === "owner" || workspaceRole === "admin";
-  const settingsTabs = canManageConnections
-    ? (["帳號", "外觀", "連線", "工作區", "進階"] as const)
-    : (["帳號", "外觀", "工作區"] as const);
+  const hasActiveTask = tasks.some(isActive);
+  const directionWorkflow = [...workflows]
+    .filter((item) => item.projectId === project && item.directionBrief)
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+    .at(-1);
+  const rawBrief = directionWorkflow?.directionBrief;
+  const directionBrief = isDirectionBriefPack(rawBrief) ? rawBrief : null;
+  const chatDirectionBrief =
+    directionBrief &&
+    directionWorkflow?.conversationId &&
+    directionWorkflow.conversationId === activeId
+      ? directionBrief
+      : null;
+  const selectedInspiration =
+    pickedDirection ||
+    (directionWorkflow?.conversationId === activeId &&
+    directionWorkflow.selected !== null &&
+    DIRECTION_LETTERS[directionWorkflow.selected]
+      ? DIRECTION_LETTERS[directionWorkflow.selected]
+      : chatDirectionBrief?.selected || null);
 
   const loadWorkspace = useCallback(async () => {
-    const [result, account] = await Promise.all([
-      api<Workspace>("workspace"),
-      api<{ membership: { role?: string } | null }>("auth").catch(() => ({
-        membership: null,
-      })),
-    ]);
-    const role = account.membership?.role;
-    setWorkspaceRole(
-      role === "owner" || role === "admin" || role === "member"
-        ? role
-        : "member",
-    );
+    const result = await api<Workspace>("workspace");
     setData(result);
     return result;
   }, []);
   const refresh = useCallback(async () => {
-    const [workspace, taskResult, workflowResult, healthResult] =
-      await Promise.all([
-        api<Workspace>("workspace"),
-        api<{ tasks: Task[] }>("tasks"),
-        api<{ workflows: Workflow[] }>("workflows"),
-        api<Health>("health").catch(() => null),
-      ]);
+    const [workspace, taskResult, workflowResult] = await Promise.all([
+      api<Workspace>("workspace"),
+      api<{ tasks: Task[] }>("tasks"),
+      api<{ workflows: Workflow[]; artifacts?: Artifact[] }>("workflows"),
+    ]);
     setData(workspace);
     setTasks(taskResult.tasks);
     setWorkflows(workflowResult.workflows);
-    if (healthResult) setHealth(healthResult);
+    setArtifacts(workflowResult.artifacts || []);
     setOffline(false);
   }, []);
   useEffect(() => {
@@ -379,13 +380,6 @@ export default function HermesConsole() {
     if (hydrated) writePreference("hermes.ui.v2", JSON.stringify(prefs));
   }, [prefs, hydrated]);
   useEffect(() => {
-    if (
-      !canManageConnections &&
-      (settingsTab === "連線" || settingsTab === "進階")
-    )
-      setSettingsTab("外觀");
-  }, [canManageConnections, settingsTab]);
-  useEffect(() => {
     if (auth !== "ready") return;
     api<Health>("health")
       .then(setHealth)
@@ -412,7 +406,7 @@ export default function HermesConsole() {
       }
     };
     void poll();
-    const timer = setInterval(poll, 3000);
+    const timer = setInterval(poll, hasActiveTask ? POLL_ACTIVE_MS : POLL_IDLE_MS);
     const disconnected = () => setOffline(true);
     window.addEventListener("online", poll);
     window.addEventListener("offline", disconnected);
@@ -424,7 +418,7 @@ export default function HermesConsole() {
       window.removeEventListener("offline", disconnected);
       document.removeEventListener("visibilitychange", poll);
     };
-  }, [auth, refresh]);
+  }, [auth, refresh, hasActiveTask]);
   useEffect(() => {
     const textarea = input.current;
     if (!textarea) return;
@@ -442,11 +436,6 @@ export default function HermesConsole() {
       textarea.style.height = Math.min(textarea.scrollHeight, limit) + "px";
       textarea.style.overflowY =
         textarea.scrollHeight > limit ? "auto" : "hidden";
-      if (
-        document.activeElement === textarea &&
-        textarea.selectionStart === textarea.value.length
-      )
-        textarea.scrollTop = textarea.scrollHeight;
     };
     resize();
     let previousWidth = textarea.parentElement?.clientWidth;
@@ -490,43 +479,39 @@ export default function HermesConsole() {
         baseline = current;
       }
       previousWidth = current.width;
-      const keyboardOpen =
-        composerFocused &&
-        !widthChanged &&
-        Math.max(baseline.height, window.innerHeight) - current.height >= 96 &&
-        (viewport?.scale || 1) <= 1.01;
-      // Root cause: copying visualViewport.height into --app-height after the
-      // keyboard closed permanently shortened the shell on Android Chrome.
-      // Only pin height while the composer keyboard is actually open.
-      if (keyboardOpen) {
-        document.documentElement.dataset.composerKeyboard = "open";
-        document.documentElement.style.setProperty(
-          "--app-height",
-          current.height + "px",
-        );
-      } else {
-        delete document.documentElement.dataset.composerKeyboard;
-        document.documentElement.style.removeProperty("--app-height");
-      }
+      const keyboardOpen = isComposerKeyboardOpen({
+        composerFocused,
+        widthChanged,
+        baselineHeight: baseline.height,
+        layoutHeight: window.innerHeight,
+        visualHeight: current.height,
+        scale: viewport?.scale || 1,
+      });
+      applyComposerKeyboardStyle(document.documentElement, {
+        keyboardOpen,
+        visualHeight: current.height,
+      });
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
     };
+    // Only bind --app-height while the software keyboard is open. Tracking
+    // visualViewport at all times leaves Android Chrome at the keyboard-shrunk
+    // height after close (or after the URL bar returns). Nested scroll, not
+    // visualViewport scroll, owns conversation movement.
     update();
     viewport?.addEventListener("resize", schedule);
-    viewport?.addEventListener("scroll", schedule);
     window.addEventListener("resize", schedule);
     document.addEventListener("focusin", schedule);
     document.addEventListener("focusout", schedule);
     return () => {
       cancelAnimationFrame(frame);
       viewport?.removeEventListener("resize", schedule);
-      viewport?.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       document.removeEventListener("focusin", schedule);
       document.removeEventListener("focusout", schedule);
-      delete document.documentElement.dataset.composerKeyboard;
+      clearComposerKeyboardStyle(document.documentElement);
     };
   }, []);
   useEffect(() => {
@@ -557,16 +542,59 @@ export default function HermesConsole() {
     if (drawer) mobileNav.current?.showModal();
     else mobileNav.current?.close();
   }, [drawer]);
+  const visualPinKey =
+    currentTask?.events
+      .map((event) => event.toolName)
+      .filter(isWorkspaceResultTool)
+      .join(",") || "";
   useEffect(() => {
-    if (nearBottom.current) {
-      const el = scroll.current;
-      if (el) el.scrollTop = el.scrollHeight;
-    }
-  }, [activeConv?.messages.length, currentTask?.output]);
+    const el = scroll.current;
+    if (!el) return;
+    const pin = (target: HTMLElement | null) => {
+      if (!target) return false;
+      const top =
+        target.getBoundingClientRect().top -
+        el.getBoundingClientRect().top +
+        el.scrollTop -
+        8;
+      pinnedScrollTop.current = Math.max(0, top);
+      setJump(false);
+      el.scrollTo({ top: pinnedScrollTop.current });
+      return true;
+    };
+    const frame = requestAnimationFrame(() => {
+      if (
+        pin(
+          preferredPinnedVisual(
+            el,
+            Boolean(chatDirectionBrief),
+            /workspace_continue_direction_spec|workspace_revise_direction_spec/.test(
+              visualPinKey,
+            ),
+          ),
+        )
+      )
+        return;
+      if (!nearBottom.current) return;
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeConv?.messages.length,
+    currentTask?.output,
+    chatDirectionBrief,
+    visualPinKey,
+  ]);
   useEffect(() => {
     nearBottom.current = true;
     setJump(false);
-    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
+    const el = scroll.current;
+    if (!el) return;
+    const frame = requestAnimationFrame(() => {
+      if (el.querySelector(CONVERSATION_VISUAL_SELECTOR)) return;
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
   }, [activeId]);
   useEffect(
     () => () => {
@@ -582,6 +610,7 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
     writePreference("hermes.active.v2", conv.id);
   }
   function fresh() {
@@ -591,18 +620,10 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
+    setPickedDirection(null);
     writePreference("hermes.active.v2", null);
     input.current?.focus();
-  }
-  function continueDraft(next: string, nextFocus?: TaskFocus | null) {
-    setNav("chat");
-    setText(next);
-    setFocus(nextFocus || null);
-    input.current?.focus();
-  }
-  function continueExistingDesign() {
-    const next = continueCurrentDesign(workflows, project);
-    continueDraft(next.text, next.focus);
   }
   async function createConversation(
     title: string,
@@ -628,22 +649,32 @@ export default function HermesConsole() {
     await loadWorkspace();
     return result.conversation;
   }
-  async function send() {
-    if (busy || blocked || !text.trim() || uploads.some((u) => !u.material))
+  async function sendPrompt(prompt: string, attachmentIds?: string[]) {
+    const trimmed = prompt.trim();
+    if (sending.current || busy || blocked || !trimmed) return;
+    const files = attachmentIds
+      ? []
+      : uploads.filter((u) => u.material);
+    if (
+      !attachmentIds &&
+      uploads.some((u) => !u.material)
+    )
       return;
+    const refs = attachmentIds ? [] : references;
+    sending.current = true;
     setBusy(true);
+    setVoiceReady(false);
     setError("");
     nearBottom.current = true;
     try {
-      const conv = activeConv || (await createConversation(text.trim()));
+      const conv = activeConv || (await createConversation(trimmed));
       const payload = {
         conversationId: conv.id,
-        input: text.trim(),
-        attachments: [
-          ...uploads.flatMap((u) => (u.material ? [u.material.id] : [])),
-          ...references,
+        input: trimmed,
+        attachments: attachmentIds || [
+          ...files.flatMap((u) => (u.material ? [u.material.id] : [])),
+          ...refs,
         ],
-        ...(focus ? { focus } : {}),
       };
       const signature = JSON.stringify(payload);
       if (requestKey.current?.payload !== signature)
@@ -663,7 +694,50 @@ export default function HermesConsole() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      sending.current = false;
       setBusy(false);
+    }
+  }
+  async function send() {
+    await sendPrompt(text);
+  }
+  async function pickInspirationDirection(
+    id: "A" | "B" | "C",
+    pack: InspirationSearchPack,
+    source: "chat" | "board" = "chat",
+  ) {
+    if (busy || pickingInspiration || blocked) return;
+    const title = pack.directions.find((item) => item.id === id)?.title || id;
+    setPickingInspiration(true);
+    setError("");
+    try {
+      await api("inspiration", "POST", {
+        action: "select",
+        selected: id,
+        prompt: pack.query.primary,
+        projectId: project,
+        conversationId:
+          source === "chat" ? activeId || undefined : undefined,
+      });
+      setPickedDirection(id);
+      await refresh();
+      if (source === "chat" && activeId) {
+        setNav("chat");
+      }
+      if (hermesCanContinue(health) && source === "chat") {
+        try {
+          await sendPrompt(directionPickFollowUp(id, title), []);
+        } catch (cause) {
+          setNotice("Hermes 尚未連線，沒有出圖。");
+          setError((cause as Error).message);
+        }
+      } else if (source === "chat" && activeId) {
+        setNotice("Hermes 尚未連線，沒有出圖。");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPickingInspiration(false);
     }
   }
   async function stopTask(task: Task) {
@@ -685,7 +759,7 @@ export default function HermesConsole() {
       });
       setTasks((old) => old.map((t) => (t.id === task.id ? result.task : t)));
       setError("");
-      setNotice("已確認此待確認結果，可以重新送出；未宣稱遠端已停止。");
+      setNotice("已確認此待確認結果，可以重新送出；不會假裝已經停下來。");
       input.current?.focus();
     } catch (e) {
       setError((e as Error).message);
@@ -697,14 +771,14 @@ export default function HermesConsole() {
       data.conversations.find((c) => c.id === task.conversationId) ||
       activeConv;
     if (!conv) {
-      setError("找不到對應對話，無法建立重試分支。");
+      setError("找不到對應對話，無法再試一次。");
       return;
     }
     const message = conv.messages.find(
       (m) => m.taskId === task.id && m.role === "user",
     );
     if (!message) {
-      setError("找不到觸發此任務的使用者訊息，無法建立重試分支。");
+      setError("找不到觸發此任務的使用者訊息，無法再試一次。");
       return;
     }
     if (activeId !== conv.id) {
@@ -735,7 +809,7 @@ export default function HermesConsole() {
         },
       );
       setNav("chat");
-      setPanel(null);
+      closePanel();
       setNotice("已建立分支，原對話完整保留。修改內容後再送出。");
     } catch (e) {
       setError((e as Error).message);
@@ -767,6 +841,7 @@ export default function HermesConsole() {
   }
   function closePanel() {
     setPanel(null);
+    setInspectDeveloper(false);
   }
   function onComposerTaskPillClick(task: Task) {
     // Offline: refresh only — never open-resend or acknowledge.
@@ -859,12 +934,15 @@ export default function HermesConsole() {
         .then((result) => setAgents(result.agents))
         .catch(() => {});
     if (next === "inspiration")
-      api<{ items: InspirationItem[]; sheetsSync: SheetSyncResult | null }>(
-        "inspiration",
-      )
+      api<{
+        items: InspirationItem[];
+        sheetsSync: SheetSyncResult | null;
+        pack?: InspirationSearchPack;
+      }>("inspiration")
         .then((result) => {
           setInspiration(result.items);
           setSheetsSync(result.sheetsSync);
+          setInspirationPack(result.pack || null);
         })
         .catch(() => {});
   };
@@ -995,15 +1073,15 @@ export default function HermesConsole() {
       </div>
       <button
         className="settings-button"
-        aria-label={canManageConnections ? "設定與連線" : "設定"}
-        title={canManageConnections ? "設定與連線" : "設定"}
+        aria-label="設定與連線"
+        title="設定與連線"
         onClick={() => {
           setPanel("settings");
           setDrawer(false);
         }}
       >
         <Settings size={19} />
-        <span>{canManageConnections ? "設定與連線" : "設定"}</span>
+        <span>設定與連線</span>
         <span
           className={
             "status-dot " + (health?.credential === "valid" ? "good" : "")
@@ -1026,7 +1104,6 @@ export default function HermesConsole() {
       data-spatial={spatial.mode}
       data-page-visible={spatial.visible}
       data-sheet-open={!!panel || drawer || radialOpen}
-      data-scroll-mode={nav === "chat" ? "chat" : "page"}
     >
       <a className="skip-link" href="#composer">
         跳至輸入區
@@ -1037,7 +1114,7 @@ export default function HermesConsole() {
       <dialog
         ref={mobileNav}
         className="mobile-nav"
-        aria-label="工作區導覽"
+        aria-label="對話列表"
         onCancel={() => setDrawer(false)}
         onClick={(e) => {
           if (e.target === e.currentTarget) setDrawer(false);
@@ -1066,16 +1143,17 @@ export default function HermesConsole() {
           </button>
           <button
             className="icon-button mobile-toggle"
-            aria-label="開啟導覽"
+            aria-label="對話列表"
+            title="對話列表"
             onClick={() => setDrawer(true)}
           >
             <Menu size={21} />
           </button>
           <div className="topbar-title">
             {nav === "chat"
-              ? "Hermes"
+              ? spatial.mobile ? "Hermes" : "創作對話"
               : nav === "projects"
-                ? "專案"
+                ? "專案與素材"
                 : nav === "inspiration"
                   ? "靈感"
                   : nav === "tasks"
@@ -1105,8 +1183,8 @@ export default function HermesConsole() {
                   : "確認中")
             }
             onClick={() => {
-              setSettingsTab(canManageConnections ? "連線" : "帳號");
-              setPanel("settings");
+              closePanel();
+              navigate("agents");
             }}
           >
             <span
@@ -1132,6 +1210,7 @@ export default function HermesConsole() {
           >
             <Settings size={19} />
           </button>
+          <AccountMenu />
         </header>
         {(error || notice || offline) && (
           <div
@@ -1165,6 +1244,28 @@ export default function HermesConsole() {
                 const el = e.currentTarget;
                 nearBottom.current =
                   el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+                const visuals = [
+                  ...el.querySelectorAll<HTMLElement>(
+                    CONVERSATION_VISUAL_SELECTOR,
+                  ),
+                ];
+                if (
+                  conversationVisualInView(
+                    el.getBoundingClientRect(),
+                    visuals.map((node) => node.getBoundingClientRect()),
+                  )
+                ) {
+                  setJump(false);
+                  return;
+                }
+                if (
+                  pinnedScrollTop.current != null &&
+                  Math.abs(el.scrollTop - pinnedScrollTop.current) < 40
+                ) {
+                  setJump(false);
+                  return;
+                }
+                pinnedScrollTop.current = null;
                 setJump(!nearBottom.current);
               }}
             >
@@ -1179,6 +1280,15 @@ export default function HermesConsole() {
                           animation={prefs.animation}
                           size={prefs.turtleSize * 1.8}
                           onClick={() => setPanel("spatial")}
+                        />
+                      )}
+                      {prefs.turtle && (
+                        <AgentOrbit
+                          compact
+                          task={currentTask}
+                          integrations={integrations}
+                          stale={offline}
+                          animation={prefs.animation}
                         />
                       )}
                     </div>
@@ -1208,34 +1318,51 @@ export default function HermesConsole() {
                         onInspect={() => openTask(currentTask)}
                       />
                     )}
-                    {activeConv.messages.map((message) => (
+                    {activeConv.messages.map((message) => {
+                      const visualTask =
+                        message.role === "assistant" && message.taskId
+                          ? tasks.find((item) => item.id === message.taskId)
+                          : undefined;
+                      const hideBody =
+                        message.provenance === "workspace" &&
+                        !!message.taskId;
+                      return (
                       <article
                         key={message.id}
                         className={"message " + message.role}
                       >
                         <div className="message-byline">
-                          {message.role === "user" ? "你" : "Hermes"}
+                          {message.role === "user"
+                            ? "你"
+                            : message.provenance === "workspace"
+                              ? "工作區"
+                              : "Hermes"}
                           <time dateTime={message.createdAt}>
                             {time(message.createdAt)}
                           </time>
                           {message.provenance === "legacy_unverified" && (
                             <span>舊資料 · 未驗證</span>
                           )}
+                          {message.provenance === "workspace" && (
+                            <span>不是 Hermes</span>
+                          )}
                         </div>
                         <div className="message-content">
-                          <MessageBody text={message.content} />
-                          {message.role === "assistant" && message.taskId && (
+                          {!hideBody && <MessageBody text={message.content} />}
+                          {visualTask && (
                             <VisualMessage
-                              task={tasks.find((t) => t.id === message.taskId)}
-                              onInspect={() =>
-                                openTask(
-                                  tasks.find((t) => t.id === message.taskId),
-                                )
-                              }
+                              task={visualTask}
+                              onInspect={() => openTask(visualTask)}
+                              onPickInspiration={pickInspirationDirection}
+                              pickingInspiration={pickingInspiration}
+                              selectedInspiration={selectedInspiration}
                               workflows={workflows}
                               projectId={activeConv.projectId}
-                              onContinue={(text, nextFocus) => {
-                                continueDraft(text, nextFocus);
+                              onContinue={(nextText, nextFocus) => {
+                                setText(nextText);
+                                if (nextFocus) setFocus(nextFocus);
+                                setNav("chat");
+                                input.current?.focus();
                               }}
                             />
                           )}
@@ -1248,13 +1375,19 @@ export default function HermesConsole() {
                                 return asset ? (
                                   <button
                                     key={id}
-                                    aria-label={"預覽素材：" + asset.title}
                                     onClick={() => {
                                       setPreview(asset);
                                       setPanel("preview");
                                     }}
                                   >
-                                    <MaterialCover material={asset} />
+                                    {asset.kind === "image" && (
+                                      <img
+                                        src={materialImageSrc(asset.id, "thumb")}
+                                        alt={asset.title}
+                                        loading="lazy"
+                                      />
+                                    )}
+                                    <span>{asset.title}</span>
                                   </button>
                                 ) : null;
                               })}
@@ -1281,19 +1414,23 @@ export default function HermesConsole() {
                           )}
                           {message.taskId && message.role === "assistant" && (
                             <button
+                              aria-label="執行紀錄"
+                              title="執行紀錄"
                               onClick={() =>
                                 openTask(
                                   tasks.find((t) => t.id === message.taskId),
                                 )
                               }
                             >
-                              執行紀錄
+                              <ListTodo size={15} />
                             </button>
                           )}
                         </div>
                       </article>
-                    ))}
+                      );
+                    })}
                     {currentTask &&
+                      currentTask.state !== "completed" &&
                       !activeConv.messages.some(
                         (m) =>
                           m.taskId === currentTask.id && m.role === "assistant",
@@ -1309,9 +1446,7 @@ export default function HermesConsole() {
                             <MessageBody text={currentTask.output} />
                           )}
                           {shortTaskError(currentTask.error) && (
-                            <p className="error">
-                              {shortTaskError(currentTask.error)}
-                            </p>
+                            <p className="error">{shortTaskError(currentTask.error)}</p>
                           )}
                           {shortTaskError(currentTask.observationError) && (
                             <p className="error">
@@ -1323,8 +1458,7 @@ export default function HermesConsole() {
                             onClick={() => openTask(currentTask)}
                           >
                             <ListTodo size={16} />
-                            {progressSteps(currentTask).find((step) => step.active)
-                              ?.label || taskLabels[currentTask.state]}
+                            {studentTaskCaption(currentTask)}
                             <ChevronDown size={16} />
                           </button>
                           {["failed", "cancelled", "uncertain"].includes(
@@ -1334,7 +1468,7 @@ export default function HermesConsole() {
                               className="text-button"
                               onClick={() => retryBranchFromTask(currentTask)}
                             >
-                              建立重試分支（保留原紀錄）
+                              再試一次（保留這次紀錄）
                             </button>
                           )}
                           {currentTask.state === "uncertain" && (
@@ -1347,6 +1481,9 @@ export default function HermesConsole() {
                           )}
                         </article>
                       )}
+                    {chatDirectionBrief && (
+                      <DirectionBrief brief={chatDirectionBrief} />
+                    )}
                   </>
                 )}
               </div>
@@ -1358,15 +1495,13 @@ export default function HermesConsole() {
                 aria-live="polite"
                 aria-atomic="true"
               >
-                {currentTask
+                {currentTask && showComposerTask(currentTask, activeConv)
                   ? "Hermes 任務：" + taskLabels[currentTask.state]
                   : ""}
               </span>
               {jump && (
                 <button
                   className="jump-button"
-                  type="button"
-                  aria-label="回到最新訊息"
                   onClick={() => {
                     nearBottom.current = true;
                     setJump(false);
@@ -1376,30 +1511,21 @@ export default function HermesConsole() {
                     });
                   }}
                 >
-                  <ChevronDown size={18} />
+                  <ChevronDown size={16} />
+                  回到最新訊息
                 </button>
               )}
-              {currentTask && (
+              {currentTask && showComposerTask(currentTask, activeConv) && (
                 <ComposerTaskStatus
                   task={currentTask}
                   offline={offline}
                   onClick={() => onComposerTaskPillClick(currentTask)}
                 />
               )}
-              {uploads.some(
-                (row) =>
-                  row.file.type.startsWith("image/") ||
-                  row.material?.kind === "image",
-              ) &&
-                !data.imageInput && (
-                  <p className="composer-image-notice" role="status">
-                    圖片已保存。還沒驗證看圖，送出後只會根據你的文字，不會假裝已看過圖片。
-                  </p>
-                )}
               {uncertain && (
                 <div className="composer-uncertain-hint" role="status">
                   <p>
-                    結果待確認，此對話暫時不能再送出。可確認後在原對話重試，或建立分支保留原紀錄；未宣稱遠端已停止。
+                    結果待確認，此對話暫時不能再送出。可確認後在原對話重試，或另開一則保留這次；不會假裝已經停下來。
                   </p>
                   <div className="composer-uncertain-actions">
                     <button
@@ -1415,7 +1541,7 @@ export default function HermesConsole() {
                       onClick={() => retryBranchFromTask(uncertain)}
                       disabled={busy}
                     >
-                      建立重試分支（保留原紀錄）
+                      再試一次（保留這次紀錄）
                     </button>
                   </div>
                 </div>
@@ -1447,6 +1573,7 @@ export default function HermesConsole() {
                     uploads={uploads}
                     references={references}
                     materials={data.materials}
+                    imageInput={data.imageInput}
                     disabled={busy}
                     onPreview={(material) => {
                       setPreview(material);
@@ -1472,10 +1599,7 @@ export default function HermesConsole() {
                     aria-label="訊息"
                     aria-describedby="composer-hint"
                     readOnly={busy}
-                    onChange={(e) => {
-                      setText(e.target.value);
-                      if (!e.target.value.trim()) setFocus(null);
-                    }}
+                    onChange={(e) => setText(e.target.value)}
                     onCompositionStart={() => {
                       composing.current = true;
                     }}
@@ -1518,8 +1642,17 @@ export default function HermesConsole() {
                         files.forEach((file) => uploadFile(file));
                       }}
                     />
+                    <ComposerVoiceButton
+                      disabled={busy || blocked}
+                      isComposing={() => composing.current}
+                      value={text}
+                      onChange={setText}
+                      onReady={() => setVoiceReady(true)}
+                      onDenied={(message) => setError(message)}
+                    />
                     <ComposerMenu
                       disabled={busy}
+                      canvaReady={hermesCanContinue(health)}
                       onUpload={(kind) => {
                         if (uploadInput.current) {
                           uploadInput.current.accept =
@@ -1531,7 +1664,13 @@ export default function HermesConsole() {
                       }}
                       onNavigate={(kind) => {
                         if (kind === "canva") {
-                          continueExistingDesign();
+                          if (!hermesCanContinue(health)) {
+                            setError("Hermes 尚未連線，無法查回 Canva 設計。");
+                            return;
+                          }
+                          setText(
+                            "請查回我已有的 Canva 設計，選擇要接續修改的作品。",
+                          );
                           input.current?.focus();
                         } else {
                           setNav("projects");
@@ -1550,7 +1689,9 @@ export default function HermesConsole() {
                       </button>
                     ) : (
                       <button
-                        className="send-button"
+                        className={
+                          "send-button" + (voiceReady ? " send-ready" : "")
+                        }
                         type="submit"
                         aria-label="送出訊息"
                         disabled={
@@ -1572,11 +1713,16 @@ export default function HermesConsole() {
                   : "請核對重要資訊與素材權利。"}
                 <span>Enter 送出 · Shift + Enter 換行</span>
               </p>
+              {voiceReady && (
+                <p className="composer-voice-hint" role="status" aria-live="polite">
+                  說完了，請按送出
+                </p>
+              )}
             </div>
           </>
         ) : nav === "projects" ? (
-          <section className="secondary-page">
-            <h1>專案</h1>
+          <section className="secondary-page" key={nav}>
+            <h1>素材與靈感</h1>
             <ProjectShelf
               projects={data.projects}
               materials={data.materials}
@@ -1591,13 +1737,6 @@ export default function HermesConsole() {
                 setSettingsTab("工作區");
               }}
             />
-            <ArtifactDeck
-              projectId={project}
-              items={workflows.filter((item) => item.projectId === project)}
-              onContinue={(text, nextFocus) => {
-                continueDraft(text, nextFocus);
-              }}
-            />
             <details className="workbench-disclosure">
               <summary>活動與文案</summary>
               <ProjectWorkbench
@@ -1605,12 +1744,28 @@ export default function HermesConsole() {
                 projectId={project}
                 materials={data.materials}
                 workflows={workflows}
-                onCompose={(text, nextFocus) => {
+                hermesReady={hermesCanContinue(health)}
+                onCompose={(text, conversationId) => {
                   if (busy) {
                     setError("請先等目前任務結束或停止，再接續其他作品。");
                     return;
                   }
-                  continueDraft(text, nextFocus);
+                  const conv = conversationId
+                    ? data.conversations.find((item) => item.id === conversationId)
+                    : undefined;
+                  if (conv) {
+                    setActiveId(conv.id);
+                    setProject(conv.projectId);
+                    writePreference("hermes.active.v2", conv.id);
+                    setNav("chat");
+                    replaceDraft("conversation:" + conv.id, {
+                      ...emptyDraft(),
+                      text,
+                    });
+                    return;
+                  }
+                  fresh();
+                  replaceDraft("project:" + project, { ...emptyDraft(), text });
                 }}
               />
             </details>
@@ -1678,7 +1833,15 @@ export default function HermesConsole() {
                         setPanel("preview");
                       }}
                     >
-                      <MaterialCover material={m} />
+                      {m.kind === "image" ? (
+                        <img
+                          src={materialImageSrc(m.id, "thumb")}
+                          alt={m.title}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <LinkIcon size={28} />
+                      )}
                     </button>
                     <h3>{m.title}</h3>
                     <p>
@@ -1708,16 +1871,27 @@ export default function HermesConsole() {
             {!data.materials.some((m) => m.projectId === project) && (
               <div className="empty-state">
                 <Images size={30} />
-                <h2>還沒有素材</h2>
-                <p>從對話＋上傳，或收藏連結。</p>
+                <h2>靈感板還是一張白紙</h2>
+                <p>
+                  收藏 Instagram、Pinterest 或其他 HTTPS 來源，
+                  <br />
+                  也可以從對話輸入區上傳圖片。
+                </p>
               </div>
             )}
           </section>
         ) : nav === "inspiration" ? (
-          <>
+          <section className="secondary-page" key={nav}>
             <InspirationBoard
               items={inspiration}
+              pack={inspirationPack}
               syncStatus={sheetsSync}
+              onSelectDirection={(id, pack) =>
+                void pickInspirationDirection(id, pack, "board")
+              }
+              selectedDirection={selectedInspiration}
+              selecting={pickingInspiration}
+              brief={directionBrief}
               onSync={async () => {
                 const result = await api<{ sheetsSync: SheetSyncResult }>(
                   "inspiration",
@@ -1726,55 +1900,86 @@ export default function HermesConsole() {
                 );
                 setSheetsSync(result.sheetsSync);
                 const [updated, workspace] = await Promise.all([
-                  api<{ items: InspirationItem[] }>("inspiration"),
+                  api<{ items: InspirationItem[]; pack?: InspirationSearchPack }>("inspiration"),
                   api<Workspace>("workspace"),
                 ]);
                 setInspiration(updated.items);
+                setInspirationPack(updated.pack || null);
                 setData(workspace);
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />
-            <KnowledgeArchive />
-          </>
+            <details className="knowledge-fold">
+              <summary>Drive 知識</summary>
+              <KnowledgeArchive heading={false} />
+            </details>
+          </section>
         ) : nav === "agents" ? (
-          <section className="secondary-page">
+          <section className="secondary-page" key={nav}>
             <div className="page-heading-row">
-            <div>
-              <h1>能力</h1>
-            </div>
+              <div>
+                <h1>能力</h1>
+              </div>
               <VisualStatus health={health} offline={offline} />
             </div>
             <RuntimeInspector
               task={currentTask}
               health={health}
               animation={prefs.animation}
-              developer={canManageConnections}
+              allowDeveloper={runtimeOps}
             />
-            {canManageConnections ? (
-            <details className="agent-profiles">
-              <summary>Developer · Agent 設定檔</summary>
-              <AgentPanel
-                agents={agents.filter(
-                  (agent) =>
-                    agent.role === "general" || agent.status !== "unconfigured",
-                )}
-                brain={[]}
-              />
-            </details>
-            ) : null}
           </section>
         ) : (
-          <section className="secondary-page">
+          <section className="secondary-page" key={nav}>
             <h1>任務</h1>
             <ArtifactDeck
-              projectId={project}
               items={workflows.filter((w) => w.projectId === project)}
-              onContinue={(text, nextFocus) => {
-                continueDraft(text, nextFocus);
+              artifacts={artifacts.filter((item) => item.projectId === project)}
+              onContinue={(id) => {
+                const workflow =
+                  workflows.find((item) => item.id === id) ||
+                  workflows.find((item) => item.artifactId === id);
+                const conversationId = workflow?.conversationId;
+                const conv = conversationId
+                  ? data.conversations.find((item) => item.id === conversationId)
+                  : null;
+                if (conv) {
+                  setActiveId(conv.id);
+                  setProject(conv.projectId);
+                  writePreference("hermes.active.v2", conv.id);
+                }
+                setNav("chat");
+                replaceDraft(
+                  conv ? "conversation:" + conv.id : draftScope,
+                  { ...emptyDraft(), text: CONTINUE_SAME_WORK_PROMPT },
+                );
+              }}
+              onRestore={async (artifactId, revisionId) => {
+                try {
+                  await api("artifacts", "POST", {
+                    action: "restore",
+                    artifactId,
+                    revisionId,
+                  });
+                  await refresh();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+              onFork={async (artifactId) => {
+                try {
+                  await api("artifacts", "POST", {
+                    action: "fork",
+                    artifactId,
+                  });
+                  await refresh();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
               }}
             />
             {workflows
-              .filter((w) => w.projectId === project)
+              .filter((w) => w.projectId === project && !w.directionBrief)
               .map((w) => (
                 <section className="workflow" key={w.id}>
                   <h2>
@@ -1825,10 +2030,21 @@ export default function HermesConsole() {
                                 selected: index,
                               });
                               await refresh();
-                              const next = selectDirection(w.id, index + 1);
-                              setText(next.text);
-                              setFocus(next.focus || null);
-                              setNav("chat");
+                              const conv = w.conversationId
+                                ? data.conversations.find(
+                                    (item) => item.id === w.conversationId,
+                                  )
+                                : undefined;
+                              if (conv) {
+                                setActiveId(conv.id);
+                                setProject(conv.projectId);
+                                writePreference("hermes.active.v2", conv.id);
+                                setNav("chat");
+                                replaceDraft("conversation:" + conv.id, {
+                                  ...emptyDraft(),
+                                  text: CONTINUE_SAME_WORK_PROMPT,
+                                });
+                              }
                             } catch (e) {
                               setError((e as Error).message);
                             }
@@ -1901,11 +2117,12 @@ export default function HermesConsole() {
           </section>
         )}
       </main>
-      <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
+      <AppDock nav={nav} onNavigate={navigate} busy={busy} canvaReady={hermesCanContinue(health)} onOpenChange={setRadialOpen}
         onAction={action=>{
           if(action==="spatial")setPanel("spatial");
           else if(action==="memory"){setSettingsTab("工作區");setPanel("settings");}
-          else { continueExistingDesign(); }
+          else if(!hermesCanContinue(health)) setError("Hermes 尚未連線，無法查回 Canva 設計。");
+          else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
         }}
         onFiles={files=>{
           if(files.length+uploads.length+references.length>4){setError("每則訊息最多四個附件。");return;}
@@ -1916,9 +2133,9 @@ export default function HermesConsole() {
         ref={dialog}
         className={"detail-dialog "+(panel==="spatial"?"spatial-sheet":panel==="preview"?"preview-sheet":"")}
         aria-labelledby="detail-panel-title"
-        onCancel={() => setPanel(null)}
+        onCancel={() => closePanel()}
         onClick={(e) => {
-          if (e.target === e.currentTarget) setPanel(null);
+          if (e.target === e.currentTarget) closePanel();
         }}
       >
         <div className="panel-content">
@@ -1946,13 +2163,12 @@ export default function HermesConsole() {
           {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
             animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
             onMemory={()=>{setSettingsTab("工作區");setPanel("settings");}}
-            onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
+            onNavigate={next=>{closePanel();navigate(next);}} /> : panel === "settings" ? (
             <>
               <div
                 className="setting-tabs"
                 role="tablist"
                 aria-label="設定分類"
-                data-workspace-role={workspaceRole || "unknown"}
                 onKeyDown={(event) => {
                   if (
                     !["ArrowLeft", "ArrowRight", "Home", "End"].includes(
@@ -1982,7 +2198,7 @@ export default function HermesConsole() {
                   tabs[next]?.click();
                 }}
               >
-                {settingsTabs.map((tab) => (
+                {["帳號", "外觀", "連線", "工作區", "進階"].map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -2091,7 +2307,7 @@ export default function HermesConsole() {
                       重設外觀
                     </button>
                   </div>
-                ) : settingsTab === "連線" && canManageConnections ? (
+                ) : settingsTab === "連線" ? (
                   <div className="settings-stack">
                     <details className="connection-storage">
                       <summary>Hermes · 健康與驗證</summary>
@@ -2118,6 +2334,12 @@ export default function HermesConsole() {
                           {health?.agent === "verified"
                             ? "已有成功任務"
                             : "未驗證"}
+                        </dd>
+                        <dt>讀圖</dt>
+                        <dd>
+                          {data.imageInput
+                            ? "部署已開啟（不是 live 像素驗證）"
+                            : "尚未驗證"}
                         </dd>
                         <dt>最後連線檢查</dt>
                         <dd>{health ? time(health.checkedAt) : "未知"}</dd>
@@ -2190,103 +2412,9 @@ export default function HermesConsole() {
                         }
                       }}
                     />
-                  </div>
-                ) : settingsTab === "工作區" ? (
-                  <div className="settings-stack">
-                    <p>
-                      目前有 {data.projects.length}{" "}
-                      個自訂專案；不包含預設個人工作區。
-                    </p>
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        try {
-                          await api("workspace", "POST", { name: newProject });
-                          setNewProject("");
-                          await loadWorkspace();
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      <label>
-                        新增專案
-                        <input
-                          required
-                          maxLength={80}
-                          value={newProject}
-                          onChange={(e) => setNewProject(e.target.value)}
-                        />
-                      </label>
-                      <button className="primary">
-                        <Plus size={16} />
-                        建立專案
-                      </button>
-                    </form>
-                    <h3>記憶與會話</h3>
-                    <SharedMemory projectId={project} />
-                    <LearningMap
-                      key={project}
-                      projectId={project}
-                      skills={health?.skills || []}
-                      materials={data.materials}
-                      onTask={(id) => {
-                        setSelectedTask(id);
-                        setPanel("task");
-                      }}
-                    />
-                    <p>{data.memory.scope}</p>
-                    <p className="muted">
-                      記憶存在這個工作區。未驗證前不會說已同步到 Hermes。
-                    </p>
-                    {legacy && (
-                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
-                    )}
-                  </div>
-                ) : settingsTab === "進階" && canManageConnections ? (
-                  <div className="settings-stack">
-                    <p>
-                      僅顯示 Hermes
-                      回傳的統計。未知費用不是零，也不推測外部工具費用。
-                    </p>
-                    {tasks.map((t) => (
-                      <details key={t.id}>
-                        <summary>{t.input.slice(0, 40)}</summary>
-                        <TaskUsageSummary task={t} />
-                      </details>
-                    ))}
-                    {!tasks.length && (
-                      <p className="muted">尚無任務使用量資料。</p>
-                    )}
-                    <button
-                      disabled={!activeConv?.hermesSessionId}
-                      onClick={async () => {
-                        try {
-                          const result = await api<{
-                            remoteHistory: typeof remoteHistory;
-                          }>("conversations?id=" + activeId);
-                          setRemoteHistory(result.remoteHistory);
-                          if (!result.remoteHistory)
-                            setNotice("部署版本不支援會話歷史查詢。");
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      讀取目前 Hermes 會話歷史
-                    </button>
-                    {remoteHistory?.map((m, i) => (
-                      <details key={i}>
-                        <summary>
-                          {m.role}
-                          {m.name ? " · " + m.name : ""}
-                        </summary>
-                        <MessageBody text={m.content} />
-                      </details>
-                    ))}
-                    <HelpPage />
+
                     <details className="connection-advanced">
-                      <summary>進階 · 工具、技能與驗證證據</summary>
+                      <summary>Advanced · 工具、技能與驗證證據</summary>
                       <IntegrationHealth items={integrations} />
                       <CapabilityCertification />
                       <label>
@@ -2341,7 +2469,127 @@ export default function HermesConsole() {
                         ))}
                     </details>
                   </div>
-                ) : null}
+                ) : settingsTab === "工作區" ? (
+                  <div className="settings-stack">
+                    <h3>記憶與會話</h3>
+                    <p>記憶存在這個工作區。不會假裝已看過圖片。</p>
+                    <SharedMemory projectId={project} />
+                    <LearningMap
+                      key={project}
+                      projectId={project}
+                      skills={health?.skills || []}
+                      materials={data.materials}
+                      onTask={(id) => {
+                        setSelectedTask(id);
+                        setPanel("task");
+                      }}
+                    />
+                    <p>{data.memory.scope}</p>
+                    <p className="muted">
+                      專案記憶與工作區偏好分開存放。學習地圖是請求紀錄，不是遠端記憶鏡像。
+                    </p>
+                    <button
+                      disabled={!activeConv?.hermesSessionId}
+                      onClick={async () => {
+                        try {
+                          const result = await api<{
+                            remoteHistory: typeof remoteHistory;
+                          }>("conversations?id=" + activeId);
+                          setRemoteHistory(result.remoteHistory);
+                          if (!result.remoteHistory)
+                            setNotice("部署版本不支援會話歷史查詢。");
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      讀取目前 Hermes 會話歷史
+                    </button>
+                    {remoteHistory?.map((m, i) => (
+                      <details key={i}>
+                        <summary>
+                          {m.role}
+                          {m.name ? " · " + m.name : ""}
+                        </summary>
+                        <MessageBody text={m.content} />
+                      </details>
+                    ))}
+                    {legacy && (
+                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
+                    )}
+                    <h3>專案</h3>
+                    <p>
+                      目前有 {data.projects.length}{" "}
+                      個自訂專案；不包含預設個人工作區。
+                    </p>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        try {
+                          await api("workspace", "POST", { name: newProject });
+                          setNewProject("");
+                          await loadWorkspace();
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      <label>
+                        新增專案
+                        <input
+                          required
+                          maxLength={80}
+                          value={newProject}
+                          onChange={(e) => setNewProject(e.target.value)}
+                        />
+                      </label>
+                      <button className="primary">
+                        <Plus size={16} />
+                        建立專案
+                      </button>
+                    </form>
+                  </div>
+                ) : (
+                  <div className="settings-stack">
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={runtimeOps}
+                        onChange={(e) => setRuntimeOps(e.target.checked)}
+                      />
+                      顯示維運檢視（工具清單與 schema）
+                    </label>
+                    <p className="muted">
+                      一般使用只看 Hermes／記憶／工具／MCP 狀態。開啟後，能力頁才會出現開發者檢視。
+                    </p>
+                    <h3>使用量</h3>
+                    <p>
+                      僅顯示 Hermes
+                      回傳的統計。未知費用不是零，也不推測外部工具費用。
+                    </p>
+                    {tasks.map((t) => (
+                      <details key={t.id}>
+                        <summary>{t.input.slice(0, 40)}</summary>
+                        <TaskUsageSummary task={t} />
+                      </details>
+                    ))}
+                    {!tasks.length && (
+                      <p className="muted">尚無任務使用量資料。</p>
+                    )}
+                    <details className="agent-profiles">
+                      <summary>節點設定檔</summary>
+                      <AgentPanel
+                        agents={agents.filter(
+                          (agent) =>
+                            agent.role === "general" ||
+                            agent.status !== "unconfigured",
+                        )}
+                        brain={[]}
+                      />
+                    </details>
+                    <HelpPage />
+                  </div>
+                )}
               </div>
               <footer className="settings-footer">
                 <p className="muted">單一工作區 · 秘密只存在後端</p>
@@ -2353,7 +2601,7 @@ export default function HermesConsole() {
               {preview.kind === "image" && (
                 <img
                   className="full-preview"
-                  src={materialFileSrc(preview.id)}
+                  src={materialImageSrc(preview.id, "full")}
                   alt={preview.title}
                 />
               )}
@@ -2375,7 +2623,7 @@ export default function HermesConsole() {
               ) : (
                 <a
                   className="button-link"
-                  href={materialFileSrc(preview.id)}
+                  href={"/api/materials?id=" + preview.id}
                   download={preview.title}
                 >
                   下載素材 <Download size={16} />
@@ -2431,7 +2679,7 @@ export default function HermesConsole() {
                     onClick={() => retryBranchFromTask(chosenTask)}
                     disabled={busy}
                   >
-                    建立重試分支
+                    再試一次
                   </button>
                 </div>
               )}
@@ -2443,7 +2691,7 @@ export default function HermesConsole() {
                 >
                   <Square size={16} />
                   要求停止
-                  {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
+                  {!chosenTask.stopSupported ? "（還不能確定已停止）" : ""}
                 </button>
               )}
               {["failed", "cancelled"].includes(chosenTask.state) && (
@@ -2453,7 +2701,7 @@ export default function HermesConsole() {
                   onClick={() => retryBranchFromTask(chosenTask)}
                   disabled={busy}
                 >
-                  建立重試分支（保留原紀錄）
+                  再試一次（保留這次紀錄）
                 </button>
               )}
               {!!chosenTask.output && (
@@ -2508,10 +2756,17 @@ export default function HermesConsole() {
                   {shortTaskError(chosenTask.observationError)}
                 </p>
               )}
-              <details className="task-technical">
+              <details
+                className="task-technical"
+                onToggle={(event) =>
+                  setInspectDeveloper(
+                    (event.currentTarget as HTMLDetailsElement).open,
+                  )
+                }
+              >
                 <summary>
                   <Code2 size={15} aria-hidden="true" />
-                  技術資訊
+                  維運檢視
                 </summary>
                 <dl>
                   <div>
@@ -2528,46 +2783,84 @@ export default function HermesConsole() {
                       </code>
                     </dd>
                   </div>
+                  {chosenTask.plan?.steps?.length ? (
+                    <div>
+                      <dt>執行計畫</dt>
+                      <dd>
+                        <ol>
+                          {chosenTask.plan.steps.map((step) => (
+                            <li key={step.id}>
+                              {step.title}
+                              {step.purpose ? ` · ${step.purpose}` : ""}
+                            </li>
+                          ))}
+                        </ol>
+                        {chosenTask.plan.fallbacks.map((item) => (
+                          <p key={item.userVisible}>{item.userVisible}</p>
+                        ))}
+                      </dd>
+                    </div>
+                  ) : null}
                 </dl>
               </details>
               <TaskUsageSummary task={chosenTask} />
-              {chosenTask.plan?.steps?.length ? (
+              {progressSteps(chosenTask).length ? (
                 <>
-                  <h3>執行計畫</h3>
+                  <h3>接下來</h3>
                   <ol className="task-plan">
-                    {chosenTask.plan.steps.map((step) => (
-                      <li key={step.id}>
-                        {step.title}
-                        <small>{step.purpose}</small>
+                    {progressSteps(chosenTask).map((step) => (
+                      <li
+                        key={step.key}
+                        data-state={step.state}
+                        data-active={step.active || undefined}
+                      >
+                        {step.label}
                       </li>
                     ))}
                   </ol>
-                  {chosenTask.plan.fallbacks.map((item) => (
-                    <p key={item.userVisible} className="muted">
-                      {item.userVisible}
-                    </p>
-                  ))}
                 </>
               ) : null}
-              <h3>真實事件紀錄</h3>
+              <h3>進行狀況</h3>
               {chosenTask.events.map((e) => (
                 <details className="event" key={e.id}>
                   <TaskEventSummary event={e} />
                   <small className="event-meta">
                     {time(e.startedAt)}
-                    {e.toolName && <code>{e.toolName}</code>}
+                    {inspectDeveloper && e.toolName && <code>{e.toolName}</code>}
                   </small>
-                  <EventResult result={e.result} />
-                  {e.sources.map((source) => (
-                    <a
-                      key={source}
-                      href={source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {source}
-                    </a>
-                  ))}
+                  {inspectDeveloper && e.summary && (
+                    <p className="event-raw-summary">{e.summary}</p>
+                  )}
+                  {inspectDeveloper && e.result !== null && (
+                    <details>
+                      <summary>開發者 · 原始結果</summary>
+                      <MessageBody
+                        text={
+                          typeof e.result === "string"
+                            ? e.result
+                            : JSON.stringify(e.result, null, 2)
+                        }
+                      />
+                    </details>
+                  )}
+                  {e.sources.map((source) => {
+                    const href = safeSource(source);
+                    if (!href) return null;
+                    const label = inspectDeveloper
+                      ? source
+                      : studentSourceHost(source);
+                    if (!label) return null;
+                    return (
+                      <a
+                        key={source}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {label}
+                      </a>
+                    );
+                  })}
                 </details>
               ))}
             </div>

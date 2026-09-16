@@ -1,73 +1,39 @@
-# Hermes Console
+# Hermes Creative Intelligence
 
-Visual AI Agent Workspace for Hermes. Traditional Chinese, light, mobile-first.
+明亮的免登入單一工作區。開啟 `/` 即進入 Hermes Console，不必先登入。InvitationGate 與 AuthGate 登入模組仍休眠，不得擋工作區。`CONSOLE_AUTH_REQUIRED=true` 才開啟登入閘。Hermes 執行工具；Console 保存會話、任務、活動、文案版本與學習請求，不另建模板大腦。
 
-A person opens the site, signs in, talks to Hermes, and gets research / drafts / artifacts. They should not have to pick MCP servers or read JSON.
+## 啟動
 
-This is **not** a no-login demo. `/` shows AuthGate, then Hermes Console.
+需要 Node.js 22.13+，建議 Node.js 24 LTS。此版本需要持久化磁碟與單一長駐 Node 程序，不適用無狀態 serverless 環境。
 
-## Architecture
+1. `npm ci`
+2. 複製 `.env.example` 到 `.env.local`，依註解設定。本機可不設邀請／寄信變數。
+3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。未設定時 Console 仍應開啟，並顯示尚未連線。找靈感可先用工作區已收藏來源與社團視覺語言整理方向，不會假裝 Hermes 已執行。
+4. `npm run dev` 後開啟 http://localhost:3000。預設免登入。只有設 `CONSOLE_AUTH_REQUIRED=true` 才會先看到登入頁。正式環境使用 `npm run build` 與 `npm start`。
+5. 未設或空白 `DATABASE_URL` 時使用 `CONSOLE_DATA_DIR` SQLite（容器預設 `/app/data`）。設定後改用 Hermes 自有 Postgres 表（`console_records`／`console_sessions`／`console_limits`）；若 Postgres 為空且 SQLite 有列，啟動時一次性搬移。不要指向 ai_os 或 `cutos_memory_items`。`GET /api/ready` 回傳目前 `backend` 與 `dataDir`（200／503）；`GET /api/health` 附相同欄位，都不回傳連線字串。契約測試在沒有 `DATABASE_URL` 時略過 Postgres，只跑 SQLite。
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## 登入
 
-Human → Console → Hermes Agent → Planner → Memory → Tools → MCP → External services → Artifacts.
+正式環境設定 `GOOGLE_CLIENT_ID`／`GOOGLE_CLIENT_SECRET`（Authorization Code + PKCE）或 Email 寄信（`RESEND_API_KEY`、`CONSOLE_EMAIL_FROM`）。淡江 SSO 需要校方 issuer／client／protocol；沒有正式 metadata 時畫面顯示「淡江 SSO 尚未完成設定」，不會假裝成功。已登入後可在設定頁連結 Google／淡江／Email；相同信箱不會自動合併。密碼只存 Argon2id（舊 scrypt 雜湊仍可驗證）。秘密只留後端。
 
-## Setup
+## 重要安全操作
 
-Node.js 22.13+ (24 LTS recommended). One long-running Node process and a writable volume. Not serverless.
+之前提交過的金鑰與管理密碼必須在部署端撤銷／更換。移除现行檔案不會清除 Git 歷史、快取或既有部署，也不代表憑證已撤銷。此分支不重寫歷史，不強制推送，不自動部署。
 
-```bash
-npm ci
-cp .env.example .env.local
-npm run dev
-```
+後端只使用管理者設定的 HTTPS 目標，拒絕重導向與瀏覽器傳入的服務網址或金鑰。Console 密碼不會提供給 Hermes。
 
-Open http://localhost:3000. Production: `npm run build` then `npm start`.
+## 驗證與限制
 
-## Environment
+最新接續見 [活動、學習地圖與邀請制](docs/LEARNING_INVITATIONS.md)。舊 PR #11／#14 文件僅為歷史紀錄，其免登入方案已由本輪要求取代。契約測試不是 Zeabur／Canva／電子郵件收件匣的實機驗證。部署、授權與發布步驟見 [PRODUCTION](docs/PRODUCTION.md)、[SECURITY](docs/SECURITY.md)、[ARCHITECTURE](docs/ARCHITECTURE.md)、[RELEASE_CHECKLIST](docs/RELEASE_CHECKLIST.md)。
 
-See `.env.example` and [docs/PRODUCTION.md](docs/PRODUCTION.md).
+## Lumen 創作台 MCP
 
-| Area | Variables | Honest default |
-| --- | --- | --- |
-| Origin | `CONSOLE_ORIGIN` | Required in production |
-| Data | `CONSOLE_DATA_DIR` or `DATABASE_URL` | SQLite if unset |
-| Hermes | `HERMES_API_URL`, `HERMES_API_KEY` | Unconfigured UI |
-| Google | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | 「尚未完成設定」 |
-| Tamkang SSO | `TAMKANG_SSO_*` | 「淡江 SSO 尚未完成設定」 until a real IdP client exists |
-| Email mail | `RESEND_API_KEY`, `CONSOLE_EMAIL_FROM` | First owner can register without mail; verification/reset need mail |
-| MCP | `*_MCP_URL` / `*_MCP_TOKEN`, `MCP_BRIDGE_TOKEN` | Unconfigured / failed, never fake-connected |
-| Gateway | `CONSOLE_GATEWAY_SECRET` | Deployment protection, not login |
+Hermes 可呼叫 Lumen 創作台。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `LUMEN_MCP_URL`（`https://…/api/mcp`）與至少 32 字元的 `LUMEN_MCP_TOKEN`，再按「測試 Lumen 連線」。探測成功後，海報／文宣／招新／茶會意圖會走工作區 `lumen_*`（Runtime `mcp.lumen.*`），口語用 `lumen_utter`。選定方向留給使用者，不要呼叫 choose。詳見 [Lumen MCP](docs/LUMEN.md)。
 
-Rotate any credential that was ever committed or pasted.
+## FrameLab 動畫 MCP
 
-## Auth
+Hermes 可呼叫 FrameLab 逐格動畫工作站。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `FRAMELAB_MCP_URL`（`https://…/api/mcp`）與從 FrameLab 首頁產生的 `FRAMELAB_MCP_TOKEN`，再按「測試 FrameLab 連線」。探測成功後 Hermes 可用 `mcp.framelab.*` 與工作區 `framelab_*` 工具。詳見 [FrameLab MCP](docs/FRAMELAB.md)。
 
-Google (authorization code + PKCE), Tamkang SSO (real IdP only), Email (Argon2id, magic link, verify, reset). One User with explicit identity linking. APIs require session + membership. Changing Hermes / MCP / Zeabur credentials requires owner or admin; hiding a settings tab is not access control.
+## 對稿工作室 MCP
 
-## MCP
-
-Single registry. Statuses: unconfigured, verifying, available, partial, failed. `tools/list` is partial, not available.
-
-## Development
-
-```bash
-npm run lint
-npm run typecheck
-npm test
-npm run build
-npm run test:ui
-npm run test:entry
-npm run rehearse
-npm run backup
-```
-
-Contract tests and `rehearse` are not live Zeabur / Canva / campus SSO evidence. `backup` writes local files only.
-
-## Deploy
-
-[docs/PRODUCTION.md](docs/PRODUCTION.md). Do not deploy without explicit authorization.
-
-## Tests / security
-
-[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md), [docs/SECURITY.md](docs/SECURITY.md).
+Hermes 可呼叫對稿海報工作室。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `DUIGAO_MCP_URL`（`https://…/api/mcp`）與從對稿 MCP 頁複製的 `DUIGAO_MCP_TOKEN`，再按「測試對稿連線」。探測成功後 Hermes 可用 `mcp.duigao.*` 與工作區 `duigao_*` 工具。詳見 [對稿 MCP](docs/DUIGAO.md)。

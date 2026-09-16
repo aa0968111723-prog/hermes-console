@@ -4,25 +4,44 @@ import {
   artifactsForConversation,
   progressSteps,
   safeSource,
+  showVisualProcessSummary,
   studentHonestyLabel,
   studentProcessDone,
   visualProcessCaption,
 } from "@/lib/client/activity";
-import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
+import {
+  isInspirationSearchPack,
+  type InspirationSearchPack,
+} from "@/lib/inspiration-pack";
+import { isImageReviewPack, twinPanelFromResults } from "@/lib/image-review";
+import { isClubKnowledgePack } from "@/lib/knowledge-pack";
+import InspirationResult from "./InspirationResult";
+import ImageReviewResult from "./ImageReviewResult";
+import KnowledgeResult from "./KnowledgeResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
 import ArtifactStage from "./ArtifactStage";
+import { continueDesign } from "@/lib/client/artifacts";
 
 export default function VisualMessage({
   task,
   onInspect,
+  onPickInspiration,
+  pickingInspiration = false,
+  selectedInspiration = null,
   workflows = [],
   projectId,
   onContinue,
 }: {
   task?: Task;
   onInspect: () => void;
+  onPickInspiration?: (
+    id: "A" | "B" | "C",
+    pack: InspirationSearchPack,
+  ) => void;
+  pickingInspiration?: boolean;
+  selectedInspiration?: "A" | "B" | "C" | null;
   workflows?: {
     id: string;
     projectId: string;
@@ -37,18 +56,33 @@ export default function VisualMessage({
     .map(safeSource)
     .filter((value): value is string => !!value);
   const steps = progressSteps(task);
-  const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
+  const results = task.events.map((event) => event.result);
+  const twinPanel = twinPanelFromResults(results);
+  const imageReview = results.find(isImageReviewPack);
+  const knowledge = results.find(isClubKnowledgePack);
+  const inspiration = task.events
+    .map((event) => event.result)
+    .find(isInspirationSearchPack);
   const artifacts = artifactsForConversation(
     task,
     workflows,
     projectId || "",
   );
+  const showProcess =
+    !!steps.length &&
+    !inspiration &&
+    !imageReview &&
+    !knowledge &&
+    showVisualProcessSummary(task);
   if (
     !sources.length &&
     !artifacts.length &&
     !twinPanel &&
     !layout &&
-    !steps.length
+    !showProcess &&
+    !inspiration &&
+    !imageReview &&
+    !knowledge
   )
     return null;
   const honesty = studentHonestyLabel(task);
@@ -56,7 +90,21 @@ export default function VisualMessage({
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
-      {!!steps.length && (
+      {inspiration && (
+        <InspirationResult
+          pack={inspiration}
+          onSelect={
+            onPickInspiration
+              ? (id) => onPickInspiration(id, inspiration)
+              : undefined
+          }
+          selectedId={selectedInspiration}
+          busy={pickingInspiration}
+        />
+      )}
+      {imageReview && <ImageReviewResult pack={imageReview} />}
+      {knowledge && <KnowledgeResult pack={knowledge} />}
+      {showProcess && (
         <button className="tool-result-summary" onClick={onInspect}>
           {done ? (
             <Check size={15} />
@@ -72,8 +120,14 @@ export default function VisualMessage({
         <ArtifactStage
           key={item.id}
           design={item.design}
-          continueId={item.id}
-          onContinue={onContinue}
+          onContinue={
+            onContinue
+              ? () => {
+                  const next = continueDesign(item.id);
+                  onContinue(next.text, next.focus);
+                }
+              : undefined
+          }
         />
       ))}
       {!!sources.length && (

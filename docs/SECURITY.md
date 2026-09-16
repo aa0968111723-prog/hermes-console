@@ -2,50 +2,39 @@
 
 ## Secrets
 
-API keys, OAuth client secrets, MCP tokens, Zeabur tokens, SSO secrets, and `CONSOLE_GATEWAY_SECRET` are server-only.
+- API key、OAuth secret、MCP token、SSO secret、Zeabur token **只存在伺服器**（環境變數或 `CONSOLE_DATA_DIR` 加密 vault）。
+- 禁止 `NEXT_PUBLIC_*` secret、localStorage、client state、console.log、Git commit。
+- GET 設定 API 只回是否已設定與末四碼。
+- 曾出現在 Chat／Issue／README／Commit／Log 的憑證視為已洩漏，必須 rotate。
 
-Forbidden:
+## Auth
 
-- `localStorage` / client state
-- `NEXT_PUBLIC_*` secrets
-- `console.log` of tokens, cookies, Authorization headers, or passwords
-- Git commits of `.env.local` or live credentials
-
-Anything previously pasted into chat, issues, README, or logs is **compromised**. Rotate. Do not reuse.
-
-`scripts/check-secrets.mjs` is a CI gate, not a rotation.
-
-## Authentication
-
-- Google: OAuth 2.0 authorization code + PKCE. State is a single-use hashed token.
-- Tamkang: `TamkangAuthProvider` (OIDC / OAuth / SAML / CAS). Unconfigured returns 503 and the Chinese notice. No campus password collection for SSO. Owner-only Tamkang MCP token exchange is collapsed under 連線 → 淡江 and is not SSO.
-- Email: Argon2id (`m=19456,t=2,p=1`). Magic link, verification, and password reset tokens are single-use and expire in 15 minutes.
-- Identities do **not** auto-merge because emails match. Linking is explicit. Linking email sends a verification message when mail is configured; without mail the UI must not offer a form that would create an unverified password login. Password login checks the email identity verification flag.
-
-Login ≠ authorization. APIs check `hermes_session` and workspace membership (`owner` / `admin` / `member`). Changing Hermes, MCP, Canva authorization, runtime bindings, or Zeabur credentials requires owner or admin on the server. Members may use the workspace and read connection **status**. Env-var names, tool lists, certification reports, usage dumps, `/api/runtime/tools|mcp|agents|bindings`, and public `/api/health` tool/model discovery are operator-only. `GET /api/health` never waits on Hermes and stays 200 while the process is up. `POST /api/health` is owner or admin. Hiding a button is not access control.
-
-Test bypass (`NODE_TEST_CONTEXT` + `CONSOLE_TEST_SESSION`) is ignored when a real cookie is present. Production startup throws if either variable is set. Do not set them on Zeabur.
+- `/` 免登入進入工作區。AuthGate 登入模組 dormant；`CONSOLE_AUTH_REQUIRED=true` 才先驗證再載入。
+- Google：Authorization Code + PKCE + server-side state。Cookie `hermes_auth`：HttpOnly、SameSite=Lax、HTTPS 時 Secure。
+- 淡江：只跳轉校方 IdP。沒有 metadata 就顯示尚未完成設定。禁止保存學校密碼、禁止 Playwright 自動登入學校。
+- Email：Argon2id；舊 scrypt 仍可驗證。Rate limit、單次 token、驗證／重設過期。已登入帳號可在設定頁連結電子信箱（密碼登入）；不可只因 email 相同而合併。`/#reset=` 開啟重設密碼表單，不會自動登入。
+- 相同 email **不會**自動合併帳號。連結 Google／淡江／Email 必須已登入。未設定的 provider 顯示尚未完成設定，不提供可點的成功按鈕。
+- 登入成功 ≠ 進入私人工作區。需要 `owner`／`admin`／`member` membership。API 只在 `CONSOLE_AUTH_REQUIRED=true` 時檢查 session + membership。
 
 ## Sessions
 
-HttpOnly, SameSite=Lax, 12 hour max-age, Secure on HTTPS. Logout deletes the hashed session row and expires the cookie.
+- 使用既有 `console_sessions`／SQLite `sessions` 表，owner 為 user id。
+- 額外以 `console_records` kind `auth_session` 保存裝置標籤與建立時間，不另 ALTER。
+- `GET/DELETE /api/auth/sessions`：列出目前使用者的有效工作階段；不能結束目前這個瀏覽器（請用登出）；DELETE 驗證 Origin。
+- 登出刪除 digest、工作階段紀錄並清 cookie。
+- `CONSOLE_ALLOW_LOCAL_ACCESS` 與空閘道只適用 loopback；公開部署 fail closed。
 
 ## MCP / SSRF
 
-External MCP URLs must be HTTPS without credentials, query, or hash. Rejected: localhost (except explicit loopback test flag), `169.254.*`, private networks, metadata hosts, `file://`, `ftp://`, GitHub repo URLs.
+- 外部 URL 必須 HTTPS、無 userinfo／query／hash。
+- 禁止 localhost（除非測試旗標）、`169.254.*`、私網、metadata、`file://`、`ftp://`、GitHub 當 MCP。
+- MCP 橋接使用獨立 Bearer `MCP_BRIDGE_TOKEN`，不是瀏覽器 session。
 
-## Other controls
+## 其他
 
-- CSRF: mutation `Origin` must match `CONSOLE_ORIGIN`.
-- Rate limits on auth and API.
-- Destructive actions require a server-minted confirmation token. `confirmed=true` is not enough.
-- Webhook/MCP bearer tokens are compared as hashes where applicable.
-- Open redirects: OAuth callbacks only return to `CONSOLE_ORIGIN`.
-- Production logs must not print cookies, tokens, or Authorization headers (`redact()`).
-
-## Incident rotation
-
-1. Revoke the leaked credential at the provider.
-2. Generate a new secret in the host’s secret store.
-3. Restart Console so vault/env caches refresh.
-4. Treat stored copies (chat, CI logs, old images) as public.
+- 寫入驗證 Origin。CSRF：cookie SameSite + Origin。
+- OAuth state 10 分鐘過期、單次使用。
+- `Permissions-Policy`：相機與定位關閉。麥克風僅允許同源（`microphone=(self)`），給作曲語音輸入；拒絕時畫面寫「無法使用麥克風」，不假裝已聽到。
+- 錯誤分類見 `lib/server/errors.ts`（`AUTH_ERROR` 等）。回應可含 `category`，不回內部 stack 或 token。
+- 確認型操作使用伺服器一次性 confirmation token，前端 `confirmed=true` 不足。
+- 事故：撤銷洩漏憑證、輪替 vault key 前先備份，否則舊密文無法解密。

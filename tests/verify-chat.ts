@@ -298,10 +298,10 @@ try {
     page.getByRole("button", { name: "確認並可重試" }).first(),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "建立重試分支（保留原紀錄）" }).first(),
+    page.getByRole("button", { name: "再試一次（保留這次紀錄）" }).first(),
   ).toBeVisible();
   await expect(page.locator(".composer-uncertain-hint")).toContainText(
-    "未宣稱遠端已停止",
+    "不會假裝已經停下來",
   );
   const integrations = await (
     await context.request.get(base + "/api/integrations")

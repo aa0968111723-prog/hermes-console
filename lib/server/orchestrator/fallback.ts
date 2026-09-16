@@ -36,6 +36,8 @@ export function userVisibleFallback(route: RoutedTool) {
     return "淡江 MCP 暫時不可用，已改用 Hermes 已授權網頁來源。";
   if (route.tool === "official_web_directory")
     return "尚未執行查詢；目前只能提供待查官方入口，不會用模型自行補資料。";
+  if (route.tool === "workspace_search_inspiration")
+    return "靈感只來自已收藏來源與社團視覺語言，沒有搜尋整個 Instagram。";
   if (route.tool === "ask_user")
     return "需要的資料來源目前都不可用，會先問你要提供連結或稍後再試。";
   if (route.tool === "canva_spec_only")

@@ -37,7 +37,11 @@ test("student Hermes errors never name env vars or keys", () => {
   );
   assert.equal(
     studentHermesError("憑證參照無效。", "invalid_credential_ref"),
-    "Hermes 還沒連上。請到設定的連線頁。",
+    "Hermes 還沒準備好。可以先找靈感，或稍後再試。",
+  );
+  assert.doesNotMatch(
+    studentHermesError("憑證參照無效。", "invalid_credential_ref"),
+    /設定|連線頁|環境變數|金鑰/,
   );
   assert.equal(
     studentHermesError("Hermes 未產生可顯示的回應。", "empty_output"),
@@ -46,5 +50,17 @@ test("student Hermes errors never name env vars or keys", () => {
   assert.equal(
     studentHermesError("Hermes 回應閒置逾時。", "idle_timeout"),
     "Hermes 回應閒置逾時。",
+  );
+  assert.equal(
+    studentHermesError("Hermes 回應異常，請檢查部署服務。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    studentHermesError("Hermes 回報任務失敗；請檢查工具授權與服務日誌。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    studentHermesError("圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。", "images_unverified"),
+    "圖片已保存，但還沒辦法讀圖。可以先拿掉附件，或改問這張哪裡可以改。",
   );
 });

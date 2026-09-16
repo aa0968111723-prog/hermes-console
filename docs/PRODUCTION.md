@@ -1,96 +1,65 @@
-# Production deployment
+# Production
 
-Hermes Console is a long-running Node.js app. It is not a serverless function.
+這份文件描述**目前程式實際支援**的部署方式。未完成的能力標 Partial，不標成功。
 
-## Architecture
+## Zeabur / 長駐 Node
 
-User → Hermes Console (this repo) → Hermes Agent → Planner / Tools / MCP → External services → Artifacts.
+- 使用倉庫 `Dockerfile` 的 standalone Node 服務，單一 replica。
+- 掛載可寫持久卷到 `/app/data`（SQLite 後備）。
+- 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（`console_records`／`console_sessions`／`console_limits`）。不要指向 ai_os。
+- 不適用無狀態 serverless。
 
-Console stores identity, workspace, conversations, tasks, memory, and artifacts. Hermes executes tools. Do not pretend MCP, SSO, or sync succeeded.
+## 必要環境
 
-## Zeabur
+| 變數 | 用途 |
+| --- | --- |
+| `CONSOLE_ORIGIN` | 公開 HTTPS origin。寫入請求 Origin 驗證。啟動時必填。 |
+| `CONSOLE_DATA_DIR` | SQLite／uploads／vault.key |
+- `HERMES_API_URL`／`HERMES_API_KEY` | 未設時聊天顯示尚未連線，不假裝 Hermes 可用 |
+- `HERMES_IMAGE_INPUT=true` | 只有部署端確認 Hermes 真的收圖後才開。未開時附圖顯示「尚未驗證讀圖」。畫面審查（「這張哪裡可以改」）可走工作區模擬並標明沒有讀像素；其餘附圖送 Hermes 仍拒絕。 |
 
-- One replica.
-- Persistent volume on `CONSOLE_DATA_DIR` (container default `/app/data`).
-- Optional `DATABASE_URL` for Console-owned Postgres tables only (`console_records` / `console_sessions` / `console_limits`). Never point this at `ai_os` or `cutos_memory_items`.
-- Public HTTPS domain in `CONSOLE_ORIGIN`.
-- Health: `GET /api/health` (process live + last store probe + cached Hermes status). Never waits on Hermes discovery. `live` is the process; `ready` is the store; `agentReady` is a recent successful probe.
-- Readiness: `GET /api/ready` (store probe only, 200 or 503). App live ≠ Agent ready.
+登入閘（AuthGate）預設關閉。只有 `CONSOLE_AUTH_REQUIRED=true` 才需要至少擇一：
 
-## Environment
+- Google：`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`（可選 `GOOGLE_REDIRECT_URI`，預設 `${CONSOLE_ORIGIN}/api/auth/google/callback`）
+- Email：`RESEND_API_KEY`、`CONSOLE_EMAIL_FROM`
 
-Copy `.env.example`. Generate **new** secrets. Rotate anything that was ever pasted into chat, issues, README, or logs.
+`CONSOLE_ALLOW_LOCAL_ACCESS=true` 只允許 loopback 測試略過閘道與部分環境檢查。公開部署必須為 `false`。這不是帳號登入開關。
 
-Required for a public deployment:
+## 建議環境
 
-- `CONSOLE_ORIGIN` (exact HTTPS origin)
-- Persistent `CONSOLE_DATA_DIR` or `DATABASE_URL`
-- `CONSOLE_GATEWAY_SECRET` (≥32 chars) and `CONSOLE_REQUIRE_GATEWAY=true` unless the origin is already private
+- `CONSOLE_GATEWAY_SECRET`（≥32）或前置已驗證的閘道
+- `CONSOLE_VAULT_KEY`（64 hex）；否則程序會在資料目錄寫 `vault.key`
+- `DATABASE_URL`
+- 各 MCP `*_URL`／`*_TOKEN`：未設必須顯示 unconfigured
 
-Optional, honest unconfigured if blank:
+## 資料庫
 
-- `HERMES_API_URL` / `HERMES_API_KEY`
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`
-- `TAMKANG_SSO_*` (do not invent a client)
-- MCP URLs/tokens (`TKU_`, `GALLEY_`, `XUNHE_`, `ATLAS_`, `LUMEN_`, `FRAMELAB_`, `DUIGAO_`, `MCP_BRIDGE_TOKEN`, `CONSOLE_MCP_SERVERS_JSON`)
-- `RESEND_API_KEY` / `CONSOLE_EMAIL_FROM` (needed for verification, magic link, and password reset mail). Without them the login screen must say **尚未設定寄件，無法寄送登入或重設連結** and must not show a send form.
-- Canva / Zeabur / Instagram / Pinterest
+- 無 `DATABASE_URL`：SQLite。
+- 有 Postgres：啟動時若 Postgres 空且 SQLite 有列，一次性搬移。
+- Schema 變更走程式內 `CREATE TABLE IF NOT EXISTS`。此版本**沒有**獨立 SQL migration 目錄；回滾策略是還原卷／Postgres 備份，而不是 down migration。**Partial。**
 
-`CONSOLE_ALLOW_LOCAL_ACCESS=true` is loopback-only. Production startup throws if that flag is set on a public origin, if `CONSOLE_ORIGIN` is public `http://`, or if `CONSOLE_TEST_SESSION` / `NODE_TEST_CONTEXT` are present.
+## OAuth / SSO
 
-## Database
-
-- SQLite under `CONSOLE_DATA_DIR` when `DATABASE_URL` is unset.
-- Schema changes must be explicit migrations. Do not auto-mutate production on boot beyond the existing empty-Postgres←SQLite one-time move.
-- Backup the volume and `vault.key` before deploy. Losing the vault key makes stored credentials unreadable.
-- Rollback: restore the volume / Postgres dump, then start the previous image.
-
-## OAuth
-
-Google uses Authorization Code + PKCE. Secrets stay on the server. Callback: `{CONSOLE_ORIGIN}/api/auth/google/callback`.
-
-## Tamkang SSO
-
-Until the school issues a real client id, issuer/metadata, and protocol (OIDC / OAuth / SAML / CAS), the UI must show **淡江 SSO 尚未完成設定**. Do not collect campus passwords. Do not crawl login pages. Do not mark SSO available.
-
-Tamkang MCP is a separate connection. Token paste is the primary path. Optional MCP credential exchange is collapsed under 設定 → 連線 → 淡江 → 「MCP 權杖交換（不是淡江 SSO）」 and is not school login.
-
-## MCP
-
-Configure HTTPS endpoints only. GitHub URLs are rejected. Private networks and metadata IPs are rejected unless an explicit allowlist/loopback test flag is on.
-
-Status meaning:
-
-- `unconfigured` — missing URL or token
-- `verifying` — probe in progress / initialize-only leftover
-- `partial` — `tools/list` succeeded; not a safe-read proof
-- `available` — a safe read actually succeeded
-- `failed` — unreachable, protocol error, or invalid schema
-
-`tools/list` is never a green “connected” success.
+- Google：Authorization Code + PKCE。Secret 只在伺服器。
+- 淡江 SSO：需要 `TAMKANG_SSO_ISSUER`、`TAMKANG_SSO_CLIENT_ID`、`TAMKANG_SSO_CLIENT_SECRET`、`TAMKANG_SSO_PROTOCOL=oidc|oauth`。沒有校方 metadata 時畫面為「淡江 SSO 尚未完成設定」。SAML／CAS 僅預留，未實作。Console **不**收集學校密碼。設定頁 Tamkang MCP 只接受網址與 Bearer 權杖；帳號登入走 SSO 跳轉。
+- Email：註冊、登入、驗證、magic link、忘記／重設密碼。`/#reset=` 開啟重設表單。已登入可連結電子信箱。密碼為 Argon2id。相同信箱不會自動合併帳號。
 
 ## Domain / HTTPS
 
-Set `CONSOLE_ORIGIN` to the public origin. Cookies use `Secure` on HTTPS. Mutations check `Origin`.
+外部必須 HTTPS。OAuth callback 與 `CONSOLE_ORIGIN` 必須一致。
 
 ## Health
 
-| Path | Auth | Meaning |
-| --- | --- | --- |
-| `GET /api/health` | public | Process live (`live: true` even if Hermes or the store is down). `ready` / `storeReady` come from the store probe. `agentReady` is true only from a **fresh cached** Hermes probe (`reachable` + valid credential). Missing cache with credentials present is `verifying`, not available. This GET never waits on `/v1/models`. No secrets, no tool names, no vault/env sources for anonymous callers. Owner/admin cookies receive the developer cache view. |
-| `GET /api/ready` | public | Store writable. 200 or 503. Use this as the deploy readiness probe. |
-| Task submit | member + origin | `ensureHermesReady` does not wait on skills/toolsets. Cached valid/unconfigured/failed answers immediately. Verifying credentials probe `/v1/models` with `HERMES_CONNECT_TIMEOUT_MS`. Student 503 copy never names env vars. |
-| `POST /api/health` | owner or admin + origin | Forced Hermes discovery with models / skills / toolsets. Members receive 403. May wait up to `HERMES_DISCOVERY_TIMEOUT_MS`. |
-| `GET/POST /api/settings/credentials` | owner or admin | Connection secrets. Members receive 403. |
+- `GET /api/ready`：store 就緒（200／503）。不需登入。App 能寫資料 ≠ Hermes 可用。
+- `GET /api/health`：**存活**探針。App + 最後一次 Hermes 快取／未設定狀態。`live=true` 代表行程活著；`agentReady=true` 只有在目前憑證已有成功 Agent 任務。不需登入、不回秘密、**不等待**上游 Hermes。
+- `POST /api/health`：才會探測 Hermes（Origin + 授權）。未探測不得把 Agent 標成可用。
 
-## Backup / rollback
+## Backup / Rollback
 
-1. Snapshot SQLite/Postgres and `vault.key` (`npm run backup`, or a volume snapshot). `CONSOLE_BACKUP_DIR` overrides the default `$CONSOLE_DATA_DIR/backups`.
-2. Confirm `npm run rehearse` is honest: required env present, optional Google / Tamkang / Hermes / mail reported as configured or not, **without** printing secret values.
-3. Deploy the new image.
-4. Confirm `GET /api/ready` (store) and a real login. `GET /api/health` must stay 200 while Hermes is down.
-5. On failure, restore the snapshot and previous image. Do not rewrite git history.
+- 部署前備份 Postgres 或 SQLite 卷與 `uploads/`、`vault.key`。
+- 回滾：還原映像＋資料卷。不要 force-push。
+- 曾暴露的金鑰一律視為 compromised，必須輪替，不要重用。
 
-`npm run backup` copies `console.sqlite` plus WAL/SHM and `vault.key`. Postgres also needs `pg_dump` on the host; if it is missing the command fails honestly. This is not a live Zeabur snapshot.
+## MCP
 
-This file does not authorize a production deploy. Deploy only with explicit owner approval.
+Hermes 連 Console `/api/mcp`。外部 MCP 必須是受控 HTTPS，禁止 GitHub 倉庫網址、localhost（除非明確 loopback 測試）、私網與 metadata。狀態：未設定 `unconfigured`；已填 URL 尚未探測 `awaiting_authorization`；只完成 tools/list `partial`；安全讀取通過才是 `available`／`verified`；連不到是 `failed`。缺 token 不得標成可用。GET `/api/mcp-registry` 不回 endpoint 或 schema。

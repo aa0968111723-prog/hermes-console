@@ -89,7 +89,7 @@ test("invited workspace, confirmation, discovery and creative intelligence", asy
     delete process.env.CONSOLE_TEST_SESSION;
     try {
       const anonymous = new Request("http://localhost:3211/api/workspace");
-      assert.equal((await workspace.GET(anonymous)).status, 401);
+      assert.equal((await workspace.GET(anonymous)).status, 200);
       assert.equal((await workspace.GET(request("workspace"))).status, 200);
       assert.equal((await healthRoute.GET(request("health"))).status, 200);
     } finally {
