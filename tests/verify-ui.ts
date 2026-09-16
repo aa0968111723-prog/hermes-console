@@ -306,7 +306,9 @@ try {
   await expect(loadFail).not.toContainText("postgres");
   await expect(loadFail).not.toContainText("HERMES_API");
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeEnabled();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("還可以再問");
   await expect(page.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.unroute("**/api/workspace");
   await expect(
     page.locator(".message.assistant .message-byline"),

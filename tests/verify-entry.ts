@@ -108,6 +108,8 @@ try {
   await expect(failPage.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
   await expect(failPage.getByText("受邀電子信箱")).toHaveCount(0);
   await expect(failPage.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await expect(failPage.getByRole("textbox", { name: "訊息", exact: true })).toBeEnabled();
+  await failPage.getByRole("textbox", { name: "訊息", exact: true }).fill("先問一句");
   await expect(failPage.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled();
   const failBanner = failPage.getByRole("alert");
   await expect(failBanner).toContainText("工作區讀取失敗");
