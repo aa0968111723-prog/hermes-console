@@ -34,7 +34,7 @@ import {
   isComposerKeyboardOpen,
 } from "@/lib/client/composer-keyboard";
 import { materialImageSrc } from "@/lib/client/materials";
-import { studentTaskCaption } from "@/lib/client/activity";
+import { studentTaskCaption, progressSteps, safeSource, studentSourceHost } from "@/lib/client/activity";
 import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
 import MessageBody from "./MessageBody";
@@ -821,7 +821,7 @@ export default function HermesConsole() {
         },
       );
       setNav("chat");
-      setPanel(null);
+      closePanel();
       setNotice("已建立分支，原對話完整保留。修改內容後再送出。");
     } catch (e) {
       setError((e as Error).message);
@@ -2151,9 +2151,9 @@ export default function HermesConsole() {
         ref={dialog}
         className={"detail-dialog "+(panel==="spatial"?"spatial-sheet":panel==="preview"?"preview-sheet":"")}
         aria-labelledby="detail-panel-title"
-        onCancel={() => setPanel(null)}
+        onCancel={() => closePanel()}
         onClick={(e) => {
-          if (e.target === e.currentTarget) setPanel(null);
+          if (e.target === e.currentTarget) closePanel();
         }}
       >
         <div className="panel-content">
@@ -2181,7 +2181,7 @@ export default function HermesConsole() {
           {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
             animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
             onMemory={()=>{setSettingsTab("工作區");setPanel("settings");}}
-            onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
+            onNavigate={next=>{closePanel();navigate(next);}} /> : panel === "settings" ? (
             <>
               <div
                 className="setting-tabs"
@@ -2709,7 +2709,7 @@ export default function HermesConsole() {
                 >
                   <Square size={16} />
                   要求停止
-                  {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
+                  {!chosenTask.stopSupported ? "（還不能確定已停止）" : ""}
                 </button>
               )}
               {["failed", "cancelled"].includes(chosenTask.state) && (
@@ -2801,25 +2801,41 @@ export default function HermesConsole() {
                       </code>
                     </dd>
                   </div>
+                  {chosenTask.plan?.steps?.length ? (
+                    <div>
+                      <dt>執行計畫</dt>
+                      <dd>
+                        <ol>
+                          {chosenTask.plan.steps.map((step) => (
+                            <li key={step.id}>
+                              {step.title}
+                              {step.purpose ? ` · ${step.purpose}` : ""}
+                            </li>
+                          ))}
+                        </ol>
+                        {chosenTask.plan.fallbacks.map((item) => (
+                          <p key={item.userVisible}>{item.userVisible}</p>
+                        ))}
+                      </dd>
+                    </div>
+                  ) : null}
                 </dl>
               </details>
               <TaskUsageSummary task={chosenTask} />
-              {chosenTask.plan?.steps?.length ? (
+              {progressSteps(chosenTask).length ? (
                 <>
-                  <h3>執行計畫</h3>
+                  <h3>接下來</h3>
                   <ol className="task-plan">
-                    {chosenTask.plan.steps.map((step) => (
-                      <li key={step.id}>
-                        {step.title}
-                        <small>{step.purpose}</small>
+                    {progressSteps(chosenTask).map((step) => (
+                      <li
+                        key={step.key}
+                        data-state={step.state}
+                        data-active={step.active || undefined}
+                      >
+                        {step.label}
                       </li>
                     ))}
                   </ol>
-                  {chosenTask.plan.fallbacks.map((item) => (
-                    <p key={item.userVisible} className="muted">
-                      {item.userVisible}
-                    </p>
-                  ))}
                 </>
               ) : null}
               <h3>進行狀況</h3>
@@ -2845,16 +2861,24 @@ export default function HermesConsole() {
                       />
                     </details>
                   )}
-                  {e.sources.map((source) => (
-                    <a
-                      key={source}
-                      href={source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {source}
-                    </a>
-                  ))}
+                  {e.sources.map((source) => {
+                    const href = safeSource(source);
+                    if (!href) return null;
+                    const label = inspectDeveloper
+                      ? source
+                      : studentSourceHost(source);
+                    if (!label) return null;
+                    return (
+                      <a
+                        key={source}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {label}
+                      </a>
+                    );
+                  })}
                 </details>
               ))}
             </div>

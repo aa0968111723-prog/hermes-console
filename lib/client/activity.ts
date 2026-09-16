@@ -165,6 +165,17 @@ export function safeSource(value: string): string | null {
   }
 }
 
+/** Visible source label: host only. Full URL stays in 維運檢視. */
+export function studentSourceHost(value: string): string | null {
+  const href = safeSource(value);
+  if (!href) return null;
+  try {
+    return new URL(href).hostname.replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}
+
 /** High-level labels students see. Not tool names, schemas, or call ids. */
 export function stepPhaseLabel(title: string): string {
   if (/看圖/.test(title)) return "看圖";

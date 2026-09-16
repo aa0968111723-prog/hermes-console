@@ -280,6 +280,9 @@ export async function verifyVisualStates(
     await expect(technical).not.toHaveAttribute("open", "");
     await expect(technicalSummary).toContainText("維運檢視");
     await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
+    await expect(detail.getByRole("heading", { name: "接下來" })).toBeVisible();
+    await expect(detail.locator(".task-plan")).toContainText("研究");
+    await expect(detail.locator(".task-plan")).not.toContainText("galley");
     await expect(detail.locator(".event-meta code").filter({ hasText: "galley_research" })).toBeHidden();
     if (width === 390 && height === 420) {
       await page.screenshot({
@@ -317,6 +320,10 @@ export async function verifyVisualStates(
     await technicalSummary.click();
     await expect(technical).not.toHaveAttribute("open", "");
     await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
+    await expect(eventDetails.getByRole("link", { name: "example.com", exact: true })).toBeVisible();
+    await expect(eventDetails.getByRole("link", { name: "https://example.com/reference" })).toHaveCount(0);
+    await expect(detail).not.toContainText("編譯視覺規格");
+    await expect(detail).not.toContainText("UNKNOWN");
     await page.keyboard.press("Escape");
     await expect(composer).toBeFocused();
     await expect(composer).toHaveValue(draft);

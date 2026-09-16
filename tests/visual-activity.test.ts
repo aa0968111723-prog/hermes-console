@@ -9,6 +9,7 @@ import {
   eventUserResult,
   progressSteps,
   safeSource,
+  studentSourceHost,
   IMAGE_WITHOUT_VISION_LABEL,
   SPEC_ONLY_DESIGN_LABEL,
   studentEventCaption,
@@ -128,6 +129,8 @@ test("source actions never accept script, credentials or relative destinations",
     safeSource("https://example.com/source"),
     "https://example.com/source",
   );
+  assert.equal(studentSourceHost("https://www.example.com/reference?q=1"), "example.com");
+  assert.equal(studentSourceHost("https://user:secret@example.com"), null);
 });
 
 test("plan phases collapse engineering steps into student-facing progress", () => {
