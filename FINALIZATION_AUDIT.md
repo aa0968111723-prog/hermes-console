@@ -19,7 +19,7 @@
 | Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。GALLEY／Lumen／FrameLab／Planform 只有 status 為 partial 或 available 才進計畫；未設定不假裝。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
 | 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。Composer 與折疊事件只顯示這些高階進度，不顯示 GALLEY／Canva。工具 JSON 與 toolName 只在展開的技術資訊。創作回覆帶 ArtifactStage 大圖。 |
 | 龜龜狀態 | 可用（契約） | Idle／思考／規劃／搜尋／研究／創作／整理／等待／完成／錯誤／離線。姿勢、光、陰影分開；標籤不出現廠商名。reduced-motion 停止動畫。 |
-| 作品版本 | 可用（契約） | 文案 V1／V2 比較、還原確認、匯出、修改同一作品。不自動重建無關輸出。任務上下文會帶入專案 copy artifact 與創作方向，讓「第二版字放大」沿用同一作品。創作任務結束時若沒有 copy／Canva／縮圖，事件為「還沒有可預覽的作品」，不得說已回傳完成結果。學生 UI 顯示「規格已保留」（warning，龜龜 waiting），不得綠勾「完成」或「過程完成」。有預覽時仍顯示「過程完成」。 |
+| 作品版本 | 可用（契約） | 文案 V1／V2 比較、還原確認、匯出、修改同一作品。不自動重建無關輸出。任務上下文會帶入專案 copy artifact 與創作方向，讓「第二版字放大」沿用同一作品。創作任務結束時若沒有 copy／Canva／縮圖，事件與助理回覆為「還沒有可預覽的作品」，不得說已回傳完成結果。學生 UI 顯示「規格已保留」（warning，龜龜 waiting），不得綠勾「完成」或「過程完成」。有預覽時仍顯示「過程完成」。研究／淡江任務沒有 https 來源時，事件與回覆為「還沒找到可核對的來源」，學生 UI「還沒找到來源」，不得假裝已搜到資料。 |
 | 視覺附件 | 可用（契約） | 列表與 chips 用 WebP 縮圖。上傳中的圖片先用本機檔案預覽，保存後再換成伺服器 thumb。PDF／連結顯示種類或 hostname。不抓取任意網頁當預覽。手機 Composer 附件換行鋪滿寬度，不使用 245px 橫向 carousel。 |
 | Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。成員 API 不含 endpoint、credentialReference、tool schema、hermesKeySource。公開 `GET /api/health` 不含 models／skills／toolsets／configSource；`POST /api/health` 僅 owner／admin。 |
 | 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。`hasCompletedToolEvents` 不算沒有可讀內容的 tool.completed。只有空 `{}` 的任務 reconcile 為 failed。 |
@@ -47,12 +47,9 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`check:secrets`、`build`、`test:ui` 通過。
-- `npm test`：421 tests, 419 pass, 2 skipped, 0 fail。含 Composer／龜龜／過程列不得把沒有預覽的設計任務畫成完成；失敗任務即使帶同一標記仍顯示失敗。
-- `test:ui`：含 `design-spec-only-honesty.png`。Composer 與訊息為 warning「規格已保留」，無「過程完成」、無作品預覽。本地 Chrome LCP 380ms，CLS 0，axe 0。
-- Production First Load JS `/`：110 kB（page 6.46 kB，shared 103 kB）。
-- 含 360×800、390×844、412×915、430×932、768×1024。
-- 已 merge `origin/main` 研究筆記 `24b4fb8`（NIXL），未回退產品路徑。本輪 `HEAD..origin/main` 為空。
+- 本輪指令：待 `lint`、`typecheck`、`npm test`、`build`、`test:ui`。
+- 新增：研究／淡江任務沒有 https 來源不得說已回傳完成結果；缺預覽的助理回覆會帶上誠實句子。
+- 已 merge `origin/main` 研究筆記 `24b4fb8`（NIXL），未回退產品路徑。
 
 ## 仍是 Partial（禁止標綠）
 

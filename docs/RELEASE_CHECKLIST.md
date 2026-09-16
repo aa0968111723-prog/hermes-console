@@ -32,6 +32,8 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 - [ ] Unverified vision: image asks continue without pixel pretence
 - [ ] Design completion without copy/Canva/thumbnail does not claim a finished result
 - [ ] Student chrome for that case is 「規格已保留」, not green 「完成」/「過程完成」
+- [ ] Research/campus completion without https sources is 「還沒找到來源」, not 「已回傳完成結果」
+- [ ] Missing-design assistant output includes the honesty sentence, not only a green chip
 - [ ] Composer image chips wrap on 390×844; local thumbnail while uploading
 - [ ] Empty tool output is not success, including `{}` behind `tool.completed`
 - [ ] Offline banner; reconnect does not drop the thread
