@@ -211,8 +211,7 @@ try {
     .getByRole("navigation", { name: "快速導覽" })
     .getByRole("button", { name: "對話", exact: true })
     .click();
-  await page.getByRole("button", { name: "開啟新對話" }).click();
-  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("今天好嗎");
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();
   const notice = page.locator(".notice-bar.warning");
