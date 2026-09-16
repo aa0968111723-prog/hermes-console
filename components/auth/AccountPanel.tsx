@@ -149,9 +149,6 @@ export default function AccountPanel() {
           </span>
         </li>
       </ul>
-      <p className="muted">
-        {auth.user.emailVerified ? "電子信箱已驗證" : "電子信箱未驗證"}
-      </p>
       {!auth.user.emailVerified && auth.user.email && (
         <button type="button" disabled={busy} onClick={() => void resendVerify()}>
           重寄驗證信
@@ -162,16 +159,11 @@ export default function AccountPanel() {
           連結 Google
         </a>
       )}
-      {auth.google !== "available" && (
-        <p className="muted">Google 尚未完成設定</p>
-      )}
-      {auth.tamkang === "available" && !auth.providers.tamkang ? (
+      {auth.tamkang === "available" && !auth.providers.tamkang && (
         <a className="button-link" href="/api/auth/tamkang">
           連結淡江 SSO
         </a>
-      ) : auth.tamkang !== "available" ? (
-        <p className="muted">淡江 SSO 尚未完成設定</p>
-      ) : null}
+      )}
       {!auth.providers.email && (
         <form
           onSubmit={(event) => {

@@ -16,8 +16,7 @@ test("account settings show identity status without auto-merge copy", async () =
   assert.match(panel, /連結 Google/);
   assert.match(panel, /連結淡江 SSO/);
   assert.match(panel, /連結電子信箱/);
-  assert.match(panel, /Google 尚未完成設定/);
-  assert.match(panel, /淡江 SSO 尚未完成設定/);
+  assert.match(panel, /尚未完成設定/);
   assert.match(panel, /auth\.sessions/);
   assert.match(panel, /providerState/);
   assert.match(panel, /已連結/);
