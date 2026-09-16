@@ -6,7 +6,7 @@
 
 本輪已改：AuthGate、手機 scroll ownership、Dock（對話／專案／靈感／Agent）、誠實 MCP probe（含 safe-read）、health live/ready/agentReady、Canva artifact V1/V2 還原／分叉／比較、GALLEY 依 live MCP 可用性路由、倉庫研究筆記檢索（confidence 0.4）、Runtime 工具清單收入 Advanced、視覺優先首頁與連線點、龜龜狀態光／姿勢、看圖分析不假裝、重啟後不假裝任務仍在跑、文件。
 
-本輪驗證（此環境，非 Zeabur 實機）：`npm test` 414 pass / 2 skip；`lint`／`typecheck`／`build`／`check:secrets`／`rehearse`／`test:entry`／`test:ui`／`test:chat`／`test:workbench`／`test:runtime`／`test:gateway` 全過。
+本輪驗證（此環境，非 Zeabur 實機）：`npm test` 414 pass / 2 skip；`lint`／`typecheck`／`build`／`check:secrets`／`rehearse`／`test:entry`／`test:ui`／`test:chat`／`test:workbench`／`test:runtime`／`test:gateway` 全過。First Load JS `/` 239 kB。
 
 尚未完成（必須標 Partial）：淡江 SSO 校方 Client、Google OAuth 部署密鑰、正式 Zeabur 實機部署、實體 Android Chrome 鍵盤、HERMES_IMAGE_INPUT 未驗證時的真實看圖、PDF 頁面封面抽取。
 
