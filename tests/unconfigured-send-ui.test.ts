@@ -55,6 +55,12 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
   assert.doesNotMatch(deployment, /校園使用者名稱／密碼交換權杖/);
   assert.doesNotMatch(deployment, /\/auth\/login/);
   assert.match(deployment, /禁止收集校園帳號或密碼/);
+  const envExample = await readFile(
+    new URL("../.env.example", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(envExample, /\/auth\/login/);
+  assert.match(envExample, /never a campus password/);
   assert.ok(
     consoleUi.indexOf("health.credential !== \"valid\"") <
       consoleUi.indexOf("createConversation(text.trim())"),
