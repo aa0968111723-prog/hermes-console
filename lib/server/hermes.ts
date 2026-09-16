@@ -325,6 +325,19 @@ export function healthSnapshot(owner: string): Health {
   }
 }
 
+/** Task submit: cached valid/unconfigured/failed answers immediately. Probe only while verifying. */
+export async function ensureHermesReady(owner: string): Promise<Health> {
+  const snapshot = healthSnapshot(owner);
+  if (snapshot.credential === "valid") return snapshot;
+  if (
+    snapshot.credential === "missing" ||
+    snapshot.status === "unconfigured" ||
+    snapshot.status === "failed"
+  )
+    return snapshot;
+  return health(owner);
+}
+
 export async function health(owner: string, refresh = false): Promise<Health> {
   const store = storeFields();
   if (!refresh) {

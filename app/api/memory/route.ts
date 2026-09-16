@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ApiError, authenticate, jsonBody, respond, route } from "@/lib/server/security";
-import { health } from "@/lib/server/hermes";
+import { healthSnapshot } from "@/lib/server/hermes";
 import {
   deleteMemory,
   listMemories,
@@ -18,7 +18,7 @@ export const GET = route(async (req) => {
   const owner = authenticate(req);
   const scope = new URL(req.url).searchParams.get("scope") || "all";
   try {
-    const connection = await health(owner);
+    const connection = healthSnapshot(owner);
     const share = memoryShareStatus(owner, connection);
     return respond({
       memories: listMemories(owner, scope),

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
@@ -20,15 +20,24 @@ delete process.env.HERMES_API_KEY;
 const { resetStoreForTests } = await import("../lib/server/store");
 const healthRoute = await import("../app/api/health/route");
 const workspaceRoute = await import("../app/api/workspace/route");
+const conversationsRoute = await import("../app/api/conversations/route");
+const memoryRoute = await import("../app/api/memory/route");
+const { ensureHermesReady } = await import("../lib/server/hermes");
 
-function request(path: string, cookie = "") {
+function request(
+  path: string,
+  cookie = "",
+  method = "GET",
+  body?: unknown,
+) {
   return new Request("http://localhost:3261/api/" + path, {
-    method: "GET",
+    method,
     headers: {
       "Content-Type": "application/json",
       Origin: process.env.CONSOLE_ORIGIN!,
       ...(cookie ? { Cookie: cookie } : {}),
     },
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
 
@@ -128,4 +137,60 @@ test("GET /api/health stays 200 when the store probe fails", async () => {
     process.env.CONSOLE_DATA_DIR = previous;
     resetStoreForTests();
   }
+});
+
+test("memory and local conversation reads do not wait on Hermes", async () => {
+  const hanging = await hangingHermes();
+  process.env.HERMES_API_URL = hanging.url;
+  process.env.HERMES_API_KEY = "liveness-probe-key-not-a-secret";
+  process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
+  process.env.HERMES_DISCOVERY_TIMEOUT_MS = "20000";
+  resetStoreForTests();
+  const { cookie } = seedSession();
+  try {
+    const created = await conversationsRoute.POST(
+      request("conversations", cookie, "POST", { title: "茶會" }),
+    );
+    assert.equal(created.status, 201);
+    const id = (await created.json()).conversation.id;
+    const started = Date.now();
+    const [memory, conversation] = await Promise.all([
+      memoryRoute.GET(request("memory?scope=all", cookie)),
+      conversationsRoute.GET(request("conversations?id=" + id, cookie)),
+    ]);
+    const elapsed = Date.now() - started;
+    assert.ok(elapsed < 1500, "reads blocked for " + elapsed + "ms");
+    assert.equal(memory.status, 200);
+    assert.equal((await memory.json()).share.hermesRemote, "unknown");
+    assert.equal(conversation.status, 200);
+    const body = await conversation.json();
+    assert.equal(body.syncStatus, "unsupported");
+    assert.equal(body.remoteHistory, null);
+  } finally {
+    hanging.server.close();
+    delete process.env.HERMES_API_URL;
+    delete process.env.HERMES_API_KEY;
+    delete process.env.HERMES_ALLOW_LOOPBACK_HTTP;
+    delete process.env.HERMES_DISCOVERY_TIMEOUT_MS;
+    resetStoreForTests();
+  }
+});
+
+test("ensureHermesReady fails closed on unconfigured without probing", async () => {
+  delete process.env.HERMES_API_URL;
+  delete process.env.HERMES_API_KEY;
+  const started = Date.now();
+  const state = await ensureHermesReady("workspace");
+  assert.ok(Date.now() - started < 500);
+  assert.equal(state.credential, "missing");
+  assert.equal(state.status, "unconfigured");
+});
+
+test("workspace settings keep DATABASE_URL off the student tab", async () => {
+  const text = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(text, /DATABASE_URL/);
+  assert.match(text, /記憶存在這個工作區/);
 });

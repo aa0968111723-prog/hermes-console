@@ -5,6 +5,7 @@ import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
 import {
   deadline,
+  ensureHermesReady,
   health,
   httpError,
   readJSON,
@@ -227,7 +228,7 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     return existing;
   }
   limited("tasks:" + owner, 20, 60_000);
-  const connection = await health(owner);
+  const connection = await ensureHermesReady(owner);
   if (connection.credential !== "valid")
     throw new ApiError(503, "hermes_not_ready", connection.message);
   const native =
