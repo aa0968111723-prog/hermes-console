@@ -45,7 +45,7 @@ Browser → Console (this app)
 ## OAuth / SSO
 
 - Google：Authorization Code + PKCE（S256）。Client secret 只在 token 交換。
-- 淡江：`TamkangAuthProvider`。未完成設定時 API 503、按鈕停用、文案「淡江 SSO 尚未完成設定」。禁止收集校方密碼。
+- 淡江：`TamkangAuthProvider`。OIDC 需 `TAMKANG_OIDC_ISSUER`、`TAMKANG_CLIENT_ID`、`TAMKANG_CLIENT_SECRET`。未完成設定時 API 503、按鈕停用、文案「淡江 SSO 尚未完成設定」。SAML／CAS 尚未接入，禁止假裝成功。禁止收集校方密碼。
 - Email：Argon2id、attempt limit、一次性 token。
 
 ## MCP

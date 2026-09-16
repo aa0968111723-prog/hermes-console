@@ -25,13 +25,13 @@ Human
 
 - 任務狀態：`queued`／`running`／`waiting_user`／`waiting_authorization`／`stopping`／`completed`／`failed`／`cancelled`／`uncertain`。
 - 取消會打後端 stop，不是只藏 UI。
-- 長任務中斷標 `uncertain`，不假裝仍在跑。
+- 長任務中斷標 `uncertain`，不假裝仍在跑。程序啟動會立刻把沒有活 worker 的 chat／未取得 remoteId 任務改成 uncertain；有 remoteId 的 runs 才向 Hermes 查回。
 - Runtime Inspector：一般只看 Hermes／Memory／Tools／MCP 狀態；Developer 才看工具清單、schema、latency。
 
 ## MCP
 
 - 後端 Registry 探測 Streamable HTTP。
-- `interpretVerification`：initialize 失敗 → failed；有連線無 tools/list → connected；有清單無安全讀取 → partial；安全讀取成功 → verified。
+- `interpretVerification`：initialize 失敗 → failed；有連線無 tools/list → connected；有清單無安全讀取 → partial；read-only 工具回傳內容或 resources 清單非空 → verified。
 - 沒有端點或權杖 → unconfigured。探測中 → verifying。
 - 禁止把一次成功任務當成整個 Hermes `available`。
 

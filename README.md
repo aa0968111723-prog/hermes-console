@@ -29,7 +29,7 @@ Human → Hermes Console → Hermes Agent → Planner / Memory / Tools / MCP →
 | `CONSOLE_ORIGIN` | 正式環境必填。變更請求驗 Origin。 |
 | `CONSOLE_AUTH_MODE` | `required`（production 預設）或 `workspace`（契約測試／本機單一 owner）。 |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OIDC Authorization Code + PKCE。未設則 Google 按鈕停用。 |
-| `TAMKANG_*` | 校方正式 SSO metadata／Client。未設則顯示「淡江 SSO 尚未完成設定」。 |
+| `TAMKANG_OIDC_ISSUER` / `TAMKANG_CLIENT_ID` / `TAMKANG_CLIENT_SECRET` | 淡江 OIDC。未設則顯示「淡江 SSO 尚未完成設定」。SAML／CAS 尚未接入。 |
 | `RESEND_API_KEY` / `CONSOLE_EMAIL_FROM` | Email 驗證、Magic Link、重設密碼。未設仍可密碼註冊／登入，信箱標未驗證。 |
 | `HERMES_API_URL` / `HERMES_API_KEY` | Hermes Agent。未設則聊天不能送出，UI 顯示未連線。 |
 | `CONSOLE_GATEWAY_SECRET` | 可選部署閘道，不是帳號登入。 |
@@ -43,7 +43,7 @@ Human → Hermes Console → Hermes Agent → Planner / Memory / Tools / MCP →
 三種登入共用同一個 User，不會因 Email 相同而自動合併。
 
 - Google：Authorization Code + PKCE。Secret 只在 server。
-- 淡江 SSO：`TamkangAuthProvider` 抽象（OIDC／OAuth／SAML／CAS）。目前沒有校方 Client／Metadata，**不能登入**。
+- 淡江 SSO：`TamkangAuthProvider`。OIDC／OAuth 在有 issuer、client id、client secret 時走 Authorization Code + PKCE，並跳轉校方 IdP。SAML／CAS 仍顯示「淡江 SSO 尚未完成設定」。禁止收集校方密碼。
 - Email：註冊、登入、驗證、忘記密碼、重設、Magic Link。密碼 Argon2id。
 
 登入成功不代表有權改連線設定。寫入憑證需 `owner`／`admin`。所有工作區 API 在 `required` 模式驗證 session。
@@ -81,9 +81,9 @@ Playwright 腳本需要先 `npm run build`。契約測試不是 Zeabur／Canva�
 
 ## Honest limitations
 
-- 淡江 SSO：**Partial／未完成設定**
+- 淡江 SSO：**Partial**（程式有 OIDC 路徑，缺校方 Client／Issuer 時不能登入）
 - Google Login：程式路徑 live，需部署端填 Client
 - Instagram／Pinterest：公開可取得來源，不是完整官方搜尋
 - Audience Twin：模擬，不代表全部學生
-- MCP `verified`：需要安全讀取證據；目前探測停在 partial（tools/list）
+- MCP `verified`：僅在安全讀取（read-only 工具有內容，或 resources 清單非空）之後
 - 本環境不能代替你的 Zeabur 正式站驗證

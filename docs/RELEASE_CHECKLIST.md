@@ -15,7 +15,7 @@
 
 - [ ] 未登入先 Login，不先載工作區
 - [ ] Google：有 Client 才可按；無 Client 顯示尚未完成設定
-- [ ] 淡江：未完成設定（目前應為停用）
+- [ ] 淡江：未設 Client 時停用；有 OIDC 設定才跳轉校方 IdP
 - [ ] Email 註冊／登入／登出
 - [ ] Magic Link／重設：僅在寄信已設定時可用
 - [ ] 連結身分不會因 Email 相同自動合併
@@ -33,7 +33,7 @@
 
 - [ ] 未設定 = unconfigured
 - [ ] 不可達 = failed
-- [ ] 只有 listTools = partial
+- [ ] 只有 listTools = partial；安全讀取有內容才 verified
 - [ ] 無 token = unconfigured
 - [ ] 不假裝搜尋了整個 Instagram
 

@@ -1,6 +1,6 @@
 # Hermes Console 收尾盤點
 
-盤點基準：`main` `57b658b` + 本 finalization 分支。評等只描述程式現況，不是行銷承諾。
+盤點基準：`main` `a4462a9` + 本 finalization 分支。評等只描述程式現況，不是行銷承諾。
 
 評等：`live`＝已接真實路徑；`partial`＝有實作但不完整或未驗證；`legacy`＝休眠；`danger`＝仍需部署端處理。
 
@@ -13,15 +13,16 @@
 | Bottom dock | live | 對話／專案／Hermes／靈感／Agent；設定在頭像／齒輪。 |
 | AuthGate | live（正式必填） | `/` → Login → Hermes。`CONSOLE_AUTH_MODE=workspace` 僅契約／本機。 |
 | Google OIDC + PKCE | live 路徑／未填 Client 則停用 | Secret 只在 server。 |
-| 淡江 SSO | **partial** | `TamkangAuthProvider`；無校方 metadata。畫面「淡江 SSO 尚未完成設定」。 |
+| 淡江 SSO | **partial**（OIDC 路徑 live） | issuer+client+secret 時跳轉校方 IdP（PKCE）。無校方 Client 時「淡江 SSO 尚未完成設定」。SAML／CAS 未接入。 |
 | Email / Argon2id / Magic Link / Reset | live 路徑 | 寄信未設時仍可密碼進出；驗證信 Partial。 |
 | Identity linking | live 契約 | 禁止 Email 相同自動合併。 |
 | Membership | live | owner／admin／member；憑證 POST 限 owner／admin。 |
-| MCP 誠實狀態 | live 契約 | listTools=partial；無 token/endpoint=unconfigured；不可達=failed；探測中=verifying。Hermes 不因一次任務變 available。 |
+| MCP 誠實狀態 | live 契約 | listTools=partial；安全讀取有內容=verified；無 token/endpoint=unconfigured；不可達=failed；探測中=verifying。 |
 | Atlas 進 integrations | live | `getMcp("atlas")`。 |
-| Artifacts | live 契約 | artifactId／revisionId／restore／fork。 |
+| Artifacts | live 契約 | artifactId／revisionId／preview／restore／fork／compare UI。 |
 | Memory scopes | live 契約 | conversation／user_preference／system／project／workspace；digest 標 scope。 |
 | Runtime 一般／Developer | live | 四顆狀態 + Developer 工具清單 + Advanced 詳情。 |
+| 長任務中斷 | live 契約 | 啟動時 chat／無 remoteId 改 uncertain；不假裝 still running。 |
 | 設定分類 | live | 帳號／外觀／連線／工作區／進階。 |
 | Liveness | live | `GET /api/live`。Readiness 仍是 `/api/ready`。 |
 | 錯誤分類 | live | `ApiError.category`。 |
@@ -29,11 +30,11 @@
 
 ## 仍為 Partial（禁止打綠勾）
 
-- 淡江正式 SSO（無校方 Client／Metadata）
+- 淡江正式 SSO（需校方 OIDC Client／Issuer；SAML／CAS 未接入）
 - Google 實機 OAuth（需部署端 Client）
 - Email 驗證／Magic Link 實寄（需 Resend）
-- MCP `verified`（探測不做安全讀取）
-- 長任務真正 resume（中斷仍標 uncertain）
+- MCP `verified`（需遠端提供可安全讀取的工具或 resources）
+- 長任務遠端 resume（有 remoteId 才向 Hermes 查回；不會自動重送）
 - Zeabur 本輪實機部署（無授權）
 - Instagram／Pinterest 完整官方搜尋（刻意不宣稱）
 - Audience Twin 代表全體學生（刻意標模擬）

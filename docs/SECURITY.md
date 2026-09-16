@@ -14,7 +14,7 @@
 ## Auth
 
 - Google：OIDC Authorization Code + PKCE。`state` 一次性、10 分鐘。tokeninfo 核對 `aud` 與 `nonce`。
-- 淡江 SSO：未完成設定時不得成功。禁止收集或保存校方密碼，禁止自動登入爬蟲。
+- 淡江 SSO：OIDC Authorization Code + PKCE。Secret 只在 token 交換。未完成校方 Client／Metadata 時不得成功。SAML／CAS 尚未接入。禁止收集或保存校方密碼，禁止自動登入爬蟲。
 - Email：Argon2id（`hash-wasm`）。嘗試次數鎖定。驗證／重設／Magic Link 一次性且有期限。未知與已知信箱對 Magic Link／忘記密碼回同一則訊息，避免枚舉。
 - Session：`hermes_session` HttpOnly cookie，12 小時。登出可清目前或全部工作階段。
 - 身分連結：Google／淡江／Email 掛在同一 User。禁止只因 Email 相同自動合併。
