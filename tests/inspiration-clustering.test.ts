@@ -143,6 +143,22 @@ test("selecting a direction saves a workflow and is visible in project context",
   assert.equal(first.workflow.state, "ready");
   assert.equal(first.workflow.directions.length, 3);
   assert.ok(first.workflow.directions[0].title);
+  const afterFirst = listArtifacts("workspace", "personal").find(
+    (item) => item.workflowId === first.workflow.id,
+  );
+  assert.ok(afterFirst);
+  assert.equal(first.workflow.artifactId, afterFirst.id);
+  assert.equal(isDirectionBriefPack(first.workflow.design), true);
+  assert.equal(
+    (first.workflow.design as { rendered?: boolean } | null)?.rendered,
+    false,
+  );
+  assert.equal(afterFirst.source, "workspace");
+  assert.equal(afterFirst.createdBy, "workspace");
+  assert.equal(afterFirst.revisions.length, 1);
+  assert.equal(afterFirst.revisions[0].source, "workspace");
+  assert.equal(afterFirst.revisions[0].createdBy, "workspace");
+  assert.equal(isDirectionBriefPack(afterFirst.revisions[0].design), true);
   const again = selectInspirationDirection({
     owner: "workspace",
     prompt: TEA,
@@ -150,6 +166,13 @@ test("selecting a direction saves a workflow and is visible in project context",
     selected: "A",
   });
   assert.equal(again.workflow.id, first.workflow.id);
+  assert.equal(again.workflow.artifactId, first.workflow.artifactId);
+  assert.equal(
+    listArtifacts("workspace", "personal").find(
+      (item) => item.id === first.workflow.artifactId,
+    )?.revisions.length,
+    1,
+  );
   const switched = selectInspirationDirection({
     owner: "workspace",
     prompt: TEA,
@@ -195,22 +218,6 @@ test("selecting a direction saves a workflow and is visible in project context",
   assert.equal(stored.revisions[0].pages[0].title, "A 最自然");
   assert.equal(loadActivity("workspace", first.workflow.activityId!).facts.length, 0);
   assert.equal(first.workflow.directionBrief?.revision, 1);
-  const specArtifact = listArtifacts("workspace", "personal").find(
-    (item) => item.workflowId === first.workflow.id,
-  );
-  assert.ok(specArtifact);
-  assert.equal(first.workflow.artifactId, specArtifact.id);
-  assert.equal(isDirectionBriefPack(first.workflow.design), true);
-  assert.equal(
-    (first.workflow.design as { rendered?: boolean } | null)?.rendered,
-    false,
-  );
-  assert.equal(specArtifact.source, "workspace");
-  assert.equal(specArtifact.createdBy, "workspace");
-  assert.equal(specArtifact.revisions.length, 1);
-  assert.equal(specArtifact.revisions[0].source, "workspace");
-  assert.equal(specArtifact.revisions[0].createdBy, "workspace");
-  assert.equal(isDirectionBriefPack(specArtifact.revisions[0].design), true);
   assert.equal(again.workflow.copyId, first.workflow.copyId);
   assert.equal(again.workflow.activityId, first.workflow.activityId);
   assert.equal(again.workflow.directionBrief?.revision, 1);
