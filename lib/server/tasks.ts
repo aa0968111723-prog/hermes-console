@@ -288,6 +288,7 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     const local = localWorkspaceReply(input.input, {
       owner,
       projectId: conv.projectId,
+      hasAttachments: input.attachments.length > 0,
     });
     if (!local)
       throw new ApiError(503, "hermes_not_ready", connection.message);

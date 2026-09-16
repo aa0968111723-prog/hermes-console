@@ -3132,6 +3132,12 @@ html, body {
   .app-shell.sidebar-closed {
     padding-bottom: var(--dock-space);
   }
+  .workspace-main {
+    height: 100%;
+  }
+  .secondary-page {
+    padding-bottom: 24px;
+  }
   .mobile-toggle { display: none; }
   .mobile-bottom-dock,
   .spatial-dock {

@@ -156,6 +156,49 @@ try {
   ])
     assert.ok(!text.includes(word), "invitation UI visible: " + word);
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "專案", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await page.locator(".workbench-disclosure > summary").click();
+  const projectPage = page.locator(".secondary-page");
+  const scrolled = await projectPage.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+    return {
+      reached: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
+      overflowY: getComputedStyle(el).overflowY,
+    };
+  });
+  assert.equal(["auto", "scroll", "overlay"].includes(scrolled.overflowY), true);
+  assert.equal(scrolled.reached, true);
+  await expect(page.getByRole("button", { name: "專案", exact: true })).toBeVisible();
+  await page.screenshot({
+    path: join(output, "project-mobile-390.png"),
+  });
+  await page.setViewportSize({ width: 412, height: 915 });
+  await projectPage.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await page.screenshot({
+    path: join(output, "project-mobile-412.png"),
+  });
+  await page.setViewportSize({ width: 430, height: 932 });
+  await projectPage.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+  await page.screenshot({
+    path: join(output, "project-mobile-430.png"),
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "對話", exact: true }).click();
+  const box = page.getByRole("textbox", { name: "訊息", exact: true });
+  await box.click();
+  await box.fill("這張哪裡可以改？");
+  await page.getByRole("button", { name: "送出訊息" }).click();
+  await expect(page.getByText("請先上傳海報")).toBeVisible();
+  await expect(page.getByText(/假裝已看圖/)).toBeVisible();
+  await page.screenshot({
+    path: join(output, "chat-poster-critique-honest.png"),
+  });
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("tab", { name: "帳號", exact: true }).click();
   await expect(page.getByRole("heading", { name: "登入方式" })).toBeVisible();

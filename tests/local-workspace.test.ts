@@ -57,6 +57,24 @@ test("factual club query stays a short card, not a visual pack", () => {
   assert.match(text, /地點：UNKNOWN/);
 });
 
+test("poster critique without Hermes does not fake vision", () => {
+  const missing = localWorkspaceReply("這張哪裡可以改？");
+  assert.ok(missing);
+  assert.match(missing, /請先上傳海報/);
+  assert.match(missing, /假裝已看圖/);
+  assert.doesNotMatch(missing, /視覺層級：/);
+  assert.doesNotMatch(missing, /已搜尋整個 Instagram/);
+  const saved = localWorkspaceReply("這張哪裡可以改？", {
+    owner: "workspace",
+    projectId: "personal",
+    hasAttachments: true,
+  });
+  assert.ok(saved);
+  assert.match(saved, /圖片已保存/);
+  assert.match(saved, /假裝已看圖/);
+  assert.doesNotMatch(saved, /Drive 快照/);
+});
+
 test("generic chat without Hermes still fails closed", () => {
   assert.equal(localWorkspaceReply("你好"), null);
   assert.equal(localWorkspaceReply("幫我算 1+1"), null);
@@ -126,4 +144,26 @@ test("unconfigured Hermes rejects unrelated prompts", async () => {
     (error: unknown) =>
       error instanceof ApiError && error.code === "hermes_not_ready",
   );
+});
+
+test("unconfigured Hermes answers poster critique without fake vision", async () => {
+  const conv = put("conversation", "workspace", {
+    id: randomUUID(),
+    title: "看圖",
+    projectId: "personal",
+    messages: [],
+    hermesSessionId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  const task = await submit("workspace", {
+    conversationId: conv.id,
+    requestKey: randomUUID(),
+    input: "這張哪裡可以改？",
+    attachments: [],
+  });
+  assert.equal(task.state, "completed");
+  assert.match(task.output, /請先上傳海報/);
+  assert.match(task.output, /假裝已看圖/);
+  assert.doesNotMatch(task.output, /視覺層級：/);
 });

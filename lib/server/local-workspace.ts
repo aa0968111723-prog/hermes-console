@@ -38,14 +38,29 @@ function formatEntity(entity: KnowledgeEntity) {
   return ["### " + heading, ...claims].join("\n");
 }
 
+const IMAGE_OFFLINE =
+  "Hermes Agent 尚未連線。";
+
+function imageHonesty(hasAttachments?: boolean) {
+  return [
+    IMAGE_OFFLINE,
+    hasAttachments
+      ? "圖片已保存。目前不能讀取像素，不能假裝已看圖或給出視覺層級。"
+      : "請先上傳海報。沒有真實圖片內容，不能分析構圖或假裝已看圖。",
+  ].join("\n\n");
+}
+
 export function localWorkspaceReply(
   input: string,
-  ctx?: { owner: string; projectId: string },
+  ctx?: { owner: string; projectId: string; hasAttachments?: boolean },
 ): string | null {
   const text = input.trim();
+  const goal = interpretGoal(text, { hasAttachments: !!ctx?.hasAttachments });
+  if (goal.requiresImageAnalysis && !needsZenclubKnowledge(text)) {
+    return imageHonesty(ctx?.hasAttachments);
+  }
   if (!needsZenclubKnowledge(text)) return null;
   const knowledge = searchZenclubKnowledge(text);
-  const goal = interpretGoal(text);
   const top = knowledge.hits[0]?.entity;
   if (top && (goal.requiresInspiration || goal.requiresDesign)) {
     const pack =
