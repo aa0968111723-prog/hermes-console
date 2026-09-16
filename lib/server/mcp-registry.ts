@@ -309,6 +309,68 @@ export function interpretVerification(steps: {
   if (!steps.toolsList) return "connected";
   return steps.safeRead ? "verified" : "partial";
 }
+
+type ListedTool = {
+  name: string;
+  inputSchema?: Record<string, unknown>;
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+  };
+};
+
+export function isSafeReadTool(tool: ListedTool) {
+  if (tool.annotations?.readOnlyHint !== true) return false;
+  if (tool.annotations?.destructiveHint === true) return false;
+  const required = tool.inputSchema?.required;
+  return !Array.isArray(required) || required.length === 0;
+}
+
+export function toolCallHasReadableContent(result: {
+  isError?: boolean;
+  content?: Array<{ type?: string; text?: string }>;
+}) {
+  if (result.isError) return false;
+  const content = result.content;
+  if (!Array.isArray(content) || content.length === 0) return false;
+  return content.some((part) => {
+    if (!part) return false;
+    if (part.type === "text") return Boolean(part.text?.trim());
+    return true;
+  });
+}
+
+async function probeSafeRead(client: Client, tools: ListedTool[]) {
+  const caps = client.getServerCapabilities() as
+    | { resources?: unknown }
+    | undefined;
+  if (caps?.resources) {
+    try {
+      const listed = await client.listResources({}, { timeout: 8_000 });
+      if (Array.isArray(listed.resources) && listed.resources.length > 0)
+        return true;
+    } catch {
+      /* Fall through to a read-only tool. */
+    }
+  }
+  const safe = tools.find(isSafeReadTool);
+  if (!safe) return false;
+  try {
+    const result = await client.callTool(
+      { name: safe.name, arguments: {} },
+      undefined,
+      { timeout: 8_000 },
+    );
+    return toolCallHasReadableContent(
+      result as {
+        isError?: boolean;
+        content?: Array<{ type?: string; text?: string }>;
+      },
+    );
+  } catch {
+    return false;
+  }
+}
 export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
@@ -425,13 +487,22 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     await client.connect(transport, { timeout: 10_000 });
     connected = true;
     let cursor: string | undefined;
+    const discovered: ListedTool[] = [];
     const tools: McpEntry["tools"] = [];
     for (let page = 0; page < 10; page++) {
       const result = await client.listTools(cursor ? { cursor } : {}, {
         timeout: 10_000,
       });
-      tools.push(
-        ...result.tools.map((t) => ({
+      for (const t of result.tools) {
+        discovered.push({
+          name: t.name,
+          inputSchema: t.inputSchema as Record<string, unknown> | undefined,
+          annotations: t.annotations && {
+            readOnlyHint: t.annotations.readOnlyHint,
+            destructiveHint: t.annotations.destructiveHint,
+          },
+        });
+        tools.push({
           name: redact(t.name),
           description: redact(t.description || ""),
           inputSchema: JSON.parse(
@@ -448,8 +519,8 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
             destructiveHint: t.annotations.destructiveHint,
             idempotentHint: t.annotations.idempotentHint,
           },
-        })),
-      );
+        });
+      }
       if (tools.length > 1000) throw new Error("MCP tool limit");
       cursor = result.nextCursor;
       if (!cursor) break;
@@ -457,6 +528,12 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     if (cursor) throw new Error("MCP pagination limit");
     const changed = currentEntry();
     if (changed) return changed;
+    let safeRead = false;
+    try {
+      safeRead = await probeSafeRead(client, discovered);
+    } catch {
+      safeRead = false;
+    }
     return put("mcp_registry", WORKSPACE_OWNER, {
       ...entry,
       ...config,
@@ -464,7 +541,7 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       status: interpretVerification({
         initialize: true,
         toolsList: tools.length > 0,
-        safeRead: false,
+        safeRead,
       }),
       verifiedAt: new Date().toISOString(),
       lastError: null,
