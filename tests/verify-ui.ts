@@ -207,7 +207,7 @@ try {
       "send button occluded at " + width,
     );
     const mascot = await page.locator(".turtle").boundingBox();
-    await expect(page.locator(".quick-action")).toHaveCount(width<=760 ? 4 : 6);
+    await expect(page.locator(".quick-action")).toHaveCount(6);
     const columns = await page
       .locator(".quick-actions")
       .evaluate(
