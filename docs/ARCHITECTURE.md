@@ -20,7 +20,7 @@ Hermes Console is the human interface to that runtime. It is not a tool director
 - Render conversations, projects, inspiration, artifacts, and turtle state.
 - Persist workspace data (SQLite or Console Postgres).
 - Expose Workspace MCP to Hermes. Probe external MCP. Never fake `available`.
-- Show high-level progress in the normal UI. Schema, endpoints, and receipts stay in 進階 / Developer.
+- Show high-level progress in the normal UI. Schema, endpoints, and receipts stay in 進階 / Developer, and those fields are omitted from member API responses.
 
 ## Hermes responsibilities
 
