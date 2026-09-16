@@ -385,6 +385,8 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
   await t.test(
     "actual image bytes become image input, not filenames",
     async () => {
+      const previous = process.env.HERMES_IMAGE_INPUT;
+      delete process.env.HERMES_IMAGE_INPUT;
       const sharp = (await import("sharp")).default;
       const bytes = await sharp({
         create: { width: 2, height: 2, channels: 3, background: "#90c070" },
@@ -398,25 +400,30 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         "image/png",
         bytes,
       );
-      await assert.rejects(
-        () => attachmentParts("owner", [asset.id]),
-        /圖片輸入/,
-      );
-      process.env.HERMES_IMAGE_INPUT = "true";
-      const parts = await attachmentParts("owner", [asset.id]);
-      assert.equal(parts[0].type, "image_url");
-      assert.match(JSON.stringify(parts), /data:image\/png;base64,/);
-      await assert.rejects(
-        () =>
-          saveUpload(
-            "owner",
-            "personal",
-            "fake.png",
-            "image/png",
-            Buffer.from("not image"),
-          ),
-        /圖片無法/,
-      );
+      try {
+        const honest = await attachmentParts("owner", [asset.id]);
+        assert.equal(honest[0].type, "text");
+        assert.match(String(honest[0].text), /尚未驗證看圖|不得假裝已看圖/);
+        assert.doesNotMatch(JSON.stringify(honest), /base64/);
+        process.env.HERMES_IMAGE_INPUT = "true";
+        const parts = await attachmentParts("owner", [asset.id]);
+        assert.equal(parts[0].type, "image_url");
+        assert.match(JSON.stringify(parts), /data:image\/png;base64,/);
+        await assert.rejects(
+          () =>
+            saveUpload(
+              "owner",
+              "personal",
+              "fake.png",
+              "image/png",
+              Buffer.from("not image"),
+            ),
+          /圖片無法/,
+        );
+      } finally {
+        if (previous === undefined) delete process.env.HERMES_IMAGE_INPUT;
+        else process.env.HERMES_IMAGE_INPUT = previous;
+      }
     },
   );
   await t.test("short continue windows history and skips Lumen manuals", async () => {

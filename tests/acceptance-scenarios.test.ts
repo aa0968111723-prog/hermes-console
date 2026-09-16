@@ -63,7 +63,7 @@ test("acceptance prompts route without the user picking tools", async (t) => {
     assert.equal(routes.find((item) => item.id === "image")?.tool, "ask_user");
     const plan = buildPlan(goal, routes, "balanced");
     assert.ok(plan.steps.some((step) => step.title === "看圖"));
-    assert.ok(plan.fallbacks.some((item) => /尚未驗證看圖/.test(item.userVisible)));
+    assert.ok(plan.fallbacks.some((item) => /還沒驗證看圖/.test(item.userVisible)));
   });
 
   await t.test("C: freshman tea poster plans research, copy, Canva spec", () => {
