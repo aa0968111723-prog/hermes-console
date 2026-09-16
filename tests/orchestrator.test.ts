@@ -59,6 +59,25 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(fallbacksFromRoutes(routes).length, 0);
   });
 
+  await t.test("GALLEY is used for research only when the registry is usable", () => {
+    const goal = interpretGoal("幫我研究淡江新生最近可能喜歡的社團宣傳方向");
+    const hermes = emptyIntegration("hermes");
+    hermes.capabilities.find((item) => item.id === "hermes.api")!.status =
+      "reachable";
+    const without = routeTools(goal, [emptyIntegration("tamkang"), hermes]);
+    assert.equal(without.find((item) => item.id === "galley"), undefined);
+    const withGalley = routeTools(goal, [emptyIntegration("tamkang"), hermes], {
+      galley: { status: "partial" },
+    });
+    assert.equal(withGalley.find((item) => item.id === "galley")?.tool, "galley_research");
+    const plan = buildPlan(goal, withGalley, "balanced");
+    assert.ok(plan.steps.some((step) => step.title.includes("來源優先研究")));
+    const unconfigured = routeTools(goal, [emptyIntegration("tamkang"), hermes], {
+      galley: { status: "unconfigured" },
+    });
+    assert.equal(unconfigured.find((item) => item.id === "galley"), undefined);
+  });
+
   await t.test("generic freshman wording does not bind Tamkang", () => {
     for (const prompt of [
       "國立臺灣大學新生茶會文宣海報",

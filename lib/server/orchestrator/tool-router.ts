@@ -9,6 +9,14 @@ export type RoutedTool = {
   fallback: string | null;
 };
 
+export type RouterMcpHint = {
+  status?: string;
+};
+
+function mcpUsable(status?: string) {
+  return status === "partial" || status === "verified" || status === "connected";
+}
+
 function capStatus(cert: IntegrationCertification | undefined, id: string) {
   return cert?.capabilities.find((item) => item.id === id)?.status;
 }
@@ -16,6 +24,7 @@ function capStatus(cert: IntegrationCertification | undefined, id: string) {
 export function routeTools(
   goal: StructuredGoal,
   certifications: IntegrationCertification[],
+  mcp: { galley?: RouterMcpHint } = {},
 ): RoutedTool[] {
   const tamkang = certifications.find((item) => item.id === "tamkang");
   const hermes = certifications.find((item) => item.id === "hermes");
@@ -62,15 +71,26 @@ export function routeTools(
         fallback: null,
       });
     }
-  } else if (goal.requiresResearch) {
-    routes.push({
-      id: "research",
-      tool: hermesChat ? "hermes_authorized_web" : "ask_user",
-      reason: hermesChat
-        ? "依需求使用 Hermes 已授權網頁研究。"
-        : "Hermes 網頁研究尚未就緒，需要使用者提供來源。",
-      fallback: "official_web_directory",
-    });
+  }
+  if (goal.requiresResearch) {
+    if (mcpUsable(mcp.galley?.status)) {
+      routes.push({
+        id: "galley",
+        tool: "galley_research",
+        reason:
+          "GALLEY 已列出或通過安全讀取，用來做來源優先研究。沒有來源不得改用記憶填空。",
+        fallback: hermesChat ? "hermes_authorized_web" : "ask_user",
+      });
+    } else if (!goal.requiresTamkang) {
+      routes.push({
+        id: "research",
+        tool: hermesChat ? "hermes_authorized_web" : "ask_user",
+        reason: hermesChat
+          ? "依需求使用 Hermes 已授權網頁研究。"
+          : "Hermes 網頁研究尚未就緒，需要使用者提供來源。",
+        fallback: "official_web_directory",
+      });
+    }
   }
 
   if (goal.requiresInspiration) {

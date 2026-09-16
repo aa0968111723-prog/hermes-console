@@ -50,8 +50,9 @@ export function buildPlan(
   }
   const campus = routes.find((item) => item.id === "campus");
   const research = routes.find((item) => item.id === "research");
+  const galley = routes.find((item) => item.id === "galley");
   const club = routes.find((item) => item.id === "club_knowledge");
-  const sourceRoute = campus || research;
+  const sourceRoute = campus || research || galley;
   const steps: PlanStep[] = [
     step("讀取專案上下文", "確認目前專案、素材與近期對話。", "context_engine", null),
     step("讀取共用記憶", "只帶入相關、近期、已確認的記憶，不把整庫塞進提示。", "shared_memory", null),
@@ -81,6 +82,16 @@ export function buildPlan(
         "執行研究查詢並保存來源；沒有外部 evidence 不得標已完成。",
         sourceRoute?.tool || "hermes_authorized_web",
         sourceRoute?.fallback || "official_web_directory",
+      ),
+    );
+  }
+  if (galley && sourceRoute?.id !== "galley") {
+    steps.push(
+      step(
+        "來源優先研究",
+        galley.reason,
+        galley.tool,
+        galley.fallback,
       ),
     );
   }

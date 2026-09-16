@@ -10,6 +10,7 @@ import {
 } from "../context/assembler";
 import { CONTEXT_TOKEN_BUDGET } from "../context/budget";
 import { isFastTier } from "./intent";
+import { getMcp } from "../mcp-registry";
 
 export function prepareOrchestration(
   owner: string,
@@ -21,7 +22,10 @@ export function prepareOrchestration(
   const fast = isFastTier(goal.intentTier);
   const effectiveBudget: BudgetMode = fast ? "fast" : budgetMode;
   const certifications = getCertification(owner).integrations;
-  const routes = routeTools(goal, certifications);
+  const galley = getMcp("galley");
+  const routes = routeTools(goal, certifications, {
+    galley: { status: galley?.status || "unconfigured" },
+  });
   const plan = buildPlan(goal, routes, effectiveBudget);
   const context = fast
     ? {
