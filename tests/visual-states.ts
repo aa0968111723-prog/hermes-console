@@ -528,6 +528,116 @@ export async function verifyVisualStates(
   await page.screenshot({ path: join(output, "chat-critique-mobile.png") });
   await critique.screenshot({ path: join(output, "chat-critique-stage.png") });
   await audit("chat-critique");
+  const directions = [
+    {
+      title: "校園生活",
+      claim: "用走路上學的畫面",
+      visual: "校園日拍",
+      copy: "來坐坐",
+      cta: "來坐",
+      sources: ["https://example.com/a"],
+    },
+    {
+      title: "茶桌近拍",
+      claim: "先看到茶再看到社團",
+      visual: "茶桌",
+      copy: "喝茶聊天",
+      cta: "來坐",
+      sources: ["https://example.com/b"],
+    },
+    {
+      title: "同學一起坐",
+      claim: "低門檻見面",
+      visual: "座位",
+      copy: "不用準備",
+      cta: "來坐",
+      sources: ["https://example.com/c"],
+    },
+  ];
+  task.output = "[介面測試] 已整理三個方向，尚未出圖。";
+  task.events = [
+    {
+      id: "event-directions",
+      taskId: task.id,
+      toolCallId: "call-directions",
+      toolName: "workspace_save_directions",
+      status: "completed",
+      startedAt: now,
+      endedAt: now,
+      summary: "[介面測試事件] 創作方向",
+      result: {
+        id: "ui-fixture-artifact-B",
+        projectId: "personal",
+        brief: "[介面測試] 茶會宣傳",
+        directions,
+        selected: null,
+        state: "awaiting_selection",
+        createdAt: now,
+        updatedAt: now,
+        canvaJobId: null,
+        design: null,
+        error: null,
+      },
+      sources: [],
+      error: null,
+      usage: null,
+    },
+  ];
+  await page.reload();
+  const picks = page.getByRole("region", { name: "創作方向" });
+  await expect(picks).toBeVisible();
+  await expect(picks.getByRole("button", { name: "用這個方向" })).toHaveCount(3);
+  await expect(picks).toContainText("選定後才會製作，不是已發佈");
+  await picks.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(output, "chat-directions-mobile.png") });
+  await audit("chat-directions");
+  task.output = "[介面測試] 草稿已回來。";
+  task.events = [
+    {
+      id: "event-design",
+      taskId: task.id,
+      toolCallId: "call-design",
+      toolName: "canva_get_draft",
+      status: "completed",
+      startedAt: now,
+      endedAt: now,
+      summary: "[介面測試事件] 設計草稿",
+      result: {
+        id: "ui-fixture-artifact-B",
+        projectId: "personal",
+        brief: "[介面測試] 茶會宣傳",
+        directions,
+        selected: 0,
+        state: "draft_ready",
+        createdAt: now,
+        updatedAt: now,
+        canvaJobId: "ui-job",
+        error: null,
+        design: {
+          id: "ui-fixture-design",
+          title: "[介面測試] 茶會草稿",
+          thumbnail: {
+            url: "https://www.canva.com/ui-fixture-preview.png",
+          },
+          urls: {
+            edit_url: "https://www.canva.com/design/ui-fixture/edit",
+          },
+        },
+      },
+      sources: [],
+      error: null,
+      usage: null,
+    },
+  ];
+  await page.reload();
+  const chatStage = page.locator(".conversation .artifact-stage");
+  await expect(chatStage).toBeVisible();
+  await expect(
+    chatStage.getByRole("button", { name: "放大設計預覽" }),
+  ).toBeVisible();
+  await chatStage.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: join(output, "chat-artifact-mobile.png") });
+  await audit("chat-artifact");
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(

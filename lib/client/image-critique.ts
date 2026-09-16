@@ -68,6 +68,11 @@ export function critiqueDirections(panel?: TwinPanel | null) {
   );
 }
 
+export function shortMaterialTitle(title?: string) {
+  const value = (title || "上傳畫面").trim();
+  return value.length > 28 ? value.slice(0, 28) + "…" : value;
+}
+
 export function critiqueFollowUp(direction: string) {
   return (
     "請依「" +

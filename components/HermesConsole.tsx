@@ -599,6 +599,28 @@ export default function HermesConsole() {
     setNav("chat");
     input.current?.focus();
   }
+  function continueDesign(id: string) {
+    setNav("chat");
+    setText("請查回創作流程 " + id + " 的現有設計，接續修改同一作品。");
+    input.current?.focus();
+  }
+  async function pickDirection(workflowId: string, index: number, title: string) {
+    try {
+      await api("workflows", "PATCH", { id: workflowId, selected: index });
+      await refresh();
+      useDirection(
+        "已選定「" +
+          title.slice(0, 40) +
+          "」。請依這個方向製作草稿，沿用創作流程 " +
+          workflowId +
+          " 第 " +
+          (index + 1) +
+          " 個方向，不要另起無關作品。",
+      );
+    } catch (error) {
+      setError((error as Error).message);
+    }
+  }
   function openMaterial(materialId: string) {
     const asset = data.materials.find((item) => item.id === materialId);
     if (!asset) return;
@@ -1100,6 +1122,10 @@ export default function HermesConsole() {
                               }
                               onUseDirection={useDirection}
                               onOpenMaterial={openMaterial}
+                              onPickDirection={(id, index, title) => {
+                                void pickDirection(id, index, title);
+                              }}
+                              onContinueDesign={continueDesign}
                             />
                           )}
                           {!!message.attachments?.length && (
@@ -1183,6 +1209,10 @@ export default function HermesConsole() {
                             onInspect={() => openTask(currentTask)}
                             onUseDirection={useDirection}
                             onOpenMaterial={openMaterial}
+                            onPickDirection={(id, index, title) => {
+                              void pickDirection(id, index, title);
+                            }}
+                            onContinueDesign={continueDesign}
                           />
                           {currentTask.error && (
                             <p className="error">{currentTask.error}</p>

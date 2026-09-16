@@ -6,6 +6,7 @@ import {
   critiqueDirections,
   critiqueFollowUp,
   critiqueLayers,
+  shortMaterialTitle,
   type ImageReadView,
 } from "@/lib/client/image-critique";
 import MaterialThumb from "./MaterialThumb";
@@ -45,7 +46,9 @@ export default function ImageCritiqueResult({
           variant="thumb"
         />
       </button>
-      <h2>{read.title || "上傳畫面"}</h2>
+      <h2 title={read.title || "上傳畫面"}>
+        {shortMaterialTitle(read.title)}
+      </h2>
       <ul className="critique-layers" aria-label="視覺層級">
         {layers.map((layer) => (
           <li key={layer.id} data-state={layer.state}>

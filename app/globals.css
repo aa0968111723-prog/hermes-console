@@ -2734,7 +2734,10 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .inspiration-hosts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
 .inspiration-hosts li { min-height: 32px; padding: 6px 10px; border-radius: 999px; background: var(--color-primary-soft); font-size: var(--type-caption); }
 .image-critique { margin-top: 12px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: #fff; box-shadow: var(--depth-card, 0 8px 20px rgba(40,70,40,.08)); }
-.image-critique h2 { margin: 8px 0 10px; font-size: 1.05rem; }
+.image-critique h2 { margin: 8px 0 10px; font-size: 1.05rem; overflow-wrap: anywhere; }
+.direction-pick { margin-top: 12px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: #fff; box-shadow: var(--depth-card, 0 8px 20px rgba(40,70,40,.08)); }
+.direction-pick h2 { margin: 4px 0 12px; font-size: 1.05rem; }
+.pattern-card[data-selected="true"] { box-shadow: inset 0 0 0 2px var(--color-primary); }
 .critique-poster { display: block; width: 100%; padding: 0; border: 0; border-radius: var(--radius-card); overflow: hidden; background: var(--color-canvas, #f7faf5); box-shadow: var(--depth-floating, 0 10px 24px rgba(40,70,40,.1)); transform: perspective(900px) rotateX(1.2deg); }
 .critique-poster img { display: block; width: 100%; max-height: min(42dvh, 420px); object-fit: contain; background: #f4f8f1; }
 .critique-poster:disabled { transform: none; cursor: default; }
