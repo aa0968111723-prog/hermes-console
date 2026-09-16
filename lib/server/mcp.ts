@@ -285,7 +285,7 @@ const schemas = {
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
   workspace_project_context:
-    "查回目前專案活動、文案版本、素材與任務索引；不是長期記憶。先查回再接續，不要重建無關作品。",
+    "查回目前專案名稱、活動、文案版本、素材、作品版本（artifactId／revisionId）與任務索引；不是長期記憶。先查回再接續同一作品，不要重建無關作品。",
   workspace_get_activity:
     "讀取公開活動資訊、來源與核對狀態；私人資料與歷史不提供給網宣工具。",
   workspace_get_visual_concepts:

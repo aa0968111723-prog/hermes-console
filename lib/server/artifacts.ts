@@ -26,6 +26,28 @@ export function listArtifacts(owner = WORKSPACE_OWNER, projectId?: string) {
   );
 }
 
+export function listLatestArtifacts(
+  owner = WORKSPACE_OWNER,
+  projectId?: string,
+  limit = 12,
+) {
+  return listArtifacts(owner, projectId)
+    .sort(
+      (a, b) =>
+        b.createdAt.localeCompare(a.createdAt) || b.revision - a.revision,
+    )
+    .slice(0, Math.max(1, Math.min(50, limit)));
+}
+
+export function artifactContextLine(item: Artifact) {
+  return [
+    "artifactId=" + item.artifactId,
+    "revisionId=" + item.revisionId,
+    "source=" + item.source,
+    item.title,
+  ].join(" ");
+}
+
 export function listRevisions(artifactId: string, owner = WORKSPACE_OWNER) {
   return listArtifacts(owner)
     .filter((item) => item.artifactId === artifactId)

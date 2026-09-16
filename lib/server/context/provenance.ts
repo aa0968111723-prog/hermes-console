@@ -2,6 +2,7 @@ import type { TruthClass } from "../certification/types";
 
 export type ContextSourceKind =
   | "project"
+  | "artifact"
   | "shared_memory"
   | "conversation"
   | "material"

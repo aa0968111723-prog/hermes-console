@@ -15,6 +15,7 @@ import { get, list, put, transaction } from "./store";
 import { listMemories } from "./memory";
 import { ApiError, hash, redact } from "./security";
 import { listMaterials, material } from "./materials";
+import { listLatestArtifacts } from "./artifacts";
 import { compileVisualConcepts } from "./creative/visual-concepts";
 import type { VisualFormatId } from "./creative/formats";
 import { auditEventCopy } from "./qa";
@@ -371,8 +372,12 @@ export function selectCopy(
 }
 export function projectContext(owner: string, projectId: string) {
   assertProject(owner, projectId);
+  const named = get<{ name?: string }>("project", owner, projectId);
+  const name =
+    named?.name || (projectId === "personal" ? "個人" : projectId);
   return {
     projectId,
+    name,
     queriedAt: new Date().toISOString(),
     memorySynced: false,
     sharedMemories: listMemories(owner, projectId).slice(0, 20).map((item) => ({
@@ -410,6 +415,15 @@ export function projectContext(owner: string, projectId: string) {
         check: checkCopy(owner, d),
       })),
     materials: listMaterials(owner, { projectId }).slice(0, 100),
+    artifacts: listLatestArtifacts(owner, projectId, 20).map((item) => ({
+      artifactId: item.artifactId,
+      revisionId: item.revisionId,
+      revision: item.revision,
+      title: item.title,
+      source: item.source,
+      createdAt: item.createdAt,
+      parentArtifactId: item.parentArtifactId,
+    })),
     tasks: list<Task>("task", owner)
       .filter(
         (t) =>
@@ -423,7 +437,7 @@ export function projectContext(owner: string, projectId: string) {
         error: t.error,
       })),
     notice:
-      "這是 Console 專案索引，不是 Hermes 長期記憶；最多列出最近 50 項活動／文案、100 項素材。使用 get 工具查回指定作品。若多個成果符合需求，先詢問使用者，勿覆寫其他作品。",
+      "這是 Console 專案索引，不是 Hermes 長期記憶；最多列出最近 50 項活動／文案、20 項作品版本、100 項素材。使用 get 工具查回指定作品，並沿用 artifactId／revisionId。若多個成果符合需求，先詢問使用者，勿覆寫其他作品。",
   };
 }
 export function exportCopy(owner: string, id: string, number: number) {

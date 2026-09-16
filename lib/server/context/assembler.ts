@@ -3,6 +3,11 @@ import { listMemories } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
 import { listMaterials } from "../materials";
 import {
+  artifactContextLine,
+  listLatestArtifacts,
+} from "../artifacts";
+import { get } from "../store";
+import {
   decayingConfidence,
   estimateTokens,
   recencyScore,
@@ -11,6 +16,15 @@ import {
 import { relevanceTo } from "./ranking";
 import { fitBudget } from "./budget";
 import { wrapUntrusted } from "../untrusted";
+
+function projectName(owner: string, projectId: string) {
+  if (projectId === "personal") {
+    return (
+      get<{ name?: string }>("project", owner, projectId)?.name || "個人"
+    );
+  }
+  return get<{ name?: string }>("project", owner, projectId)?.name || projectId;
+}
 
 function item(
   partial: Omit<ContextItem, "tokens"> & { tokens?: number },
@@ -41,12 +55,13 @@ export function assembleContext(input: {
       truth: "USER_PROVIDED",
     }),
   );
+  const name = projectName(input.owner, input.projectId);
   items.push(
     item({
       id: "project",
       source: "project",
-      title: "專案",
-      content: "projectId=" + input.projectId,
+      title: name,
+      content: "projectId=" + input.projectId + " name=" + name,
       recency: 0.7,
       importance: 0.8,
       relevance: 0.8,
@@ -54,6 +69,26 @@ export function assembleContext(input: {
       truth: "FACT",
     }),
   );
+  for (const artifact of listLatestArtifacts(
+    input.owner,
+    input.projectId,
+    8,
+  )) {
+    const line = artifactContextLine(artifact);
+    items.push(
+      item({
+        id: artifact.id,
+        source: "artifact",
+        title: artifact.title + " " + artifact.revisionId,
+        content: line,
+        recency: recencyScore(artifact.createdAt),
+        importance: 0.75,
+        relevance: relevanceTo(line, query),
+        confidence: 0.85,
+        truth: "FACT",
+      }),
+    );
+  }
   const memories = [
     ...listMemories(input.owner, input.projectId),
     ...listMemories(input.owner, "user_preference"),
