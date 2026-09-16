@@ -4,7 +4,8 @@ import type { Task } from "@/lib/contracts";
 import {
   activityKind,
   eventPhaseLabel,
-  taskStateLabel,
+  studentTaskLabel,
+  taskKeptSpecOnly,
   workingEvent,
 } from "@/lib/client/activity";
 
@@ -45,6 +46,14 @@ export function composerTaskStatus(task: Task, offline: boolean) {
   if (offline) return { label: OFFLINE_PILL_LABEL, tone: "warning", tool: null };
   if (task.observationError)
     return { label: "連線異常 · 狀態待確認", tone: "warning", tool: null };
+  if (taskKeptSpecOnly(task))
+    return {
+      label: studentTaskLabel(task),
+      tone: "warning",
+      tool: null,
+      toolName: null,
+      toolKind: null,
+    };
   const tone = task.state === "failed" ? "error"
     : task.state === "uncertain" ? "warning"
     : task.state === "completed" ? "success"
@@ -52,7 +61,7 @@ export function composerTaskStatus(task: Task, offline: boolean) {
     : "neutral";
   const current = workingEvent(task);
   return {
-    label: taskStateLabel[task.state] || "狀態未知",
+    label: studentTaskLabel(task),
     tone,
     tool: current ? eventPhaseLabel(current, task) : null,
     toolName: current?.toolName || null,

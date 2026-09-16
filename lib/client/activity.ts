@@ -1,4 +1,21 @@
-import type { Task, TaskEvent } from "../contracts";
+import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../contracts";
+
+export const SPEC_ONLY_DESIGN_LABEL = "規格已保留";
+
+export function taskKeptSpecOnly(task?: Task | null): boolean {
+  if (!task || task.state !== "completed") return false;
+  return task.events.some(
+    (event) =>
+      typeof event.summary === "string" &&
+      (event.summary === DESIGN_WITHOUT_PREVIEW ||
+        event.summary.includes("沒有假裝設計完成")),
+  );
+}
+
+export function studentTaskLabel(task: Task): string {
+  if (taskKeptSpecOnly(task)) return SPEC_ONLY_DESIGN_LABEL;
+  return taskStateLabel[task.state] || "狀態未知";
+}
 
 export const activityLabels = {
   request: "處理",
@@ -180,8 +197,17 @@ function applyEventProgress(task: Task, phases: ProgressStep[]) {
   const finished = ["completed", "failed", "cancelled", "uncertain"].includes(
     task.state,
   );
+  const specOnly = taskKeptSpecOnly(task);
   phases.forEach((phase, index) => {
     if (finished) {
+      if (specOnly) {
+        phase.state =
+          phase.label === "創作" || phase.label === "完成"
+            ? "uncertain"
+            : "completed";
+        phase.active = false;
+        return;
+      }
       phase.state =
         task.state === "completed"
           ? "completed"
@@ -221,15 +247,22 @@ export function progressSteps(task: Task): ProgressStep[] {
   for (const event of task.events)
     if (event.toolName) calls.set(event.toolCallId || event.toolName, event);
   const current = workingEvent(task);
+  const specOnly = taskKeptSpecOnly(task);
   return [...calls.values()].slice(-4).map((event) => {
     const state = eventState(event);
-    const known =
+    let known: ProgressStep["state"] =
       state === "completed" ||
       state === "failed" ||
       state === "uncertain" ||
       state === "running"
         ? state
         : "pending";
+    if (
+      specOnly &&
+      known === "completed" &&
+      activityKind(event.toolName) === "creative"
+    )
+      known = "uncertain";
     return {
       key: event.id,
       label: activityLabels[activityKind(event.toolName)],
@@ -237,6 +270,28 @@ export function progressSteps(task: Task): ProgressStep[] {
       active: current?.id === event.id,
     };
   });
+}
+
+export function studentProcessDone(
+  task: Task,
+  steps: ProgressStep[] = progressSteps(task),
+): boolean {
+  if (taskKeptSpecOnly(task)) return false;
+  return (
+    task.state === "completed" ||
+    (steps.length > 0 && steps.every((step) => step.state === "completed"))
+  );
+}
+
+export function visualProcessCaption(
+  task: Task,
+  steps: ProgressStep[] = progressSteps(task),
+): string {
+  if (studentProcessDone(task, steps)) return "過程完成";
+  if (taskKeptSpecOnly(task)) return SPEC_ONLY_DESIGN_LABEL;
+  const active = steps.find((step) => step.active);
+  if (active) return active.label;
+  return taskStateLabel[task.state] || "進行中";
 }
 
 export function isCanvaDesign(

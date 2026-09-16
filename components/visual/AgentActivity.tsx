@@ -17,7 +17,8 @@ import {
 import type { Task } from "@/lib/contracts";
 import {
   progressSteps,
-  taskStateLabel,
+  studentTaskLabel,
+  taskKeptSpecOnly,
 } from "@/lib/client/activity";
 
 const icons: Record<string, typeof Search> = {
@@ -79,18 +80,19 @@ export default function AgentActivity({
         onClick={onInspect}
         disabled={!onInspect}
         className="activity-inspect"
-        aria-label={"查看任務：" + taskStateLabel[task.state]}
+        aria-label={"查看任務：" + studentTaskLabel(task)}
       >
-        {task.state === "completed" ? (
-          <Check size={16} />
-        ) : ["failed", "uncertain"].includes(task.state) ? (
+        {taskKeptSpecOnly(task) ||
+        ["failed", "uncertain"].includes(task.state) ? (
           <CircleAlert size={16} />
+        ) : task.state === "completed" ? (
+          <Check size={16} />
         ) : task.state === "running" ? (
           <LoaderCircle size={16} />
         ) : (
           <Pause size={16} />
         )}
-        {taskStateLabel[task.state]}
+        {studentTaskLabel(task)}
       </button>
     </div>
   );

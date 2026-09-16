@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { Conversation, EMPTY_USAGE, Task, TaskEvent } from "../contracts";
+import {
+  Conversation,
+  DESIGN_WITHOUT_PREVIEW,
+  EMPTY_USAGE,
+  Task,
+  TaskEvent,
+} from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
 import { isEmptyToolResult, studentHermesError } from "./errors";
@@ -167,8 +173,7 @@ function failedToolEvents(task: Task) {
   });
 }
 
-export const DESIGN_WITHOUT_PREVIEW =
-  "還沒有可預覽的作品。規格已保留，沒有假裝設計完成。";
+export { DESIGN_WITHOUT_PREVIEW };
 
 export function taskHasVisualArtifact(owner: string, task: Task) {
   const conv = conversation(owner, task.conversationId);

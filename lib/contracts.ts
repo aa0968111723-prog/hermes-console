@@ -15,6 +15,10 @@ export type TaskState =
   | "failed"
   | "cancelled"
   | "uncertain";
+
+/** Finish copy when a design task has no copy/Canva/thumbnail. Never treat as visual success. */
+export const DESIGN_WITHOUT_PREVIEW =
+  "還沒有可預覽的作品。規格已保留，沒有假裝設計完成。";
 export interface Usage {
   model: string | null;
   inputTokens: number | null;

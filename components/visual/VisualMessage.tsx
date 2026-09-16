@@ -1,10 +1,12 @@
-import { ExternalLink, Search, Check, Circle } from "lucide-react";
+import { ExternalLink, Search, Check, Circle, CircleHelp } from "lucide-react";
 import type { Task, TaskFocus } from "@/lib/contracts";
 import {
   artifactsForConversation,
   progressSteps,
   safeSource,
-  taskStateLabel,
+  studentProcessDone,
+  taskKeptSpecOnly,
+  visualProcessCaption,
 } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
@@ -35,7 +37,6 @@ export default function VisualMessage({
     .map(safeSource)
     .filter((value): value is string => !!value);
   const steps = progressSteps(task);
-  const active = steps.find((step) => step.active);
   const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
   const artifacts = artifactsForConversation(
     task,
@@ -50,20 +51,21 @@ export default function VisualMessage({
     !steps.length
   )
     return null;
-  const done =
-    task.state === "completed" ||
-    (steps.length > 0 && steps.every((step) => step.state === "completed"));
+  const specOnly = taskKeptSpecOnly(task);
+  const done = studentProcessDone(task, steps);
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
       {!!steps.length && (
         <button className="tool-result-summary" onClick={onInspect}>
-          {done ? <Check size={15} /> : <Circle size={15} />}
-          {done
-            ? "過程完成"
-            : active
-              ? active.label
-              : taskStateLabel[task.state] || "進行中"}
+          {done ? (
+            <Check size={15} />
+          ) : specOnly ? (
+            <CircleHelp size={15} />
+          ) : (
+            <Circle size={15} />
+          )}
+          {visualProcessCaption(task, steps)}
         </button>
       )}
       {artifacts.map((item) => (
