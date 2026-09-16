@@ -2,6 +2,7 @@ import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { simulateFreshmanReactions } from "../lib/server/audience/personas";
 
 /** Real uploads/settings first; explicitly labelled UI response fixtures second.
  * The fixtures never configure credentials, publish, or contact external providers. */
@@ -164,6 +165,7 @@ export async function verifyVisualStates(
                 content: task.input,
                 createdAt: now,
                 taskId: task.id,
+                attachments: task.attachments,
               },
               ...(task.output
                 ? [
@@ -452,6 +454,79 @@ export async function verifyVisualStates(
   await expect(page.locator(".activity-active")).toHaveCount(0);
   await page.screenshot({ path: join(output, "chat-fixture.png") });
   await audit("chat-fixture");
+  const poster = (
+    workspace.materials as Array<{
+      id: string;
+      kind: string;
+      title: string;
+      mime?: string | null;
+    }>
+  ).find((item) => item.kind === "image");
+  assert.ok(poster, "uploaded poster must remain in the workspace fixture");
+  const twinPanel = simulateFreshmanReactions({
+    kind: "poster",
+    title: poster.title,
+    copy: "這張哪裡可以改？",
+  });
+  task.state = "completed";
+  task.input = "這張哪裡可以改？";
+  task.output = "[介面測試] 已讀取海報。修改方向來自新生模擬，不是像素分數。";
+  task.attachments = [poster.id];
+  task.endedAt = now;
+  task.events = [
+    {
+      id: "event-read",
+      taskId: task.id,
+      toolCallId: "call-read",
+      toolName: "workspace_read_material",
+      status: "completed",
+      startedAt: now,
+      endedAt: now,
+      summary: "[介面測試事件] 讀取畫面",
+      result: {
+        materialId: poster.id,
+        projectId: "personal",
+        mime: poster.mime || "image/png",
+        title: poster.title,
+        kind: "image",
+        imageRead: true,
+        nativeImageInput: false,
+        notice:
+          "已讀取上傳畫面並交給工具。原生對話插圖尚未開啟，不把檔名當成已看過。",
+      },
+      sources: [],
+      error: null,
+      usage: null,
+    },
+    {
+      id: "event-twin",
+      taskId: task.id,
+      toolCallId: "call-twin",
+      toolName: "workspace_simulate_audience",
+      status: "completed",
+      startedAt: now,
+      endedAt: now,
+      summary: "[介面測試事件] 客群模擬",
+      result: twinPanel,
+      sources: [],
+      error: null,
+      usage: null,
+    },
+  ];
+  await page.reload();
+  const critique = page.getByRole("region", { name: "畫面分析" });
+  await expect(critique).toBeVisible();
+  await expect(critique).toContainText("畫面 · 已讀取");
+  await expect(critique).toContainText("UNKNOWN");
+  await expect(
+    critique.getByRole("button", { name: "依這個改" }).first(),
+  ).toBeVisible();
+  await expect(critique).not.toContainText("toolCallId");
+  await expect(critique).not.toContainText("已搜尋整個 Instagram");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: join(output, "chat-critique-mobile.png") });
+  await audit("chat-critique");
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("button", { name: "任務與成果" }).click();
   await expect(
     page.getByRole("region", { name: "設計成果預覽" }),
