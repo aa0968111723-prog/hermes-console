@@ -22,6 +22,9 @@ export const DESIGN_WITHOUT_PREVIEW =
 /** Finish copy when a research/campus task has no https sources. Never treat as found. */
 export const RESEARCH_WITHOUT_SOURCES =
   "還沒找到可核對的來源。沒有假裝已經搜到資料。";
+/** Finish copy when an image-analysis task ran without verified vision. Never treat as seen. */
+export const IMAGE_WITHOUT_VISION =
+  "還沒驗證看圖。只根據你的文字，沒有假裝已分析畫面。";
 export interface Usage {
   model: string | null;
   inputTokens: number | null;

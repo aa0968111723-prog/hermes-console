@@ -4,6 +4,7 @@ import {
   Conversation,
   DESIGN_WITHOUT_PREVIEW,
   EMPTY_USAGE,
+  IMAGE_WITHOUT_VISION,
   RESEARCH_WITHOUT_SOURCES,
   Task,
   TaskEvent,
@@ -32,6 +33,7 @@ import {
   windowConversationHistory,
 } from "./context/history";
 import { classifyIntent, isFastTier } from "./orchestrator/intent";
+import { wantsNewVisual } from "./orchestrator/goal";
 import {
   composeTaskInstructions,
   dropOptionalPacks,
@@ -174,7 +176,7 @@ function failedToolEvents(task: Task) {
   });
 }
 
-export { DESIGN_WITHOUT_PREVIEW, RESEARCH_WITHOUT_SOURCES };
+export { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES };
 
 export function isGroundedSource(value: string): boolean {
   try {
@@ -222,15 +224,35 @@ export function taskHasVisualArtifact(owner: string, task: Task) {
   });
 }
 
+function honestyMark(notice: string): string {
+  if (notice.includes("假裝設計")) return "沒有假裝設計完成";
+  if (notice.includes("假裝已經搜到")) return "沒有假裝已經搜到資料";
+  if (notice.includes("假裝已分析畫面") || notice.includes("假裝已看圖"))
+    return "沒有假裝已分析畫面";
+  return notice;
+}
+
 function honestyNotices(owner: string, task: Task, state: Task["state"]) {
   if (state !== "completed") return [] as string[];
   const notices: string[] = [];
+  const visionOff = process.env.HERMES_IMAGE_INPUT !== "true";
+  if (task.goal?.requiresImageAnalysis && visionOff)
+    notices.push(IMAGE_WITHOUT_VISION);
   if (
     (task.goal?.requiresResearch || task.goal?.requiresTamkang) &&
     !taskHasGroundedSources(task)
   )
     notices.push(RESEARCH_WITHOUT_SOURCES);
-  if (task.goal?.requiresDesign && !taskHasVisualArtifact(owner, task))
+  const askedForNewVisual =
+    wantsNewVisual(task.input) ||
+    wantsNewVisual(task.goal?.goal || "") ||
+    !!task.focus?.copyId ||
+    !!task.focus?.workflowId;
+  if (
+    task.goal?.requiresDesign &&
+    askedForNewVisual &&
+    !taskHasVisualArtifact(owner, task)
+  )
     notices.push(DESIGN_WITHOUT_PREVIEW);
   return notices;
 }
@@ -257,9 +279,7 @@ function finish(
     );
   const notices = honestyNotices(owner, task, state);
   for (const notice of notices) {
-    const mark = notice.includes("假裝設計")
-      ? "沒有假裝設計完成"
-      : "沒有假裝已經搜到資料";
+    const mark = honestyMark(notice);
     if (!task.events.some((item) => item.summary.includes(mark)))
       event(task, notice, "fallback");
   }

@@ -1,5 +1,6 @@
 import {
   DESIGN_WITHOUT_PREVIEW,
+  IMAGE_WITHOUT_VISION,
   RESEARCH_WITHOUT_SOURCES,
   type Task,
   type TaskEvent,
@@ -7,6 +8,7 @@ import {
 
 export const SPEC_ONLY_DESIGN_LABEL = "規格已保留";
 export const RESEARCH_WITHOUT_SOURCES_LABEL = "還沒找到來源";
+export const IMAGE_WITHOUT_VISION_LABEL = "還沒看圖";
 
 export function taskKeptSpecOnly(task?: Task | null): boolean {
   if (!task || task.state !== "completed") return false;
@@ -28,7 +30,18 @@ export function taskMissingSources(task?: Task | null): boolean {
   );
 }
 
+export function taskUnverifiedVision(task?: Task | null): boolean {
+  if (!task || task.state !== "completed") return false;
+  return task.events.some(
+    (event) =>
+      typeof event.summary === "string" &&
+      (event.summary === IMAGE_WITHOUT_VISION ||
+        event.summary.includes("沒有假裝已分析畫面")),
+  );
+}
+
 export function studentHonestyLabel(task?: Task | null): string | null {
+  if (taskUnverifiedVision(task)) return IMAGE_WITHOUT_VISION_LABEL;
   if (taskMissingSources(task)) return RESEARCH_WITHOUT_SOURCES_LABEL;
   if (taskKeptSpecOnly(task)) return SPEC_ONLY_DESIGN_LABEL;
   return null;
@@ -220,15 +233,18 @@ function applyEventProgress(task: Task, phases: ProgressStep[]) {
   );
   const specOnly = taskKeptSpecOnly(task);
   const missingSources = taskMissingSources(task);
+  const unverifiedVision = taskUnverifiedVision(task);
   phases.forEach((phase, index) => {
     if (finished) {
-      if (specOnly || missingSources) {
+      if (specOnly || missingSources || unverifiedVision) {
         const creativeGap =
           specOnly && (phase.label === "創作" || phase.label === "完成");
         const researchGap =
           missingSources &&
           (phase.label === "研究" || phase.label === "靈感");
-        phase.state = creativeGap || researchGap ? "uncertain" : "completed";
+        const imageGap = unverifiedVision && phase.label === "看圖";
+        phase.state =
+          creativeGap || researchGap || imageGap ? "uncertain" : "completed";
         phase.active = false;
         return;
       }

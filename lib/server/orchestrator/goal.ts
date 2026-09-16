@@ -5,6 +5,10 @@ const TAMKANG = /淡江|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
 const DESIGN =
   /海報|網宣|Canva|canva|視覺|設計|稿|文宣|宣傳|做一張|視覺層級|構圖|配色/;
+
+export function wantsNewVisual(text: string): boolean {
+  return DESIGN.test(text.trim());
+}
 const ANALYZE =
   /這張|這圖|這份海報|分析這|哪裡可以改|哪裡要改|構圖|配色|視覺層級/;
 const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會/;
