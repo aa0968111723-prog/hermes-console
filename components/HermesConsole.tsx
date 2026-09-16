@@ -1744,7 +1744,7 @@ export default function HermesConsole() {
             onScroll={(e) => rememberPageScroll(e.currentTarget)}
           >
             <div className="page-heading-row">
-              <h1>連線</h1>
+              <h1 className="sr-only">Hermes</h1>
               <div className="page-heading-actions">
                 <VisualStatus health={health} offline={offline} />
               </div>

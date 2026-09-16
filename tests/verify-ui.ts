@@ -249,7 +249,7 @@ try {
   await dock.getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "連線", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByRole("region", { name: "Hermes Runtime 狀態" }),
   ).toBeVisible();

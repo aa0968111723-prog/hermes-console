@@ -168,7 +168,8 @@ try {
     path: join(output, "chat-make-poster-mobile.png"),
   });
   await page.getByRole("button", { name: "Agent", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "連線", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "連線", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Hermes Runtime 狀態" })).toBeVisible();
   await expect(page.locator(".runtime-human-summary")).toContainText("Hermes 未驗證");
   await expect(page.locator(".runtime-human-summary")).toContainText("記憶 未設定");
   await expect(page.locator(".runtime-human-summary")).toContainText("工具 未設定");
