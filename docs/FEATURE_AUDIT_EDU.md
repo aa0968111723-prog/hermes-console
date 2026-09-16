@@ -10,7 +10,7 @@
 
 | 表面 | 狀態 | 說明 |
 | --- | --- | --- |
-| `/` Hermes 控制台 | **live** | 現有聊天、專案、靈感、Agent、龜龜助手。畫面與 `main` 相同，沒有模式開關。開啟 `/` 即進入免登入單一工作區，不經 InvitationGate。 |
+| `/` Hermes 控制台 | **live** | 現有聊天、專案、靈感、Agent、龜龜助手。公開部署走 AuthGate（Google／淡江 SSO／Email），通過 session 與 membership 後才載入工作區。InvitationGate 仍 dormant，不是產品登入。`CONSOLE_ALLOW_LOCAL_ACCESS=true` 僅 loopback 測試可略過登入閘。 |
 | `/create` SillyWorld（水光火森） | **REGRESSED on tip／prod** | `c250bdb`／`fcc8895`（9/4）曾在 tip 與 https://344.zeabur.app/create。之後合併把檔案沖掉；`main` tip `21a590f` 與正式站現為 **HTTP 404**。沒有「刪除 SillyWorld」的提交。依產品回饋「不要用 UI，現在的就好」，**本 PR 不恢復該舞台**。 |
 | 文件標題「倢的」vs h1「傻的」 | 屬已流失的 `/create` 待辦 | 不在本 PR 範圍。 |
 | 窄螢幕「專案」與森林球重疊 | 屬已流失的 `/create` 待辦 | 不在本 PR 範圍。 |
@@ -19,7 +19,7 @@
 
 | 路徑 | 評等 | 教心所用途 |
 | --- | --- | --- |
-| `/` | live | 免登入進入現有創作控制台。研究／行政不由此切換。 |
+| `/` | live | AuthGate 後進入現有創作控制台。研究／行政不由此切換。InvitationGate 不得擋工作區。 |
 | `/create` | **REGRESSED（tip／prod 404）** | 本 PR 不恢復。 |
 | 其他頁面路由 | missing | 沒有獨立研究案、IRB、參與者或所務後台頁。InvitationGate 元件仍在倉庫，但未掛在 `/`，不得擋工作區。 |
 
@@ -27,7 +27,7 @@
 
 | API | 評等 | 說明 |
 | --- | --- | --- |
-| `GET/POST /api/workspace` | live | 對話、專案、素材清單；固定 owner `workspace`。不要求成員 session。 |
+| `GET/POST /api/workspace` | live | 對話、專案、素材清單；固定 owner `workspace`。公開部署要求登入 session 與 membership；loopback 測試可略過。 |
 | `GET/POST/PUT /api/conversations` | live | 建立／讀取／匯入舊對話。可選 `assistantMode`: `creative` \| `research` \| `admin`。省略則 `creative`。`research` 會附上尚未執行的 `researchBundle`。 |
 | `GET/POST/PATCH /api/tasks` | live | 真實 Hermes 任務。`POST /api/chat` 同一條。可選 `mode`；省略則用對話已存模式，再否則創作提示。`mode=research` 時任務與對話會帶 `researchBundle`（`executed: false`）。 |
 | `GET/POST /api/materials` | live | 圖／文字／PDF 附件，綁專案。 |
@@ -37,20 +37,21 @@
 | `POST /api/settings/tamkang` | live | `test` 探測 initialize／tools-list；`login` 僅在已設定 TKU 來源暴露已知交換端點時代為換權杖。 |
 | `GET/POST/DELETE /api/memory` | live | 共用記憶 CRUD。有 `DATABASE_URL` 時寫入 Console Postgres `console_records`（kind=`shared_memory`）；否則 SQLite 於 `CONSOLE_DATA_DIR`。Hermes 經 Workspace MCP 與任務指示讀同一庫。遠端 memory 同步未驗證，`synced` 為 false。 |
 | `POST /api/settings/zeabur` | live | Zeabur GraphQL：測試、列出專案、變數鍵名、寫入變數、推送 Console 金鑰、重新部署／重啟。公開站可改部署。 |
-| `GET/POST/DELETE /api/auth` | **dormant** | 邀請模組仍在，**不是**產品入口。沒有邀請 session 時 GET 為 401；POST／DELETE 仍是邀請連結／登出，**不是**「GET 回 `no-login`、登入／登出 410」。工作區 API 不依賴此路徑。 |
+| `GET /api/auth/session` | live | 回傳是否要求登入、目前 user／membership、各 provider 是否已設定。未設定的淡江／Google 不會顯示成功。 |
+| `GET/POST /api/auth` | **dormant** | 邀請 magic link 模組仍在，**不是**產品入口。沒有邀請 session 時 GET 為 401；Email 登入請走 `/api/auth/email`。 |
 
 ## 驗證與部署依賴
 
 | 項目 | 評等 | 說明 |
 | --- | --- | --- |
-| Console 帳號登入 | 刻意沒有 | 開啟網址即可用現有 UI。沒有研究者帳號。 |
-| `CONSOLE_GATEWAY_SECRET` | live（**可選**部署閘道） | 瀏覽器拿不到。只有設定了 secret，或 `CONSOLE_REQUIRE_GATEWAY=true` 時才驗閘道。**未設定時公開 API 不會一律 503**；此時仍是免登入單一 `workspace` owner，寫入仍驗 Origin、限流。 |
+| Console 帳號登入 | live（Partial 若未設 provider） | 正式環境需要 Google 或 Email 寄信。淡江 SSO 無 metadata 時顯示尚未完成設定。 |
+| `CONSOLE_GATEWAY_SECRET` | live（**可選**部署閘道） | 瀏覽器拿不到。只有設定了 secret，或 `CONSOLE_REQUIRE_GATEWAY=true` 時才驗閘道。 |
 | `CONSOLE_ALLOW_LOCAL_ACCESS` | live | 僅本機 loopback，且只在閘道檢查路徑上放行。 |
 | `CONSOLE_ORIGIN` | live | 變更請求驗 Origin。正式環境未設定必須 fail closed。 |
 | `HERMES_API_URL` / `HERMES_API_KEY` | live（環境或連線設定 UI） | 未設定則聊天不能送出。UI 寫入優先於環境變數。 |
 | `TKU_MCP_URL` / `TKU_MCP_TOKEN` | live 路徑／正式站常未設定 | 可從設定頁保存或交換權杖；未驗證前狀態為 Unconfigured／待驗證，不假裝 Connected。 |
 | Canva / IG / Pinterest / Vault | stub／未設定 | 創作管線用；教心所研究非必要。 |
-| 多使用者／研究者帳號 | **missing** | 所有紀錄寫入同一 `workspace`。沒有租戶隔離。 |
+| 多使用者／研究者帳號 | **Partial** | 有 User／Identity／Membership。未獲 membership 的登入者不能進工作區。紀錄仍寫入同一 `workspace`。 |
 
 ## AI／聊天
 

@@ -5,6 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
+import { ApiError, errorCategory } from "./errors";
 import {
   createSession,
   get,
@@ -13,6 +14,7 @@ import {
   transaction,
   StoreUnavailableError,
 } from "./store";
+import { isAuthEnforced, readSessionUser, requireMembership } from "./auth/session";
 
 export const WORKSPACE_OWNER = "workspace";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -119,15 +121,7 @@ export function assertSafeServiceUrl(
   return url;
 }
 
-export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+export { ApiError };
 export const hash = (value: string) =>
   createHash("sha256").update(value).digest("hex");
 let extraSecretValues: () => string[] = () => [];
@@ -198,6 +192,14 @@ export function authenticate(request: Request, mutation = false): string {
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
   if (mutation) checkOrigin(request);
+  if (isAuthEnforced()) {
+    const user = readSessionUser(request);
+    if (!user)
+      throw new ApiError(401, "sign_in_required", "請先登入後再使用工作區。");
+    requireMembership(user.id);
+    limited("api:" + user.id, 240, 60_000);
+    return WORKSPACE_OWNER;
+  }
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;
 }
@@ -401,7 +403,13 @@ export function route(fn: (req: Request) => Promise<Response>) {
     } catch (error) {
       if (error instanceof ApiError)
         return respond(
-          { error: { code: error.code, message: error.message } },
+          {
+            error: {
+              code: error.code,
+              category: errorCategory(error.code),
+              message: error.message,
+            },
+          },
           error.status,
           error.status === 429 ? { "Retry-After": "60" } : {},
         );
@@ -410,6 +418,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
           {
             error: {
               code: "invalid_input",
+              category: "INVALID_INPUT",
               message: "輸入格式不正確，請確認欄位與長度。",
             },
           },

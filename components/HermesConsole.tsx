@@ -48,6 +48,7 @@ import AgentOrbit from "./visual/AgentOrbit";
 import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
+import AccountMenu from "./auth/AccountMenu";
 import SpatialPanel from "./visual/SpatialPanel";
 import { useSpatialMode } from "./visual/useSpatialMode";
 import ArtifactDeck from "./visual/ArtifactDeck";
@@ -119,6 +120,7 @@ const taskLabels: Record<string, string> = {
   queued: "準備提交",
   running: "執行中",
   waiting_user: "等待確認",
+  waiting_authorization: "等待授權",
   stopping: "停止確認中",
   completed: "已完成",
   failed: "失敗",
@@ -134,7 +136,7 @@ const connectionLabels: Record<string, string> = {
   failed: "失敗",
 };
 const isActive = (task: Task) =>
-  ["queued", "running", "waiting_user", "stopping"].includes(task.state);
+  ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
 const time = (value: string) =>
   new Date(value).toLocaleString("zh-TW", {
     month: "numeric",
@@ -431,16 +433,16 @@ export default function HermesConsole() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
     };
+    // Only follow visualViewport resize. The scroll event is iOS chrome
+    // panning and must not rewrite --app-height (it steals nested touch scroll).
     update();
     viewport?.addEventListener("resize", schedule);
-    viewport?.addEventListener("scroll", schedule);
     window.addEventListener("resize", schedule);
     document.addEventListener("focusin", schedule);
     document.addEventListener("focusout", schedule);
     return () => {
       cancelAnimationFrame(frame);
       viewport?.removeEventListener("resize", schedule);
-      viewport?.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       document.removeEventListener("focusin", schedule);
       document.removeEventListener("focusout", schedule);
@@ -1037,6 +1039,7 @@ export default function HermesConsole() {
           >
             <Settings size={19} />
           </button>
+          <AccountMenu />
         </header>
         {(error || notice || offline) && (
           <div

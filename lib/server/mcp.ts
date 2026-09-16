@@ -785,7 +785,7 @@ async function finishToolCall(
         const task = get<Task>("task", owner, String(args.taskId));
         if (task == null)
           throw new ApiError(404, "task_not_found", "工具對應任務不存在。");
-        if (!["queued", "running", "waiting_user"].includes(task.state))
+        if (!["queued", "running", "waiting_user", "waiting_authorization"].includes(task.state))
           throw new ApiError(
             409,
             "task_not_active",

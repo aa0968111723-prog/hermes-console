@@ -9,6 +9,7 @@ export type TaskState =
   | "queued"
   | "running"
   | "waiting_user"
+  | "waiting_authorization"
   | "stopping"
   | "completed"
   | "failed"
@@ -288,4 +289,23 @@ export type RecruitmentFunnelRead = {
     formReplies: "omitted";
     attendanceRows: "omitted";
   };
+};
+
+export type PublicAuthProviderId = "google" | "tamkang" | "email";
+export type PublicProviderStatus = {
+  id: PublicAuthProviderId;
+  configured: boolean;
+  message: string | null;
+};
+export type PublicSession = {
+  required: boolean;
+  user: {
+    id: string;
+    displayName: string;
+    email: string | null;
+    avatarUrl: string | null;
+    identities: PublicAuthProviderId[];
+  } | null;
+  membership: { role: "owner" | "admin" | "member" } | null;
+  providers: PublicProviderStatus[];
 };

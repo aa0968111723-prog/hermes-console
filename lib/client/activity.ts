@@ -84,6 +84,7 @@ export const taskStateLabel: Record<string, string> = {
   uncertain: "結果待確認",
   cancelled: "已取消",
   waiting_user: "等待確認",
+  waiting_authorization: "等待授權",
 };
 export function safeSource(value: string): string | null {
   try {

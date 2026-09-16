@@ -1,12 +1,12 @@
 "use client";
 
 import ConsoleErrorBoundary from "@/components/ConsoleErrorBoundary";
-import HermesConsole from "@/components/HermesConsole";
+import AuthGate from "@/components/auth/AuthGate";
 
 export default function Page() {
   return (
     <ConsoleErrorBoundary>
-      <HermesConsole />
+      <AuthGate />
     </ConsoleErrorBoundary>
   );
 }
