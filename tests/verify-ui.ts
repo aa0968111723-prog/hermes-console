@@ -5,7 +5,7 @@ import { verifyMobileSpatial } from "./mobile-spatial";
 import { verifyMobileEngines } from "./mobile-engines";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { bootstrapOwner } from "./browser-auth";
@@ -458,10 +458,7 @@ try {
   await page.locator('#composer input[type="file"]').setInputFiles({
     name: "poster.png",
     mimeType: "image/png",
-    buffer: Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-      "base64",
-    ),
+    buffer: await readFile("public/mascot/turtle.png"),
   });
   await expect(
     page.getByRole("button", { name: "預覽附件：poster.png" }),
@@ -472,6 +469,40 @@ try {
     "圖片已保存。還沒驗證看圖，送出後只會根據你的文字，不會假裝已看過圖片。",
   );
   await expect(imageNotice).not.toContainText(/像素|部署端|金鑰|環境變數/);
+  const composerBox = await page.locator(".composer").boundingBox();
+  const fileChip = await page
+    .getByRole("button", { name: "預覽附件：draft-a.txt" })
+    .boundingBox();
+  const imageChip = await page
+    .getByRole("button", { name: "預覽附件：poster.png" })
+    .boundingBox();
+  const imageRemove = await page
+    .locator(".upload-chip")
+    .filter({
+      has: page.getByRole("button", { name: "預覽附件：poster.png" }),
+    })
+    .getByRole("button", { name: "移除附件" })
+    .boundingBox();
+  assert.ok(composerBox && fileChip && imageChip && imageRemove);
+  for (const box of [fileChip, imageChip, imageRemove]) {
+    assert.ok(
+      box.x >= composerBox.x - 1 &&
+        box.y >= composerBox.y - 1 &&
+        box.x + box.width <= composerBox.x + composerBox.width + 1 &&
+        box.y + box.height <= composerBox.y + composerBox.height + 1,
+      "attachment chip clipped by composer: " + JSON.stringify({ box, composerBox }),
+    );
+  }
+  assert.ok(
+    imageRemove.width >= 44 && imageRemove.height >= 44,
+    "image remove target smaller than 44px: " + JSON.stringify(imageRemove),
+  );
+  assert.ok(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+    "horizontal overflow after two composer attachments at 390",
+  );
   const sendWithImage = await page
     .getByRole("button", { name: "送出訊息", exact: true })
     .boundingBox();
