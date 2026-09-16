@@ -3,6 +3,7 @@ import { z } from "zod";
 import { projectKey } from "../creative";
 import { ApiError, redact } from "./security";
 import { get, list, put, remove, storeBackend, probeStore } from "./store";
+import { researchDigest } from "./research-index";
 import type { Health } from "../contracts";
 
 export const memoryKinds = {
@@ -33,6 +34,10 @@ export const memoryInput = z
     createdBy: z.string().trim().min(1).max(80).optional(),
     importance: z.number().min(0).max(1).nullable().optional(),
     confidence: z.number().min(0).max(1).nullable().optional(),
+    layer: z
+      .enum(["conversation", "project", "workspace", "preference", "runtime"])
+      .optional(),
+    conversationId: z.string().trim().min(1).max(80).optional(),
   })
   .strict();
 
@@ -56,6 +61,8 @@ export type SharedMemory = {
   lastUsedAt: string | null;
   /** 0–1 confidence in the content, or null if unset. */
   confidence: number | null;
+  layer: "conversation" | "project" | "workspace" | "preference" | "runtime";
+  conversationId: string | null;
 };
 
 const KIND = "shared_memory";
@@ -91,6 +98,14 @@ function normalizeMemory(raw: SharedMemory): SharedMemory {
       typeof raw.confidence === "number" && Number.isFinite(raw.confidence)
         ? Math.min(1, Math.max(0, raw.confidence))
         : null,
+    layer:
+      raw.layer ||
+      (raw.kind === "preference"
+        ? "preference"
+        : raw.scope === "workspace"
+          ? "workspace"
+          : "project"),
+    conversationId: raw.conversationId || null,
   };
 }
 
@@ -153,6 +168,16 @@ export function saveMemory(
         input.confidence !== undefined
           ? input.confidence
           : (previous?.confidence ?? null),
+      layer:
+        input.layer ||
+        previous?.layer ||
+        (input.kind === "preference"
+          ? "preference"
+          : input.scope === "workspace"
+            ? "workspace"
+            : "project"),
+      conversationId:
+        input.conversationId || previous?.conversationId || null,
     } satisfies SharedMemory),
   );
 }
@@ -256,7 +281,8 @@ export function memoryDigest(owner: string, projectId?: string) {
     "\n工作區共用記憶（" +
     memoryStoreLabel() +
     "，經 Workspace MCP 與任務指示共用；不是 Hermes 遠端記憶鏡像）：\n" +
-    lines.join("\n")
+    lines.join("\n") +
+    researchDigest(6)
   );
 }
 
