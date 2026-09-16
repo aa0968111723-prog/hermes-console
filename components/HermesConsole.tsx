@@ -94,6 +94,10 @@ import {
   writePreference,
   removeLegacyPreference,
 } from "@/lib/client/storage";
+import {
+  CONVERSATION_VISUAL_SELECTOR,
+  conversationVisualInView,
+} from "@/lib/client/conversation-visual";
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -593,12 +597,7 @@ export default function HermesConsole() {
     const el = scroll.current;
     if (!el) return;
     const frame = requestAnimationFrame(() => {
-      if (
-        el.querySelector(
-          ".inspiration-result, .image-review, .direction-brief",
-        )
-      )
-        return;
+      if (el.querySelector(CONVERSATION_VISUAL_SELECTOR)) return;
       el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);
@@ -1249,19 +1248,19 @@ export default function HermesConsole() {
                 const el = e.currentTarget;
                 nearBottom.current =
                   el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-                const visual = el.querySelector<HTMLElement>(
-                  ".inspiration-result, .image-review, .direction-brief",
-                );
-                if (visual) {
-                  const root = el.getBoundingClientRect();
-                  const box = visual.getBoundingClientRect();
-                  if (
-                    box.top < root.bottom - 24 &&
-                    box.bottom > root.top + 24
-                  ) {
-                    setJump(false);
-                    return;
-                  }
+                const visuals = [
+                  ...el.querySelectorAll<HTMLElement>(
+                    CONVERSATION_VISUAL_SELECTOR,
+                  ),
+                ];
+                if (
+                  conversationVisualInView(
+                    el.getBoundingClientRect(),
+                    visuals.map((node) => node.getBoundingClientRect()),
+                  )
+                ) {
+                  setJump(false);
+                  return;
                 }
                 if (
                   pinnedScrollTop.current != null &&

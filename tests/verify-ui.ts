@@ -341,6 +341,9 @@ try {
   await expect(
     chatBrief.locator(".direction-format-frame").first(),
   ).toBeInViewport();
+  await expect(
+    page.getByRole("button", { name: "回到最新訊息" }),
+  ).toHaveCount(0);
   await page.screenshot({
     path: join(output, "chat-direction-brief-mobile.png"),
   });
@@ -383,6 +386,9 @@ try {
   await expect(
     page.locator(".conversation-scroll").getByRole("region", { name: "已選方向規格" }),
   ).not.toContainText("V2");
+  await expect(
+    page.getByRole("button", { name: "回到最新訊息" }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toHaveValue("");
