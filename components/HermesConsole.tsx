@@ -1177,12 +1177,8 @@ export default function HermesConsole() {
             {!data.materials.some((m) => m.projectId === project) && (
               <div className="empty-state">
                 <Images size={30} />
-                <h2>靈感板還是一張白紙</h2>
-                <p>
-                  收藏 Instagram、Pinterest 或其他 HTTPS 來源，
-                  <br />
-                  也可以從對話輸入區上傳圖片。
-                </p>
+                <h2>還沒有素材</h2>
+                <p>上傳圖片，或從對話加入參考。</p>
               </div>
             )}
           </section>

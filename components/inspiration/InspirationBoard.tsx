@@ -18,6 +18,14 @@ const KIND_LABEL: Record<VisualPattern["kind"], string> = {
   audience: "受眾",
 };
 
+function hostLabel(url: string, fallback: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return fallback;
+  }
+}
+
 export default function InspirationBoard({
   items,
   notice,
@@ -46,63 +54,9 @@ export default function InspirationBoard({
   return (
     <section className="inspiration-board">
       <div className="inspiration-heading">
-        <div>
-          <p className="eyebrow">參考板</p>
-          <h1>靈感</h1>
-        </div>
+        <h1>靈感</h1>
         <Sparkles size={25} aria-hidden="true" />
       </div>
-
-      <RecruitmentTruthNotice />
-      <RecruitmentFunnelFold />
-
-      <article className="language-problem">
-        <p className="eyebrow">目前最大問題</p>
-        <h2>{language.biggestProblem}</h2>
-        <p className="muted">
-          已讀 {language.imageReadCount} 張 tku_zc 封面。未連接 Instagram。限動、Reels 動態與完整格狀仍是 UNKNOWN。
-        </p>
-        <ol>
-          {language.improvements.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
-      </article>
-
-      <article className="handoff-card live-watch">
-        <p className="eyebrow">現場觀察 · {language.live.today}</p>
-        <p>
-          Feed EVIDENCE：{language.live.feed.hook}
-          {language.live.feed.stale ? "（已過期）" : ""}
-        </p>
-        <p>
-          限動 {language.live.story.provenance}：{language.live.story.note}
-        </p>
-        <p>{language.live.planVsLive}</p>
-      </article>
-
-      <article className="handoff-card next-slot">
-        <p className="eyebrow">下一步 · {language.nextSlot.format}</p>
-        <strong>
-          {language.nextSlot.title} {language.nextSlot.date}
-        </strong>
-        <p>
-          {language.nextSlot.location.value}
-          <span className="provenance-pill">{language.nextSlot.location.provenance}</span>
-        </p>
-        <p>Visual：{language.nextSlot.visualAgentInput}</p>
-        <p>文案：{language.nextSlot.copywritingAgentInput}</p>
-        {language.nextSlot.beats && (
-          <ol className="story-beats">
-            {language.nextSlot.beats.map((beat) => (
-              <li key={beat.frame}>
-                {beat.frame}. {beat.onImage}
-                <small> ≤{beat.maxChars}字</small>
-              </li>
-            ))}
-          </ol>
-        )}
-      </article>
 
       <h2 className="language-section">值得學</h2>
       <ul className="pattern-grid">
@@ -111,64 +65,26 @@ export default function InspirationBoard({
         ))}
       </ul>
 
-      <h2 className="language-section">不適合禪學社</h2>
+      <h2 className="language-section">先避開</h2>
       <ul className="pattern-grid">
         {language.avoid.map((pattern) => (
           <PatternCard key={pattern.id} pattern={pattern} avoid />
         ))}
       </ul>
 
-      <div className="handoff-grid">
-        <article className="handoff-card">
-          <p className="eyebrow">給 Visual Agent</p>
-          <p>{language.visualAgent.brief}</p>
-          <p>
-            <strong>做</strong> {language.visualAgent.do.join("、")}
-          </p>
-          <p>
-            <strong>不做</strong> {language.visualAgent.dont.join("、")}
-          </p>
-        </article>
-        <article className="handoff-card">
-          <p className="eyebrow">給 Copywriting Agent</p>
-          <p>{language.copywritingAgent.brief}</p>
-          <p>
-            <strong>做</strong> {language.copywritingAgent.do.join("、")}
-          </p>
-          <p>
-            <strong>不做</strong> {language.copywritingAgent.dont.join("、")}
-          </p>
-        </article>
-      </div>
-
-      <button type="button" disabled={busy} onClick={sync} style={{ minHeight: 44 }}>
+      <button type="button" disabled={busy} onClick={sync}>
         {busy ? "讀取中…" : "匯入已設定來源"}
       </button>
-      <p className="muted">只讀取已設定來源；不會自動排程或更改權限。</p>
       {error && <p role="alert">{error}</p>}
       {syncStatus && (
-        <div role="status">
-          <p>
-            最近匯入：{new Date(syncStatus.finishedAt).toLocaleString("zh-TW")}；
-            讀取 {syncStatus.read}、新增 {syncStatus.created}、略過重複 {syncStatus.skipped}、
-            失敗 {syncStatus.failed}。
-          </p>
-          {syncStatus.errors.length > 0 && (
-            <details>
-              <summary>查看失敗原因</summary>
-              <ul>
-                {syncStatus.errors.map((message, index) => (
-                  <li key={index}>{message}</li>
-                ))}
-              </ul>
-              <p>確認來源可讀後可重試；已收藏項目不會重複建立或覆蓋。</p>
-            </details>
-          )}
-        </div>
+        <p role="status">
+          最近匯入 {new Date(syncStatus.finishedAt).toLocaleString("zh-TW")} ·
+          新增 {syncStatus.created}、失敗 {syncStatus.failed}
+        </p>
       )}
-      {notice && <p className="muted">{notice}</p>}
+      {notice && <p className="quiet">{notice}</p>}
       {!items.length && (
-        <p className="quiet">貼上 IG／Pinterest／網址，或直接在對話說「幫我找靈感」。</p>
+        <p className="quiet">在對話說「幫我找靈感」，或貼上可公開的連結。</p>
       )}
       <ul>
         {items.map((item) => (
@@ -183,7 +99,7 @@ export default function InspirationBoard({
               </span>
               <span>
                 <strong>{item.platform}</strong>
-                <small>{item.sourceUrl}</small>
+                <small>{hostLabel(item.sourceUrl, item.platform)}</small>
               </span>
               <ExternalLink size={15} />
             </a>
@@ -197,6 +113,82 @@ export default function InspirationBoard({
           </li>
         ))}
       </ul>
+
+      <details className="inspiration-research">
+        <summary>進階 · 研究</summary>
+        <RecruitmentTruthNotice />
+        <RecruitmentFunnelFold />
+        <article className="language-problem">
+          <p className="eyebrow">目前最大問題</p>
+          <h2>{language.biggestProblem}</h2>
+          <p className="muted">
+            已讀 {language.imageReadCount} 張封面。未連接 Instagram。限動、Reels
+            與完整格狀仍是 UNKNOWN。
+          </p>
+          <ol>
+            {language.improvements.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
+        </article>
+        <article className="handoff-card live-watch">
+          <p className="eyebrow">現場觀察 · {language.live.today}</p>
+          <p>
+            Feed EVIDENCE：{language.live.feed.hook}
+            {language.live.feed.stale ? "（已過期）" : ""}
+          </p>
+          <p>
+            限動 {language.live.story.provenance}：{language.live.story.note}
+          </p>
+          <p>{language.live.planVsLive}</p>
+        </article>
+        <article className="handoff-card next-slot">
+          <p className="eyebrow">下一步 · {language.nextSlot.format}</p>
+          <strong>
+            {language.nextSlot.title} {language.nextSlot.date}
+          </strong>
+          <p>
+            {language.nextSlot.location.value}
+            <span className="provenance-pill">
+              {language.nextSlot.location.provenance}
+            </span>
+          </p>
+          <p>Visual：{language.nextSlot.visualAgentInput}</p>
+          <p>文案：{language.nextSlot.copywritingAgentInput}</p>
+          {language.nextSlot.beats && (
+            <ol className="story-beats">
+              {language.nextSlot.beats.map((beat) => (
+                <li key={beat.frame}>
+                  {beat.frame}. {beat.onImage}
+                  <small> ≤{beat.maxChars}字</small>
+                </li>
+              ))}
+            </ol>
+          )}
+        </article>
+        <div className="handoff-grid">
+          <article className="handoff-card">
+            <p className="eyebrow">給 Visual Agent</p>
+            <p>{language.visualAgent.brief}</p>
+            <p>
+              <strong>做</strong> {language.visualAgent.do.join("、")}
+            </p>
+            <p>
+              <strong>不做</strong> {language.visualAgent.dont.join("、")}
+            </p>
+          </article>
+          <article className="handoff-card">
+            <p className="eyebrow">給 Copywriting Agent</p>
+            <p>{language.copywritingAgent.brief}</p>
+            <p>
+              <strong>做</strong> {language.copywritingAgent.do.join("、")}
+            </p>
+            <p>
+              <strong>不做</strong> {language.copywritingAgent.dont.join("、")}
+            </p>
+          </article>
+        </div>
+      </details>
     </section>
   );
 }
@@ -213,22 +205,20 @@ function PatternCard({
       <p className="pattern-meta">
         {avoid ? <Ban size={14} aria-hidden="true" /> : null}
         <span>{KIND_LABEL[pattern.kind]}</span>
-        <span>{pattern.evidence[0]?.provenance}</span>
       </p>
       <strong>{pattern.title}</strong>
       <p>{pattern.summary}</p>
-      <p className="muted">{pattern.why}</p>
       <details>
-        <summary>證據與交接</summary>
+        <summary>為什麼</summary>
+        <p className="muted">{pattern.why}</p>
         <ul>
           {pattern.evidence.map((item) => (
             <li key={item.source + item.note}>
-              <span className="provenance-pill">{item.provenance}</span> {item.note}
+              <span className="provenance-pill">{item.provenance}</span>{" "}
+              {item.note}
             </li>
           ))}
         </ul>
-        <p>Visual：{pattern.visualAgentInput}</p>
-        <p>文案：{pattern.copywritingAgentInput}</p>
       </details>
     </li>
   );

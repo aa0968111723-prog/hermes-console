@@ -335,6 +335,10 @@ try {
   await inspirationScroll.evaluate((el) => el.scrollTo(0, el.scrollHeight));
   await inspirationScroll.evaluate((el) => el.scrollTo(0, 0));
   await expect(page.getByRole("heading", { name: "Drive 知識" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "值得學" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "先避開" })).toBeVisible();
+  await expect(page.getByText("Feed EVIDENCE")).toBeHidden();
+  await expect(page.getByText("給 Visual Agent")).toBeHidden();
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(
