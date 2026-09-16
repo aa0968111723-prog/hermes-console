@@ -518,9 +518,11 @@ export default function SettingsPanel({
           </div>
         )}
       </div>
-      <footer className="settings-footer">
-        <p className="muted">單一工作區 · 秘密只存在後端</p>
-      </footer>
+      {settingsTab === "進階" && (
+        <footer className="settings-footer">
+          <p className="muted">金鑰只存在伺服器。</p>
+        </footer>
+      )}
     </>
   );
 }
