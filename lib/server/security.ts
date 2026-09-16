@@ -249,8 +249,7 @@ export function readWorkspaceRole(request: Request): WorkspaceRole | null {
 
 export function isWorkspaceOperator(request: Request) {
   const role = readWorkspaceRole(request);
-  if (role) return role === "owner" || role === "admin";
-  return !isAuthEnforced();
+  return role === "owner" || role === "admin";
 }
 
 export function authenticate(
@@ -261,9 +260,9 @@ export function authenticate(
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
   if (mutation) checkOrigin(request);
+  const user = readSessionUser(request);
   const role = readWorkspaceRole(request);
   if (isAuthEnforced()) {
-    const user = readSessionUser(request);
     if (!user && !role)
       throw new ApiError(401, "sign_in_required", "請先登入後再使用工作區。");
     const membershipRole = user ? requireMembership(user.id).role : role;
@@ -275,7 +274,7 @@ export function authenticate(
       throw new ApiError(
         403,
         "permission_denied",
-        "這個操作需要工作區管理者權限。",
+        "這個操作需要工作區擁有者或管理員／管理者權限。",
       );
     limited("api:" + (user?.id || WORKSPACE_OWNER), 240, 60_000);
     return WORKSPACE_OWNER;
@@ -284,7 +283,7 @@ export function authenticate(
     throw new ApiError(
       403,
       "permission_denied",
-      "這個操作需要工作區管理者權限。",
+      "這個操作需要工作區擁有者或管理員／管理者權限。",
     );
   limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;

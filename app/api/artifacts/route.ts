@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
+import {
+  authenticate,
+  jsonBody,
+  readWorkspaceRole,
+  respond,
+  route,
+} from "@/lib/server/security";
+import { readSessionUser } from "@/lib/server/auth/session";
+import { ApiError } from "@/lib/server/errors";
 import {
   forkArtifact,
   listArtifacts,
@@ -9,7 +17,13 @@ import { projectKey } from "@/lib/creative";
 
 export const runtime = "nodejs";
 
+function requireWorkspaceSession(req: Request) {
+  if (readWorkspaceRole(req) || readSessionUser(req)) return;
+  throw new ApiError(401, "sign_in_required", "請先登入後再使用工作區。");
+}
+
 export const GET = route(async (req) => {
+  requireWorkspaceSession(req);
   const owner = authenticate(req);
   const projectId = new URL(req.url).searchParams.get("projectId") || undefined;
   if (projectId) projectKey.parse(projectId);
@@ -17,6 +31,7 @@ export const GET = route(async (req) => {
 });
 
 export const POST = route(async (req) => {
+  requireWorkspaceSession(req);
   const owner = authenticate(req, true);
   const input = z
     .object({
