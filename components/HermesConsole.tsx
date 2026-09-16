@@ -555,6 +555,19 @@ export default function HermesConsole() {
   async function send() {
     if (busy || blocked || !text.trim() || uploads.some((u) => !u.material))
       return;
+    const imageAttached = [
+      ...uploads.flatMap((u) => (u.material ? [u.material] : [])),
+      ...references.flatMap((id) => {
+        const item = data.materials.find((material) => material.id === id);
+        return item ? [item] : [];
+      }),
+    ].some((item) => item.kind === "image");
+    if (imageAttached && !data.imageInput) {
+      setError(
+        "圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。",
+      );
+      return;
+    }
     setBusy(true);
     setError("");
     nearBottom.current = true;
@@ -1367,6 +1380,7 @@ export default function HermesConsole() {
                     uploads={uploads}
                     references={references}
                     materials={data.materials}
+                    imageInput={data.imageInput}
                     disabled={busy}
                     onPreview={(material) => {
                       setPreview(material);
@@ -2072,6 +2086,12 @@ export default function HermesConsole() {
                           {health?.agent === "verified"
                             ? "已有成功任務"
                             : "未驗證"}
+                        </dd>
+                        <dt>讀圖</dt>
+                        <dd>
+                          {data.imageInput
+                            ? "部署已開啟（不是 live 像素驗證）"
+                            : "尚未驗證"}
                         </dd>
                         <dt>最後連線檢查</dt>
                         <dd>{health ? time(health.checkedAt) : "未知"}</dd>

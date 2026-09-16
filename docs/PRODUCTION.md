@@ -15,7 +15,8 @@
 | --- | --- |
 | `CONSOLE_ORIGIN` | 公開 HTTPS origin。寫入請求 Origin 驗證。啟動時必填。 |
 | `CONSOLE_DATA_DIR` | SQLite／uploads／vault.key |
-| `HERMES_API_URL`／`HERMES_API_KEY` | 未設時聊天顯示尚未連線，不假裝 Hermes 可用 |
+- `HERMES_API_URL`／`HERMES_API_KEY` | 未設時聊天顯示尚未連線，不假裝 Hermes 可用 |
+- `HERMES_IMAGE_INPUT=true` | 只有部署端確認 Hermes 真的收圖後才開。未開時附圖顯示「尚未驗證讀圖」，送出會拒絕，不假裝已分析。 |
 
 正式登入（AuthGate）至少擇一：
 

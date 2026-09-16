@@ -20,5 +20,6 @@ test("error taxonomy maps auth, tool, and unconfigured codes", () => {
   assert.equal(errorCategory("upstream_502"), "UPSTREAM_ERROR");
   assert.equal(errorCategory("empty_tool_result"), "UPSTREAM_ERROR");
   assert.equal(errorCategory("empty_output"), "UPSTREAM_ERROR");
+  assert.equal(errorCategory("images_unverified"), "TOOL_UNAVAILABLE");
   assert.equal(errorCategory("mystery_code"), "UNKNOWN");
 });

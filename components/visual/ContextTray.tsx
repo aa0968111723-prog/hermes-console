@@ -7,6 +7,7 @@ export default function ContextTray({
   uploads,
   references,
   materials,
+  imageInput,
   disabled,
   onPreview,
   onRetry,
@@ -16,6 +17,7 @@ export default function ContextTray({
   uploads: Upload[];
   references: string[];
   materials: Material[];
+  imageInput: boolean;
   disabled: boolean;
   onPreview: (material: Material) => void;
   onRetry: (upload: Upload) => void;
@@ -51,7 +53,9 @@ export default function ContextTray({
                 (upload.material ? (
                   <>
                     <Check size={12} />
-                    已保存
+                    {upload.material.kind === "image" && !imageInput
+                      ? "已保存 · 尚未驗證讀圖"
+                      : "已保存"}
                   </>
                 ) : (
                   "上傳 " + upload.progress + "%"
@@ -109,9 +113,11 @@ export default function ContextTray({
             <span>
               {material?.title || "素材已移除"}
               <small>
-                {material?.rights === "reference_only"
-                  ? "僅供參考"
-                  : "專案素材"}
+                {material?.kind === "image" && !imageInput
+                  ? "尚未驗證讀圖"
+                  : material?.rights === "reference_only"
+                    ? "僅供參考"
+                    : "專案素材"}
               </small>
             </span>
             <button

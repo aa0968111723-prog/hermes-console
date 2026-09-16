@@ -381,6 +381,7 @@ export default function RuntimeInspector({
               <span>Sessions {statusLabel(snapshot.sessionsSupport)}</span>
               <span>Runs {statusLabel(snapshot.runsSupport)}</span>
               <span>Memory {statusLabel(snapshot.memorySupport)}</span>
+              <span>讀圖 {statusLabel(snapshot.imageInputSupport)}</span>
             </div>
             <details>
               <summary>技能與 Toolsets</summary>
