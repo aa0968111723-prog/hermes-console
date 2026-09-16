@@ -562,7 +562,7 @@ export async function verifyVisualStates(
     await page.context().setOffline(true);
   await expect(page.locator(".turtle")).toHaveAttribute(
     "aria-label",
-    /連線待確認/,
+    /離線/,
   );
   await page.setViewportSize({ width: 390, height: 844 });
   // Wait until offline pill replaces prior failed state (avoid flake on 「失敗」).
