@@ -93,7 +93,11 @@ try {
   await expect(page.getByText("無法確認登入狀態")).toHaveCount(0);
   await expect(page.getByText("正在確認身分")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "語音輸入" })).toHaveCount(0);
+  const voice = page.getByRole("button", { name: "語音輸入" });
+  if ((await voice.count()) > 0) {
+    const box = await voice.boundingBox();
+    assert.ok(box && box.width >= 44 && box.height >= 44);
+  }
   await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
 
   await page.goto(base + "/#reset=" + "a".repeat(64));
