@@ -40,6 +40,7 @@
 ## Artifacts / Memory
 
 - [ ] 作品有 artifactId／revisionId；改「第二版」不另起無關作品
+- [ ] 專案上下文含名稱與最近作品版本（不含 preview JSON）
 - [ ] 專案卡片有縮圖；PDF 顯示標示封面，不是假裝已擷取頁面
 - [ ] 記憶 scope 標示清楚；舊記憶 confidence 會隨時間下降
 - [ ] 讀取工具 429 可重試；發佈／刪除不會自動重送

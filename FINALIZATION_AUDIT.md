@@ -47,6 +47,9 @@
 | 完成自檢 | live 契約 | 缺讀圖／缺研究資料／缺作品／Lumen 無結果時寫入誠實 notice，不拿空成功當完成。 |
 | 工具目錄 | live 契約 | Planner 指示含 MCP availability／trust／permission／cost=unknown；不含 endpoint／secret。未可用明確不要呼叫。 |
 | 任務追蹤 | live 契約 | 新任務有 taskId／traceId／workspaceId／projectId；工具事件有 latencyMs。只在技術資訊展開。 |
+| 專案上下文 | live 契約 | 組裝上下文與 `workspace_project_context` 含專案名稱與 artifactId／revisionId；不含 preview JSON。 |
+| 研究筆記索引 | live 契約 | 快照檔增刪或更新後可檢索，不必重啟行程。沒有命中不編造；不進主 UI。 |
+| 輸入列 | live | `Composer` 從 `HermesConsole` 拆出；IME／鍵盤／龜龜 compact 狀態仍接同一 refs。 |
 | 記憶時效 | live 契約 | `confidence * recencyScore(updatedAt)`；超過 30 天降至 0.3 倍，不永遠沿用舊偏好。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
 | 匿名 Health | live 契約 | required 且未登入時 `/api/health` 不含 models／skills／toolsets。 |
