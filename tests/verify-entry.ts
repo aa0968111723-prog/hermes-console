@@ -242,7 +242,7 @@ try {
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("tab", { name: "帳號", exact: true }).click();
   const account = page.getByRole("tabpanel", { name: "帳號" });
-  await expect(account.getByText("電子信箱")).toBeVisible();
+  await expect(account.getByText("電子信箱", { exact: true })).toBeVisible();
   await expect(
     account.locator(".identity-list li").filter({ hasText: "電子信箱" }),
   ).toContainText("未連結");
