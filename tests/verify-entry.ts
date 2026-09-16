@@ -200,7 +200,7 @@ try {
     assert.ok(!text.includes(word), "invitation UI visible: " + word);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "專案", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
   const poster = await readFile("public/mascot/turtle.png");
   await page.locator(".secondary-page input[type=\"file\"]").setInputFiles({
     name: "龜龜參考.png",
@@ -268,7 +268,7 @@ try {
   await projectPage.evaluate((el) => {
     el.scrollTop = el.scrollHeight;
   });
-  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
   await page.screenshot({
     path: join(output, "project-mobile-412.png"),
   });
@@ -283,7 +283,7 @@ try {
   await projectPage.evaluate((el) => {
     el.scrollTop = el.scrollHeight;
   });
-  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "預覽素材：龜龜參考.png" })).toBeVisible();
   await page.screenshot({
     path: join(output, "project-tablet-768.png"),

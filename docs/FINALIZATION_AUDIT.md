@@ -110,3 +110,4 @@
 26. 連線設定與 `POST /api/settings/tamkang` 的 `login` 不再轉送校園帳密；一律 `tku_password_refused`。Agent 一般畫面只留四個狀態點，「重新同步」與 MCP 軌道在進階。龜龜面板不再放能力連線圖。
 27. 鍵盤未開啟時 `--app-height` 跟 layout viewport，不再把關掉鍵盤後的 visualViewport 殘高當成 App 高度。登入頁的 viewport 監聽在進入工作區後卸載。Zeabur 從學生連線格子改到「進階 · 部署」。PDF 仍無頁面封面（本環境 sharp 不能 raster PDF）。
 28. 學生連線格子只留 Hermes／Canva／淡江／GALLEY／Lumen／Atlas。Workspace、FrameLab、訊核、Planform、對稿在「進階 · 其他連線」。登入頁未設定的 Google／淡江狀態寫在按鈕上，不再重複一段說明。`FEATURE_AUDIT_EDU.md` 不再把 AuthGate 寫成免登入。
+29. 龜龜入口改為「查看 Hermes」，面板標題是 Hermes，不再叫「空間」。專案頁標題改為「專案」。Composer 的 + 選單只留圖片／文件／參考／Canva／素材，檔案限制改給輔助技術。連結封面顯示網域首字，不是網站截圖，也不是檔名。歷史稽核文件標明 AuthGate 才是現況。

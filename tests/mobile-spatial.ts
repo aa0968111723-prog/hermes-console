@@ -15,7 +15,7 @@ export async function verifyMobileSpatial(
   await page.getByRole("combobox", { name: /文字大小/ }).selectOption("20");
   await page.keyboard.press("Escape");
   await expect(
-    page.getByRole("button", { name: "開啟 Hermes 空間", exact: true }),
+    page.getByRole("button", { name: "查看 Hermes", exact: true }),
   ).toBeVisible();
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await expect(page.locator(".app-shell")).toHaveAttribute(
@@ -272,7 +272,7 @@ export async function verifyMobileSpatial(
   // sheet to settings must start the new context at its own title. Reopening
   // the sheet must do the same and preserve the original trigger's focus.
   const spaceTrigger = page.getByRole("button", {
-    name: "開啟 Hermes 空間",
+    name: "查看 Hermes",
     exact: true,
   });
   await page.getByRole("button", { name: "外觀設定" }).click();
@@ -280,7 +280,7 @@ export async function verifyMobileSpatial(
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 320, height: 360 });
   await spaceTrigger.click();
-  const space = page.getByRole("dialog", { name: "Hermes 空間", exact: true });
+  const space = page.getByRole("dialog", { name: "Hermes", exact: true });
   await expect(space.getByText("空間測試偏好", { exact: true })).toBeVisible();
   await expect(
     space.getByText("其他專案的隱藏資料", { exact: true }),
@@ -327,7 +327,7 @@ export async function verifyMobileSpatial(
     `spatial close action must remain visible while scrolling: ${JSON.stringify(spaceCloseBounds)}`,
   );
   await space.getByRole("button", { name: "管理記憶", exact: true }).click();
-  const settings = page.getByRole("dialog", { name: "工作區設定" });
+  const settings = page.getByRole("dialog", { name: "設定" });
   await expect(settings).toBeVisible();
   await expect(
     page.getByRole("tab", { name: "工作區", exact: true }),

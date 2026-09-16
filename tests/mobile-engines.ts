@@ -82,10 +82,10 @@ export async function verifyMobileEngines(base: string, output: string) {
         }),
       );
       await page
-        .getByRole("button", { name: "開啟 Hermes 空間", exact: true })
+        .getByRole("button", { name: "查看 Hermes", exact: true })
         .tap();
       const space = page.getByRole("dialog", {
-        name: "Hermes 空間",
+        name: "Hermes",
         exact: true,
       });
       await expect(space).toBeVisible();
@@ -101,7 +101,7 @@ export async function verifyMobileEngines(base: string, output: string) {
       await expect(space.getByRole("alert")).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(
-        page.getByRole("button", { name: "開啟 Hermes 空間", exact: true }),
+        page.getByRole("button", { name: "查看 Hermes", exact: true }),
       ).toBeFocused();
       for (const [name, shot] of [
         ["專案", "projects"],

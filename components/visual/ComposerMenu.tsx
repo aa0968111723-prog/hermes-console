@@ -51,6 +51,7 @@ export default function ComposerMenu({
           className="composer-popover"
           role="dialog"
           aria-label="加入內容選項"
+          aria-describedby="composer-add-limits"
         >
           <button
             type="button"
@@ -80,7 +81,7 @@ export default function ComposerMenu({
             }}
           >
             <Link size={18} />
-            參考連結
+            參考
           </button>
           <button
             type="button"
@@ -100,13 +101,11 @@ export default function ComposerMenu({
             }}
           >
             <Folder size={18} />
-            專案素材
+            素材
           </button>
-          <small>
-            PNG / JPG / WebP / TXT / PDF
-            <br />
-            每檔 8 MB，每則最多 4 個附件
-          </small>
+          <p className="sr-only" id="composer-add-limits">
+            PNG、JPG、WebP、TXT、PDF。每檔 8 MB，每則最多 4 個附件。
+          </p>
         </div>
       )}
     </div>

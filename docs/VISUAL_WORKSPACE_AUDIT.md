@@ -1,3 +1,5 @@
+> 2026-09-16：現行產品是 AuthGate（未登入先見登入）。下文「免登入共用工作區」是當時 PR 基準，不是現況。以 `docs/FINALIZATION_AUDIT.md` 與 README 為準。
+
 # Visual-first Hermes Workspace：UI 稽核與交付
 
 ## 基準與範圍

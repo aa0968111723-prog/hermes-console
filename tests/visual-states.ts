@@ -15,6 +15,15 @@ export async function verifyVisualStates(
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.getByRole("button", { name: "加入內容", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "加入內容選項" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "參考", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "素材", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("dialog", { name: "加入內容選項" }).locator("small"),
+  ).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "加入內容", exact: true }),

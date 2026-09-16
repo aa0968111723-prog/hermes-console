@@ -102,7 +102,7 @@ export default function ContextTray({
                     (material.rights === "reference_only"
                       ? " · 僅供參考"
                       : "")
-                  : "專案素材"}
+                  : "素材"}
               </small>
             </span>
             <button

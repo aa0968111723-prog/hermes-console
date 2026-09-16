@@ -1,7 +1,11 @@
 "use client";
-import { FileText, Link } from "lucide-react";
+import { FileText } from "lucide-react";
 import type { Material } from "@/lib/contracts";
-import { attachmentCoverKind, attachmentKindLabel } from "@/lib/client/attachments";
+import {
+  attachmentCoverKind,
+  attachmentCoverMark,
+  attachmentKindLabel,
+} from "@/lib/client/attachments";
 
 export default function AttachmentCover({
   material,
@@ -25,10 +29,18 @@ export default function AttachmentCover({
         alt={alt || material.title}
       />
     );
-  const Icon = kind === "link" ? Link : FileText;
+  if (kind === "link")
+    return (
+      <span className="attachment-cover is-link" aria-hidden>
+        <strong className="attachment-mark">
+          {attachmentCoverMark(material)}
+        </strong>
+        <em>{attachmentKindLabel(material)}</em>
+      </span>
+    );
   return (
-    <span className={"attachment-cover is-" + kind} aria-hidden>
-      <Icon size={24} />
+    <span className="attachment-cover is-file" aria-hidden>
+      <FileText size={24} />
       <em>{attachmentKindLabel(material)}</em>
     </span>
   );

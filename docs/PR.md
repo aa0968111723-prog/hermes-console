@@ -1,3 +1,5 @@
+> 2026-09-16：現行產品是 AuthGate。下文「免登入」是當時提案，不是現況。以 README 與 `docs/FINALIZATION_AUDIT.md` 為準。
+
 ## 摘要
 
 將 Hermes Console 升級為 **Hermes Creative Intelligence**：免登入單一工作區。開啟網址即可對話，不再出現登入頁、註冊、帳號或密碼。秘密仍只存在 server-side env / encrypted vault。

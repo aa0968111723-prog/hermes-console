@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { Material } from "../lib/contracts";
 import {
   attachmentCoverKind,
+  attachmentCoverMark,
   attachmentKindLabel,
 } from "../lib/client/attachments";
 
@@ -43,4 +44,5 @@ test("attachment covers prefer thumbnail / kind, not a bare filename", () => {
   });
   assert.equal(attachmentCoverKind(link), "link");
   assert.equal(attachmentKindLabel(link), "tku.edu.tw");
+  assert.equal(attachmentCoverMark(link), "T");
 });

@@ -1534,7 +1534,7 @@ export default function HermesConsole() {
             onScroll={(e) => rememberPageScroll(e.currentTarget)}
           >
             <div className="page-heading-row">
-              <h1>素材與靈感</h1>
+              <h1>專案</h1>
               <div className="page-heading-actions">
                 <input
                   ref={projectUpload}
@@ -1635,7 +1635,7 @@ export default function HermesConsole() {
               open={referenceOpen}
               onToggle={(e) => setReferenceOpen(e.currentTarget.open)}
             >
-              <summary>收藏參考連結</summary>
+              <summary>參考</summary>
               <form
                 className="reference-form"
                 onSubmit={async (e) => {
@@ -1981,8 +1981,8 @@ export default function HermesConsole() {
         <div className="panel-content">
           <header className="panel-header">
             <h2 id="detail-panel-title">
-              {panel === "spatial" ? "Hermes 空間" : panel === "settings"
-                ? "工作區設定"
+              {panel === "spatial" ? "Hermes" : panel === "settings"
+                ? "設定"
                 : panel === "preview"
                   ? "素材預覽"
                   : "任務詳情"}

@@ -16,8 +16,8 @@ export type ConsoleNav =
   | "tasks";
 
 const TITLES: Record<ConsoleNav, string> = {
-  chat: "創作對話",
-  projects: "專案與素材",
+  chat: "對話",
+  projects: "專案",
   inspiration: "靈感",
   agents: "Agent",
   tasks: "任務",

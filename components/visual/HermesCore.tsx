@@ -62,7 +62,7 @@ export default function HermesCore({
       <span className="core-orbit core-orbit-two" aria-hidden="true" />
       <span className="core-glow" aria-hidden="true" />
       <Turtle
-        label="開啟 Hermes 空間"
+        label="查看 Hermes"
         task={task}
         offline={offline}
         animation={animation}

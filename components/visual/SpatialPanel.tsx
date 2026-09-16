@@ -72,14 +72,14 @@ export default function SpatialPanel({
         </button>
         <button onClick={() => onNavigate("projects")}>
           <Folder size={22} />
-          專案素材
+          素材
         </button>
         <button onClick={() => onNavigate("tasks")}>
           <ListTodo size={22} />
-          任務成果
+          成果
         </button>
       </div>
-      <section className="memory-constellation" aria-label="專案記憶地圖">
+      <section className="memory-constellation" aria-label="記憶">
         <header>
           <h3>
             <Brain size={19} />

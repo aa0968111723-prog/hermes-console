@@ -1021,6 +1021,15 @@ nav button[aria-current="page"] {
   background: #eef5e8;
   color: #356b45;
 }
+.attachment-cover.is-link {
+  background: #e8f0ea;
+  color: #2f5a3c;
+}
+.attachment-cover .attachment-mark {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
 .attachment-cover em {
   font-style: normal;
   font-size: 9px;

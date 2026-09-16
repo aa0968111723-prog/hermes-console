@@ -21,3 +21,9 @@ export function attachmentKindLabel(material: Material) {
     return "連結";
   }
 }
+
+export function attachmentCoverMark(material: Material) {
+  const label = attachmentKindLabel(material);
+  const mark = Array.from(label)[0] || "鏈";
+  return mark.toUpperCase();
+}

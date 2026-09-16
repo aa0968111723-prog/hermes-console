@@ -323,7 +323,7 @@ try {
     )
     .toBeTruthy();
   await dock.getByRole("button", { name: "專案", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "專案", exact: true })).toBeVisible();
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
   await page.locator(".reference-disclosure > summary").click();
   await page
@@ -353,7 +353,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const settingsButton = page.getByRole("button", { name: "外觀設定" });
   await settingsButton.click();
-  const settings = page.getByRole("dialog", { name: "工作區設定" });
+  const settings = page.getByRole("dialog", { name: "設定" });
   await expect(settings).toBeVisible();
   await page.getByRole("tab", { name: "外觀", exact: true }).focus();
   await page.keyboard.press("End");

@@ -60,4 +60,4 @@ Store kinds 包含 user、identity、membership、session、conversation、messa
 - `AuthGate`：未登入不載入工作區
 - `HermesConsole`：對話捲動區是 chat 的唯一主捲動；其他頁用 `.secondary-page`
 - 手機 Bottom Dock：對話／專案／靈感／Agent；設定在頂欄
-- 龜龜把 Agent 狀態視覺化，不是裝飾
+- 龜龜把 Agent 狀態視覺化，不是裝飾；點進去看進度與記憶，標題是 Hermes，不是工程「空間」

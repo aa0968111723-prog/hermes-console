@@ -46,10 +46,7 @@ export default function InspirationBoard({
   return (
     <section className="inspiration-board">
       <div className="inspiration-heading">
-        <div>
-          <p className="eyebrow">參考板</p>
-          <h1>靈感</h1>
-        </div>
+        <h1>靈感</h1>
         <Sparkles size={25} aria-hidden="true" />
       </div>
 
