@@ -10,6 +10,7 @@
 | --- | --- | --- |
 | 手機捲動所有權 | 可用（契約） | Chat 只捲 conversation；其他頁 `data-scroll-mode=page`。`--app-height` 只在鍵盤開啟時寫入。Android 實機仍 Partial。 |
 | Bottom dock | 可用 | 對話 / 專案 / 靈感 / Agent；設定在齒輪。 |
+| 手機頂欄 | 可用（契約） | Hermes 操作葉片不再蓋住標題殘字。Playwright 斷言 trigger 在選單右側。 |
 | AuthGate | 可用 | `/` 先登入。Google 未設定顯示尚未完成設定。淡江未設定顯示「淡江 SSO 尚未完成設定」。Email Argon2id + magic link。 |
 | 身份模型 | 可用 | User / Identity / Session / Membership。禁止 email 自動合併。 |
 | API 授權 | 可用 | `authenticate()` 要 session + membership。Health/ready 仍公開且不含秘密。 |
@@ -19,15 +20,26 @@
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 
+## 本輪驗證（2026-09-16）
+
+- `npm test`：376 tests, 374 pass, 2 skipped, 0 fail。
+- `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 236 kB（shared 103 kB）。
+- Playwright Chromium：`test:entry` `test:ui` `test:chat` `test:workbench` `test:gateway` `test:runtime` 全過。
+- Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
+- axe wcag2a/aa + 2.1：0 violations（`output/playwright/browser-report.json`）。
+- 本機 Chromium LCP 96ms、CLS 0.00008。不是 field 裝置實驗室。
+- 登入 bootstrap：Node 註冊後用頁內 `fetch` 登入。`APIRequestContext` / CDP cookie 在 `127.0.0.1` 不會進 document jar。
+
 ## 仍是 Partial（禁止標綠）
 
 - 淡江 SSO：沒有校方 Client / Metadata，不能假裝成功。
 - Google Login：程式有，部署未填 `GOOGLE_CLIENT_ID` 前不可用。
-- 實機 Android Chrome 鍵盤 / 412×915 / 430×932：Playwright 契約有 360/390/768/1024/1440，不是實機。
+- 實機 Android Chrome 鍵盤：Playwright 只模擬 visualViewport。
 - Hermes 對真實 MCP 工具鏈：需部署憑證；契約用 fixture。
 - Instagram / Pinterest 全庫搜尋：沒有官方完整 API，不得宣稱。
 - Tamkang 校園密碼交換 MCP token：仍是 MCP，不是 SSO。
 - 正式 Zeabur 部署與 DB backup：本環境未授權部署。
+- 帳號連結 Google↔淡江↔Email 的實機 round-trip：缺真實 IdP。
 
 ## 危險項（已處理方向）
 
