@@ -49,7 +49,9 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
     assert.match(RESEARCH_INSTRUCTIONS, /不.*代替/);
     assert.match(RESEARCH_INSTRUCTIONS, /禁止捏造/);
     assert.doesNotMatch(RESEARCH_INSTRUCTIONS, /已通過電子信箱邀請登入/);
-    assert.match(RESEARCH_INSTRUCTIONS, /免登入的共用工作區/);
+    assert.doesNotMatch(RESEARCH_INSTRUCTIONS, /免登入的共用工作區/);
+    assert.match(RESEARCH_INSTRUCTIONS, /需先登入/);
+    assert.match(RESEARCH_INSTRUCTIONS, /workspace membership/);
     assert.doesNotMatch(RESEARCH_INSTRUCTIONS, /租戶隔離|已通過 IRB/);
     assert.equal(specialistInstructions("research"), RESEARCH_INSTRUCTIONS);
     assert.equal(specialistInstructions("creative"), null);
@@ -60,7 +62,8 @@ test("assistant modes parse, prompts and API contracts", async (t) => {
     assert.match(ADMIN_INSTRUCTIONS, /待確認/);
     assert.match(ADMIN_INSTRUCTIONS, /不代表所辦/);
     assert.doesNotMatch(ADMIN_INSTRUCTIONS, /已通過電子信箱邀請登入/);
-    assert.match(ADMIN_INSTRUCTIONS, /免登入的共用工作區/);
+    assert.doesNotMatch(ADMIN_INSTRUCTIONS, /免登入的共用工作區/);
+    assert.match(ADMIN_INSTRUCTIONS, /需先登入/);
     assert.equal(specialistInstructions("admin"), ADMIN_INSTRUCTIONS);
   });
 
