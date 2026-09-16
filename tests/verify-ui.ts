@@ -113,6 +113,7 @@ try {
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
+  await expect(page.getByRole("link", { name: "跳至輸入區" })).not.toBeInViewport();
   await assertNoLogin();
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
   assert.equal(
@@ -296,6 +297,15 @@ try {
   await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible({
     timeout: 15_000,
   });
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }).locator(".direction-format-frame"),
+  ).toHaveCount(3);
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }).locator(".direction-format-frame").first(),
+  ).toContainText("最自然");
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }).locator(".direction-format-copy").first(),
+  ).toContainText("茶會來坐一下");
   await expect(page.getByText("最自然")).toBeVisible();
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
@@ -331,6 +341,13 @@ try {
   await expect(
     page.getByRole("region", { name: "新生第一眼模擬" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "新生第一眼模擬" }).getByText("較會停"),
+  ).toBeVisible();
+  const twinFold = page.locator(".twin-fold");
+  await expect(twinFold.getByText("十個視角")).toBeVisible();
+  await expect(twinFold.locator(".twin-card")).toHaveCount(10);
+  await expect(twinFold.locator(".twin-card").first()).toBeHidden();
   await expect(page.getByText(/個工具完成/)).toHaveCount(0);
   await expect(page.getByText(/已讀取像素/)).toHaveCount(0);
   await imageReview.scrollIntoViewIfNeeded();
@@ -428,7 +445,9 @@ try {
   await page.unroute("**/api/inspiration");
   await pickA.click();
   await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible();
-  await expect(page.getByText("最自然")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }).locator(".direction-format-copy").first(),
+  ).toContainText("茶會來坐一下");
   await expect(page.getByText(/不是已出圖/)).toBeVisible();
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
   await page.screenshot({

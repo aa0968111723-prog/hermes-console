@@ -13,6 +13,11 @@ export default function DirectionBrief({
 }: {
   brief: DirectionBriefPack;
 }) {
+  const pages = [
+    ["a", brief.copy.a],
+    ["b", brief.copy.b],
+    ["c", brief.copy.c],
+  ] as const;
   return (
     <section className="direction-brief" aria-label="已選方向規格">
       <p className="eyebrow">
@@ -23,33 +28,24 @@ export default function DirectionBrief({
       <h2>{brief.title}</h2>
       <p>{brief.summary}</p>
       <ul className="direction-format-grid">
-        {brief.formats.map((format) => (
-          <li key={format.id}>
-            <div
-              className="direction-format-frame"
-              style={{ aspectRatio: format.aspect.replace(":", " / ") }}
-            >
-              <span>{format.aspect}</span>
-              <strong>{format.label}</strong>
-            </div>
-            <small>{format.compositionHint}</small>
-          </li>
-        ))}
-      </ul>
-      <ul className="direction-copy-grid">
-        {(
-          [
-            ["a", brief.copy.a],
-            ["b", brief.copy.b],
-            ["c", brief.copy.c],
-          ] as const
-        ).map(([id, text]) => (
-          <li key={id}>
-            <span>{id.toUpperCase()}</span>
-            <strong>{COPY_LABEL[id]}</strong>
-            <p className="preserve-lines">{text}</p>
-          </li>
-        ))}
+        {brief.formats.map((format, index) => {
+          const [id, text] = pages[index] || pages[0];
+          return (
+            <li key={format.id}>
+              <div
+                className="direction-format-frame"
+                data-aspect={format.aspect}
+                style={{ aspectRatio: format.aspect.replace(":", " / ") }}
+              >
+                <span>
+                  {format.aspect} · {COPY_LABEL[id]}
+                </span>
+                <strong>{format.label}</strong>
+                <p className="direction-format-copy preserve-lines">{text}</p>
+              </div>
+            </li>
+          );
+        })}
       </ul>
       <details className="direction-review-fold">
         <summary>新生視角審核（模擬）</summary>
