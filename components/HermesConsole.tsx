@@ -1146,7 +1146,9 @@ export default function HermesConsole() {
                         </div>
                         <div className="message-content">
                           <MessageBody text={message.content} />
-                          {message.role === "assistant" && message.taskId && (
+                          {message.role === "assistant" &&
+                            message.taskId &&
+                            message.provenance !== "workspace" && (
                             <VisualMessage
                               task={tasks.find((t) => t.id === message.taskId)}
                               onInspect={() =>

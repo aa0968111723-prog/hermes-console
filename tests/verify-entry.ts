@@ -94,6 +94,7 @@ try {
   await expect(page.getByText("Hermes Agent 尚未連線")).toHaveCount(1);
   await expect(page.getByText("本地索引", { exact: true })).toHaveCount(1);
   await expect(page.getByText(/Drive 快照/).first()).toBeVisible();
+  await expect(page.getByText("1 / 1 個工具完成")).toHaveCount(0);
   const chat = await page.locator("body").innerText();
   assert.equal(chat.includes("已搜尋整個 Instagram"), false);
   await page.screenshot({

@@ -28,6 +28,7 @@ test("club queries return indexed snapshot, not fake GALLEY or Hermes", () => {
   assert.match(text, /Drive 快照|不是即時/);
   assert.doesNotMatch(text, /GALLEY 已/);
   assert.doesNotMatch(text, /已搜尋整個 Instagram/);
+  assert.doesNotMatch(text, /Inspiration Engine/);
   assert.ok(/茶會|UNKNOWN|期初/.test(text));
 });
 

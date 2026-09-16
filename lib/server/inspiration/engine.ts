@@ -85,7 +85,7 @@ export function searchInspiration(input: {
     providers: providerHealth(),
     fullSiteSearch: false,
     notice:
-      "統一 Inspiration Engine：未授權時只合併已保存參考與可解析 URL，不假裝 Instagram／Pinterest 全站搜尋。",
+      "沒有搜尋整個 Instagram 或 Pinterest。只使用已保存的參考與可開啟的網址。",
   };
 }
 
