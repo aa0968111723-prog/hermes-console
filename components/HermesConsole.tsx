@@ -1693,7 +1693,7 @@ export default function HermesConsole() {
         ) : (
           <section className="secondary-page page-scroll">
             <h1>任務</h1>
-            <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} />
+            <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} onChanged={()=>{void refresh();}} />
             {workflows
               .filter((w) => w.projectId === project)
               .map((w) => (

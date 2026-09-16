@@ -6,9 +6,11 @@ import ArtifactStage from "./ArtifactStage";
 export default function ArtifactDeck({
   items,
   onContinue,
+  onChanged,
 }: {
   items: Workflow[];
   onContinue: (id: string) => void;
+  onChanged?: () => void;
 }) {
   const rail = useRef<HTMLDivElement>(null),
     designs = items.filter((w) => !!w.design);
@@ -49,8 +51,10 @@ export default function ArtifactDeck({
         {designs.map((w) => (
           <ArtifactStage
             key={w.id}
+            artifactId={w.id}
             design={w.design!}
             onContinue={() => onContinue(w.id)}
+            onChanged={onChanged}
           />
         ))}
       </div>

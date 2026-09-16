@@ -247,6 +247,7 @@ export async function pollDraft(owner: string, id: string) {
       source: "canva",
       workflowId: record.id,
       title: record.brief.slice(0, 80) || "作品",
+      preview: record.design,
     });
   } else if (job?.status === "failed") {
     record.state = "failed";

@@ -15,6 +15,7 @@ export type Artifact = {
   workflowId?: string;
   materialId?: string;
   title: string;
+  preview?: Record<string, unknown> | null;
 };
 
 const KIND = "artifact";
@@ -40,6 +41,7 @@ export function recordArtifact(input: {
   materialId?: string;
   title: string;
   parentArtifactId?: string | null;
+  preview?: Record<string, unknown> | null;
 }): Artifact {
   const family = input.artifactId
     ? listRevisions(input.artifactId)
@@ -59,6 +61,7 @@ export function recordArtifact(input: {
     workflowId: input.workflowId,
     materialId: input.materialId,
     title: input.title,
+    preview: input.preview || null,
   };
   return put(KIND, WORKSPACE_OWNER, row);
 }
@@ -66,7 +69,7 @@ export function recordArtifact(input: {
 export function restoreRevision(revisionRowId: string) {
   const current = get<Artifact>(KIND, WORKSPACE_OWNER, revisionRowId);
   if (!current) throw new ApiError(404, "not_found", "找不到作品版本。");
-  return recordArtifact({
+  const restored = recordArtifact({
     artifactId: current.artifactId,
     projectId: current.projectId,
     source: current.source,
@@ -75,7 +78,22 @@ export function restoreRevision(revisionRowId: string) {
     materialId: current.materialId,
     title: current.title,
     parentArtifactId: current.id,
+    preview: current.preview || null,
   });
+  if (current.workflowId && current.preview) {
+    const workflow = get<{
+      id: string;
+      design?: Record<string, unknown> | null;
+      updatedAt?: string;
+    }>("workflow", WORKSPACE_OWNER, current.workflowId);
+    if (workflow)
+      put("workflow", WORKSPACE_OWNER, {
+        ...workflow,
+        design: current.preview,
+        updatedAt: new Date().toISOString(),
+      });
+  }
+  return restored;
 }
 
 export function forkArtifact(revisionRowId: string) {
@@ -89,5 +107,6 @@ export function forkArtifact(revisionRowId: string) {
     materialId: current.materialId,
     title: current.title + "（副本）",
     parentArtifactId: current.id,
+    preview: current.preview || null,
   });
 }
