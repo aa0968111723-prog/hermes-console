@@ -2,7 +2,7 @@
 
 正式產品部署步驟見 [PRODUCTION.md](PRODUCTION.md)。身份、秘密與 SSRF 見 [SECURITY.md](SECURITY.md)。
 
-**2026-09 起產品需要登入。** `/` 先經過 AuthGate（Google / 淡江 SSO / Email），工作區 API 驗證 `hermes_session` 與 membership。下文若仍提到「免登入」，視為歷史部署備註，以 PRODUCTION.md 為準。
+**預設免登入。** `/` 進入工作區。InvitationGate 不得擋入口。只有 `CONSOLE_AUTH_REQUIRED=true` 才走 AuthGate 登入。下文若寫「需要登入」，以 PRODUCTION.md 的 opt-in 為準。
 
 ## Console
 
@@ -12,10 +12,10 @@
 - 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（不是 ai_os）。SRE 另行掛上；此變更不修改正式環境變數。未設定或空白時仍用 SQLite 開機。
 - `GET /api/ready` 探測 `CONSOLE_DATA_DIR` 與目前 backend（SQLite 或 Postgres）。成功 200、儲存庫不可用 503。不回傳連線字串或秘密，也不需閘道標頭。`GET /api/health` 另附 `backend`／`dataDir`／`storeReady`。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
-- 產品需要登入。`/` 先經過 AuthGate，工作區 API 驗證 `hermes_session` 與 membership。邀請模組仍休眠，不得取代正式身份。
+- 產品預設免登入。`/` 進入工作區。邀請模組仍休眠，不得擋入口。`CONSOLE_AUTH_REQUIRED=true` 才驗證帳號 session。
 - 寫入請求驗證 Origin；本機未設定 `CONSOLE_ORIGIN` 時，僅允許與實際 loopback origin 相符的來源。正式環境未設定 `CONSOLE_ORIGIN` 必須 fail closed。
 - 不要將邀請模組測試通過誤當作正式環境存取保護。
-- 正式環境應設定 `CONSOLE_REQUIRE_GATEWAY=true` 及至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`。閘道是部署層保護，仍需帳號 session。閘道需先驗證身份或私人網路，再覆寫 `X-Console-Gateway`。不要把秘密放前端。
+- 正式環境應設定 `CONSOLE_REQUIRE_GATEWAY=true` 及至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`。閘道是部署層保護，不是帳號登入。閘道需先驗證身份或私人網路，再覆寫 `X-Console-Gateway`。不要把秘密放前端。
 - 閘道本身必須驗證存取權；一個公開且無條件注入標頭的 reverse proxy 不算保護。建議限制 Console upstream 僅由 gateway 的私人網路可達。不要相信未驗證的 X-Forwarded-User 或僅靠 Origin。
 - `CONSOLE_ALLOW_LOCAL_ACCESS` 僅供明確的 loopback 開發／測試環境使用；公開部署不要啟用。
 - 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。撤銷所有曾公開的 Hermes API Key 並重新產生。
@@ -66,7 +66,7 @@ Runtime 探索與限制詳見 [RUNTIME_SYNC.md](RUNTIME_SYNC.md)。後端長駐�
 
 僅放環境變數名稱，不放 token 值；可在受控秘密儲存或「設定 → 連線」另外設定該變數。清單 JSON 本身仍不應內嵌 token。此例是未啟用的設定範本，不是真實服務。TKU_MCP_URL／TOKEN（環境或 UI）可建立 tku 定義。XUNHE_MCP_URL／TOKEN 可建立訊核即時情報定義。ATLAS_MCP_URL／TOKEN 可建立場圖 Atlas 定義（端點必須是 `https://公開網域/api/mcp`）；Hermes 會以 `mcp.atlas.*` 呼叫公開導覽、機構規則、專案流程與任務建議，且 Atlas 拒絕把專案標為已交付。LUMEN_MCP_URL／TOKEN 可建立 Lumen 創作台定義；工作區 MCP 會在設定後列出 lumen_*，讓 Hermes 經 Console `/api/mcp` 呼叫 lumen_utter，不必另開第二條 MCP。FRAMELAB_MCP_URL／TOKEN 可建立 FrameLab 動畫定義（端點必須是 `https://公開網域/api/mcp`）；Hermes 會以 `mcp.framelab.*` 與工作區 `framelab_*` 呼叫時間軸、一致性分析、修復建議與中間張工具。GitHub 倉庫網址不是 MCP。驗證只 initialize／tools-list，不自动挑選名稱看似讀取的工具執行；部分可用代表有真實工具清單，不代表安全／寫入授權。
 
-淡江 MCP 在本倉庫是 Bearer 權杖連線。設定頁可貼權杖並「測試連線」。若已存網址的同一來源提供 `/auth/login`、`/api/auth/login`、`/login` 或 JSON-RPC `auth/login`，後端可代為用校園使用者名稱／密碼交換權杖；沒有這些端點時不會假裝成學校 SSO，請改貼權杖。
+淡江 MCP 在本倉庫是 Bearer 權杖連線。設定頁可貼權杖並「測試連線」。Console 不收集學校帳號或密碼；學校登入只跳轉校方 IdP。
 
 GALLEY 研究情報 MCP 同樣用 `GALLEY_MCP_URL`／`GALLEY_MCP_TOKEN`（環境或設定 → 連線）。端點必須是 GALLEY 部署後的 HTTPS Streamable HTTP `/mcp`，**不能**填 GitHub 倉庫網址。權杖至少 32 字元，且須與 GALLEY 後端同一把。Hermes 只連 Console `/api/mcp`；工作區工具 `galley_capability`／`galley_research`／`galley_intel` 由 Console 代為呼叫 GALLEY。未設定時狀態為 Unconfigured，不得假裝已完成研究。
 

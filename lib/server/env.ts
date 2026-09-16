@@ -11,6 +11,7 @@ function isLoopbackHostname(hostname: string) {
 }
 
 export function validateRuntimeEnv() {
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
   if (process.env.NODE_ENV === "production") {
     if (process.env.NODE_TEST_CONTEXT || process.env.CONSOLE_TEST_SESSION) {
       throw new Error("測試用 session 不得用於正式環境。");
@@ -19,12 +20,11 @@ export function validateRuntimeEnv() {
   const origin = process.env.CONSOLE_ORIGIN?.trim() || "";
   const allowLocal = process.env.CONSOLE_ALLOW_LOCAL_ACCESS === "true";
   if (!origin) {
-    if (process.env.NODE_ENV === "production" && !allowLocal) {
-      throw new Error(
-        "缺少 CONSOLE_ORIGIN。正式環境必須設定公開 HTTPS origin。",
-      );
-    }
-    return;
+    throw new Error(
+      process.env.NODE_ENV === "production" && !allowLocal
+        ? "缺少 CONSOLE_ORIGIN。正式環境必須設定公開 HTTPS origin。"
+        : "缺少 CONSOLE_ORIGIN。請設定公開 origin 後再啟動。",
+    );
   }
   let url: URL;
   try {
@@ -40,6 +40,13 @@ export function validateRuntimeEnv() {
     if (!loopback && url.protocol !== "https:") {
       throw new Error("正式環境的 CONSOLE_ORIGIN 必須是 HTTPS。");
     }
+  }
+  if (allowLocal) return;
+  if (!isAuthEnforced()) return;
+  if (!googleConfigured() && !emailConfigured()) {
+    throw new Error(
+      "正式環境需要 Google OAuth（GOOGLE_CLIENT_ID／SECRET）或 Email 寄信（RESEND_API_KEY／CONSOLE_EMAIL_FROM）。淡江 SSO 未設定時必須顯示尚未完成，不可假裝成功。",
+    );
   }
 }
 

@@ -85,6 +85,20 @@ test("chat progress is high-level stages, not tool counts", () => {
     ["研究", "創作"],
   );
 });
+
+test("student captions never use Hermes preview text", () => {
+  const running = task("running", [
+    {
+      ...event("g", "running"),
+      summary: "GET /v1/tools galley_research schema={type:object}",
+    },
+  ]);
+  assert.equal(studentEventCaption(running.events[0], running), "研究 · 執行中");
+  assert.equal(studentTaskCaption(running), "研究 · 執行中");
+  assert.doesNotMatch(studentTaskCaption(running), /schema|galley_research|GET \//);
+  const empty = task("running", []);
+  assert.equal(studentTaskCaption(empty), "查看任務進度");
+});
 test("source actions never accept script, credentials or relative destinations", () => {
   for (const value of [
     "javascript:alert(1)",
@@ -98,4 +112,6 @@ test("source actions never accept script, credentials or relative destinations",
     safeSource("https://example.com/source"),
     "https://example.com/source",
   );
+  assert.equal(studentSourceHost("https://www.example.com/reference?q=1"), "example.com");
+  assert.equal(studentSourceHost("https://user:secret@example.com"), null);
 });

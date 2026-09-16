@@ -10,6 +10,9 @@ process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
 
 const { interpretGoal } = await import("../lib/server/orchestrator/goal");
+const { composeTaskInstructions } = await import(
+  "../lib/server/orchestrator/instructions"
+);
 const { routeTools } = await import("../lib/server/orchestrator/tool-router");
 const { buildPlan } = await import("../lib/server/orchestrator/planner");
 const { fallbacksFromRoutes } = await import("../lib/server/orchestrator/fallback");
@@ -40,6 +43,14 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     const campus = routes.find((item) => item.id === "campus")!;
     assert.equal(campus.tool, "hermes_authorized_web");
     const plan = buildPlan(goal, routes, "balanced");
+    assert.equal(
+      plan.steps.find((step) => step.title === "找靈感")?.tool,
+      "workspace_search_inspiration",
+    );
+    assert.equal(
+      plan.steps.find((step) => step.title === "受眾模擬")?.tool,
+      "workspace_simulate_audience",
+    );
     assert.ok(plan.steps.some((step) => step.title.includes("查資料")));
     assert.ok(plan.steps.some((step) => step.title.includes("靈感")));
     assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
@@ -124,7 +135,7 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
       const campus = routeTools(goal, [tamkang]).find((item) => item.id === "campus");
       assert.equal(campus, undefined, prompt);
     }
-    for (const prompt of ["淡江新生茶會", "淡江大一新生", "教心所研究倫理"]) {
+    for (const prompt of ["淡江新生茶會", "淡江大一新生", "教心所研究倫理", "淡大禪學社茶會"]) {
       const goal = interpretGoal(prompt);
       assert.equal(goal.requiresTamkang, true, prompt);
       assert.equal(goal.audience, "淡江大一新生（模擬，不是民調）");
@@ -179,7 +190,65 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
       stopSupported: false,
     } as Task;
     assert.equal(classifyResume(task, false), "unknown");
+    assert.equal(classifyResume(task, true), "running");
     assert.match(resumeNotice("unknown"), /尚未確認/);
+    const submitting = { ...task, transport: "runs" as const, remoteId: null };
+    assert.equal(classifyResume(submitting, true), "running");
+    assert.equal(classifyResume(submitting, false), "unknown");
+  });
+
+  await t.test("poster image review routes visual and audience simulation", () => {
+    const goal = interpretGoal("這張哪裡可以改？");
+    assert.equal(goal.requiresImageReview, true);
+    assert.equal(goal.requiresInspiration, false);
+    assert.equal(goal.requiresDesign, true);
+    assert.equal(goal.requiresAudienceEvaluation, true);
+    const composed = composeTaskInstructions({
+      mode: "creative",
+      text: "這張哪裡可以改？",
+      goal,
+      hasImageAttachments: true,
+    });
+    assert.ok(composed.packs.includes("image"));
+    assert.ok(composed.packs.includes("audience"));
+    assert.ok(composed.packs.includes("visual"));
+    assert.equal(composed.packs.includes("inspiration"), false);
+    assert.equal(composed.packs.includes("canva"), false);
+    assert.match(composed.instructions, /workspace_read_material/);
+    assert.match(composed.instructions, /SIMULATION/);
+    assert.equal(composed.instructions.includes("chain-of-thought"), false);
+    const plan = buildPlan(goal, routeTools(goal, [emptyIntegration("hermes")]), "balanced");
+    assert.ok(plan.steps.some((step) => step.title === "讀取附圖"));
+    assert.ok(plan.steps.some((step) => step.title === "受眾模擬"));
+    assert.ok(plan.steps.some((step) => step.title === "視覺修改建議"));
+    assert.equal(
+      plan.steps.find((step) => step.title === "找靈感"),
+      undefined,
+    );
+    assert.equal(
+      plan.steps.find((step) => step.title === "提出創作方向"),
+      undefined,
+    );
+    assert.equal(
+      plan.steps.find((step) => step.title.includes("Canva")),
+      undefined,
+    );
+  });
+
+  await t.test("untrusted Instagram URLs do not flip inspiration routing", async () => {
+    const { wrapUntrusted } = await import("../lib/server/untrusted");
+    const goal = interpretGoal(
+      "台大大一新生攝影社\n\n" +
+        wrapUntrusted(
+          "saved_project_references",
+          JSON.stringify([
+            { sourceUrl: "https://www.instagram.com/p/NotAUserGoal/" },
+          ]),
+        ),
+    );
+    assert.equal(goal.requiresInspiration, false);
+    assert.equal(goal.requiresDesign, false);
+    assert.equal(goal.goal.startsWith("台大大一新生攝影社"), true);
   });
 });
 

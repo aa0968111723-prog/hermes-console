@@ -6,7 +6,7 @@ import {
   isFastTier,
 } from "./intent";
 
-const TAMKANG = /淡江|淡水|克難坡|TKU|tku|教心所/;
+const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
 const RESEARCH = /研究|查|搜|資料|文獻|最近|議題|來源/;
 const DESIGN = /海報|網宣|Canva|canva|視覺|設計|稿/;
 const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會/;
@@ -142,4 +142,28 @@ export function interpretGoal(
     requiresImageReview: requiresImageRead,
     intentTier,
   };
+}
+
+/** Spoken create asks still get workspace cards when Hermes is unconfigured. */
+export function wantsWorkspaceInspiration(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.intentTier === "lookup") return goal.requiresInspiration;
+  if (goal.requiresInspiration || goal.requiresDesign) return true;
+  return goal.intentTier === "create" && hasCreateCue(goal.goal);
+}
+
+/** Club fact questions use the Drive index snapshot, not a poster mill. */
+export function wantsWorkspaceKnowledge(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.intentTier === "chitchat") return false;
+  if (wantsWorkspaceInspiration(goal)) return false;
+  return needsZenclubKnowledge(goal.goal);
+}
+
+/** Spoken audience asks still get the freshman twin without pretending to see a poster. */
+export function wantsWorkspaceAudience(goal: StructuredGoal): boolean {
+  if (goal.directionLocked || goal.requiresImageReview) return false;
+  if (goal.requiresImageAnalysis) return false;
+  if (wantsWorkspaceInspiration(goal) || wantsWorkspaceKnowledge(goal)) return false;
+  return goal.requiresAudienceEvaluation;
 }

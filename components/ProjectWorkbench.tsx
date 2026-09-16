@@ -8,17 +8,11 @@ import {
   type CopyRevision,
 } from "@/lib/creative";
 import { fieldLabels } from "@/lib/activity-labels";
-import type { Material, TaskFocus } from "@/lib/contracts";
-import {
-  continueActivity,
-  continueCaptionSet,
-  continueCopy,
-  continueDesign,
-  continueProjectDraft,
-} from "@/lib/client/artifacts";
+import type { Material } from "@/lib/contracts";
 import type { Workflow } from "@/lib/server/workflows";
 import type { CopyReview } from "@/lib/server/copywriting";
 import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
+import { CONTINUE_SAME_WORK_PROMPT } from "@/lib/server/inspiration/revise";
 type Data = {
   activities: Activity[];
   copies: Array<CopyDocument & { check: CopyCheck }>;
@@ -47,12 +41,14 @@ export default function ProjectWorkbench({
   projectId,
   materials,
   workflows,
+  hermesReady,
   onCompose,
 }: {
   projectId: string;
   materials: Material[];
   workflows: Workflow[];
-  onCompose: (text: string, focus?: TaskFocus) => void;
+  hermesReady: boolean;
+  onCompose: (text: string, conversationId?: string) => void;
 }) {
   const [data, setData] = useState<Data>({ activities: [], copies: [] });
   const [editing, setEditing] = useState<Activity | null>(null);
@@ -171,18 +167,24 @@ export default function ProjectWorkbench({
           新增文案草稿
         </button>
         <button
-          onClick={() => {
-            const next = continueProjectDraft();
-            onCompose(next.text);
-          }}
+          onClick={() =>
+            onCompose(
+              CONTINUE_SAME_WORK_PROMPT,
+              [...workflows]
+                .filter((item) => item.projectId === projectId && item.conversationId)
+                .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+                .at(-1)?.conversationId || undefined,
+            )
+          }
         >
           請 Hermes 接續創作
         </button>
         <button
-          onClick={() => {
-            const next = continueCaptionSet();
-            onCompose(next.text);
-          }}
+          disabled={!hermesReady}
+          title={hermesReady ? undefined : "Hermes 尚未連線"}
+          onClick={() =>
+            onCompose("請寫三版文案：最自然、最有梗、最溫暖。日期地點未確認先問我，不要發佈。")
+          }
         >
           請 Hermes 寫 A／B／C
         </button>
@@ -361,10 +363,11 @@ export default function ProjectWorkbench({
           ))}
           <button onClick={() => editActivity(a)}>修改活動</button>
           <button
-            onClick={() => {
-              const next = continueActivity(a.id);
-              onCompose(next.text, next.focus);
-            }}
+            disabled={!hermesReady}
+            title={hermesReady ? undefined : "Hermes 尚未連線"}
+            onClick={() =>
+              onCompose("請依已確認的活動資料提出三個方向。")
+            }
           >
             請 Hermes 整理三個方向
           </button>
@@ -680,22 +683,22 @@ export default function ProjectWorkbench({
                   下載 v{r.revision} 文案
                 </a>
                 <button
-                  onClick={() => {
-                    const next = continueCopy(d.id, r.revision);
-                    onCompose(next.text, next.focus);
-                  }}
+                  onClick={() =>
+                    onCompose(
+                      CONTINUE_SAME_WORK_PROMPT,
+                      workflows.find((item) => item.id === r.workflowId)
+                        ?.conversationId || undefined,
+                    )
+                  }
                 >
                   在對話接續修改
                 </button>
                 {d.selectedRevision === r.revision && r.workflowId && <button
-                  onClick={() => {
-                    const next = continueDesign(r.workflowId!);
-                    onCompose(next.text, {
-                      ...next.focus,
-                      copyId: d.id,
-                      revision: r.revision,
-                    });
-                  }}>交給 Hermes 接續製作</button>}
+                  onClick={() => onCompose(
+                    CONTINUE_SAME_WORK_PROMPT,
+                    workflows.find((item) => item.id === r.workflowId)
+                      ?.conversationId || undefined,
+                  )}>交給 Hermes 接續製作</button>}
               </div>
             </details>
           ))}

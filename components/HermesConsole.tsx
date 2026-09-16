@@ -17,6 +17,13 @@ import {
 } from "lucide-react";
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
+import {
+  applyComposerKeyboardStyle,
+  clearComposerKeyboardStyle,
+  isComposerKeyboardOpen,
+} from "@/lib/client/composer-keyboard";
+import { materialImageSrc } from "@/lib/client/materials";
+import { studentTaskCaption, progressSteps, safeSource, studentSourceHost } from "@/lib/client/activity";
 import type { Workflow } from "@/lib/server/workflows";
 import AppDock from "./visual/AppDock";
 import {
@@ -34,7 +41,12 @@ import PreviewPanel from "./console/PreviewPanel";
 import TaskSheet from "./console/TaskSheet";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
+import {
+  directionPickFollowUp,
+  type InspirationSearchPack,
+} from "@/lib/inspiration-pack";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
+import { CONTINUE_SAME_WORK_PROMPT } from "@/lib/server/inspiration/revise";
 import {
   emptyDraft,
   useComposerDraft,
@@ -114,6 +126,7 @@ export default function HermesConsole() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [canvaConfigured, setCanvaConfigured] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
@@ -122,6 +135,7 @@ export default function HermesConsole() {
   >("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
+  const [inspirationPack, setInspirationPack] = useState<InspirationSearchPack | null>(null);
   const [sheetsSync, setSheetsSync] = useState<SheetSyncResult | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [sidebar, setSidebar] = useState(false);
@@ -129,6 +143,9 @@ export default function HermesConsole() {
   const [panel, setPanel] = useState<"settings" | "task" | "preview" | "spatial" | null>(
     null,
   );
+  const [inspectDeveloper, setInspectDeveloper] = useState(false);
+  const [runtimeOps, setRuntimeOps] = useState(false);
+  const [voiceReady, setVoiceReady] = useState(false);
   const [settingsTab, setSettingsTab] = useState("外觀");
   const [connectionFocus, setConnectionFocus] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
@@ -148,6 +165,10 @@ export default function HermesConsole() {
     clearDrafts,
   } = useComposerDraft(draftScope);
   const [busy, setBusy] = useState(false);
+  const [pickingInspiration, setPickingInspiration] = useState(false);
+  const [pickedDirection, setPickedDirection] = useState<"A" | "B" | "C" | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [offline, setOffline] = useState(false);
@@ -181,11 +202,15 @@ export default function HermesConsole() {
   const input = useRef<HTMLTextAreaElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
+  const pinnedScrollTop = useRef<number | null>(null);
   const composing = useRef(false);
+  const sending = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
   const pendingXHR = useRef(new Map<string, XMLHttpRequest>());
   const activeConv = data.conversations.find((c) => c.id === activeId);
-  const currentTasks = tasks.filter((t) => t.conversationId === activeId);
+  const currentTasks = tasks
+    .filter((t) => t.conversationId === activeId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const currentTask = currentTasks[0];
   const pending = currentTasks.find(isActive);
   const uncertain = currentTasks.find((t) => t.state === "uncertain");
@@ -340,16 +365,18 @@ export default function HermesConsole() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
     };
+    // Only bind --app-height while the software keyboard is open. Tracking
+    // visualViewport at all times leaves Android Chrome at the keyboard-shrunk
+    // height after close (or after the URL bar returns). Nested scroll, not
+    // visualViewport scroll, owns conversation movement.
     update();
     viewport?.addEventListener("resize", schedule);
-    viewport?.addEventListener("scroll", schedule);
     window.addEventListener("resize", schedule);
     document.addEventListener("focusin", schedule);
     document.addEventListener("focusout", schedule);
     return () => {
       cancelAnimationFrame(frame);
       viewport?.removeEventListener("resize", schedule);
-      viewport?.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
       document.removeEventListener("focusin", schedule);
       document.removeEventListener("focusout", schedule);
@@ -404,16 +431,59 @@ export default function HermesConsole() {
     if (drawer) mobileNav.current?.showModal();
     else mobileNav.current?.close();
   }, [drawer]);
+  const visualPinKey =
+    currentTask?.events
+      .map((event) => event.toolName)
+      .filter(isWorkspaceResultTool)
+      .join(",") || "";
   useEffect(() => {
-    if (nearBottom.current) {
-      const el = scroll.current;
-      if (el) el.scrollTop = el.scrollHeight;
-    }
-  }, [activeConv?.messages.length, currentTask?.output]);
+    const el = scroll.current;
+    if (!el) return;
+    const pin = (target: HTMLElement | null) => {
+      if (!target) return false;
+      const top =
+        target.getBoundingClientRect().top -
+        el.getBoundingClientRect().top +
+        el.scrollTop -
+        8;
+      pinnedScrollTop.current = Math.max(0, top);
+      setJump(false);
+      el.scrollTo({ top: pinnedScrollTop.current });
+      return true;
+    };
+    const frame = requestAnimationFrame(() => {
+      if (
+        pin(
+          preferredPinnedVisual(
+            el,
+            Boolean(chatDirectionBrief),
+            /workspace_continue_direction_spec|workspace_revise_direction_spec/.test(
+              visualPinKey,
+            ),
+          ),
+        )
+      )
+        return;
+      if (!nearBottom.current) return;
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeConv?.messages.length,
+    currentTask?.output,
+    chatDirectionBrief,
+    visualPinKey,
+  ]);
   useEffect(() => {
     nearBottom.current = true;
     setJump(false);
-    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
+    const el = scroll.current;
+    if (!el) return;
+    const frame = requestAnimationFrame(() => {
+      if (el.querySelector(CONVERSATION_VISUAL_SELECTOR)) return;
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
   }, [activeId]);
   useEffect(
     () => () => {
@@ -429,6 +499,7 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
     writePreference("hermes.active.v2", conv.id);
   }
   function fresh() {
@@ -438,6 +509,8 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
+    setPickedDirection(null);
     writePreference("hermes.active.v2", null);
     input.current?.focus();
   }
@@ -465,24 +538,33 @@ export default function HermesConsole() {
     await loadWorkspace();
     return result.conversation;
   }
-  async function send() {
-    if (busy || blocked || !text.trim() || uploads.some((u) => !u.material))
+  async function sendPrompt(prompt: string, attachmentIds?: string[]) {
+    const trimmed = prompt.trim();
+    if (sending.current || busy || blocked || !trimmed) return;
+    const files = attachmentIds
+      ? []
+      : uploads.filter((u) => u.material);
+    if (
+      !attachmentIds &&
+      uploads.some((u) => !u.material)
+    )
       return;
     if (!health || health.credential !== "valid") {
       setError(health?.message || HERMES_UNCONFIGURED_MESSAGE);
       return;
     }
     setBusy(true);
+    setVoiceReady(false);
     setError("");
     nearBottom.current = true;
     try {
-      const conv = activeConv || (await createConversation(text.trim()));
+      const conv = activeConv || (await createConversation(trimmed));
       const payload = {
         conversationId: conv.id,
-        input: text.trim(),
-        attachments: [
-          ...uploads.flatMap((u) => (u.material ? [u.material.id] : [])),
-          ...references,
+        input: trimmed,
+        attachments: attachmentIds || [
+          ...files.flatMap((u) => (u.material ? [u.material.id] : [])),
+          ...refs,
         ],
       };
       const signature = JSON.stringify(payload);
@@ -503,7 +585,50 @@ export default function HermesConsole() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      sending.current = false;
       setBusy(false);
+    }
+  }
+  async function send() {
+    await sendPrompt(text);
+  }
+  async function pickInspirationDirection(
+    id: "A" | "B" | "C",
+    pack: InspirationSearchPack,
+    source: "chat" | "board" = "chat",
+  ) {
+    if (busy || pickingInspiration || blocked) return;
+    const title = pack.directions.find((item) => item.id === id)?.title || id;
+    setPickingInspiration(true);
+    setError("");
+    try {
+      await api("inspiration", "POST", {
+        action: "select",
+        selected: id,
+        prompt: pack.query.primary,
+        projectId: project,
+        conversationId:
+          source === "chat" ? activeId || undefined : undefined,
+      });
+      setPickedDirection(id);
+      await refresh();
+      if (source === "chat" && activeId) {
+        setNav("chat");
+      }
+      if (hermesCanContinue(health) && source === "chat") {
+        try {
+          await sendPrompt(directionPickFollowUp(id, title), []);
+        } catch (cause) {
+          setNotice("Hermes 尚未連線，沒有出圖。");
+          setError((cause as Error).message);
+        }
+      } else if (source === "chat" && activeId) {
+        setNotice("Hermes 尚未連線，沒有出圖。");
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPickingInspiration(false);
     }
   }
   async function stopTask(task: Task) {
@@ -525,7 +650,7 @@ export default function HermesConsole() {
       });
       setTasks((old) => old.map((t) => (t.id === task.id ? result.task : t)));
       setError("");
-      setNotice("已確認此待確認結果，可以重新送出；未宣稱遠端已停止。");
+      setNotice("已確認此待確認結果，可以重新送出；不會假裝已經停下來。");
       input.current?.focus();
     } catch (e) {
       setError((e as Error).message);
@@ -537,14 +662,14 @@ export default function HermesConsole() {
       data.conversations.find((c) => c.id === task.conversationId) ||
       activeConv;
     if (!conv) {
-      setError("找不到對應對話，無法建立重試分支。");
+      setError("找不到對應對話，無法再試一次。");
       return;
     }
     const message = conv.messages.find(
       (m) => m.taskId === task.id && m.role === "user",
     );
     if (!message) {
-      setError("找不到觸發此任務的使用者訊息，無法建立重試分支。");
+      setError("找不到觸發此任務的使用者訊息，無法再試一次。");
       return;
     }
     if (activeId !== conv.id) {
@@ -575,7 +700,7 @@ export default function HermesConsole() {
         },
       );
       setNav("chat");
-      setPanel(null);
+      closePanel();
       setNotice("已建立分支，原對話完整保留。修改內容後再送出。");
     } catch (e) {
       setError((e as Error).message);
@@ -744,12 +869,15 @@ export default function HermesConsole() {
         .then((result) => setAgents(result.agents))
         .catch(() => {});
     if (next === "inspiration")
-      api<{ items: InspirationItem[]; sheetsSync: SheetSyncResult | null }>(
-        "inspiration",
-      )
+      api<{
+        items: InspirationItem[];
+        sheetsSync: SheetSyncResult | null;
+        pack?: InspirationSearchPack;
+      }>("inspiration")
         .then((result) => {
           setInspiration(result.items);
           setSheetsSync(result.sheetsSync);
+          setInspirationPack(result.pack || null);
         })
         .catch(() => {});
   };
@@ -933,7 +1061,7 @@ export default function HermesConsole() {
       <dialog
         ref={mobileNav}
         className="mobile-nav"
-        aria-label="工作區導覽"
+        aria-label="對話列表"
         onCancel={() => setDrawer(false)}
         onClick={(e) => {
           if (e.target === e.currentTarget) setDrawer(false);
@@ -1259,7 +1387,14 @@ export default function HermesConsole() {
           <section className="secondary-page page-scroll" aria-label="靈感">
             <InspirationBoard
               items={inspiration}
+              pack={inspirationPack}
               syncStatus={sheetsSync}
+              onSelectDirection={(id, pack) =>
+                void pickInspirationDirection(id, pack, "board")
+              }
+              selectedDirection={selectedInspiration}
+              selecting={pickingInspiration}
+              brief={directionBrief}
               onSync={async () => {
                 const result = await api<{ sheetsSync: SheetSyncResult }>(
                   "inspiration",
@@ -1268,10 +1403,11 @@ export default function HermesConsole() {
                 );
                 setSheetsSync(result.sheetsSync);
                 const [updated, workspace] = await Promise.all([
-                  api<{ items: InspirationItem[] }>("inspiration"),
+                  api<{ items: InspirationItem[]; pack?: InspirationSearchPack }>("inspiration"),
                   api<Workspace>("workspace"),
                 ]);
                 setInspiration(updated.items);
+                setInspirationPack(updated.pack || null);
                 setData(workspace);
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
@@ -1318,7 +1454,7 @@ export default function HermesConsole() {
           />
         )}
       </main>
-      <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
+      <AppDock nav={nav} onNavigate={navigate} busy={busy} canvaReady={hermesCanContinue(health)} onOpenChange={setRadialOpen}
         onAction={action=>{
           if(action==="spatial")openPanel("spatial");
           else if(action==="memory"){setSettingsTab("進階");openPanel("settings");}

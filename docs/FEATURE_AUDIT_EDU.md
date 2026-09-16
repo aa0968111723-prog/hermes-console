@@ -50,7 +50,7 @@
 | `HERMES_API_URL` / `HERMES_API_KEY` | live（環境或連線設定 UI） | 未設定則聊天不能送出。UI 寫入優先於環境變數。 |
 | `TKU_MCP_URL` / `TKU_MCP_TOKEN` | live 路徑／正式站常未設定 | 可從設定頁保存 Bearer 權杖；未驗證前狀態為 Unconfigured／待驗證，不假裝 Connected。不收集校園帳號或密碼。 |
 | Canva / IG / Pinterest / Vault | stub／未設定 | 創作管線用；教心所研究非必要。 |
-| 多使用者／研究者帳號 | **missing** | 所有紀錄寫入同一 `workspace`。沒有租戶隔離。 |
+| 多使用者／研究者帳號 | **Partial** | 有 User／Identity／Membership。未獲 membership 的登入者不能進工作區。紀錄仍寫入同一 `workspace`。 |
 
 ## AI／聊天
 

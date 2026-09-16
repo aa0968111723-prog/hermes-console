@@ -3,6 +3,9 @@
 import { Columns2, GitFork, Layers, MessageSquare, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import CanvaResult from "../CanvaResult";
+import type { Artifact } from "@/lib/server/artifacts";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
+import DirectionBrief from "./DirectionBrief";
 
 type Revision = {
   id: string;
@@ -100,7 +103,10 @@ export default function ArtifactStage({
   }
 
   return (
-    <section className="artifact-stage" aria-label="設計成果預覽">
+    <section
+      className="artifact-stage"
+      aria-label={spec ? "規格草稿預覽" : "設計成果預覽"}
+    >
       <header>
         <span>
           <Layers size={16} />
@@ -172,8 +178,8 @@ export default function ArtifactStage({
         className="artifact-preview"
         aria-label="作品全螢幕預覽"
         onCancel={() => setOpen(false)}
-        onClick={(event) => {
-          if (event.currentTarget === event.target) setOpen(false);
+        onClick={(e) => {
+          if (e.currentTarget === e.target) setOpen(false);
         }}
       >
         <header>

@@ -61,7 +61,7 @@ export default memo(function Turtle({
   offline: boolean;
   animation: boolean;
   size: number;
-  onClick: () => void;
+  onClick?: () => void;
   compact?: boolean;
   label?: string;
 }) {

@@ -112,11 +112,15 @@ async function graphql<T>(
 }
 
 export function zeaburPublicStatus() {
+  const token = credentialPresence("ZEABUR_API_TOKEN");
+  const projectId = runtimeEnv("ZEABUR_PROJECT_ID") || "";
+  const serviceId = runtimeEnv("ZEABUR_SERVICE_ID") || "";
+  const environmentId = runtimeEnv("ZEABUR_ENVIRONMENT_ID") || "";
   return {
-    token: credentialPresence("ZEABUR_API_TOKEN"),
-    projectId: runtimeEnv("ZEABUR_PROJECT_ID") || "",
-    serviceId: runtimeEnv("ZEABUR_SERVICE_ID") || "",
-    environmentId: runtimeEnv("ZEABUR_ENVIRONMENT_ID") || "",
+    token,
+    projectId,
+    serviceId,
+    environmentId,
     endpoint: DEFAULT_API,
     notice: zeaburAccessNotice(),
   };

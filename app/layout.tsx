@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import "./mobile-spatial.css";
 
@@ -21,7 +22,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-TW">
-      <body>{children}</body>
+      <body>
+        <Script id="hermes-reset-hash" strategy="beforeInteractive">
+          {`(function(){try{var m=/(?:^|#|&)reset=([a-f0-9]{64})/.exec(location.hash);if(m)sessionStorage.setItem("hermes_reset_token",m[1]);}catch(e){}})();`}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

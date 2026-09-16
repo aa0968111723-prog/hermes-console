@@ -7,14 +7,22 @@ export function classifyResume(task: Task, workerAlive: boolean): ResumeState {
   if (task.state === "failed" || task.state === "cancelled") return "failed";
   if (task.state === "uncertain") return "unknown";
   if (task.transport === "runs" && task.remoteId) return "running";
-  if (task.transport === "chat" && workerAlive) return "running";
-  if (["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state) && !workerAlive)
+  if (workerAlive) return "running";
+  if (
+    [
+      "queued",
+      "running",
+      "waiting_user",
+      "waiting_authorization",
+      "stopping",
+    ].includes(task.state)
+  )
     return "unknown";
   return "unknown";
 }
 
 export function resumeNotice(state: ResumeState) {
-  if (state === "unknown") return "遠端狀態尚未確認。不會自動重新送出。";
+  if (state === "unknown") return "遠端狀態尚未確認。不會自動重送。";
   if (state === "running") return "任務仍在執行，已查回現況。";
   if (state === "failed") return "任務已失敗或已停止。";
   return "任務已完成。";

@@ -1,16 +1,20 @@
-# Hermes Console
+# Hermes Creative Intelligence
 
 Hermes Agent 的視覺化 AI 工作空間。人類透過 Console 下達意圖；Hermes 規劃、使用工具與 MCP、回傳結果。這不是工具清單、MCP Dashboard，也不是 ChatGPT clone。
 
 正式產品入口：未登入 → Login → Hermes。未設定的登入提供者必須顯示「尚未完成設定」，禁止假裝成功。
 
-## Architecture
+1. `npm ci`
+2. 複製 `.env.example` 到 `.env.local`，依註解設定。本機可不設邀請／寄信變數。
+3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。未設定時 Console 仍應開啟，並顯示尚未連線。找靈感可先用工作區已收藏來源與社團視覺語言整理方向，不會假裝 Hermes 已執行。
+4. `npm run dev` 後開啟 http://localhost:3000。預設免登入。只有設 `CONSOLE_AUTH_REQUIRED=true` 才會先看到登入頁。正式環境使用 `npm run build` 與 `npm start`。
+5. 未設或空白 `DATABASE_URL` 時使用 `CONSOLE_DATA_DIR` SQLite（容器預設 `/app/data`）。設定後改用 Hermes 自有 Postgres 表（`console_records`／`console_sessions`／`console_limits`）；若 Postgres 為空且 SQLite 有列，啟動時一次性搬移。不要指向 ai_os 或 `cutos_memory_items`。`GET /api/ready` 回傳目前 `backend` 與 `dataDir`（200／503）；`GET /api/health` 附相同欄位，都不回傳連線字串。契約測試在沒有 `DATABASE_URL` 時略過 Postgres，只跑 SQLite。
 
 Human → Hermes Console → Hermes Agent → Planner / Memory / Tools / MCP → External services → Artifacts
 
 詳見 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
-## Setup
+## 重要安全操作
 
 需要 Node.js 22.13+，單一長駐 Node 程序與持久化磁碟（不適用無狀態 serverless）。
 
@@ -38,7 +42,7 @@ Human → Hermes Console → Hermes Agent → Planner / Memory / Tools / MCP →
 
 曾在聊天、Issue、README、commit 或 log 出現過的金鑰一律視為 compromised，必須 rotate。
 
-## Auth
+Hermes 可呼叫 FrameLab 逐格動畫工作站。GitHub 倉庫網址不是 MCP。在「設定 → 連線」填 `FRAMELAB_MCP_URL`（`https://…/api/mcp`）與從 FrameLab 首頁產生的 `FRAMELAB_MCP_TOKEN`，再按「測試 FrameLab 連線」。探測成功後 Hermes 可用 `mcp.framelab.*` 與工作區 `framelab_*` 工具。詳見 [FrameLab MCP](docs/FRAMELAB.md)。
 
 三種登入共用同一個 User，不會因 Email 相同而自動合併。
 

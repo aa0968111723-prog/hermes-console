@@ -9,6 +9,10 @@ import {
 import { Ban, ExternalLink, Image, Link2, Sparkles } from "lucide-react";
 import RecruitmentTruthNotice from "@/components/help/RecruitmentTruthNotice";
 import { RecruitmentFunnelFold } from "@/components/help/RecruitmentFunnelCard";
+import type { InspirationSearchPack } from "@/lib/inspiration-pack";
+import InspirationResult from "@/components/visual/InspirationResult";
+import DirectionBrief from "@/components/visual/DirectionBrief";
+import type { DirectionBriefPack } from "@/lib/direction-brief";
 
 const KIND_LABEL: Record<VisualPattern["kind"], string> = {
   design: "畫面",
@@ -30,12 +34,22 @@ export default function InspirationBoard({
   items,
   notice,
   syncStatus,
+  pack,
   onSync,
+  onSelectDirection,
+  selectedDirection,
+  selecting = false,
+  brief = null,
 }: {
   items: InspirationItem[];
   notice: string;
   syncStatus: SheetSyncResult | null;
+  pack?: InspirationSearchPack | null;
   onSync: () => Promise<void>;
+  onSelectDirection?: (id: "A" | "B" | "C", pack: InspirationSearchPack) => void;
+  selectedDirection?: "A" | "B" | "C" | null;
+  selecting?: boolean;
+  brief?: DirectionBriefPack | null;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -86,6 +100,9 @@ export default function InspirationBoard({
       {!items.length && (
         <p className="quiet">在對話說「幫我找靈感」，或貼上可公開的連結。</p>
       )}
+      {items.length > 0 && (
+        <details className="inspiration-links">
+          <summary>已收藏連結 {items.length}</summary>
       <ul>
         {items.map((item) => (
           <li key={item.id} className="inspiration-card">

@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Workflow } from "@/lib/server/workflows";
 import ArtifactStage from "./ArtifactStage";
+import { isDirectionBriefPack } from "@/lib/direction-brief";
 export default function ArtifactDeck({
   items,
   onContinue,

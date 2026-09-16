@@ -33,8 +33,10 @@ try {
   const body = await page.locator("body").innerText();
   for (const word of ["受邀電子信箱","寄送登入連結","歡迎回到 Hermes","正在驗證工作區存取"])
     assert.ok(!body.includes(word), "invitation UI visible: "+word);
-  await page.locator(".mobile-bottom-dock").getByRole("button",{name:"專案",exact:true}).click();
+  await page.getByRole("navigation", { name: "快速導覽" }).getByRole("button",{name:"專案",exact:true}).click();
   await page.locator(".workbench-disclosure > summary").click();
+  await expect(page.getByRole("button",{name:"請 Hermes 寫 A／B／C",exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"請 Hermes 接續創作",exact:true})).toBeEnabled();
   await page.getByRole("button",{name:"建立活動資料",exact:true}).click();
   await page.getByLabel("活動資料標題",{exact:true}).fill("驗證活動");
   for (const [label,value] of [["活動名稱","春日創作展"],["日期","2026-10-01"],["地點","活動展示廳"]])
@@ -42,6 +44,7 @@ try {
   await page.getByRole("button",{name:"保存活動資料",exact:true}).click();
   await expect(page.getByText("活動已保存，新增或變更的資訊仍需核對。")).toBeVisible();
   await page.getByText("驗證活動 · v1",{exact:true}).click();
+  await expect(page.getByRole("button",{name:"請 Hermes 整理三個方向",exact:true})).toBeDisabled();
   for (const value of ["春日創作展","2026-10-01","活動展示廳"])
     await page.locator(".fact-row").filter({has:page.getByText(value,{exact:true})}).getByRole("button",{name:"確認此資訊"}).click();
   await page.getByRole("button",{name:"新增文案草稿",exact:true}).click();

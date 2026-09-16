@@ -64,7 +64,7 @@ export type ActivityKind = keyof typeof activityLabels;
 export function activityKind(name: string | null): ActivityKind {
   if (!name) return "request";
   if (
-    /galley|xunhe|訊核|tku|tamkang|search|research|browse|fetch|pinterest|instagram/i.test(
+    /galley|xunhe|訊核|tku|tamkang|search|research|browse|fetch|pinterest|instagram|zenclub|drive_index/i.test(
       name,
     )
   )
@@ -86,7 +86,7 @@ export function toolDisplayLabel(name: string | null): string | null {
   if (!name) return null;
   if (/galley/i.test(name)) return "研究 · GALLEY";
   if (/xunhe|訊核/i.test(name)) return "研究 · 訊核";
-  if (/tku|tamkang|tamsui/i.test(name)) return "查詢 · 淡江";
+  if (/tku|tamkang|tamsui|zenclub/i.test(name)) return "查詢 · 淡江";
   if (/instagram/i.test(name)) return "參考 · Instagram";
   if (/pinterest/i.test(name)) return "參考 · Pinterest";
   if (/visual_concepts/i.test(name)) return "視覺 · 概念規格";
@@ -103,6 +103,23 @@ export function toolDisplayLabel(name: string | null): string | null {
   if (/workspace|project|material/i.test(name)) return "整理 · 工作區";
   if (/search|browse|fetch|extract|web/i.test(name)) return "搜尋 · 網路";
   return activityLabels[activityKind(name)];
+}
+export function highLevelProgress(task: {
+  events: Array<{ toolName: string | null }>;
+}) {
+  const kinds = new Set(
+    task.events
+      .map((event) => event.toolName)
+      .filter((name): name is string => Boolean(name))
+      .map(activityKind),
+  );
+  if (kinds.has("research") && kinds.has("creative")) return "研究與創作";
+  if (kinds.has("research")) return "已整理資料";
+  if (kinds.has("creative")) return "已整理創作";
+  if (kinds.has("audience")) return "已整理客群";
+  if (kinds.has("workspace")) return "已整理";
+  if (kinds.size) return "已完成";
+  return null;
 }
 export function eventState(event: TaskEvent): string {
   return event.status.replace(/^tool\./, "");
@@ -212,6 +229,17 @@ export function safeSource(value: string): string | null {
   }
 }
 
+/** Visible source label: host only. Full URL stays in 維運檢視. */
+export function studentSourceHost(value: string): string | null {
+  const href = safeSource(value);
+  if (!href) return null;
+  try {
+    return new URL(href).hostname.replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
+}
+
 /** High-level labels students see. Not tool names, schemas, or call ids. */
 export function stepPhaseLabel(title: string): string {
   if (/看圖/.test(title)) return "看圖";
@@ -243,6 +271,23 @@ export function eventPhaseLabel(
   if (kind === "memory" || kind === "workspace" || kind === "request")
     return "理解";
   return "工具";
+}
+
+/** Closed event row: phase + state only. Raw Hermes preview stays in 維運檢視. */
+export function studentEventCaption(
+  event: TaskEvent,
+  task?: Task | null,
+): string {
+  return `${eventPhaseLabel(event, task)} · ${eventStateLabel(event)}`;
+}
+
+/** In-chat task button: never render Hermes preview / tool dump. */
+export function studentTaskCaption(task: Task): string {
+  const current = workingEvent(task) || task.events.at(-1);
+  if (!current) return "查看任務進度";
+  const honesty = studentHonestyLabel(task);
+  if (honesty) return `${eventPhaseLabel(current, task)} · ${honesty}`;
+  return studentEventCaption(current, task);
 }
 
 export type ProgressStep = {
@@ -405,6 +450,47 @@ export function visualProcessCaption(
   return taskStateLabel[task.state] || "進行中";
 }
 
+/** Workspace cards already occupy the thread; do not hang a 完成 pill over them. */
+export const WORKSPACE_RESULT_TOOLS = [
+  "workspace_search_inspiration",
+  "workspace_simulate_audience",
+  "workspace_revise_direction_spec",
+  "workspace_continue_direction_spec",
+  "zenclub_drive_index",
+] as const;
+
+export function isWorkspaceResultTool(name: string | null | undefined) {
+  return !!name && (WORKSPACE_RESULT_TOOLS as readonly string[]).includes(name);
+}
+
+export function taskHasWorkspaceResult(task?: Task | null): boolean {
+  return !!task?.events.some((event) => isWorkspaceResultTool(event.toolName));
+}
+
+export function showVisualProcessSummary(task: Task): boolean {
+  return !taskHasWorkspaceResult(task);
+}
+
+export function showComposerTask(
+  task: Task,
+  conv?: {
+    messages: Array<{
+      taskId?: string;
+      role: string;
+      provenance?: string;
+    }>;
+  },
+) {
+  if (task.state !== "completed") return true;
+  if (taskHasWorkspaceResult(task)) return false;
+  return !conv?.messages.some(
+    (message) =>
+      message.taskId === task.id &&
+      message.role === "assistant" &&
+      message.provenance === "workspace",
+  );
+}
+
 export function isCanvaDesign(
   value: unknown,
 ): value is Record<string, unknown> {
@@ -476,7 +562,7 @@ export function artifactsForConversation(
     seen.add(key);
     items.push({ id, design });
   };
-  if (isCreativeTask(task)) {
+  if (task && isCreativeTask(task) && !task.goal?.requiresImageReview) {
     for (const workflow of workflows) {
       if (workflow.projectId === projectId && workflow.design)
         push(workflow.id, workflow.design);

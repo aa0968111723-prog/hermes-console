@@ -32,7 +32,7 @@ const actions: QuickAction[] = [
   },
   {
     label: "設計",
-    prompt: "幫我做 Canva 草稿；若未授權請保留進度。",
+    prompt: "幫我整理網宣視覺方向。",
     icon: Palette,
     tone: "lime",
   },

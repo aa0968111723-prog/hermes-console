@@ -16,6 +16,8 @@ export async function recoverOrphanedTasks() {
   }
 }
 
+export const reconcileActiveTasks = recoverOrphanedTasks;
+
 export function startMonitor() {
   if (globalMonitor.hermesMonitor) return;
   const tick = async () => {

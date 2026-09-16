@@ -20,6 +20,7 @@ const child = spawn(
       NODE_ENV: "production",
       CONSOLE_ORIGIN: base,
       CONSOLE_ALLOW_LOCAL_ACCESS: "true",
+      CONSOLE_AUTH_REQUIRED: "",
       CONSOLE_GATEWAY_SECRET: "",
       CONSOLE_REQUIRE_GATEWAY: "false",
       CONSOLE_ADMIN_EMAILS: "",
@@ -97,6 +98,9 @@ try {
   );
   await signInEmail(page);
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
+  await expect(page.getByText("無法確認登入狀態")).toHaveCount(0);
+  await expect(page.getByText("正在確認身分")).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
   const workspace = await fetch(base + "/api/workspace");
   assert.equal(workspace.status, 401, "cookie-less fetch still unauthorized");

@@ -2,6 +2,7 @@ import type { BudgetMode, Conversation } from "../../contracts";
 import { memoriesForContext, isStaleMemory } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
 import { listMaterials } from "../materials";
+import { searchResearchNotes } from "../research-notes";
 import { listArtifacts } from "../artifacts";
 import { listWorkflows } from "../workflows";
 import { estimateTokens, recencyScore, type ContextItem } from "./provenance";
@@ -86,14 +87,23 @@ export function assembleContext(input: {
       item({
         id: message.id,
         source: "conversation",
-        title: message.role === "user" ? "使用者" : "Hermes",
+        title:
+          message.role === "user"
+            ? "使用者"
+            : message.provenance === "workspace"
+              ? "工作區"
+              : "Hermes",
         content: message.content.slice(0, 400),
         recency: recencyScore(message.createdAt),
         importance: 0.45,
         relevance: relevanceTo(message.content, query),
-        confidence: message.provenance === "hermes" ? 0.7 : 0.4,
+        confidence:
+          message.provenance === "hermes"
+            ? 0.7
+            : message.provenance === "workspace"
+              ? 0.5
+              : 0.4,
         truth: message.role === "user" ? "USER_PROVIDED" : "INFERENCE",
-        layer: "conversation",
       }),
     );
   }
@@ -114,19 +124,13 @@ export function assembleContext(input: {
       }),
     );
   }
-  for (const inspiration of listInspiration(input.projectId).slice(
-    0,
-    12,
-  ) as InspirationItem[]) {
+  for (const inspiration of listInspiration(input.projectId).slice(0, 12) as InspirationItem[]) {
     items.push(
       item({
         id: inspiration.id,
         source: "inspiration",
         title: inspiration.account || inspiration.platform,
-        content: (inspiration.captionExcerpt || inspiration.sourceUrl).slice(
-          0,
-          240,
-        ),
+        content: (inspiration.captionExcerpt || inspiration.sourceUrl).slice(0, 240),
         recency: recencyScore(inspiration.collectedAt),
         importance: 0.4,
         relevance: relevanceTo(
@@ -138,15 +142,34 @@ export function assembleContext(input: {
       }),
     );
   }
+  for (const note of searchResearchNotes(query, 3)) {
+    items.push(
+      item({
+        id: note.id,
+        source: "research_notes",
+        title: note.title,
+        content:
+          note.finding +
+          "（本地研究筆記，不是即時論文庫；source=" +
+          note.source +
+          "）",
+        recency: recencyScore(note.updatedAt),
+        importance: 0.28,
+        relevance: relevanceTo(note.title + " " + note.finding, query),
+        confidence: 0.35,
+        truth: "UNKNOWN",
+      }),
+    );
+  }
   for (const artifact of listArtifacts(input.owner, input.projectId)
     .filter((row) => row.source === "copy")
     .slice(0, 8)) {
-    const text = artifact.title + " " + (artifact.excerpt || "");
+    const text = (artifact.title || "") + " " + (artifact.excerpt || "");
     items.push(
       item({
         id: artifact.artifactId,
         source: "artifact",
-        title: artifact.title + " V" + artifact.revision,
+        title: (artifact.title || "作品") + " V" + artifact.revision,
         content:
           "沿用同一作品修改，不要另做無關新作。artifactId=" +
           artifact.artifactId +
@@ -198,9 +221,7 @@ export function assembleContext(input: {
   return packed;
 }
 
-export function formatContextForInstructions(
-  packed: ReturnType<typeof assembleContext>,
-) {
+export function formatContextForInstructions(packed: ReturnType<typeof assembleContext>) {
   if (!packed.items.length) return "目前沒有可納入的專案上下文。";
   const lines = packed.items.map((entry) => {
     const body = wrapUntrusted(

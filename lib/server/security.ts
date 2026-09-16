@@ -5,6 +5,7 @@ import {
   timingSafeEqual,
 } from "node:crypto";
 import { z } from "zod";
+import { ApiError, errorCategory, taxonomyFor } from "./errors";
 import {
   createSession,
   get,
@@ -237,6 +238,13 @@ export function authenticateOperator(request: Request, mutation = false) {
   return authenticate(request, mutation);
 }
 
+export function canInspectRuntime(request: Request) {
+  const role = readWorkspaceRole(request);
+  if (role === "member") return false;
+  if (role === "owner" || role === "admin") return true;
+  return !isAuthEnforced();
+}
+
 export function authenticate(
   request: Request,
   mutation = false,
@@ -252,6 +260,13 @@ export function authenticate(
     if (!session || !sessionHasWorkspaceMembership(session.owner))
       throw new ApiError(401, "AUTH_ERROR", "請先登入 Hermes。");
   }
+  if (operator && role === "member")
+    throw new ApiError(
+      403,
+      "permission_denied",
+      "這個操作需要工作區擁有者或管理員／管理者權限。",
+    );
+  limited("api:" + WORKSPACE_OWNER, 240, 60_000);
   return WORKSPACE_OWNER;
 }
 

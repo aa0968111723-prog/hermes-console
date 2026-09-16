@@ -1,4 +1,5 @@
 import type { IntentTier } from "../../contracts";
+import { isDirectionPick } from "../../inspiration-pack";
 
 export type { IntentTier };
 

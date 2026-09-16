@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import { applyStickyReveal } from "@/lib/client/viewport";
 import IntegrationGrid from "../visual/IntegrationGrid";
+import { useAuth } from "../auth/AuthProvider";
 
 function ConnectionHelp({ children }: { children: ReactNode }) {
   return (
@@ -40,10 +41,12 @@ type SettingsPayload = {
   fields: Record<string, FieldStatus>;
   hermes: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     keySource: string;
   };
-  mcpBridge: FieldStatus;
+  mcpBridge: FieldStatus & { state?: string; detail?: string };
   tamkang: {
     state: string;
     detail: string;
@@ -77,6 +80,8 @@ type SettingsPayload = {
   };
   atlas?: {
     configured: boolean;
+    state?: string;
+    detail?: string;
     urlSource: string;
     tokenSource: string;
   };
@@ -113,6 +118,8 @@ type SettingsPayload = {
     serviceId: string;
     environmentId: string;
     notice: string;
+    state?: string;
+    detail?: string;
   };
   openSettingsWarning: string;
   probe?: { status: string; toolsCount: number; lastError: string | null };
@@ -155,6 +162,11 @@ export default function ConnectionSettings({
   canvaState?: string;
   focusId?: string | null;
 }) {
+  const auth = useAuth();
+  const canEditConnections =
+    !auth?.required ||
+    auth.membership?.role === "owner" ||
+    auth.membership?.role === "admin";
   const [data, setData] = useState<SettingsPayload | null>(null);
   const [selected, setSelected] = useState<string | null>(focusId);
   const [error, setError] = useState("");
@@ -333,10 +345,15 @@ export default function ConnectionSettings({
       )}
       {notice && <p className="muted">{notice}</p>}
       {selected === "canva" && canva}
-      <div
-        className="connection-editor"
-        hidden={!selected || selected === "canva"}
+      {!canEditConnections && (
+        <p className="muted">連線與權杖由工作區管理員設定。一般成員看不到也改不了密鑰。</p>
+      )}
+      <details
+        className="connection-ops"
+        hidden={!canEditConnections || !selected || selected === "canva"}
       >
+        <summary>填寫網址與權杖</summary>
+      <div className="connection-editor">
         <form
           onSubmit={async (event) => {
             event.preventDefault();

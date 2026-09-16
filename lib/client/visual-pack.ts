@@ -55,6 +55,21 @@ export function isVisualConceptPack(value: unknown): value is VisualPackView {
   return ids[0] === "A" && ids[1] === "B" && ids[2] === "C";
 }
 
+export function studentFormatLabel(label: string) {
+  if (/海報 A4/.test(label)) return "海報 A4";
+  if (/海報 A3/.test(label)) return "海報 A3";
+  if (/限時動態|限動/.test(label)) return "限時動態";
+  if (/Reels/.test(label)) return "短影音封面";
+  if (/輪播/.test(label)) return "輪播";
+  if (/貼文/.test(label)) return "貼文";
+  return label.replace(/Instagram\s*/g, "").replace(/\s+\d+:\d+$/, "").trim() || label;
+}
+
+export function studentUnknownNotice(fields: string[]) {
+  if (!fields.length) return "";
+  return "未提供：" + fields.join("、") + "，畫面上留空。";
+}
+
 export function parseVisualConceptPack(text: string): VisualPackView | null {
   const trimmed = text.trim();
   if (!trimmed.startsWith("{")) return null;

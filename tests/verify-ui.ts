@@ -50,6 +50,7 @@ child.stdout?.on("data", (data) => {
 child.stderr?.on("data", (data) => {
   serverOutput += data.toString();
 });
+const TEA = "幫我找淡大禪學社茶會宣傳靈感";
 const output = resolve("output/playwright");
 await mkdir(output, { recursive: true });
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
@@ -111,12 +112,19 @@ try {
   async function assertNoInvitation(target = page) {
     const text = await target.locator("body").innerText();
     for (const word of [
+      "Login",
+      "Sign In",
+      "帳號",
+      "Username",
+      "Password",
+      "登入",
+      "註冊",
       "受邀電子信箱",
       "寄送登入連結",
       "歡迎回到 Hermes",
       "正在驗證工作區存取",
     ])
-      assert.ok(!text.includes(word), "invitation UI visible: " + word);
+      assert.ok(!text.includes(word), "forbidden visible text: " + word);
   }
   await page.goto(base);
   await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
@@ -361,6 +369,15 @@ try {
         fullPage: true,
       });
     }
+    if (
+      name === "mobile-360" ||
+      name === "mobile-390" ||
+      name === "mobile-412" ||
+      name === "mobile-430" ||
+      name === "tablet"
+    ) {
+      await verifyScrollOwnership(page, name);
+    }
   }
   await expect(
     page.locator(".topbar").getByRole("button", { name: "開啟新對話" }),
@@ -407,6 +424,16 @@ try {
     page.getByRole("searchbox", { name: "搜尋工具用途" }),
   ).toBeHidden();
   await expect(
+    page.locator(".runtime-human-summary"),
+  ).toContainText("Hermes");
+  await expect(
+    page.locator(".runtime-human-summary"),
+  ).not.toContainText("/");
+  await expect(page.getByText("Agent OS")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "開發者檢視", exact: true }),
+  ).toHaveCount(0);
+  await expect(
     page.getByRole("button", { name: "重新同步", exact: true }),
   ).toBeEnabled();
   await page.screenshot({
@@ -420,7 +447,13 @@ try {
     path: join(output, "runtime-desktop.png"),
     fullPage: true,
   });
+  await page.getByRole("button", { name: "外觀設定", exact: true }).click();
+  await page.getByRole("tab", { name: "進階", exact: true }).click();
+  await page.getByRole("checkbox", { name: /顯示維運檢視/ }).check();
+  await page.getByRole("button", { name: "關閉面板", exact: true }).click();
+  await page.getByRole("button", { name: "開發者檢視", exact: true }).click();
   const advancedRuntime = page.locator(".runtime-advanced > summary");
+  await expect(advancedRuntime).toBeVisible();
   await advancedRuntime.click();
   await page.screenshot({
     path: join(output, "runtime-advanced.png"),
@@ -481,10 +514,35 @@ try {
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(
-    (await (await context.request.get(base + "/api/inspiration")).json())
-      .sheetsSync,
-    null,
+    await page.locator(".secondary-page").evaluate((el) => el.scrollTop),
+    0,
+    "切到靈感必須從頁頂開始，不能沿用任務頁捲動",
   );
+  await expect(pickA).toBeInViewport();
+  const pickBox = await pickA.boundingBox();
+  assert.ok(pickBox && pickBox.height >= 44);
+  assert.ok(
+    pickBox.y >= 0 && pickBox.y + pickBox.height <= 800,
+    "360px 靈感第一屏必須看得到選方向 A，不能被規格框或 Drive 知識擠掉",
+  );
+  await expect(page.getByRole("heading", { name: "Drive 知識" })).toHaveCount(0);
+  const knowledgeFold = page.locator(".knowledge-fold > summary");
+  await expect(knowledgeFold).toHaveText("Drive 知識");
+  const knowledgeBox = await knowledgeFold.boundingBox();
+  assert.ok(knowledgeBox && knowledgeBox.y > pickBox.y);
+  const a4Frame = page
+    .locator(".direction-format-frame")
+    .filter({ hasText: /A4/ })
+    .first();
+  if ((await a4Frame.count()) > 0) {
+    const a4Box = await a4Frame.boundingBox();
+    assert.ok(a4Box && a4Box.y > pickBox.y, "A4 規格框必須在方向卡下面");
+  }
+  await page.screenshot({
+    path: join(output, "inspiration-mobile.png"),
+    fullPage: true,
+  });
+  const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   const syncBox = await syncButton.boundingBox();
   assert.ok(syncBox && syncBox.height >= 44);
   // UI error fixture only; the real import handler is independently covered in sheets-sync.test.ts.
@@ -522,7 +580,7 @@ try {
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
   await page.reload();
-  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "專案", exact: true }).click();
+  await dockNav.getByRole("button", { name: "專案", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "官方 Hermes 文件" }),
   ).toBeVisible();
@@ -638,7 +696,7 @@ try {
   await settingsButton.click();
   const settings = page.getByRole("dialog", { name: "工作區設定" });
   await expect(settings).toBeVisible();
-  await page.getByRole("tab", { name: "外觀", exact: true }).focus();
+  await page.getByRole("tab", { name: "帳號", exact: true }).focus();
   await page.keyboard.press("End");
   await expect(
     page.getByRole("tab", { name: "進階", exact: true }),
@@ -661,6 +719,10 @@ try {
   await audit("settings-appearance");
   await page.screenshot({
     path: join(output, "settings-desktop.png"),
+    fullPage: true,
+  });
+  await page.screenshot({
+    path: join(output, "modal.png"),
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -831,6 +893,69 @@ try {
   await expect(textarea).toHaveValue("重新整理前仍保留的草稿");
   await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
   await expect(textarea).toHaveValue("A 尚未送出的內容");
+
+  const loginContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await loginContext.route("**/api/auth/session", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        required: true,
+        user: null,
+        membership: null,
+        providers: [
+          {
+            id: "google",
+            configured: false,
+            message: "Google 登入尚未完成設定",
+          },
+          {
+            id: "tamkang",
+            configured: false,
+            message: "淡江 SSO 尚未完成設定",
+          },
+          {
+            id: "email",
+            configured: false,
+            message: "電子信箱驗證尚未完成寄信設定",
+          },
+        ],
+      }),
+    }),
+  );
+  const loginPage = await loginContext.newPage();
+  await loginPage.goto(base);
+  await expect(
+    loginPage.getByRole("heading", { name: "登入 Hermes" }),
+  ).toBeVisible();
+  await expect(
+    loginPage.getByRole("button", { name: /Google 登入尚未完成設定/ }),
+  ).toBeDisabled();
+  await expect(
+    loginPage.getByRole("button", { name: /淡江 SSO 尚未完成設定/ }),
+  ).toBeDisabled();
+  await loginPage.screenshot({
+    path: join(output, "login-mobile.png"),
+    fullPage: true,
+  });
+  const resetPage = await loginContext.newPage();
+  await resetPage.goto(base + "/#reset=" + "a".repeat(64));
+  await expect(
+    resetPage.getByRole("heading", { name: "重設密碼" }),
+  ).toBeVisible();
+  await expect(resetPage.getByLabel("新密碼")).toBeVisible();
+  await expect(
+    resetPage.getByRole("button", { name: "儲存新密碼" }),
+  ).toBeVisible();
+  await resetPage.screenshot({
+    path: join(output, "reset-mobile.png"),
+    fullPage: true,
+  });
+  await loginContext.close();
 
   // Storage may be denied by browser policy; it must not crash the workspace.
   const restricted = await browser.newContext();

@@ -61,6 +61,9 @@ export async function verifyMobileEngines(base: string, output: string) {
         await page.screenshot({
           path: join(output, `spatial-${engine}-${width}.png`),
         });
+        if (width === 360 || width === 390 || width === 412 || width === 430) {
+          await verifyScrollOwnership(page, `${engine}-chat-${width}x${height}`);
+        }
         results.push({
           engine,
           width,
@@ -130,6 +133,7 @@ export async function verifyMobileEngines(base: string, output: string) {
             () => document.documentElement.scrollWidth <= innerWidth,
           ),
         );
+        await verifyScrollOwnership(page, `${engine}-nav-${shot}`);
         await page.screenshot({
           path: join(output, `spatial-${engine}-${shot}.png`),
         });

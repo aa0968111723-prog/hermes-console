@@ -72,6 +72,13 @@ test("115-1 tea party facts stay verified and venue stays unknown", () => {
   assert.equal(stale?.entity.semester, "114-2");
 });
 
+test("spoken tea lookup still hits the 115-1 tea entity", () => {
+  const result = searchZenclubKnowledge("幫我查淡大禪學社茶會");
+  assert.ok(
+    result.hits.some((hit) => hit.entity.id.includes("115-1-tea")),
+  );
+});
+
 test("lecture speaker is from the plan; location is not invented", () => {
   const result = searchZenclubKnowledge("生命靈數 期初演講");
   const lecture = result.hits.find((hit) =>
@@ -112,6 +119,9 @@ test("knowledge routing is club-specific, not every tea party", () => {
   assert.equal(needsZenclubKnowledge("幫我做給淡江大一新生的期初茶會 IG"), true);
   assert.equal(needsZenclubKnowledge("禪學社社博攤位"), true);
   assert.equal(needsZenclubKnowledge("今天社博在哪"), true);
+  assert.equal(needsZenclubKnowledge("淡江迎新在哪"), true);
+  assert.equal(needsZenclubKnowledge("茶會幾點"), true);
+  assert.equal(needsZenclubKnowledge("擺攤在哪"), true);
   assert.equal(needsZenclubKnowledge("國立臺灣大學新生茶會文宣海報"), false);
   assert.equal(needsZenclubKnowledge("淡江大一新生通勤"), false);
   const goal = interpretGoal("幫我做給淡江大一新生的期初茶會 IG");
@@ -131,6 +141,13 @@ test("knowledge routing is club-specific, not every tea party", () => {
   assert.equal(
     otherRoutes.find((item) => item.id === "club_knowledge"),
     undefined,
+  );
+});
+
+test("spoken 迎新 lookup still hits the 115-1 fair booth", () => {
+  const result = searchZenclubKnowledge("淡江迎新在哪");
+  assert.ok(
+    result.hits.some((hit) => hit.entity.id === "activity:115-1-fair"),
   );
 });
 

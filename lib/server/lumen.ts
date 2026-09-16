@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ApiError, redact } from "./security";
 import { runtimeEnv } from "./credentials";
-import { githubIsNotMcp } from "./mcp-registry";
+import { githubIsNotMcp, honestConfiguredStatus } from "./mcp-registry";
 
 const context = {
   taskId: z.string().uuid().optional(),
@@ -119,12 +119,12 @@ export function lumenStatus() {
       state: "unconfigured" as const,
       detail: "已設定端點，請貼上至少 32 字元的 LUMEN_MCP_TOKEN。",
     };
-  return {
+  return honestConfiguredStatus("lumen", {
     id: "lumen",
     name: "Lumen 創作台",
-    state: "partial" as const,
-    detail: "已設定端點與服務憑證。Hermes 可經 Workspace MCP 呼叫 lumen_*；探測通過代表有真實工具清單。文宣意圖必須真的呼叫，不要用文字假裝已開畫板。",
-  };
+    state: "awaiting_authorization" as const,
+    detail: "已設定端點與服務憑證，尚未完成 initialize／tools/list。",
+  });
 }
 
 type RpcResult = {

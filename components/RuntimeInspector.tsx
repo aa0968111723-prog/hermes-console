@@ -41,9 +41,11 @@ function mcpTone(servers: { enabled: boolean; status: string }[]) {
 const ToolRow = memo(function ToolRow({
   tool,
   stale,
+  developer,
 }: {
   tool: ToolDescriptor;
   stale: boolean;
+  developer: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const shown = stale ? "stale" : tool.status;
@@ -61,8 +63,7 @@ const ToolRow = memo(function ToolRow({
         />
         <strong>{tool.displayName}</strong>
         <small>
-          {tool.canonicalName} ·{" "}
-          {tool.enabled ? statusLabel(shown) : "未啟用"}
+          {tool.canonicalName} · {tool.enabled ? statusLabel(shown) : "未啟用"}
         </small>
         <ChevronDown
           className={open ? "is-open" : ""}
@@ -84,26 +85,24 @@ const ToolRow = memo(function ToolRow({
                 ? new Date(tool.lastVerifiedAt).toLocaleString("zh-TW")
                 : "尚無此工具的執行驗證"}
             </dd>
-            <dt>專案綁定</dt>
-            <dd>
-              {tool.metadata.bindingSupported
-                ? "由 Console 後端檢查"
-                : "尚無可強制套用的介面"}
-            </dd>
           </dl>
-          <details>
-            <summary>輸入格式</summary>
-            {Object.keys(tool.inputSchema).length ? (
-              <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
-            ) : (
-              <p>此探索介面未提供輸入 schema。</p>
-            )}
-          </details>
-          {tool.outputSchema && (
-            <details>
-              <summary>輸出格式</summary>
-              <pre>{JSON.stringify(tool.outputSchema, null, 2)}</pre>
-            </details>
+          {developer && (
+            <>
+              <details>
+                <summary>輸入格式</summary>
+                {Object.keys(tool.inputSchema).length ? (
+                  <pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre>
+                ) : (
+                  <p>此探索介面未提供輸入 schema。</p>
+                )}
+              </details>
+              {tool.outputSchema && (
+                <details>
+                  <summary>輸出格式</summary>
+                  <pre>{JSON.stringify(tool.outputSchema, null, 2)}</pre>
+                </details>
+              )}
+            </>
           )}
         </div>
       )}
@@ -126,6 +125,11 @@ export default function RuntimeInspector({
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(100);
+  const [developer, setDeveloper] = useState(false);
+  const inspect = allowDeveloper && developer;
+  useEffect(() => {
+    if (!allowDeveloper) setDeveloper(false);
+  }, [allowDeveloper]);
   const accept = useCallback((next: HermesRuntimeSnapshot) => {
     setSnapshot((previous) =>
       previous && Date.parse(previous.fetchedAt) > Date.parse(next.fetchedAt)
@@ -398,6 +402,7 @@ export default function RuntimeInspector({
               <span>Sessions {statusLabel(snapshot.sessionsSupport)}</span>
               <span>Runs {statusLabel(snapshot.runsSupport)}</span>
               <span>Memory {statusLabel(snapshot.memorySupport)}</span>
+              <span>讀圖 {statusLabel(snapshot.imageInputSupport)}</span>
             </div>
             <details>
               <summary>技能與 Toolsets</summary>

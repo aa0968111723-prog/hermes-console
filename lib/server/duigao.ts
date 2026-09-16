@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ApiError, redact } from "./security";
 import { runtimeEnv } from "./credentials";
-import { githubIsNotMcp } from "./mcp-registry";
+import { githubIsNotMcp, honestConfiguredStatus } from "./mcp-registry";
 
 const context = {
   taskId: z.string().uuid().optional(),
@@ -121,12 +121,12 @@ export function duigaoStatus() {
       state: "awaiting_authorization" as const,
       detail: "已設定端點，尚未提供 DUIGAO_MCP_TOKEN。請從對稿 MCP 頁複製權杖。",
     };
-  return {
+  return honestConfiguredStatus("duigao", {
     id: "duigao",
     name: "對稿",
-    state: "partial" as const,
-    detail: "已設定端點與權杖，需 initialize／tools/list 驗證後 Hermes 才能呼叫 mcp.duigao 與 duigao_*。",
-  };
+    state: "awaiting_authorization" as const,
+    detail: "已設定端點與權杖，尚未完成 initialize／tools/list。",
+  });
 }
 
 type RpcResult = {

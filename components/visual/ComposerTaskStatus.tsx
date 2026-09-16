@@ -8,6 +8,12 @@ import {
   workingEvent,
 } from "@/lib/client/activity";
 
+export {
+  WORKSPACE_RESULT_TOOLS,
+  isWorkspaceResultTool,
+  showComposerTask,
+} from "@/lib/client/activity";
+
 /** Pill + notice share this offline copy (chat-first; never pretend remote stopped). */
 export const OFFLINE_PILL_LABEL = "離線 · 顯示上次資料";
 export const OFFLINE_NOTICE =

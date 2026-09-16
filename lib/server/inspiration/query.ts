@@ -19,7 +19,7 @@ export function parseInspirationQuery(raw: string): InspirationQuery {
   const negative: string[] = [];
   for (const [pattern, label] of NEGATIVE)
     if (pattern.test(raw)) negative.push(label);
-  const target = /淡江/.test(raw)
+  const target = /淡江|淡大|tku/i.test(raw)
     ? "Tamkang freshman"
     : /台大/.test(raw)
       ? "NTU freshman"

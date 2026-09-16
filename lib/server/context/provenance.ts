@@ -11,6 +11,7 @@ export type ContextSourceKind =
   | "artifact"
   | "audience"
   | "runtime"
+  | "research_notes"
   | "goal";
 
 export interface ContextItem {
