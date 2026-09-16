@@ -4,8 +4,8 @@ import {
   artifactsForConversation,
   progressSteps,
   safeSource,
+  studentHonestyLabel,
   studentProcessDone,
-  taskKeptSpecOnly,
   visualProcessCaption,
 } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
@@ -51,7 +51,7 @@ export default function VisualMessage({
     !steps.length
   )
     return null;
-  const specOnly = taskKeptSpecOnly(task);
+  const honesty = studentHonestyLabel(task);
   const done = studentProcessDone(task, steps);
   return (
     <div className="visual-message">
@@ -60,7 +60,7 @@ export default function VisualMessage({
         <button className="tool-result-summary" onClick={onInspect}>
           {done ? (
             <Check size={15} />
-          ) : specOnly ? (
+          ) : honesty ? (
             <CircleHelp size={15} />
           ) : (
             <Circle size={15} />

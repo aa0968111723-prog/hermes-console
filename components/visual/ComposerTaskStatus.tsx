@@ -4,8 +4,8 @@ import type { Task } from "@/lib/contracts";
 import {
   activityKind,
   eventPhaseLabel,
+  studentHonestyLabel,
   studentTaskLabel,
-  taskKeptSpecOnly,
   workingEvent,
 } from "@/lib/client/activity";
 
@@ -46,7 +46,7 @@ export function composerTaskStatus(task: Task, offline: boolean) {
   if (offline) return { label: OFFLINE_PILL_LABEL, tone: "warning", tool: null };
   if (task.observationError)
     return { label: "連線異常 · 狀態待確認", tone: "warning", tool: null };
-  if (taskKeptSpecOnly(task))
+  if (studentHonestyLabel(task))
     return {
       label: studentTaskLabel(task),
       tone: "warning",

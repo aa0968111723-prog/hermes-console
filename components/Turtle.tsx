@@ -4,14 +4,14 @@ import type { Task } from "@/lib/contracts";
 import {
   activityKind,
   eventState,
+  studentHonestyLabel,
   studentTaskLabel,
-  taskKeptSpecOnly,
   workingEvent,
 } from "@/lib/client/activity";
 export function turtleState(task: Task | undefined, offline: boolean) {
   if (offline) return { id: "offline", label: "離線" };
   if (!task) return { id: "idle", label: "準備好了" };
-  if (taskKeptSpecOnly(task))
+  if (studentHonestyLabel(task))
     return { id: "waiting", label: studentTaskLabel(task) };
   if (task.state === "failed" || task.state === "uncertain")
     return {

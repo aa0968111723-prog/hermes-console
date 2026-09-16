@@ -4,6 +4,7 @@ import {
   Conversation,
   DESIGN_WITHOUT_PREVIEW,
   EMPTY_USAGE,
+  RESEARCH_WITHOUT_SOURCES,
   Task,
   TaskEvent,
 } from "../contracts";
@@ -173,7 +174,22 @@ function failedToolEvents(task: Task) {
   });
 }
 
-export { DESIGN_WITHOUT_PREVIEW };
+export { DESIGN_WITHOUT_PREVIEW, RESEARCH_WITHOUT_SOURCES };
+
+export function isGroundedSource(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password;
+  } catch {
+    return false;
+  }
+}
+
+export function taskHasGroundedSources(task: Task): boolean {
+  return task.events.some((event) =>
+    (event.sources || []).some(isGroundedSource),
+  );
+}
 
 export function taskHasVisualArtifact(owner: string, task: Task) {
   const conv = conversation(owner, task.conversationId);
@@ -206,6 +222,27 @@ export function taskHasVisualArtifact(owner: string, task: Task) {
   });
 }
 
+function honestyNotices(owner: string, task: Task, state: Task["state"]) {
+  if (state !== "completed") return [] as string[];
+  const notices: string[] = [];
+  if (
+    (task.goal?.requiresResearch || task.goal?.requiresTamkang) &&
+    !taskHasGroundedSources(task)
+  )
+    notices.push(RESEARCH_WITHOUT_SOURCES);
+  if (task.goal?.requiresDesign && !taskHasVisualArtifact(owner, task))
+    notices.push(DESIGN_WITHOUT_PREVIEW);
+  return notices;
+}
+
+function applyHonestyOutput(task: Task, notices: string[]) {
+  if (!notices.length) return;
+  const body = task.output.trim();
+  const extra = notices.filter((notice) => !body.includes(notice));
+  if (!extra.length) return;
+  task.output = body ? body + "\n\n" + extra.join("\n\n") : extra.join("\n\n");
+}
+
 function finish(
   owner: string,
   task: Task,
@@ -218,15 +255,14 @@ function finish(
       "部分步驟目前做不到，只保留已確認的內容。",
       "fallback",
     );
-  const visualMissing =
-    state === "completed" &&
-    !!task.goal?.requiresDesign &&
-    !taskHasVisualArtifact(owner, task);
-  if (
-    visualMissing &&
-    !task.events.some((item) => item.summary.includes("沒有假裝設計完成"))
-  )
-    event(task, DESIGN_WITHOUT_PREVIEW, "fallback");
+  const notices = honestyNotices(owner, task, state);
+  for (const notice of notices) {
+    const mark = notice.includes("假裝設計")
+      ? "沒有假裝設計完成"
+      : "沒有假裝已經搜到資料";
+    if (!task.events.some((item) => item.summary.includes(mark)))
+      event(task, notice, "fallback");
+  }
   task.state = state;
   task.error = error;
   task.endedAt = now();
@@ -235,14 +271,13 @@ function finish(
     task,
     error ||
       (state === "completed"
-        ? visualMissing
-          ? DESIGN_WITHOUT_PREVIEW
-          : "Hermes 已回傳完成結果。"
+        ? notices[0] || "Hermes 已回傳完成結果。"
         : state === "cancelled"
           ? "Hermes 已確認停止。"
           : "任務已結束。"),
   );
   if (state === "completed") {
+    applyHonestyOutput(task, notices);
     const conv = conversation(owner, task.conversationId);
     if (
       !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")

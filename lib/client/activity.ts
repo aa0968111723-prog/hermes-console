@@ -1,6 +1,12 @@
-import { DESIGN_WITHOUT_PREVIEW, type Task, type TaskEvent } from "../contracts";
+import {
+  DESIGN_WITHOUT_PREVIEW,
+  RESEARCH_WITHOUT_SOURCES,
+  type Task,
+  type TaskEvent,
+} from "../contracts";
 
 export const SPEC_ONLY_DESIGN_LABEL = "規格已保留";
+export const RESEARCH_WITHOUT_SOURCES_LABEL = "還沒找到來源";
 
 export function taskKeptSpecOnly(task?: Task | null): boolean {
   if (!task || task.state !== "completed") return false;
@@ -12,9 +18,24 @@ export function taskKeptSpecOnly(task?: Task | null): boolean {
   );
 }
 
-export function studentTaskLabel(task: Task): string {
+export function taskMissingSources(task?: Task | null): boolean {
+  if (!task || task.state !== "completed") return false;
+  return task.events.some(
+    (event) =>
+      typeof event.summary === "string" &&
+      (event.summary === RESEARCH_WITHOUT_SOURCES ||
+        event.summary.includes("沒有假裝已經搜到資料")),
+  );
+}
+
+export function studentHonestyLabel(task?: Task | null): string | null {
+  if (taskMissingSources(task)) return RESEARCH_WITHOUT_SOURCES_LABEL;
   if (taskKeptSpecOnly(task)) return SPEC_ONLY_DESIGN_LABEL;
-  return taskStateLabel[task.state] || "狀態未知";
+  return null;
+}
+
+export function studentTaskLabel(task: Task): string {
+  return studentHonestyLabel(task) || taskStateLabel[task.state] || "狀態未知";
 }
 
 export const activityLabels = {
@@ -198,13 +219,16 @@ function applyEventProgress(task: Task, phases: ProgressStep[]) {
     task.state,
   );
   const specOnly = taskKeptSpecOnly(task);
+  const missingSources = taskMissingSources(task);
   phases.forEach((phase, index) => {
     if (finished) {
-      if (specOnly) {
-        phase.state =
-          phase.label === "創作" || phase.label === "完成"
-            ? "uncertain"
-            : "completed";
+      if (specOnly || missingSources) {
+        const creativeGap =
+          specOnly && (phase.label === "創作" || phase.label === "完成");
+        const researchGap =
+          missingSources &&
+          (phase.label === "研究" || phase.label === "靈感");
+        phase.state = creativeGap || researchGap ? "uncertain" : "completed";
         phase.active = false;
         return;
       }
@@ -263,6 +287,12 @@ export function progressSteps(task: Task): ProgressStep[] {
       activityKind(event.toolName) === "creative"
     )
       known = "uncertain";
+    if (
+      taskMissingSources(task) &&
+      known === "completed" &&
+      activityKind(event.toolName) === "research"
+    )
+      known = "uncertain";
     return {
       key: event.id,
       label: activityLabels[activityKind(event.toolName)],
@@ -276,7 +306,7 @@ export function studentProcessDone(
   task: Task,
   steps: ProgressStep[] = progressSteps(task),
 ): boolean {
-  if (taskKeptSpecOnly(task)) return false;
+  if (studentHonestyLabel(task)) return false;
   return (
     task.state === "completed" ||
     (steps.length > 0 && steps.every((step) => step.state === "completed"))
@@ -288,7 +318,8 @@ export function visualProcessCaption(
   steps: ProgressStep[] = progressSteps(task),
 ): string {
   if (studentProcessDone(task, steps)) return "過程完成";
-  if (taskKeptSpecOnly(task)) return SPEC_ONLY_DESIGN_LABEL;
+  const honesty = studentHonestyLabel(task);
+  if (honesty) return honesty;
   const active = steps.find((step) => step.active);
   if (active) return active.label;
   return taskStateLabel[task.state] || "進行中";

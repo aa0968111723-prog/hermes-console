@@ -17,8 +17,8 @@ import {
 import type { Task } from "@/lib/contracts";
 import {
   progressSteps,
+  studentHonestyLabel,
   studentTaskLabel,
-  taskKeptSpecOnly,
 } from "@/lib/client/activity";
 
 const icons: Record<string, typeof Search> = {
@@ -82,7 +82,7 @@ export default function AgentActivity({
         className="activity-inspect"
         aria-label={"查看任務：" + studentTaskLabel(task)}
       >
-        {taskKeptSpecOnly(task) ||
+        {studentHonestyLabel(task) ||
         ["failed", "uncertain"].includes(task.state) ? (
           <CircleAlert size={16} />
         ) : task.state === "completed" ? (
