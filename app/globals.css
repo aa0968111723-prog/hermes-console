@@ -967,7 +967,8 @@ nav button[aria-current="page"] {
   font-size: 12px;
   max-width: 230px;
 }
-.message-attachments img {
+.message-attachments img,
+.message-attachments .material-tile {
   width: 54px;
   height: 54px;
   object-fit: cover;
@@ -2596,6 +2597,49 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .context-card { display: flex; align-items: center; width: min(310px,100%); min-width: 0; padding: 4px; background: var(--color-canvas); }
 .context-card .context-preview { flex: none; width: 52px; height: 52px; padding: 0; border: 0; border-radius: var(--radius-control); overflow: hidden; }
 .context-preview img { width: 100%; height: 100%; object-fit: cover; }
+.material-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  min-height: 52px;
+  padding: 6px;
+  background: var(--color-primary-soft, #edf4e9);
+  color: var(--color-primary);
+  text-align: center;
+}
+.material-tile em,
+.material-tile strong {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+}
+.preview-host {
+  min-height: 72px;
+  border-radius: var(--radius-control, 12px);
+}
+.preview-host small {
+  font-size: 11px;
+  font-weight: 400;
+  white-space: normal;
+  color: var(--color-muted);
+}
+.pdf-cover {
+  margin: 0;
+}
+.pdf-cover figcaption {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-muted);
+}
 .context-card > span { flex: 1; min-width: 0; font-size: var(--type-caption); overflow-wrap: anywhere; }
 .context-card small { display: flex; align-items: center; gap: 3px; font-size: .75rem; }
 .context-card > button { flex: none; min-width: 44px; min-height: 44px; }

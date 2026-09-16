@@ -22,6 +22,9 @@ const { put, list } = await import("../lib/server/store");
 const { ingestUrl } = await import("../lib/server/inspiration");
 const materialsRoute = await import("../app/api/materials/route");
 const workspace = await import("../app/api/workspace/route");
+const { materialSrc, referenceHost, visualKind } = await import(
+  "../lib/client/material-src"
+);
 
 test("saveUpload rejects forged PDF magic bytes", async () => {
   await assert.rejects(
@@ -247,4 +250,71 @@ test("inspiration and Drive fact ingest write source types without member names"
   assert.equal(driveMaterials[0].source?.provider, "google_drive");
   assert.equal(driveMaterials[0].source?.locator, "abcDriveFactFile01");
   assert.equal(driveMaterials[0].people, undefined);
+});
+
+test("image thumbs are compressed WebP; PDF thumbs are labeled SVG covers", async () => {
+  const png = await sharp({
+    create: { width: 640, height: 480, channels: 3, background: "#356b45" },
+  })
+    .png()
+    .toBuffer();
+  const image = await saveUpload(
+    "workspace",
+    "personal",
+    "poster.png",
+    "image/png",
+    png,
+  );
+  const original = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + image.id),
+  );
+  const thumb = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + image.id + "&variant=thumb"),
+  );
+  assert.equal(original.status, 200);
+  assert.equal(original.headers.get("content-type"), "image/png");
+  assert.equal(original.headers.get("cache-control"), "private, no-store");
+  assert.equal(thumb.status, 200);
+  assert.equal(thumb.headers.get("content-type"), "image/webp");
+  const originalBytes = Buffer.from(await original.arrayBuffer());
+  const thumbBytes = Buffer.from(await thumb.arrayBuffer());
+  assert.ok(thumbBytes.length < originalBytes.length);
+  const pdf = await saveUpload(
+    "workspace",
+    "personal",
+    "brief.pdf",
+    "application/pdf",
+    Buffer.from("%PDF-1.4\n% cover-test"),
+  );
+  const pdfThumb = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + pdf.id + "&variant=thumb"),
+  );
+  assert.equal(pdfThumb.headers.get("content-type"), "image/svg+xml");
+  const svg = await pdfThumb.text();
+  assert.match(svg, />PDF</);
+  assert.doesNotMatch(svg, /brief\.pdf/);
+  const rejected = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + image.id + "&variant=original"),
+  );
+  assert.equal(rejected.status, 400);
+  const linked = saveReference("workspace", {
+    projectId: "personal",
+    title: "公開來源",
+    url: "https://example.com/poster",
+    notes: "no fetch",
+    tags: [],
+  });
+  const refThumb = await materialsRoute.GET(
+    originRequest("/api/materials?id=" + linked.id + "&variant=thumb"),
+  );
+  assert.equal(refThumb.status, 200);
+  const refBody = (await refThumb.json()) as { material: Material };
+  assert.equal(refBody.material.kind, "reference");
+  assert.equal(refBody.material.url, "https://example.com/poster");
+  assert.equal(visualKind(image), "image");
+  assert.equal(visualKind(pdf), "pdf");
+  assert.equal(visualKind(linked), "link");
+  assert.equal(materialSrc(image.id, "thumb"), "/api/materials?id=" + image.id + "&variant=thumb");
+  assert.equal(materialSrc(image.id, "full"), "/api/materials?id=" + image.id);
+  assert.equal(referenceHost("https://www.example.com/x"), "example.com");
 });

@@ -48,6 +48,7 @@ import ComposerTaskStatus, {
   shortTaskError,
 } from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
+import MaterialThumb from "./visual/MaterialThumb";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
 import TaskEventSummary from "./visual/TaskEventSummary";
@@ -74,6 +75,7 @@ import {
   shellMetrics,
   widthChanged,
 } from "@/lib/client/viewport";
+import { materialSrc, referenceHost } from "@/lib/client/material-src";
 import AccountPanel from "./auth/AccountPanel";
 import { useAuthOptional } from "./auth/AuthProvider";
 import { useSpatialMode } from "./visual/useSpatialMode";
@@ -1199,12 +1201,14 @@ export default function HermesConsole() {
                                       setPanel("preview");
                                     }}
                                   >
-                                    {asset.kind === "image" && (
-                                      <img
-                                        src={"/api/materials?id=" + asset.id}
+                                    {asset.kind === "image" ||
+                                    asset.mime === "application/pdf" ||
+                                    asset.kind === "reference" ? (
+                                      <MaterialThumb
+                                        material={asset}
                                         alt={asset.title}
                                       />
-                                    )}
+                                    ) : null}
                                     <span>{asset.title}</span>
                                   </button>
                                 ) : null;
@@ -1609,8 +1613,10 @@ export default function HermesConsole() {
                         setPanel("preview");
                       }}
                     >
-                      {m.kind === "image" ? (
-                        <img src={"/api/materials?id=" + m.id} alt={m.title} />
+                      {m.kind === "image" ||
+                      m.mime === "application/pdf" ||
+                      m.kind === "reference" ? (
+                        <MaterialThumb material={m} alt={m.title} />
                       ) : (
                         <LinkIcon size={28} />
                       )}
@@ -2287,9 +2293,25 @@ export default function HermesConsole() {
               {preview.kind === "image" && (
                 <img
                   className="full-preview"
-                  src={"/api/materials?id=" + preview.id}
+                  src={materialSrc(preview.id, "full")}
                   alt={preview.title}
                 />
+              )}
+              {preview.mime === "application/pdf" && (
+                <figure className="pdf-cover">
+                  <img
+                    className="full-preview"
+                    src={materialSrc(preview.id, "thumb")}
+                    alt={preview.title + "（PDF 標示封面，非頁面擷取）"}
+                  />
+                  <figcaption>PDF 標示封面，不是頁面擷取</figcaption>
+                </figure>
+              )}
+              {preview.kind === "reference" && preview.url && (
+                <p className="material-tile preview-host">
+                  <strong>{referenceHost(preview.url)}</strong>
+                  <small>未抓取網站預覽，避免伺服器代打任意網址。</small>
+                </p>
               )}
               <p>
                 {preview.rights === "reference_only"
@@ -2309,7 +2331,7 @@ export default function HermesConsole() {
               ) : (
                 <a
                   className="button-link"
-                  href={"/api/materials?id=" + preview.id}
+                  href={materialSrc(preview.id, "full")}
                   download={preview.title}
                 >
                   下載素材 <Download size={16} />

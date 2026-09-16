@@ -1,5 +1,6 @@
 import { Folder, Plus } from "lucide-react";
 import type { Conversation, Material } from "@/lib/contracts";
+import MaterialThumb from "./MaterialThumb";
 export default function ProjectShelf({
   projects,
   materials,
@@ -34,11 +35,7 @@ export default function ProjectShelf({
           >
             <span className="project-thumbnail">
               {cover ? (
-                <img
-                  src={"/api/materials?id=" + cover.id}
-                  alt=""
-                  loading="lazy"
-                />
+                <MaterialThumb material={cover} alt="" />
               ) : (
                 <Folder size={40} strokeWidth={1} />
               )}

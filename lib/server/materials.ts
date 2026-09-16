@@ -32,6 +32,75 @@ export function filePath(owner: string, id: string) {
   return join(dataDir(), "uploads", owner, id);
 }
 
+export function thumbPath(owner: string, id: string) {
+  return filePath(owner, id) + ".thumb.webp";
+}
+
+export function labeledCoverSvg(label: "PDF" | "TXT") {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320" role="img"><rect width="240" height="320" fill="#f4f7f0"/><rect x="28" y="36" width="184" height="248" rx="12" fill="#fff" stroke="#c5d6bb"/><text x="120" y="168" text-anchor="middle" font-size="32" font-family="system-ui,sans-serif" fill="#356b45">${label}</text></svg>`;
+}
+
+export async function materialBytes(
+  owner: string,
+  asset: Material,
+  variant: "full" | "thumb" = "full",
+): Promise<{ body: Buffer; mime: string; cache: string }> {
+  if (asset.kind === "reference")
+    throw new ApiError(400, "invalid_input", "參考連結沒有可下載的檔案。");
+  if (variant === "thumb") {
+    if (asset.kind === "image") {
+      const cached = thumbPath(owner, asset.id);
+      try {
+        return {
+          body: await readFile(cached),
+          mime: "image/webp",
+          cache: "private, max-age=86400",
+        };
+      } catch {
+        const original = await readFile(filePath(owner, asset.id));
+        try {
+          const body = await sharp(original, {
+            limitInputPixels: 25_000_000,
+            animated: false,
+          })
+            .rotate()
+            .resize({
+              width: 480,
+              height: 480,
+              fit: "inside",
+              withoutEnlargement: true,
+            })
+            .webp({ quality: 72 })
+            .toBuffer();
+          await writeFile(cached, body, { mode: 0o600 });
+          return {
+            body,
+            mime: "image/webp",
+            cache: "private, max-age=86400",
+          };
+        } catch {
+          return {
+            body: original,
+            mime: asset.mime || "image/png",
+            cache: "private, max-age=3600",
+          };
+        }
+      }
+    }
+    const label = asset.mime === "application/pdf" ? "PDF" : "TXT";
+    return {
+      body: Buffer.from(labeledCoverSvg(label)),
+      mime: "image/svg+xml",
+      cache: "private, max-age=86400",
+    };
+  }
+  return {
+    body: await readFile(filePath(owner, asset.id)),
+    mime: asset.mime || "application/octet-stream",
+    cache: "private, no-store",
+  };
+}
+
 export function includeDuplicatesQuery(url: URL) {
   const value = url.searchParams.get("includeDuplicates");
   return value === "1" || value === "true";

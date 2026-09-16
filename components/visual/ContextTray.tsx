@@ -1,7 +1,8 @@
 "use client";
-import { Check, FileText, Link, RefreshCw, X } from "lucide-react";
+import { Check, RefreshCw, X } from "lucide-react";
 import type { Material } from "@/lib/contracts";
 import type { Upload } from "../useComposerDraft";
+import MaterialThumb from "./MaterialThumb";
 export default function ContextTray({
   uploads,
   references,
@@ -33,14 +34,11 @@ export default function ContextTray({
             aria-label={"預覽附件：" + upload.file.name}
             onClick={() => upload.material && onPreview(upload.material)}
           >
-            {upload.material?.kind === "image" ? (
-              <img
-                src={"/api/materials?id=" + upload.material.id}
+              <MaterialThumb
+                material={upload.material}
+                file={upload.file}
                 alt={upload.file.name}
               />
-            ) : (
-              <FileText size={24} />
-            )}
           </button>
           <span title={upload.file.name}>
             {upload.file.name}
@@ -94,10 +92,10 @@ export default function ContextTray({
               aria-label={"預覽參考：" + (material?.title || "素材已移除")}
               onClick={() => material && onPreview(material)}
             >
-              {material?.kind === "image" ? (
-                <img src={"/api/materials?id=" + id} alt={material.title} />
+              {material ? (
+                <MaterialThumb material={material} alt={material.title} />
               ) : (
-                <Link size={24} />
+                <MaterialThumb alt="素材已移除" />
               )}
             </button>
             <span>
