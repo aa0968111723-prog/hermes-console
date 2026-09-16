@@ -253,8 +253,11 @@ export async function verifyVisualStates(
     await page.keyboard.press("Enter");
     const detail = page.getByRole("dialog", { name: "任務詳情" });
     await expect(detail).toBeVisible();
-    await expect(detail).toContainText("ui-fixture-task");
+    await expect(detail).not.toContainText("ui-fixture-task");
+    await expect(detail).not.toContainText("galley_research");
+    await detail.getByRole("button", { name: "開發者檢視", exact: true }).click();
     const technical = detail.locator(".task-technical");
+    await expect(technical).toBeVisible();
     const technicalSummary = technical.locator("summary");
     if ((await technical.getAttribute("open")) !== null)
       await technicalSummary.click();
@@ -291,6 +294,8 @@ export async function verifyVisualStates(
     await expect(eventDetails).toHaveAttribute("open", "");
     await expect(detail.locator(".event-meta code").first()).toBeVisible();
     await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
+    await detail.getByRole("button", { name: "一般檢視", exact: true }).click();
+    await expect(detail).not.toContainText("ui-fixture-task");
     await page.keyboard.press("Escape");
     await expect(composer).toBeFocused();
     await expect(composer).toHaveValue(draft);

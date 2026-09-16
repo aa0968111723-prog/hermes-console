@@ -288,7 +288,9 @@ try {
     path: join(output, "runtime-desktop.png"),
     fullPage: true,
   });
+  await page.getByRole("button", { name: "開發者檢視", exact: true }).click();
   const advancedRuntime = page.locator(".runtime-advanced > summary");
+  await expect(advancedRuntime).toBeVisible();
   await advancedRuntime.click();
   await page.screenshot({
     path: join(output, "runtime-advanced.png"),
