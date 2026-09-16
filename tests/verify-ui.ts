@@ -308,7 +308,6 @@ try {
   const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });
   await expect(conversationDrawer).toBeVisible();
   await conversationDrawer.getByRole("button", { name: "開啟新對話" }).click();
-  await conversationDrawer.getByRole("button", { name: "關閉導覽" }).click();
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   const poster = await readFile("public/mascot/turtle.png");
   await page.locator('#composer input[type="file"]').setInputFiles({
