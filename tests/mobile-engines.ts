@@ -2,6 +2,7 @@ import { chromium, webkit, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
+import { signInEmail } from "./browser-login";
 
 // Browser emulation only. WebKit on CI is not a physical iPhone Safari run.
 export async function verifyMobileEngines(base: string, output: string) {
@@ -21,6 +22,7 @@ export async function verifyMobileEngines(base: string, output: string) {
         errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(base);
+      await signInEmail(page);
       await expect(page.locator(".quick-action")).toHaveCount(4);
       for (const [width, height] of [
         [360, 800],
@@ -108,7 +110,7 @@ export async function verifyMobileEngines(base: string, output: string) {
       for (const [name, shot] of [
         ["專案", "projects"],
         ["靈感", "inspiration"],
-        ["任務", "tasks"],
+        ["Agent", "agents"],
         ["對話", "chat"],
       ]) {
         await page

@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { signInEmail } from "./browser-login";
 
 const dataDir = await mkdtemp(join(tmpdir(), "hermes-entry-"));
 const port = Number(process.env.ENTRY_TEST_PORT || 3220);
@@ -46,33 +47,28 @@ try {
     if (child.exitCode !== null) throw new Error("Preview server exited\n" + logs);
     await new Promise((r) => setTimeout(r, 100));
   }
-  const workspace = await fetch(base + "/api/workspace");
-  assert.equal(workspace.status, 200, "workspace GET must not require invitation");
+  const workspaceAnon = await fetch(base + "/api/workspace");
+  assert.equal(workspaceAnon.status, 401, "workspace GET requires a session in production");
+  const live = await fetch(base + "/api/live");
+  assert.equal(live.status, 200);
   const health = await fetch(base + "/api/health");
   assert.equal(health.status, 200);
-  const runtime = await fetch(base + "/api/runtime");
-  assert.notEqual(runtime.status, 401, "runtime must not require invitation");
-  const tasks = await fetch(base + "/api/tasks");
-  assert.equal(tasks.status, 200);
-  const cross = await fetch(base + "/api/workspace", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Origin: "https://attacker.example" },
-    body: JSON.stringify({ name: "blocked" }),
-  });
-  assert.equal(cross.status, 403);
-  const created = await fetch(base + "/api/conversations", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Origin: base },
-    body: JSON.stringify({ title: "免登入對話" }),
-  });
-  assert.equal(created.status, 201);
+  const ready = await fetch(base + "/api/ready");
+  assert.equal(ready.status, 200);
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
+  await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "淡江 SSO 尚未完成設定" })).toBeDisabled();
+  await signInEmail(page);
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  const workspace = await fetch(base + "/api/workspace");
+  assert.equal(workspace.status, 401, "cookie-less fetch still unauthorized");
+  assert.equal((await fetch(base + "/api/runtime")).status, 401);
+  assert.equal((await page.request.get(base + "/api/workspace")).status(), 200);
   await expect(page.locator(".connection-pill")).toContainText("未設定");
   const text = await page.locator("body").innerText();
   for (const word of [

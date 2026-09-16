@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { signInEmail } from "./browser-login";
 
 const data = await mkdtemp(join(tmpdir(), "hermes-gateway-browser-"));
 const backendPort = Number(process.env.GATEWAY_TEST_PORT || 3371);
@@ -128,6 +129,7 @@ try {
     assert.ok(!JSON.stringify(request.headers()).includes(secret)),
   );
   await page.goto(origin);
+  await signInEmail(page);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();

@@ -6,6 +6,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { signInEmail } from "./browser-login";
 
 // Full Console HTTP/browser path against an explicitly isolated protocol fixture.
 // This is NOT proof that the user's Zeabur instance is reachable.
@@ -177,6 +178,7 @@ try {
   });
   const page = await context.newPage();
   await page.goto(base);
+  await signInEmail(page);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();

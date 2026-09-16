@@ -6,6 +6,7 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
+import { signInEmail } from "./browser-login";
 
 // Production Console + real Chrome + isolated HTTP discovery fixture.
 // The fixture declares tools; it never pretends to execute Hermes or Canva.
@@ -114,6 +115,7 @@ try {
     errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(base);
+  await signInEmail(page);
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   const inspector = page.getByRole("region", { name: "Hermes Runtime 狀態" });
   await expect(

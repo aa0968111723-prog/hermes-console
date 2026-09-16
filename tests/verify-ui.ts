@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { verifyVisualStates } from "./visual-states";
 import { verifyMobileSpatial } from "./mobile-spatial";
 import { verifyMobileEngines } from "./mobile-engines";
+import { signInEmail } from "./browser-login";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
@@ -90,28 +91,33 @@ try {
   }
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  async function assertNoLogin(target = page) {
+  async function assertNoInvitation(target = page) {
     const text = await target.locator("body").innerText();
     for (const word of [
-      "Login",
-      "Sign In",
-      "帳號",
-      "Username",
-      "Password",
-      "登入",
-      "註冊",
       "受邀電子信箱",
       "寄送登入連結",
       "歡迎回到 Hermes",
       "正在驗證工作區存取",
     ])
-      assert.ok(!text.includes(word), "forbidden visible text: " + word);
+      assert.ok(!text.includes(word), "invitation UI visible: " + word);
   }
   await page.goto(base);
+  await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
+  await page.screenshot({
+    path: join(output, "login-desktop.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: join(output, "login-mobile.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await signInEmail(page);
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
-  await assertNoLogin();
+  await assertNoInvitation();
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
   assert.equal(
     (await context.request.get(base + "/api/workspace")).status(),
@@ -129,7 +135,7 @@ try {
     .evaluate((image: HTMLImageElement) => image.decode());
   await audit("home-desktop");
   const initialMetrics = await page.evaluate("window.__metrics");
-  await assertNoLogin();
+  await assertNoInvitation();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
   await expect(page.locator(".quick-action-label")).toHaveCount(6);
   for (const label of await page
@@ -295,6 +301,17 @@ try {
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
+  const inspirationScroll = page.locator(".page-scroll, .secondary-page").first();
+  assert.ok(
+    await inspirationScroll.evaluate(
+      (el) =>
+        el.scrollHeight >= el.clientHeight &&
+        getComputedStyle(el).overflowY !== "hidden",
+    ),
+    "inspiration page must own vertical scroll",
+  );
+  await inspirationScroll.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  await inspirationScroll.evaluate((el) => el.scrollTo(0, 0));
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(
@@ -364,9 +381,9 @@ try {
   await page.getByRole("tab", { name: "外觀", exact: true }).focus();
   await page.keyboard.press("End");
   await expect(
-    page.getByRole("tab", { name: "專案", exact: true }),
+    page.getByRole("tab", { name: "工作區", exact: true }),
   ).toBeFocused();
-  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("專案");
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("工作區");
   await page.keyboard.press("Home");
   await expect(
     page.getByRole("tab", { name: "外觀", exact: true }),
@@ -488,6 +505,10 @@ try {
       configurable: true,
       value: 420,
     });
+    Object.defineProperty(window.visualViewport, "offsetTop", {
+      configurable: true,
+      value: 80,
+    });
     window.visualViewport.dispatchEvent(new Event("resize"));
   });
   await expect(page.locator("html")).toHaveAttribute(
@@ -516,6 +537,7 @@ try {
   await page.evaluate(() => {
     if (!window.visualViewport) return;
     Reflect.deleteProperty(window.visualViewport, "height");
+    Reflect.deleteProperty(window.visualViewport, "offsetTop");
     window.visualViewport.dispatchEvent(new Event("resize"));
   });
   await expect(page.locator("html")).not.toHaveAttribute(
@@ -541,6 +563,7 @@ try {
   const restrictedPage = await restricted.newPage();
   restrictedPage.on("pageerror", (e) => errors.push(e.message));
   await restrictedPage.goto(base);
+  await signInEmail(restrictedPage, "restricted@example.test", "correct-horse-battery");
   await assert.rejects(
     restrictedPage.evaluate("localStorage.getItem('probe')"),
     /Storage denied/,
