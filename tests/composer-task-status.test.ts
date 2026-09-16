@@ -145,6 +145,18 @@ test("shortTaskError hides long stacks", () => {
     shortTaskError("Hermes 金鑰無效或已撤銷，請在後端更換。"),
     "現在沒辦法連到 Hermes。",
   );
+  assert.equal(
+    shortTaskError("Hermes 回應異常，請檢查部署服務。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    shortTaskError("Hermes 回報任務失敗；請檢查工具授權與服務日誌。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    shortTaskError("請檢查原始會話。"),
+    "現在沒辦法連到 Hermes。",
+  );
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
   assert.equal(shortTaskError(""), null);
   assert.equal(shortTaskError(null), null);

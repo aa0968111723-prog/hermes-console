@@ -1459,9 +1459,9 @@ export default function HermesConsole() {
                           {shortTaskError(currentTask.error) && (
                             <p className="error">{shortTaskError(currentTask.error)}</p>
                           )}
-                          {currentTask.observationError && (
+                          {shortTaskError(currentTask.observationError) && (
                             <p className="error">
-                              {currentTask.observationError}
+                              {shortTaskError(currentTask.observationError)}
                             </p>
                           )}
                           <button

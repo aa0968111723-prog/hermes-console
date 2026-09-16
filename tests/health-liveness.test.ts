@@ -389,6 +389,7 @@ test("workspace settings keep DATABASE_URL off the student tab", async () => {
   assert.match(text, /記憶存在這個工作區/);
   assert.match(text, /connection-label sr-only/);
   assert.match(text, /shortTaskError\(currentTask\.error\)/);
+  assert.match(text, /shortTaskError\(currentTask\.observationError\)/);
   assert.match(text, /不會假裝已看過圖片/);
   assert.doesNotMatch(text, /部署端尚未驗證圖片輸入/);
 });

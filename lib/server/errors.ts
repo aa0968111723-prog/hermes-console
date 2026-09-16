@@ -111,7 +111,7 @@ export const STUDENT_HERMES_UNCONFIGURED =
 export const STUDENT_HERMES_UNAVAILABLE = "現在沒辦法連到 Hermes。";
 
 const HERMES_ENGINEERING =
-  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization/i;
+  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i;
 
 /** Chat and member APIs never name env vars, keys, or vault internals. */
 export function studentHermesError(message: string, code?: string): string {

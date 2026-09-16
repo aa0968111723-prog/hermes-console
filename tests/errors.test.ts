@@ -51,4 +51,16 @@ test("student Hermes errors never name env vars or keys", () => {
     studentHermesError("Hermes 回應閒置逾時。", "idle_timeout"),
     "Hermes 回應閒置逾時。",
   );
+  assert.equal(
+    studentHermesError("Hermes 回應異常，請檢查部署服務。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    studentHermesError("Hermes 回報任務失敗；請檢查工具授權與服務日誌。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    studentHermesError("上游要求客戶端執行工具；此工作區只接受由 Hermes 執行的工具，已停止。"),
+    "現在沒辦法連到 Hermes。",
+  );
 });

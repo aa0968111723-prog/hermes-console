@@ -294,12 +294,12 @@ function finish(
       event(task, notice, "fallback");
   }
   task.state = state;
-  task.error = error;
+  task.error = error ? studentHermesError(error) : null;
   task.endedAt = now();
   task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
   event(
     task,
-    error ||
+    task.error ||
       (state === "completed"
         ? notices[0] || "Hermes 已回傳完成結果。"
         : state === "cancelled"
@@ -1138,7 +1138,7 @@ async function execute(
         throw new ApiError(
           502,
           "agent_error",
-          "Hermes 回報執行失敗，請檢查 Agent／工具授權。",
+          "這次沒有完成。可以稍後再試。",
         );
       const parsed = z
         .object({
@@ -1166,7 +1166,7 @@ async function execute(
           throw new ApiError(
             502,
             "client_tools_unsupported",
-            "上游要求客戶端執行工具；此工作區只接受由 Hermes 執行的工具，已停止。",
+            "這次沒辦法用那個工具。",
           );
         raw += choice.delta?.content || "";
         if (raw.length > 1_000_000)
@@ -1347,14 +1347,14 @@ export async function reconcile(owner: string, id: string) {
             owner,
             task,
             "failed",
-            "Hermes 回報完成，但沒有可讀取的成果；請檢查原始會話。",
+            "Hermes 回報完成，但沒有可讀取的成果。",
           );
     if (remote.status === "failed")
       return finish(
         owner,
         task,
         "failed",
-        "Hermes 回報任務失敗；請檢查工具授權與服務日誌。",
+        "這次沒有完成。可以稍後再試。",
       );
     if (remote.status === "cancelled") return finish(owner, task, "cancelled");
     if (remote.status === "stopping") task.state = "stopping";
@@ -1378,14 +1378,13 @@ export async function reconcile(owner: string, id: string) {
       task.state !== "stopping"
     ) {
       if (task.stopSupported) return stop(owner, id);
-      task.observationError =
-        "任務超過整體期限，但此版本不能確認停止；請至 Hermes 檢查。";
+      task.observationError = "這次等太久了，結果還不確定。";
     }
     void observe(owner, id);
   } catch (error) {
     task.observationError =
       error instanceof ApiError
-        ? error.message
+        ? studentHermesError(error.message, error.code)
         : "查回任務失敗，保留上次已知狀態。";
   }
   return save(owner, task);

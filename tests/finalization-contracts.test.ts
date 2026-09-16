@@ -240,7 +240,11 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, /顯示維運檢視/);
   assert.match(consoleUi, /說完了，請按送出/);
   assert.match(consoleUi, /composer-voice-hint/);
-  assert.match(consoleUi, /onDenied=\{\(message\) => setError\(message\)\}/);
+  assert.match(consoleUi, /shortTaskError\(currentTask\.observationError\)/);
+  assert.doesNotMatch(
+    consoleUi,
+    /\{currentTask\.observationError && \(/,
+  );
   assert.doesNotMatch(consoleUi, /setInspectDeveloper\(\(value\) => !value\)/);
   const settings = await readFile(
     new URL("../components/settings/ConnectionSettings.tsx", import.meta.url),
@@ -260,6 +264,12 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   );
   assert.match(errors, /可以先找靈感/);
   assert.doesNotMatch(errors, /請到設定的連線頁/);
+  const tasks = await readFile(
+    new URL("../lib/server/tasks.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(tasks, /studentHermesError\(error\.message, error\.code\)/);
+  assert.doesNotMatch(tasks, /服務日誌|原始會話|請至 Hermes|請檢查 Agent/);
   const orbit = await readFile(
     new URL("../components/visual/AgentOrbit.tsx", import.meta.url),
     "utf8",
