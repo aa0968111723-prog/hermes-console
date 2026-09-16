@@ -12,4 +12,11 @@ test("research notes are searchable snapshots, not dumped into chat", () => {
   assert.equal(miss.nodes.length, 0);
   const empty = searchResearch("a");
   assert.equal(empty.nodes.length, 0);
+  const multimodal = searchResearch("Qwen2.5-VL MRoPE token geometry");
+  assert.ok(multimodal.nodes.length >= 1);
+  assert.match(
+    multimodal.nodes[0].title + " " + multimodal.nodes[0].finding,
+    /Qwen2\.5-VL|MRoPE|token geometry/i,
+  );
+  assert.equal(multimodal.nodes[0].confidence, "snapshot");
 });
