@@ -268,6 +268,7 @@ export default function HermesConsole() {
   const input = useRef<HTMLTextAreaElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
+  const composing = useRef(false);
   const sending = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
   const pendingXHR = useRef(new Map<string, XMLHttpRequest>());
