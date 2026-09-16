@@ -397,10 +397,15 @@ export async function verifyVisualStates(
   }
   task.state = "running";
   task.events[0].status = "running";
-  task.observationError = "[介面測試] 狀態查詢失敗";
+  task.observationError = "Hermes 金鑰無效或已撤銷，請在後端更換。";
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("連線異常 · 狀態待確認");
   await expect(page.locator(".composer-task-tool")).toHaveCount(0);
+  await expect(page.locator(".message.assistant .error")).toHaveText(
+    "現在沒辦法連到 Hermes。",
+  );
+  await expect(page.locator("body")).not.toContainText("請在後端更換");
+  await expect(page.locator("body")).not.toContainText("金鑰無效");
   await page.screenshot({ path: join(output, "task-access-stale.png") });
   await audit("task-access-stale-mobile");
   task.observationError = null;
