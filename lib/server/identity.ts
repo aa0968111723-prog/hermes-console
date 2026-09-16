@@ -626,7 +626,7 @@ export function pkcePair() {
   return { verifier, challenge };
 }
 
-export function linkEmailIdentity(
+export async function linkEmailIdentity(
   userId: string,
   emailRaw: string,
   passwordRaw: string,
@@ -645,6 +645,12 @@ export function linkEmailIdentity(
     throw new ApiError(409, "identity_linked", "已經連結此電子信箱。");
   const user = get<User>("user", SCOPE, userId);
   if (!user) throw new ApiError(401, "session_expired", "請重新登入。");
+  if (!providerStatus().email.mail)
+    throw new ApiError(
+      503,
+      "email_unconfigured",
+      "尚未設定寄件，無法驗證連結的信箱。",
+    );
   put("user", SCOPE, {
     ...user,
     email: user.email || email,
@@ -658,6 +664,22 @@ export function linkEmailIdentity(
     email,
     emailVerified: false,
   });
+  const token = mintToken({
+    purpose: "verify",
+    userId,
+    expires: Date.now() + TOKEN_MS,
+  });
+  await sendMail(
+    email,
+    "驗證 Hermes 帳號",
+    "請在 15 分鐘內開啟此連結完成驗證：\n" +
+      originUrl() +
+      "/#verify=" +
+      token +
+      "\n若非你本人操作，請忽略此信。",
+    "link-verify-" + userId + "-" + token.slice(0, 8),
+  );
+  return { verificationSent: true as const };
 }
 
 export function sessionsFor(userId: string, currentToken = "") {

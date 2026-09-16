@@ -48,6 +48,7 @@ export default function AccountSettings() {
 
   const has = (provider: Identity["provider"]) =>
     account?.identities.some((row) => row.provider === provider);
+  const emailIdentity = account?.identities.find((row) => row.provider === "email");
 
   async function logout() {
     setBusy(true);
@@ -121,7 +122,11 @@ export default function AccountSettings() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error?.message || "無法連結。");
-      setNotice("已連結電子信箱。");
+      setNotice(
+        result.verificationSent
+          ? "請至信箱完成驗證後再以密碼登入。"
+          : "已連結電子信箱。",
+      );
       setPassword("");
       await load();
     } catch (error) {
@@ -183,37 +188,46 @@ export default function AccountSettings() {
         </li>
         <li>
           <span>電子信箱</span>
-          <span>{has("email") ? "已連結" : "未連結"}</span>
+          <span>
+            {has("email")
+              ? emailIdentity?.emailVerified
+                ? "已連結"
+                : "已連結 · 未驗證"
+              : "未連結"}
+          </span>
         </li>
       </ul>
-      {!has("email") && (
-        <form onSubmit={(event) => void linkEmail(event)}>
-          <label>
-            連結電子信箱
-            <input
-              type="email"
-              value={email}
-              autoComplete="email"
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
-          <label>
-            設定密碼
-            <input
-              type="password"
-              value={password}
-              autoComplete="new-password"
-              minLength={12}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
-          <button className="primary" disabled={busy}>
-            連結信箱
-          </button>
-        </form>
-      )}
+      {!has("email") &&
+        (account.providers.email.mail ? (
+          <form onSubmit={(event) => void linkEmail(event)}>
+            <label>
+              連結電子信箱
+              <input
+                type="email"
+                value={email}
+                autoComplete="email"
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              設定密碼
+              <input
+                type="password"
+                value={password}
+                autoComplete="new-password"
+                minLength={12}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            <button className="primary" disabled={busy}>
+              連結信箱
+            </button>
+          </form>
+        ) : (
+          <p className="muted">尚未設定寄件，無法連結並驗證電子信箱</p>
+        ))}
       <h3>工作階段</h3>
       <ul className="session-list">
         {account.sessions.map((row) => (

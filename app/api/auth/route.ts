@@ -105,8 +105,12 @@ export const POST = route(async (req) => {
     .parse(await jsonBody(req, 4000));
   if (input.action === "link_email") {
     const user = currentUser(req);
-    linkEmailIdentity(user.id, input.email, input.password);
-    return respond({ linked: "email", user: publicUser(currentUser(req)) });
+    const linked = await linkEmailIdentity(user.id, input.email, input.password);
+    return respond({
+      linked: "email",
+      verificationSent: linked.verificationSent,
+      user: publicUser(currentUser(req)),
+    });
   }
   if (input.action === "revoke_others") {
     destroyOtherSessions(req);
