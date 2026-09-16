@@ -242,7 +242,7 @@ export async function verifyVisualStates(
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
     const draft = "[介面測試草稿] 等候工具結果";
     await composer.fill(draft);
-    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究 · GALLEY", exact: true });
+    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究", exact: true });
     await expect(status).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const box = await status.boundingBox();

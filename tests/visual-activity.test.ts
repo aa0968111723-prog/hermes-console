@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityKind, eventStateLabel, safeSource, workingEvent } from "../lib/client/activity";
+import { activityKind, eventStateLabel, highLevelProgress, safeSource, workingEvent } from "../lib/client/activity";
 import type { Task, TaskEvent } from "../lib/contracts";
 const event = (
   id: string,
@@ -60,6 +60,26 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("canva_create_design"), "creative");
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
   assert.equal(activityKind("unrecognized_tool"), "tool");
+});
+test("chat progress is high-level stages, not tool counts", () => {
+  const running = highLevelProgress(
+    task("running", [event("1", "running", "galley_research")]),
+  );
+  assert.equal(running.label, "正在研究");
+  assert.equal(running.stages[0]?.label, "研究");
+  assert.equal(running.stages[0]?.state, "active");
+  assert.doesNotMatch(running.label, /工具|galley|toolCall/i);
+  const done = highLevelProgress(
+    task("completed", [
+      event("1", "completed", "galley_research"),
+      event("2", "completed", "canva_create_design", "call-2"),
+    ]),
+  );
+  assert.equal(done.label, "完成");
+  assert.deepEqual(
+    done.stages.map((stage) => stage.label),
+    ["研究", "創作"],
+  );
 });
 test("source actions never accept script, credentials or relative destinations", () => {
   for (const value of [

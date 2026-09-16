@@ -19,7 +19,7 @@ export function activityKind(name: string | null): ActivityKind {
   )
     return "research";
   if (
-    /canva|lumen|framelab|atlas|design|render|poster|visual_concepts/i.test(
+    /canva|lumen|framelab|atlas|planform|design|render|poster|visual_concepts/i.test(
       name,
     )
   )
@@ -74,6 +74,66 @@ export function workingEvent(task?: Task | null): TaskEvent | undefined {
   return [...calls.values()]
     .reverse()
     .find((event) => ["running", "queued"].includes(eventState(event)));
+}
+
+const STAGE_ORDER = [
+  { kind: "research", label: "研究" },
+  { kind: "workspace", label: "整理" },
+  { kind: "audience", label: "客群" },
+  { kind: "creative", label: "創作" },
+] as const;
+
+export function highLevelProgress(task: Task) {
+  const calls = new Map<string, TaskEvent>();
+  for (const event of task.events)
+    if (event.toolName) calls.set(event.toolCallId || event.toolName, event);
+  const events = [...calls.values()];
+  const current = workingEvent(task);
+  const currentKind = current ? activityKind(current.toolName) : null;
+  const stages = STAGE_ORDER.filter((stage) =>
+    events.some((event) => activityKind(event.toolName) === stage.kind),
+  ).map((stage) => {
+    const related = events.filter(
+      (event) => activityKind(event.toolName) === stage.kind,
+    );
+    const failed = related.some((event) =>
+      /fail|error|waiting_authorization/i.test(eventState(event)),
+    );
+    const done =
+      related.length > 0 &&
+      related.every((event) => eventState(event) === "completed");
+    const active =
+      currentKind === stage.kind &&
+      ["running", "queued"].includes(task.state);
+    return {
+      id: stage.kind,
+      label: stage.label,
+      state: (failed
+        ? "failed"
+        : active
+          ? "active"
+          : done
+            ? "done"
+            : "pending") as "failed" | "active" | "done" | "pending",
+    };
+  });
+  let label = "理解";
+  if (task.state === "completed") label = "完成";
+  else if (task.state === "failed") label = "無法完成";
+  else if (task.state === "uncertain") label = "結果待確認";
+  else if (task.state === "cancelled") label = "已停止";
+  else if (
+    task.state === "waiting_user" ||
+    task.state === "waiting_authorization"
+  )
+    label = "等待你";
+  else if (currentKind === "research") label = "正在研究";
+  else if (currentKind === "creative") label = "正在創作";
+  else if (currentKind === "audience") label = "正在模擬";
+  else if (currentKind === "workspace") label = "正在整理";
+  else if (task.state === "running" || task.state === "queued")
+    label = "正在理解";
+  return { label, stages };
 }
 export const taskStateLabel: Record<string, string> = {
   queued: "排隊",

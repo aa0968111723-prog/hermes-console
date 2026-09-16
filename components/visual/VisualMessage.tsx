@@ -1,6 +1,6 @@
 import { ExternalLink, Search, Check, Circle } from "lucide-react";
 import type { Task } from "@/lib/contracts";
-import { eventState, safeSource } from "@/lib/client/activity";
+import { eventState, highLevelProgress, safeSource } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
 import { layoutFromTask } from "@/lib/client/planform-layout";
@@ -21,22 +21,33 @@ export default function VisualMessage({
   for (const event of task.events)
     if (event.toolName)
       calls.set(event.toolCallId || event.toolName, eventState(event));
-  const completed = [...calls.values()].filter(
-    (state) => state === "completed",
-  ).length;
+  const progress = highLevelProgress(task);
   const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
   if (!sources.length && !calls.size && !twinPanel && !layout) return null;
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
       {!!calls.size && (
-        <button className="tool-result-summary" onClick={onInspect}>
-          {completed === calls.size ? (
+        <button
+          className="tool-result-summary"
+          onClick={onInspect}
+          aria-label={"查看任務：" + progress.label}
+        >
+          {progress.label === "完成" ? (
             <Check size={15} />
           ) : (
             <Circle size={15} />
           )}
-          {completed} / {calls.size} 個工具完成
+          <span>{progress.label}</span>
+          {!!progress.stages.length && (
+            <ol className="progress-trail">
+              {progress.stages.map((stage) => (
+                <li key={stage.id} data-state={stage.state}>
+                  {stage.label}
+                </li>
+              ))}
+            </ol>
+          )}
         </button>
       )}
       {!!sources.length && (
