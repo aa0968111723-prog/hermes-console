@@ -25,8 +25,10 @@
 | 長任務中斷 | live 契約 | 啟動時 chat／無 remoteId 改 uncertain；不假裝 still running。 |
 | 設定分類 | live | 帳號／外觀／連線／工作區／進階。 |
 | Liveness | live | `GET /api/live`。Readiness 仍是 `/api/ready`。 |
-| 錯誤分類 | live | `ApiError.category`。 |
-| CI | live | lint／typecheck／test／build／Playwright（含 runtime）。 |
+| 錯誤分類 | live | `ApiError.category`；空工具結果為 `empty_output`／`UPSTREAM_ERROR`。 |
+| 研究筆記檢索 | live 契約 | `workspace_search_research` 讀快照；沒有命中不編造；不進主 UI。 |
+| 空工具結果 | live 契約 | HTTP 200 且 payload 為 `{}`／空字串不算成功。 |
+| 次要畫面載入 | live | 專案／靈感／Runtime／設定等 `next/dynamic`，對話路徑維持靜態。 |
 
 ## 仍為 Partial（禁止打綠勾）
 
