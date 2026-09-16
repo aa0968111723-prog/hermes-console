@@ -17,6 +17,26 @@ const labels: Record<string, string> = {
 };
 const statusLabel = (value: string) => labels[value] || value;
 
+function StatusPill({
+  good,
+  label,
+  detail,
+  developer,
+}: {
+  good: boolean;
+  label: string;
+  detail: string;
+  developer: boolean;
+}) {
+  return (
+    <span aria-label={label + " " + detail}>
+      <i className={good ? "good" : "unknown"} aria-hidden="true" />
+      {label}
+      {developer ? " " + detail : null}
+    </span>
+  );
+}
+
 const ToolRow = memo(function ToolRow({
   tool,
   stale,
@@ -234,8 +254,8 @@ export default function RuntimeInspector({
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>
         <div>
-          <p className="eyebrow">系統狀態</p>
-          <h2>能力中心</h2>
+          <p className="eyebrow">狀態</p>
+          <h2>Hermes</h2>
         </div>
         <div className="runtime-actions">
           <button onClick={() => void refresh()} disabled={busy}>
@@ -261,50 +281,42 @@ export default function RuntimeInspector({
         </p>
       )}
       <div className="runtime-human-summary">
-        <span>
-          <i
-            className={
-              !stale &&
-              health?.credential === "valid" &&
-              health.agent === "verified"
-                ? "good"
-                : "unknown"
-            }
-            aria-hidden="true"
-          />
-          Hermes{" "}
-          {stale
-            ? "待重新驗證"
-            : health?.agent === "verified" && health.credential === "valid"
-              ? "已驗證"
-              : "未驗證"}
-        </span>
-        <span>
-          <i
-            className={
-              !stale && snapshot?.memorySupport === "available"
-                ? "good"
-                : "unknown"
-            }
-            aria-hidden="true"
-          />
-          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
-        </span>
-        <span>
-          <i
-            className={!stale && availableTools > 0 ? "good" : "unknown"}
-            aria-hidden="true"
-          />
-          工具{" "}
-          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未知"}
-        </span>
-        <span>
-          <i
-            className={!stale && mcpAvailable > 0 ? "good" : "unknown"}
-            aria-hidden="true"
-          />
-          MCP {snapshot ? `${mcpAvailable}/${mcpEnabled}` : "未知"}
-        </span>
+        <StatusPill
+          good={
+            !stale &&
+            health?.credential === "valid" &&
+            health.agent === "verified"
+          }
+          label="Hermes"
+          detail={
+            stale
+              ? "待重新驗證"
+              : health?.agent === "verified" && health.credential === "valid"
+                ? "已驗證"
+                : "未驗證"
+          }
+          developer={developer}
+        />
+        <StatusPill
+          good={!stale && snapshot?.memorySupport === "available"}
+          label="記憶"
+          detail={snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+          developer={developer}
+        />
+        <StatusPill
+          good={!stale && availableTools > 0}
+          label="工具"
+          detail={
+            snapshot ? availableTools + "/" + snapshot.tools.length : "未知"
+          }
+          developer={developer}
+        />
+        <StatusPill
+          good={!stale && mcpAvailable > 0}
+          label="MCP"
+          detail={snapshot ? mcpAvailable + "/" + mcpEnabled : "未知"}
+          developer={developer}
+        />
         {!stale && snapshot?.status === "available" && (
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />
         )}

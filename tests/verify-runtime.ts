@@ -190,8 +190,18 @@ try {
     .getByRole("button", { name: "選擇這個方向" })
     .click();
   await expect(
-    page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).toHaveValue(/第 2 個方向/);
+    page.getByRole("heading", { name: "任務", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page
+      .locator(".direction.selected")
+      .getByRole("heading", { name: "測試方向 2", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("缺授權")).toHaveCount(0);
+  await expect(page.getByText("阻塞點")).toHaveCount(0);
   const saved = await (
     await context.request.get(base + "/api/workflows")
   ).json();

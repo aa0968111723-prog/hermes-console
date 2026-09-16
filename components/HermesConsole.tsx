@@ -1901,8 +1901,7 @@ export default function HermesConsole() {
           <section className="secondary-page" key={nav}>
             <div className="page-heading-row">
               <div>
-                <p className="eyebrow">能力</p>
-                <h1>Agent Runtime</h1>
+                <h1>能力</h1>
               </div>
               <VisualStatus health={health} offline={offline} />
             </div>
@@ -1911,16 +1910,6 @@ export default function HermesConsole() {
               health={health}
               animation={prefs.animation}
             />
-            <details className="agent-profiles">
-              <summary>Agent OS · 設定檔</summary>
-              <AgentPanel
-                agents={agents.filter(
-                  (agent) =>
-                    agent.role === "general" || agent.status !== "unconfigured",
-                )}
-                brain={[]}
-              />
-            </details>
           </section>
         ) : (
           <section className="secondary-page" key={nav}>
@@ -2024,12 +2013,31 @@ export default function HermesConsole() {
                                 selected: index,
                               });
                               await refresh();
-                              setText(
-                                "已選定第 " +
-                                  (index + 1) +
-                                  " 個方向。請依此方向接續製作；如缺授權請保留阻塞點。",
-                              );
-                              setNav("chat");
+                              const conv = w.conversationId
+                                ? data.conversations.find(
+                                    (item) => item.id === w.conversationId,
+                                  )
+                                : undefined;
+                              if (conv) {
+                                setActiveId(conv.id);
+                                setProject(conv.projectId);
+                                writePreference("hermes.active.v2", conv.id);
+                                pinBriefAfterPick.current = true;
+                                setNav("chat");
+                                replaceDraft("conversation:" + conv.id, {
+                                  ...emptyDraft(),
+                                  text: CONTINUE_SAME_WORK_PROMPT,
+                                });
+                                return;
+                              }
+                              if (hermesCanContinue(health)) {
+                                const letter =
+                                  DIRECTION_LETTERS[index] || String(index + 1);
+                                setNav("chat");
+                                setText(
+                                  "我選方向 " + letter + "：" + d.title,
+                                );
+                              }
                             } catch (e) {
                               setError((e as Error).message);
                             }
@@ -2549,6 +2557,17 @@ export default function HermesConsole() {
                     {!tasks.length && (
                       <p className="muted">尚無任務使用量資料。</p>
                     )}
+                    <details className="agent-profiles">
+                      <summary>節點設定檔</summary>
+                      <AgentPanel
+                        agents={agents.filter(
+                          (agent) =>
+                            agent.role === "general" ||
+                            agent.status !== "unconfigured",
+                        )}
+                        brain={[]}
+                      />
+                    </details>
                     <HelpPage />
                   </div>
                 )}

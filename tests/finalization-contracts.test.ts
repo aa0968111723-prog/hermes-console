@@ -171,7 +171,8 @@ test("runtime inspector hides schemas until developer view", async () => {
   assert.match(ui, /開發者檢視/);
   assert.match(ui, /developer && \(/);
   assert.match(ui, /Hermes/);
-  assert.match(ui, /MCP \{snapshot/);
+  assert.match(ui, /StatusPill/);
+  assert.match(ui, /developer=\{developer\}/);
 });
 
 test("artifact stage compare is side-by-side preview, not a pixel diff", async () => {
@@ -217,4 +218,21 @@ test("direction brief shows tone and A4 label, not paper millimetre aspect", asy
   assert.match(brief, /data-aspect=\{format\.aspect\}/);
   assert.doesNotMatch(brief, /\{format\.aspect\} ·/);
   assert.doesNotMatch(brief, />\{format\.aspect\}</);
+});
+
+test("student Agent dock is status, not Runtime or authorization copy", async () => {
+  const consoleUi = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  const actions = await readFile(
+    new URL("../components/visual/QuickActions.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(consoleUi, /Agent Runtime/);
+  assert.doesNotMatch(consoleUi, /阻塞點/);
+  assert.doesNotMatch(consoleUi, /如缺授權/);
+  assert.match(consoleUi, /CONTINUE_SAME_WORK_PROMPT/);
+  assert.doesNotMatch(actions, /若未授權/);
+  assert.doesNotMatch(actions, /Canva/);
 });

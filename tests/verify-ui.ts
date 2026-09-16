@@ -474,11 +474,18 @@ try {
   await conversationDrawer.getByRole("button", { name: "關閉導覽" }).click();
   await dockNav.getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Agent Runtime", exact: true }),
+    page.getByRole("heading", { name: "能力", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("region", { name: "Hermes Runtime 狀態" }),
   ).toBeVisible();
+  await expect(
+    page.locator(".runtime-human-summary"),
+  ).toContainText("Hermes");
+  await expect(
+    page.locator(".runtime-human-summary"),
+  ).not.toContainText("/");
+  await expect(page.getByText("Agent OS")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "重新同步", exact: true }),
   ).toBeEnabled();
