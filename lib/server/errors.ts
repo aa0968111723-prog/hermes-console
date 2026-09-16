@@ -109,9 +109,11 @@ export function taxonomyFor(code: string): ErrorCategory {
 export const STUDENT_HERMES_UNCONFIGURED =
   "Hermes 還沒準備好。可以先找靈感，或稍後再試。";
 export const STUDENT_HERMES_UNAVAILABLE = "現在沒辦法連到 Hermes。";
+export const STUDENT_IMAGE_UNVERIFIED =
+  "圖片已保存，但還沒辦法讀圖。可以先拿掉附件，或改問這張哪裡可以改。";
 
 const HERMES_ENGINEERING =
-  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i;
+  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i;
 
 /** Chat and member APIs never name env vars, keys, or vault internals. */
 export function studentHermesError(message: string, code?: string): string {
@@ -121,6 +123,7 @@ export function studentHermesError(message: string, code?: string): string {
     code === "invalid_credential_ref"
   )
     return STUDENT_HERMES_UNCONFIGURED;
+  if (code === "images_unverified") return STUDENT_IMAGE_UNVERIFIED;
   if (
     code &&
     /^(connect_timeout|network_error|interrupted|upstream_)/.test(code)

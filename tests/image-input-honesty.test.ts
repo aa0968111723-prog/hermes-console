@@ -20,6 +20,12 @@ test("image attachments stay honest when Hermes image input is unverified", asyn
     join(process.cwd(), "lib/server/hermes/sync-manager.ts"),
     "utf8",
   );
+  const tasks = await readFile(
+    join(process.cwd(), "lib/server/tasks.ts"),
+    "utf8",
+  );
+  assert.match(tasks, /STUDENT_IMAGE_UNVERIFIED/);
+  assert.doesNotMatch(tasks, /部署端尚未驗證圖片輸入/);
   assert.match(tray, /尚未驗證讀圖/);
   assert.doesNotMatch(consoleSource, /imageAttached && !data\.imageInput/);
   assert.doesNotMatch(consoleSource, /部署端尚未驗證圖片輸入/);

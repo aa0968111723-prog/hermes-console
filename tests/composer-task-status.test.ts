@@ -154,7 +154,7 @@ test("shortTaskError hides long stacks", () => {
     "現在沒辦法連到 Hermes。",
   );
   assert.equal(
-    shortTaskError("請檢查原始會話。"),
+    shortTaskError("圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。"),
     "現在沒辦法連到 Hermes。",
   );
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);

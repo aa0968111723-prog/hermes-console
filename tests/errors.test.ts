@@ -60,7 +60,7 @@ test("student Hermes errors never name env vars or keys", () => {
     "現在沒辦法連到 Hermes。",
   );
   assert.equal(
-    studentHermesError("上游要求客戶端執行工具；此工作區只接受由 Hermes 執行的工具，已停止。"),
-    "現在沒辦法連到 Hermes。",
+    studentHermesError("圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。", "images_unverified"),
+    "圖片已保存，但還沒辦法讀圖。可以先拿掉附件，或改問這張哪裡可以改。",
   );
 });

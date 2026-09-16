@@ -771,7 +771,7 @@ export default function HermesConsole() {
       });
       setTasks((old) => old.map((t) => (t.id === task.id ? result.task : t)));
       setError("");
-      setNotice("已確認此待確認結果，可以重新送出；未宣稱遠端已停止。");
+      setNotice("已確認此待確認結果，可以重新送出；不會假裝已經停下來。");
       input.current?.focus();
     } catch (e) {
       setError((e as Error).message);
@@ -783,14 +783,14 @@ export default function HermesConsole() {
       data.conversations.find((c) => c.id === task.conversationId) ||
       activeConv;
     if (!conv) {
-      setError("找不到對應對話，無法建立重試分支。");
+      setError("找不到對應對話，無法再試一次。");
       return;
     }
     const message = conv.messages.find(
       (m) => m.taskId === task.id && m.role === "user",
     );
     if (!message) {
-      setError("找不到觸發此任務的使用者訊息，無法建立重試分支。");
+      setError("找不到觸發此任務的使用者訊息，無法再試一次。");
       return;
     }
     if (activeId !== conv.id) {
@@ -1480,7 +1480,7 @@ export default function HermesConsole() {
                               className="text-button"
                               onClick={() => retryBranchFromTask(currentTask)}
                             >
-                              建立重試分支（保留原紀錄）
+                              再試一次（保留這次紀錄）
                             </button>
                           )}
                           {currentTask.state === "uncertain" && (
@@ -1537,7 +1537,7 @@ export default function HermesConsole() {
               {uncertain && (
                 <div className="composer-uncertain-hint" role="status">
                   <p>
-                    結果待確認，此對話暫時不能再送出。可確認後在原對話重試，或建立分支保留原紀錄；未宣稱遠端已停止。
+                    結果待確認，此對話暫時不能再送出。可確認後在原對話重試，或另開一則保留這次；不會假裝已經停下來。
                   </p>
                   <div className="composer-uncertain-actions">
                     <button
@@ -1553,7 +1553,7 @@ export default function HermesConsole() {
                       onClick={() => retryBranchFromTask(uncertain)}
                       disabled={busy}
                     >
-                      建立重試分支（保留原紀錄）
+                      再試一次（保留這次紀錄）
                     </button>
                   </div>
                 </div>
@@ -2697,7 +2697,7 @@ export default function HermesConsole() {
                     onClick={() => retryBranchFromTask(chosenTask)}
                     disabled={busy}
                   >
-                    建立重試分支
+                    再試一次
                   </button>
                 </div>
               )}
@@ -2719,7 +2719,7 @@ export default function HermesConsole() {
                   onClick={() => retryBranchFromTask(chosenTask)}
                   disabled={busy}
                 >
-                  建立重試分支（保留原紀錄）
+                  再試一次（保留這次紀錄）
                 </button>
               )}
               {!!chosenTask.output && (

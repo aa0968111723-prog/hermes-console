@@ -247,6 +247,9 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, />接下來</);
   assert.doesNotMatch(consoleUi, /<h3>執行計畫<\/h3>/);
   assert.doesNotMatch(consoleUi, /無法確認上游停止/);
+  assert.doesNotMatch(consoleUi, /建立重試分支/);
+  assert.doesNotMatch(consoleUi, /未宣稱遠端已停止/);
+  assert.match(consoleUi, /再試一次（保留這次紀錄）/);
   assert.doesNotMatch(consoleUi, /currentTask\.events\.at\(-1\)\?\.summary/);
   assert.match(consoleUi, /進行狀況/);
   assert.doesNotMatch(consoleUi, /真實事件紀錄/);

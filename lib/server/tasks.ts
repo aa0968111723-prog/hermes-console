@@ -11,7 +11,7 @@ import {
 } from "../contracts";
 import { get, list, put, transaction } from "./store";
 import { ApiError, hash, limited, redact } from "./security";
-import { studentHermesError } from "./errors";
+import { studentHermesError, STUDENT_IMAGE_UNVERIFIED } from "./errors";
 import { studentConnectionMessage } from "./hermes/health-view";
 import {
   deadline,
@@ -410,7 +410,7 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     throw new ApiError(
       409,
       "images_unverified",
-      "圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。",
+      STUDENT_IMAGE_UNVERIFIED,
     );
   if (!localInspiration && !localImageReview && !localSpecRevision && !localContinue)
     await attachmentParts(owner, input.attachments);

@@ -146,6 +146,8 @@ test("non-review chat with an unverified image still refuses Hermes send", async
     (error: unknown) => {
       assert.ok(error instanceof ApiError);
       assert.equal(error.code, "images_unverified");
+      assert.match(error.message, /還沒辦法讀圖/);
+      assert.doesNotMatch(error.message, /部署端|圖片輸入|請完成設定/);
       return true;
     },
   );
