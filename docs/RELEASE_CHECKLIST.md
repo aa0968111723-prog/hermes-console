@@ -1,0 +1,48 @@
+# Release checklist
+
+Do not merge until each line is actually true, or explicitly marked **Partial**.
+
+## Mobile
+
+- [ ] Chat: only conversation pane scrolls; composer stays visible
+- [ ] Projects / Inspiration / Agent / Settings scroll to the bottom
+- [ ] Android Chrome keyboard: composer visible, send visible, close restores height
+- [ ] Safe area: composer, dock, dialogs
+- [ ] Viewports: 360×800, 390×844, 412×915, 430×932, 768×1024
+
+## Auth
+
+- [ ] AuthGate before workspace
+- [ ] Google Authorization Code + PKCE, or honest unconfigured
+- [ ] Tamkang SSO real IdP, or 「淡江 SSO 尚未完成設定」
+- [ ] Email register / login / verify / magic link / reset
+- [ ] No auto-merge by email
+- [ ] Logout clears session
+- [ ] Anonymous `/api/workspace` is 401
+
+## Chat / Agent
+
+- [ ] Natural-language request does not require picking GALLEY / Canva / Tamkang
+- [ ] Cancel hits backend
+- [ ] Empty tool output is not success
+- [ ] Offline banner; reconnect does not drop the thread
+
+## MCP
+
+- [ ] Registry statuses: unconfigured / verifying / available / partial / failed
+- [ ] Unreachable = failed; missing token = unconfigured; listTools only = partial
+
+## Artifacts / Memory
+
+- [ ] Stable artifact + revision ids
+- [ ] Memory layers not dumped into one blob
+
+## DB / Security / Tests / Deploy
+
+- [ ] Backup taken
+- [ ] No secrets in client, logs, or git
+- [ ] `npm run lint` `typecheck` `test` `test:ui` `test:entry` `test:chat` `test:workbench` `test:gateway` `test:runtime` `build`
+- [ ] `/api/health` and `/api/ready` on the target host
+- [ ] Rollback snapshot identified
+
+Known gaps must be listed as Partial in the PR. Do not paint them green.
