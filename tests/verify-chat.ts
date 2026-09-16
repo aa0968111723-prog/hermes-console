@@ -6,6 +6,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { bootstrapOwner } from "./browser-auth";
 
 // Full Console HTTP/browser path against an explicitly isolated protocol fixture.
 // This is NOT proof that the user's Zeabur instance is reachable.
@@ -175,6 +176,7 @@ try {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
   });
+  await bootstrapOwner(base, context);
   const page = await context.newPage();
   await page.goto(base);
   await expect(
@@ -309,7 +311,7 @@ try {
   assert.match(String(canva.detail), /Needs Canva Authorization|尚未/);
   assert.ok(!logs.includes(fixtureKey));
   console.log(
-    "PASS: no-login browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",
+    "PASS: authenticated browser -> Console -> contract server long stream, session key, Canva unconfigured, reload, branch, native run persistence, real stop HTTP, uncertain retry buttons. NOT live Zeabur validation.",
   );
 } finally {
   await browser.close();

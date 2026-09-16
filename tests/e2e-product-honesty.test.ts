@@ -4,6 +4,7 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
+import { seedSession } from "./session-fixture";
 
 /**
  * LOCAL_CONTRACT — unconfigured workspace honesty across product lines A+B.
@@ -16,6 +17,7 @@ import { randomUUID } from "node:crypto";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-e2e-honesty-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3261";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";

@@ -11,6 +11,7 @@ import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-contract-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3210";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_USERNAME = "fixture-owner";
@@ -156,7 +157,7 @@ async function settle(id: string) {
   throw new Error("Fixture task did not settle");
 }
 test("security, honest health, durable tasks, uploads and ownership", async (t) => {
-  await t.test("workspace APIs are no-login single workspace", async () => {
+  await t.test("workspace APIs require a signed-in member", async () => {
     assert.equal(
       (await healthRoute.GET(request("health", "GET", undefined, false)))
         .status,
@@ -168,6 +169,19 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       ),
       "workspace",
     );
+    const previous = process.env.CONSOLE_TEST_SESSION;
+    delete process.env.CONSOLE_TEST_SESSION;
+    try {
+      assert.throws(
+        () =>
+          security.authenticate(
+            new Request("http://localhost:3210/api/workspace"),
+          ),
+        /請先登入/,
+      );
+    } finally {
+      process.env.CONSOLE_TEST_SESSION = previous;
+    }
     assert.equal(
       (
         await taskRoute.POST(
@@ -203,13 +217,14 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         ),
       /來源/,
     );
-    assert.equal(
-      security.authenticate(
-        new Request("http://localhost:3210/api/tasks", {
-          headers: { Cookie: "hermes_session=forged" },
-        }),
-      ),
-      "workspace",
+    assert.throws(
+      () =>
+        security.authenticate(
+          new Request("http://localhost:3210/api/tasks", {
+            headers: { Cookie: "hermes_session=forged" },
+          }),
+        ),
+      /請先登入|過期/,
     );
   });
   await t.test("client destinations and credentials rejected", async () => {

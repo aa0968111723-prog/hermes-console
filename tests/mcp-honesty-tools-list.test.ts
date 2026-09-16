@@ -4,6 +4,7 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Health } from "../lib/contracts";
+import { seedSession } from "./session-fixture";
 
 /**
  * LOCAL_CONTRACT named after LIVE bug REAL-TEST-2026-09-10-L2-B1:
@@ -14,6 +15,7 @@ import type { Health } from "../lib/contracts";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-mcp-honesty-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3294";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";

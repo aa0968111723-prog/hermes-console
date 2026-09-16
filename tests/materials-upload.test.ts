@@ -8,6 +8,8 @@ import sharp from "sharp";
 import type { Material } from "../lib/contracts";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-materials-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3261";
 
 const { ApiError } = await import("../lib/server/security");
