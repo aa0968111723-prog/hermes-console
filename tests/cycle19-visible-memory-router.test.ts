@@ -247,6 +247,30 @@ test("Cycle 19: completed tools are kind===tool; plan completed does not count",
     stopSupported: false,
   };
   assert.equal(hasCompletedToolEvents(toolDone), true);
+  const emptyPayload = {
+    ...toolDone,
+    events: [
+      fakeEvent({
+        kind: "tool",
+        toolName: "lumen_utter",
+        status: "completed",
+        result: {},
+      }),
+    ],
+  };
+  assert.equal(hasCompletedToolEvents(emptyPayload), false);
+  const emptyString = {
+    ...toolDone,
+    events: [
+      fakeEvent({
+        kind: "tool",
+        toolName: "lumen_utter",
+        status: "completed",
+        result: "   ",
+      }),
+    ],
+  };
+  assert.equal(hasCompletedToolEvents(emptyString), false);
   const planDone = {
     ...toolDone,
     events: [fakeEvent({ status: "completed", toolName: null })],
@@ -376,6 +400,19 @@ test("Cycle 19: reconcile fails only when no output and no kind===tool completed
   const toolDone = await reconcile("workspace", toolId);
   assert.equal(toolDone.state, "completed");
   assert.equal(toolDone.error, null);
+
+  const emptyId = seedRun([
+    fakeEvent({
+      kind: "tool",
+      toolName: "workspace_save_memory",
+      status: "completed",
+      summary: "已寫入共用記憶。",
+      result: {},
+    }),
+  ]);
+  const emptyDone = await reconcile("workspace", emptyId);
+  assert.equal(emptyDone.state, "failed");
+  assert.match(emptyDone.error || "", /沒有可讀取的成果/);
 });
 
 test("Cycle 19: task instructions include assembled memory once, not memoryDigest", async () => {
