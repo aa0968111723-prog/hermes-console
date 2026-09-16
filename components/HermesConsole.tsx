@@ -5,7 +5,6 @@ import {
   ArrowUp,
   Check,
   ChevronDown,
-  Code2,
   Copy,
   Folder,
   ImagePlus,
@@ -25,7 +24,6 @@ import {
   X,
   Link as LinkIcon,
   ExternalLink,
-  Download,
 } from "lucide-react";
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
@@ -43,17 +41,15 @@ import ArtifactDeck from "./visual/ArtifactDeck";
 import ComposerMenu from "./visual/ComposerMenu";
 import ComposerTaskStatus, {
   OFFLINE_NOTICE,
-  OFFLINE_PILL_LABEL,
   composerTaskPillAction,
-  shortTaskError,
 } from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import MaterialThumb from "./visual/MaterialThumb";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
-import TaskEventSummary from "./visual/TaskEventSummary";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
-import TaskRequestSummary from "./visual/TaskRequestSummary";
+import PreviewPanel from "./console/PreviewPanel";
+import TaskSheet from "./console/TaskSheet";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
@@ -76,7 +72,12 @@ import {
   widthChanged,
 } from "@/lib/client/viewport";
 import { taskPollDelayMs } from "@/lib/client/task-poll";
-import { materialSrc, referenceHost } from "@/lib/client/material-src";
+import {
+  connectionLabels,
+  formatWorkspaceTime,
+  isActiveTask,
+  taskLabels,
+} from "@/lib/client/workspace-ui";
 import AccountPanel from "./auth/AccountPanel";
 import { useAuthOptional } from "./auth/AuthProvider";
 import { useSpatialMode } from "./visual/useSpatialMode";
@@ -137,40 +138,8 @@ const EMPTY: Workspace = {
     synced: false,
   },
 };
-const taskLabels: Record<string, string> = {
-  queued: "準備提交",
-  running: "執行中",
-  waiting_user: "等待確認",
-  waiting_authorization: "等待授權",
-  stopping: "停止確認中",
-  completed: "已完成",
-  failed: "失敗",
-  cancelled: "已停止",
-  uncertain: "結果待確認",
-};
-const connectionLabels: Record<string, string> = {
-  unconfigured: "未設定",
-  awaiting_authorization: "待授權",
-  verifying: "驗證中",
-  available: "可用",
-  partial: "部分可用",
-  failed: "失敗",
-};
-const isActive = (task: Task) =>
-  [
-    "queued",
-    "running",
-    "waiting_user",
-    "waiting_authorization",
-    "stopping",
-  ].includes(task.state);
-const time = (value: string) =>
-  new Date(value).toLocaleString("zh-TW", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+const isActive = isActiveTask;
+const time = formatWorkspaceTime;
 async function api<T>(
   path: string,
   method = "GET",
@@ -2298,253 +2267,25 @@ export default function HermesConsole() {
               </footer>
             </>
           ) : panel === "preview" && preview ? (
-            <div className="settings-stack">
-              <h3>{preview.title}</h3>
-              {preview.kind === "image" && (
-                <img
-                  className="full-preview"
-                  src={materialSrc(preview.id, "full")}
-                  alt={preview.title}
-                />
-              )}
-              {preview.mime === "application/pdf" && (
-                <figure className="pdf-cover">
-                  <img
-                    className="full-preview"
-                    src={materialSrc(preview.id, "thumb")}
-                    alt={preview.title + "（PDF 標示封面，非頁面擷取）"}
-                  />
-                  <figcaption>PDF 標示封面，不是頁面擷取</figcaption>
-                </figure>
-              )}
-              {preview.kind === "reference" && preview.url && (
-                <p className="material-tile preview-host">
-                  <strong>{referenceHost(preview.url)}</strong>
-                  <small>未抓取網站預覽，避免伺服器代打任意網址。</small>
-                </p>
-              )}
-              <p>
-                {preview.rights === "reference_only"
-                  ? "參考用途；使用權利未確認。"
-                  : "使用者提供素材，發佈前請確認使用權利。"}
-              </p>
-              <p>{preview.notes}</p>
-              {preview.url ? (
-                <a
-                  className="button-link"
-                  href={preview.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  開啟原始來源 <ExternalLink size={16} />
-                </a>
-              ) : (
-                <a
-                  className="button-link"
-                  href={materialSrc(preview.id, "full")}
-                  download={preview.title}
-                >
-                  下載素材 <Download size={16} />
-                </a>
-              )}
-              <small>保存時間：{time(preview.createdAt)}</small>
-            </div>
+            <PreviewPanel preview={preview} />
           ) : chosenTask ? (
-            <div className="settings-stack task-resume-sheet">
-              <div className="task-resume-status">
-                <span
-                  className={
-                    "badge " + (offline ? "uncertain" : chosenTask.state)
-                  }
-                >
-                  {offline
-                    ? OFFLINE_PILL_LABEL
-                    : taskLabels[chosenTask.state]}
-                </span>
-                <small>{time(chosenTask.updatedAt || chosenTask.createdAt)}</small>
-              </div>
-              <TaskRequestSummary input={chosenTask.input} />
-              {offline && (
-                <div className="task-offline-banner" role="status">
-                  <p>連線中斷 · 顯示上次已知。後端未假裝停止。</p>
-                  <button
-                    type="button"
-                    className="task-resume-cta"
-                    onClick={() =>
-                      void refresh().catch(() => setOffline(true))
-                    }
-                  >
-                    重新整理
-                  </button>
-                </div>
-              )}
-              {chosenTask.state === "uncertain" && (
-                <div className="task-uncertain-block" role="status">
-                  <p>
-                    結果待確認，此對話暫時不能再送出。請確認後再重試，或建立分支保留原紀錄；系統不會自動重送上一則。
-                  </p>
-                  <button
-                    type="button"
-                    className="task-resume-cta"
-                    onClick={() => void acknowledgeTask(chosenTask)}
-                  >
-                    <RefreshCw size={16} aria-hidden="true" />
-                    確認並可重試
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button task-resume-cta"
-                    onClick={() => retryBranchFromTask(chosenTask)}
-                    disabled={busy}
-                  >
-                    建立重試分支
-                  </button>
-                </div>
-              )}
-              {isActive(chosenTask) && (
-                <button
-                  type="button"
-                  className="task-resume-cta"
-                  onClick={() => stopTask(chosenTask)}
-                >
-                  <Square size={16} />
-                  要求停止
-                  {!chosenTask.stopSupported ? "（無法確認上游停止）" : ""}
-                </button>
-              )}
-              {["failed", "cancelled"].includes(chosenTask.state) && (
-                <button
-                  type="button"
-                  className="text-button task-resume-cta"
-                  onClick={() => retryBranchFromTask(chosenTask)}
-                  disabled={busy}
-                >
-                  建立重試分支（保留原紀錄）
-                </button>
-              )}
-              {!!chosenTask.output && (
-                <>
-                  <details className="task-output-preview">
-                    <summary>輸出預覽</summary>
-                    <MessageBody text={chosenTask.output} />
-                  </details>
-                  <button
-                    type="button"
-                    className="task-resume-cta"
-                    onClick={() => {
-                      const c = data.conversations.find(
-                        (c) => c.id === chosenTask.conversationId,
-                      );
-                      if (c) selectConversation(c);
-                      closePanel();
-                    }}
-                  >
-                    回到對話
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button task-resume-cta"
-                    onClick={() => download(chosenTask)}
-                  >
-                    <Download size={16} />
-                    下載文字成果
-                  </button>
-                </>
-              )}
-              {!chosenTask.output && (
-                <button
-                  type="button"
-                  className="task-resume-cta"
-                  onClick={() => {
-                    const c = data.conversations.find(
-                      (c) => c.id === chosenTask.conversationId,
-                    );
-                    if (c) selectConversation(c);
-                    closePanel();
-                  }}
-                >
-                  回到對話
-                </button>
-              )}
-              {shortTaskError(chosenTask.error) && (
-                <p className="error">{shortTaskError(chosenTask.error)}</p>
-              )}
-              {shortTaskError(chosenTask.observationError) && (
-                <p className="error">
-                  {shortTaskError(chosenTask.observationError)}
-                </p>
-              )}
-              <details className="task-technical">
-                <summary>
-                  <Code2 size={15} aria-hidden="true" />
-                  技術資訊
-                </summary>
-                <dl>
-                  <div>
-                    <dt>Console 任務</dt>
-                    <dd>
-                      <code>{chosenTask.id}</code>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Hermes 任務</dt>
-                    <dd>
-                      <code>
-                        {chosenTask.remoteId || "串流模式／尚未取得"}
-                      </code>
-                    </dd>
-                  </div>
-                </dl>
-              </details>
-              <TaskUsageSummary task={chosenTask} />
-              {chosenTask.plan?.steps?.length ? (
-                <>
-                  <h3>執行計畫</h3>
-                  <ol className="task-plan">
-                    {chosenTask.plan.steps.map((step) => (
-                      <li key={step.id}>
-                        {step.title}
-                        <small>{step.purpose}</small>
-                      </li>
-                    ))}
-                  </ol>
-                  {chosenTask.plan.fallbacks.map((item) => (
-                    <p key={item.userVisible} className="muted">
-                      {item.userVisible}
-                    </p>
-                  ))}
-                </>
-              ) : null}
-              <h3>真實事件紀錄</h3>
-              {chosenTask.events.map((e) => (
-                <details className="event" key={e.id}>
-                  <TaskEventSummary event={e} />
-                  <small className="event-meta">
-                    {time(e.startedAt)}
-                    {e.toolName && <code>{e.toolName}</code>}
-                  </small>
-                  {e.result !== null && (
-                    <MessageBody
-                      text={
-                        typeof e.result === "string"
-                          ? e.result
-                          : JSON.stringify(e.result, null, 2)
-                      }
-                    />
-                  )}
-                  {e.sources.map((source) => (
-                    <a
-                      key={source}
-                      href={source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {source}
-                    </a>
-                  ))}
-                </details>
-              ))}
-            </div>
+            <TaskSheet
+              task={chosenTask}
+              offline={offline}
+              busy={busy}
+              onRefresh={() => void refresh().catch(() => setOffline(true))}
+              onAcknowledge={acknowledgeTask}
+              onRetryBranch={retryBranchFromTask}
+              onStop={stopTask}
+              onDownload={download}
+              onBackToChat={() => {
+                const conversation = data.conversations.find(
+                  (item) => item.id === chosenTask.conversationId,
+                );
+                if (conversation) selectConversation(conversation);
+                closePanel();
+              }}
+            />
           ) : (
             <div className="empty-state">
               <ListTodo size={28} />
