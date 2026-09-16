@@ -5,6 +5,7 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AddressInfo } from "node:net";
+import { randomUUID } from "node:crypto";
 import { seedSession } from "./session-fixture";
 
 const dataDir = await mkdtemp(join(tmpdir(), "hermes-liveness-"));
@@ -23,6 +24,7 @@ const workspaceRoute = await import("../app/api/workspace/route");
 const conversationsRoute = await import("../app/api/conversations/route");
 const memoryRoute = await import("../app/api/memory/route");
 const { ensureHermesReady } = await import("../lib/server/hermes");
+const tasksRoute = await import("../app/api/tasks/route");
 
 function request(
   path: string,
@@ -184,6 +186,85 @@ test("ensureHermesReady fails closed on unconfigured without probing", async () 
   assert.ok(Date.now() - started < 500);
   assert.equal(state.credential, "missing");
   assert.equal(state.status, "unconfigured");
+  assert.equal(state.message, "Hermes 還沒連上。請到設定的連線頁。");
+});
+
+test("GET /api/health unconfigured message stays student-safe", async () => {
+  delete process.env.HERMES_API_URL;
+  delete process.env.HERMES_API_KEY;
+  resetStoreForTests();
+  const response = await healthRoute.GET(request("health"));
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.message, "Hermes 還沒連上。請到設定的連線頁。");
+  assert.doesNotMatch(String(body.message), /環境變數|HERMES_API/);
+});
+
+test("ensureHermesReady times out hanging Hermes without catalog wait", async () => {
+  const hanging = await hangingHermes();
+  const previous = {
+    url: process.env.HERMES_API_URL,
+    key: process.env.HERMES_API_KEY,
+    loopback: process.env.HERMES_ALLOW_LOOPBACK_HTTP,
+    connect: process.env.HERMES_CONNECT_TIMEOUT_MS,
+    discovery: process.env.HERMES_DISCOVERY_TIMEOUT_MS,
+  };
+  process.env.HERMES_API_URL = hanging.url;
+  process.env.HERMES_API_KEY = "liveness-probe-key-not-a-secret";
+  process.env.HERMES_ALLOW_LOOPBACK_HTTP = "true";
+  process.env.HERMES_CONNECT_TIMEOUT_MS = "1000";
+  process.env.HERMES_DISCOVERY_TIMEOUT_MS = "20000";
+  resetStoreForTests();
+  try {
+    const started = Date.now();
+    const state = await ensureHermesReady("workspace");
+    const elapsed = Date.now() - started;
+    assert.ok(elapsed < 2500, "ensureHermesReady blocked for " + elapsed + "ms");
+    assert.equal(state.status, "failed");
+    assert.notEqual(state.credential, "valid");
+    assert.equal(state.message, "現在沒辦法連到 Hermes。");
+    assert.doesNotMatch(state.message, /環境變數|HERMES_API|憑證參照/);
+  } finally {
+    hanging.server.close();
+    if (previous.url === undefined) delete process.env.HERMES_API_URL;
+    else process.env.HERMES_API_URL = previous.url;
+    if (previous.key === undefined) delete process.env.HERMES_API_KEY;
+    else process.env.HERMES_API_KEY = previous.key;
+    if (previous.loopback === undefined)
+      delete process.env.HERMES_ALLOW_LOOPBACK_HTTP;
+    else process.env.HERMES_ALLOW_LOOPBACK_HTTP = previous.loopback;
+    if (previous.connect === undefined)
+      delete process.env.HERMES_CONNECT_TIMEOUT_MS;
+    else process.env.HERMES_CONNECT_TIMEOUT_MS = previous.connect;
+    if (previous.discovery === undefined)
+      delete process.env.HERMES_DISCOVERY_TIMEOUT_MS;
+    else process.env.HERMES_DISCOVERY_TIMEOUT_MS = previous.discovery;
+    resetStoreForTests();
+  }
+});
+
+test("POST /api/tasks returns student copy when Hermes is unconfigured", async () => {
+  delete process.env.HERMES_API_URL;
+  delete process.env.HERMES_API_KEY;
+  resetStoreForTests();
+  const { cookie } = seedSession();
+  const created = await conversationsRoute.POST(
+    request("conversations", cookie, "POST", { title: "茶會" }),
+  );
+  assert.equal(created.status, 201);
+  const conversationId = (await created.json()).conversation.id;
+  const response = await tasksRoute.POST(
+    request("tasks", cookie, "POST", {
+      conversationId,
+      requestKey: randomUUID(),
+      input: "幫我找淡大禪學社茶會宣傳靈感",
+    }),
+  );
+  assert.equal(response.status, 503);
+  const body = await response.json();
+  assert.equal(body.error?.code, "hermes_not_ready");
+  assert.equal(body.error?.message, "Hermes 還沒連上。請到設定的連線頁。");
+  assert.doesNotMatch(JSON.stringify(body), /環境變數|HERMES_API/);
 });
 
 test("workspace settings keep DATABASE_URL off the student tab", async () => {
@@ -193,4 +274,5 @@ test("workspace settings keep DATABASE_URL off the student tab", async () => {
   );
   assert.doesNotMatch(text, /DATABASE_URL/);
   assert.match(text, /記憶存在這個工作區/);
+  assert.match(text, /connection-label sr-only/);
 });

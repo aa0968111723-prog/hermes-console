@@ -40,8 +40,8 @@ export function resolveAgent(agent?: HermesAgent) {
       503,
       "hermes_unconfigured",
       role === "general"
-        ? "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。"
-        : "此 Agent 尚未設定後端網域與憑證參照。",
+        ? "Hermes 還沒連上。請到設定的連線頁。"
+        : "此 Agent 尚未完成連線設定。",
     );
   return { role, credentialReference, key, url };
 }
@@ -52,7 +52,7 @@ export function target(raw?: string, key?: string) {
     throw new ApiError(
       503,
       "hermes_unconfigured",
-      "請在連線設定或後端環境變數提供已確認的 Hermes API 網域與新的金鑰。",
+      "Hermes 還沒連上。請到設定的連線頁。",
     );
   const url = assertSafeServiceUrl(urlValue, "hermes");
   url.pathname = url.pathname.replace(/\/$/, "").replace(/\/v1$/, "");
@@ -299,7 +299,7 @@ function uncheckedHealth(): Health {
     status: present ? "verifying" : "unconfigured",
     message: present
       ? "尚未完成連線探測。"
-      : "尚未在連線設定或後端環境變數提供 Hermes 網域與新金鑰。",
+      : "Hermes 還沒連上。請到設定的連線頁。",
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,
@@ -325,7 +325,7 @@ export function healthSnapshot(owner: string): Health {
   }
 }
 
-/** Task submit: cached valid/unconfigured/failed answers immediately. Probe only while verifying. */
+/** Task submit: cached valid/unconfigured/failed answers immediately. Probe models only while verifying. */
 export async function ensureHermesReady(owner: string): Promise<Health> {
   const snapshot = healthSnapshot(owner);
   if (snapshot.credential === "valid") return snapshot;
@@ -335,10 +335,15 @@ export async function ensureHermesReady(owner: string): Promise<Health> {
     snapshot.status === "failed"
   )
     return snapshot;
-  return health(owner);
+  return health(owner, false, { catalog: false });
 }
 
-export async function health(owner: string, refresh = false): Promise<Health> {
+export async function health(
+  owner: string,
+  refresh = false,
+  options?: { catalog?: boolean },
+): Promise<Health> {
+  const catalog = options?.catalog !== false;
   const store = storeFields();
   if (!refresh) {
     const fresh = freshCachedHealth(owner);
@@ -350,7 +355,7 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     credential: "missing",
     agent: "unverified",
     status: "unconfigured",
-    message: "尚未在連線設定或後端環境變數提供 Hermes 網域與新金鑰。",
+    message: "Hermes 還沒連上。請到設定的連線頁。",
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,
@@ -363,9 +368,10 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     discovery: {},
     ...store,
   };
-  // Discovery has its own total deadline; this does not shorten creative tasks.
   const signal = AbortSignal.timeout(
-    deadline("HERMES_DISCOVERY_TIMEOUT_MS", 20_000),
+    catalog
+      ? deadline("HERMES_DISCOVERY_TIMEOUT_MS", 20_000)
+      : deadline("HERMES_CONNECT_TIMEOUT_MS", 10_000),
   );
   try {
     target();
@@ -393,53 +399,54 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     state.credential = "valid";
     state.status = "partial";
     state.message = "憑證已通過模型清單驗證；Agent 執行能力需由實際任務確認。";
-    try {
-      const capabilities = await upstream("/v1/capabilities", {}, signal);
-      if (capabilities.status === 404) {
-        state.discovery!.capabilities = "unsupported";
-        await capabilities.body?.cancel();
-      } else {
-        const data = await readJSON(capabilities);
-        if (
-          data.object === "hermes.api_server.capabilities" &&
-          data.features &&
-          typeof data.features === "object"
-        ) {
-          state.features = Object.fromEntries(
-            Object.entries(data.features).filter(
-              (entry): entry is [string, boolean] =>
-                typeof entry[1] === "boolean",
-            ),
-          );
-          state.discovery!.capabilities = "available";
+    if (catalog) {
+      try {
+        const capabilities = await upstream("/v1/capabilities", {}, signal);
+        if (capabilities.status === 404) {
+          state.discovery!.capabilities = "unsupported";
+          await capabilities.body?.cancel();
         } else {
-          state.discovery!.capabilities = "failed";
+          const data = await readJSON(capabilities);
+          if (
+            data.object === "hermes.api_server.capabilities" &&
+            data.features &&
+            typeof data.features === "object"
+          ) {
+            state.features = Object.fromEntries(
+              Object.entries(data.features).filter(
+                (entry): entry is [string, boolean] =>
+                  typeof entry[1] === "boolean",
+              ),
+            );
+            state.discovery!.capabilities = "available";
+          } else {
+            state.discovery!.capabilities = "failed";
+          }
         }
+      } catch {
+        state.discovery!.capabilities = "failed";
       }
-    } catch {
-      state.discovery!.capabilities = "failed";
-    }
-    // Discovery does not execute a tool and never implies that OAuth or a tool works.
-    const lists = await Promise.allSettled(
-      (["skills", "toolsets"] as const).map(async (kind) => {
-        try {
-          const response = await upstream("/v1/" + kind, {}, signal);
-          if (response.status === 404) {
-            await response.body?.cancel();
-            state.discovery![kind] = "unsupported";
+      const lists = await Promise.allSettled(
+        (["skills", "toolsets"] as const).map(async (kind) => {
+          try {
+            const response = await upstream("/v1/" + kind, {}, signal);
+            if (response.status === 404) {
+              await response.body?.cancel();
+              state.discovery![kind] = "unsupported";
+              return [];
+            }
+            const items = discovery(await readJSON(response));
+            state.discovery![kind] = "available";
+            return items;
+          } catch {
+            state.discovery![kind] = "failed";
             return [];
           }
-          const items = discovery(await readJSON(response));
-          state.discovery![kind] = "available";
-          return items;
-        } catch {
-          state.discovery![kind] = "failed";
-          return [];
-        }
-      }),
-    );
-    state.skills = lists[0].status === "fulfilled" ? lists[0].value : [];
-    state.toolsets = lists[1].status === "fulfilled" ? lists[1].value : [];
+        }),
+      );
+      state.skills = lists[0].status === "fulfilled" ? lists[0].value : [];
+      state.toolsets = lists[1].status === "fulfilled" ? lists[1].value : [];
+    }
     let evidence: {
       id: string;
       verifiedAt: string;
@@ -463,10 +470,16 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     state.status = state.credential === "missing" ? "unconfigured" : "failed";
     if (state.reachable === null && state.credential !== "missing")
       state.reachable = false;
+    const code = error instanceof ApiError ? error.code : "";
     state.message =
-      error instanceof ApiError
-        ? error.message
-        : "服務設定無效，請檢查連線設定或後端環境變數。";
+      !catalog &&
+      ["interrupted", "connect_timeout", "network_error", "idle_timeout"].includes(
+        code,
+      )
+        ? "現在沒辦法連到 Hermes。"
+        : error instanceof ApiError
+          ? error.message
+          : "現在沒辦法連到 Hermes。";
   }
   try {
     put("health", owner, {
