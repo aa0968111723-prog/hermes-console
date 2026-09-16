@@ -49,12 +49,12 @@ export function useAuth() {
 }
 
 async function redeemHashToken() {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
   const verify = params.get("verify");
   const login = params.get("login");
   const token = verify || login;
-  if (!token || !/^[a-f0-9]{64}$/.test(token)) return;
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) return false;
   const response = await fetch("/api/auth/email", {
     method: "POST",
     credentials: "same-origin",
@@ -71,6 +71,7 @@ async function redeemHashToken() {
   if (!response.ok)
     throw new Error(result.error?.message || "連結無效或已過期。");
   window.history.replaceState(null, "", window.location.pathname);
+  return true;
 }
 
 export default function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -140,10 +141,10 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
+    const consume = async (fromHashChange = false) => {
       try {
-        await redeemHashToken();
-        if (!cancelled) await refresh();
+        const consumed = await redeemHashToken();
+        if (!cancelled && (consumed || !fromHashChange)) await refresh();
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "連結無效或已過期。";
@@ -158,16 +159,15 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
           setSnapshot((current) => ({ ...current, linkError: message }));
         }
       }
-    })().catch(() => {
-      if (!cancelled)
-        setSnapshot((current) => ({
-          ...current,
-          loading: false,
-          required: true,
-        }));
-    });
+    };
+    void consume();
+    const onHashChange = () => {
+      void consume(true);
+    };
+    window.addEventListener("hashchange", onHashChange);
     return () => {
       cancelled = true;
+      window.removeEventListener("hashchange", onHashChange);
     };
   }, [refresh]);
 

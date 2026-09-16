@@ -65,7 +65,9 @@ try {
   await expect(page.getByRole("button", { name: "Magic Link" })).toBeVisible();
   await expect(page.getByRole("button", { name: "忘記密碼" })).toBeVisible();
   await expect(page.getByText("寄信尚未完成設定")).toBeVisible();
-  await page.goto(base + "/#verify=" + "a".repeat(64));
+  await page.evaluate((token) => {
+    window.location.hash = "verify=" + token;
+  }, "a".repeat(64));
   await expect(page.locator(".login-card .error")).toContainText(
     /無效|過期|不存在/,
   );
