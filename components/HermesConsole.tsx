@@ -269,6 +269,7 @@ export default function HermesConsole() {
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
   const pinBriefAfterPick = useRef(false);
+  const suppressJump = useRef(false);
   const composing = useRef(false);
   const sending = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
@@ -543,7 +544,13 @@ export default function HermesConsole() {
         el.scrollTo({ top: Math.max(0, top) });
         pinBriefAfterPick.current = false;
         nearBottom.current = false;
+        suppressJump.current = true;
         setJump(false);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            suppressJump.current = false;
+          });
+        });
         return;
       }
     }
@@ -1200,7 +1207,7 @@ export default function HermesConsole() {
                 const el = e.currentTarget;
                 nearBottom.current =
                   el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-                setJump(!nearBottom.current);
+                if (!suppressJump.current) setJump(!nearBottom.current);
               }}
             >
               <div className="conversation" key={activeId || "new"}>
