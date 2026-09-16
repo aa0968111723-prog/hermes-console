@@ -1,6 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { conversationVisualInView } from "../lib/client/conversation-visual";
+import {
+  RESULT_VISUAL_SELECTOR,
+  conversationVisualInView,
+  lastMatchingVisual,
+} from "../lib/client/conversation-visual";
 
 test("jump chip hides when a later spec card is in view even if inspiration is above", () => {
   const root = { top: 60, bottom: 640 };
@@ -11,4 +15,20 @@ test("jump chip hides when a later spec card is in view even if inspiration is a
     true,
   );
   assert.equal(conversationVisualInView(root, [inspirationAbove]), false);
+});
+
+test("later image review wins over an earlier knowledge card", () => {
+  const knowledge = { id: "knowledge" } as unknown as HTMLElement;
+  const review = { id: "review" } as unknown as HTMLElement;
+  const root = {
+    querySelectorAll: (selector: string) => {
+      assert.equal(selector, RESULT_VISUAL_SELECTOR);
+      return [knowledge, review];
+    },
+  };
+  assert.equal(lastMatchingVisual(root, RESULT_VISUAL_SELECTOR), review);
+  assert.equal(
+    lastMatchingVisual({ querySelectorAll: () => [] }, RESULT_VISUAL_SELECTOR),
+    null,
+  );
 });

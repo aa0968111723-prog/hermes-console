@@ -98,7 +98,9 @@ import {
 } from "@/lib/client/storage";
 import {
   CONVERSATION_VISUAL_SELECTOR,
+  RESULT_VISUAL_SELECTOR,
   conversationVisualInView,
+  lastMatchingVisual,
 } from "@/lib/client/conversation-visual";
 
 type Project = { id: string; name: string };
@@ -564,8 +566,7 @@ export default function HermesConsole() {
   useEffect(() => {
     const el = scroll.current;
     if (!el) return;
-    const pin = (selector: string) => {
-      const target = el.querySelector<HTMLElement>(selector);
+    const pin = (target: HTMLElement | null) => {
       if (!target) return false;
       const top =
         target.getBoundingClientRect().top -
@@ -573,21 +574,21 @@ export default function HermesConsole() {
         el.scrollTop -
         8;
       pinnedScrollTop.current = Math.max(0, top);
-      nearBottom.current = false;
       setJump(false);
       el.scrollTo({ top: pinnedScrollTop.current });
       return true;
     };
     const frame = requestAnimationFrame(() => {
       if (pinBriefAfterPick.current && chatDirectionBrief) {
-        if (pin(".direction-brief")) {
+        if (pin(lastMatchingVisual(el, ".direction-brief"))) {
           pinBriefAfterPick.current = false;
           return;
         }
       }
+      if (chatDirectionBrief && pin(lastMatchingVisual(el, ".direction-brief")))
+        return;
+      if (pin(lastMatchingVisual(el, RESULT_VISUAL_SELECTOR))) return;
       if (!nearBottom.current) return;
-      if (chatDirectionBrief && pin(".direction-brief")) return;
-      if (pin(".inspiration-result") || pin(".image-review") || pin(".knowledge-result")) return;
       el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);
