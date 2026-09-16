@@ -11,7 +11,7 @@
 | 手機捲動所有權 | 可用（契約） | Chat 只捲 conversation；其他頁 `data-scroll-mode=page`。`--app-height` 只在鍵盤開啟時寫入。Android 實機仍 Partial。 |
 | Bottom dock | 可用 | 對話 / 專案 / 靈感 / Agent；設定在齒輪。 |
 | 手機頂欄 | 可用（契約） | Hermes 操作葉片不再蓋住標題殘字。Playwright 斷言 trigger 在選單右側。 |
-| AuthGate | 可用 | `/` 先登入。Google 未設定顯示尚未完成設定。淡江未設定顯示「淡江 SSO 尚未完成設定」。Email Argon2id + magic link + 單次重設密碼。 |
+| AuthGate | 可用 | `/` 先登入。Google／淡江未設定顯示尚未完成設定。未設定寄件時不出現寄送表單，並顯示「尚未設定寄件，無法寄送登入或重設連結」。驗證按鈕為「完成驗證」。Magic／重設／驗證有 Playwright。 |
 | 身份模型 | 可用 | User / Identity / Session / Membership。禁止 email 自動合併。 |
 | API 授權 | 可用 | `authenticate()` 要 session + membership。Health/ready 仍公開且不含秘密。 |
 | MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。 |
@@ -34,16 +34,11 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:ui`、`test:entry` 通過。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`test:entry` 通過。`test:ui` 未在本輪重跑（先前同分支已通過）。
 - `npm test`：394 tests, 392 pass, 2 skipped, 0 fail。
 - `/` First Load JS 239 kB（shared 103 kB）。
-- `test:ui` 帳號頁：目前這台／其他裝置、Google／淡江尚未完成設定、登出、無 session hash；結束其他工作階段需確認。連線格：12 個狀態點、卡片上無「未設定」字句；淡江 MCP 密碼收在「不是淡江 SSO」。
-- `check:secrets`：648 files PASS。History/deployment rotation 未驗證。
-- `test:entry`：登入閘、未設定 Google／淡江、公開 health、匿名 API 401。
-- axe wcag2a/aa + 2.1：0 violations。LCP 112ms、CLS 0.00008。
-- Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
-- 登入 bootstrap：Node 註冊後用頁內 `fetch` 登入。註冊留下的第二個 session 在帳號頁顯示為其他裝置。
-- 本輪未重跑：`test:chat`、`test:workbench`、`test:gateway`、`test:runtime`（先前同分支已通過）。
+- `test:entry`：未設定 Google／淡江／寄件；無效 magic token 顯示「連結已使用、已過期或不存在」且留在登入頁；第一位擁有者註冊；magic redeem；密碼重設；第二位成員 email 驗證進工作區。
+- 本輪未重跑：`test:ui`、`test:chat`、`test:workbench`、`test:gateway`、`test:runtime`、`check:secrets`。
 
 ## 仍是 Partial（禁止標綠）
 
