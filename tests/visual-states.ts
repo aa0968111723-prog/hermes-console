@@ -416,6 +416,13 @@ export async function verifyVisualStates(
   await expect(
     page.locator(".visual-message").getByRole("region", { name: "設計成果預覽" }),
   ).toBeVisible();
+  assert.equal(
+    await page
+      .locator(".visual-message .canva-result h3")
+      .evaluate((element) => element.scrollWidth <= element.clientWidth),
+    true,
+    "in-chat artifact title must wrap without horizontal overflow",
+  );
   await page.setViewportSize({ width: 390, height: 420 });
   await page.locator(".composer-task-status").click();
   let taskUsage = page.getByRole("dialog", { name: "任務詳情" })
@@ -542,6 +549,19 @@ export async function verifyVisualStates(
     document.documentElement.style.removeProperty("--safe-area-bottom");
   });
   await page.setViewportSize({ width: 390, height: 844 });
+  const mobileTitle = page
+    .getByRole("region", { name: "設計成果預覽" })
+    .locator("h3")
+    .first();
+  await mobileTitle.scrollIntoViewIfNeeded();
+  await expect(mobileTitle).toBeVisible();
+  assert.equal(
+    await mobileTitle.evaluate(
+      (element) => element.scrollWidth <= element.clientWidth,
+    ),
+    true,
+    "in-chat artifact title must wrap on mobile without horizontal overflow",
+  );
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
