@@ -194,6 +194,32 @@ test("idle task poll is slower than active poll", async () => {
   assert.match(ui, /POLL_IDLE_MS = 8000/);
 });
 
+test("workspace GET failure after send keeps the open thread", async () => {
+  const ui = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  const snapshot = await readFile(
+    new URL("../lib/client/workspace-state.ts", import.meta.url),
+    "utf8",
+  );
+  const boundary = await readFile(
+    new URL("../components/ConsoleErrorBoundary.tsx", import.meta.url),
+    "utf8",
+  );
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(snapshot, /WORKSPACE_LOAD_NOTICE/);
+  assert.match(snapshot, /mergeWorkspaceSnapshot/);
+  assert.match(snapshot, /conversationWithTaskMessages/);
+  assert.match(ui, /conversationWithTaskMessages/);
+  assert.match(ui, /refresh\("poll"\)/);
+  assert.match(ui, /sending\.current \|\| refreshing\.current/);
+  assert.match(ui, /setAuth\("ready"\)/);
+  assert.match(boundary, /繼續使用此工作區/);
+  assert.ok(!page.includes("InvitationGate"));
+  assert.doesNotMatch(snapshot, /HERMES_API_KEY|Bearer /);
+});
+
 test("direction spec stays in the conversation that picked it, not the empty home", async () => {
   const ui = await readFile(
     new URL("../components/HermesConsole.tsx", import.meta.url),

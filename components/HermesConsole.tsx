@@ -103,16 +103,21 @@ import {
   conversationVisualInView,
   preferredPinnedVisual,
 } from "@/lib/client/conversation-visual";
+import {
+  EMPTY_WORKSPACE,
+  WORKSPACE_LOAD_NOTICE,
+  conversationWithTaskMessages,
+  isAbortLike,
+  mergeTasks,
+  mergeWorkspaceSnapshot,
+  readWorkspaceSnapshot,
+  studentSafeApiMessage,
+  upsertConversation,
+  type WorkspaceSnapshot,
+} from "@/lib/client/workspace-state";
 
-type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
-type Workspace = {
-  conversations: Conversation[];
-  projects: Project[];
-  materials: Material[];
-  imageInput: boolean;
-  memory: { status: string; scope: string; synced: boolean };
-};
+type Workspace = WorkspaceSnapshot;
 type Preferences = {
   font: number;
   width: number;
@@ -130,15 +135,8 @@ const DEFAULT_PREFS: Preferences = {
   turtleSize: 100,
 };
 const EMPTY: Workspace = {
-  conversations: [],
-  projects: [],
+  ...EMPTY_WORKSPACE,
   materials: [],
-  imageInput: false,
-  memory: {
-    status: "unsupported",
-    scope: "尚未同步 Hermes 記憶。",
-    synced: false,
-  },
 };
 const taskLabels: Record<string, string> = {
   queued: "準備提交",
@@ -179,23 +177,43 @@ async function api<T>(
   method = "GET",
   body?: unknown,
 ): Promise<T> {
-  const response = await fetch("/api/" + path, {
-    method,
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: body ? { "Content-Type": "application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(30_000),
-  }).catch(() => {
+  let response: Response;
+  try {
+    response = await fetch("/api/" + path, {
+      method,
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(30_000),
+    });
+  } catch (error) {
+    if (isAbortLike(error)) {
+      const abort = new Error(WORKSPACE_LOAD_NOTICE);
+      abort.name = "AbortError";
+      throw abort;
+    }
     throw new Error(
       method === "GET"
         ? "暫時無法取得資料，請檢查連線後重試。"
         : "未收到操作結果。請先查看已保存的任務或素材，再決定是否重試。",
     );
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok)
-    throw new Error(data.error?.message || "操作失敗，請稍後重試。");
+  }
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const raw =
+      data &&
+      typeof data === "object" &&
+      "error" in data &&
+      data.error &&
+      typeof data.error === "object" &&
+      "message" in (data.error as object)
+        ? String((data.error as { message?: unknown }).message || "")
+        : "";
+    throw new Error(studentSafeApiMessage(raw, "操作失敗，請稍後重試。"));
+  }
+  if (data == null || typeof data !== "object")
+    throw new Error(WORKSPACE_LOAD_NOTICE);
   return data as T;
 }
 export default function HermesConsole() {
@@ -284,9 +302,15 @@ export default function HermesConsole() {
   const pinnedScrollTop = useRef<number | null>(null);
   const composing = useRef(false);
   const sending = useRef(false);
+  const refreshing = useRef(false);
+  const dataRef = useRef(data);
+  const hasActiveTaskRef = useRef(false);
+  const lastPollAt = useRef(0);
+  dataRef.current = data;
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
   const pendingXHR = useRef(new Map<string, XMLHttpRequest>());
-  const activeConv = data.conversations.find((c) => c.id === activeId);
+  const conversations = data.conversations || [];
+  const activeConv = conversations.find((c) => c.id === activeId);
   const currentTasks = tasks
     .filter((t) => t.conversationId === activeId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -298,6 +322,7 @@ export default function HermesConsole() {
     (t) => isActive(t) || t.state === "uncertain",
   );
   const hasActiveTask = tasks.some(isActive);
+  hasActiveTaskRef.current = hasActiveTask;
   const directionWorkflow = [...workflows]
     .filter((item) => item.projectId === project && item.directionBrief)
     .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
@@ -318,23 +343,72 @@ export default function HermesConsole() {
       ? DIRECTION_LETTERS[directionWorkflow.selected]
       : chatDirectionBrief?.selected || null);
 
+  const commitWorkspace = useCallback((incoming: WorkspaceSnapshot) => {
+    const next = mergeWorkspaceSnapshot(
+      dataRef.current,
+      incoming,
+    ) as Workspace;
+    dataRef.current = next;
+    setData(next);
+    return next;
+  }, []);
   const loadWorkspace = useCallback(async () => {
-    const result = await api<Workspace>("workspace");
-    setData(result);
-    return result;
-  }, []);
-  const refresh = useCallback(async () => {
-    const [workspace, taskResult, workflowResult] = await Promise.all([
-      api<Workspace>("workspace"),
-      api<{ tasks: Task[] }>("tasks"),
-      api<{ workflows: Workflow[]; artifacts?: Artifact[] }>("workflows"),
-    ]);
-    setData(workspace);
-    setTasks(taskResult.tasks);
-    setWorkflows(workflowResult.workflows);
-    setArtifacts(workflowResult.artifacts || []);
-    setOffline(false);
-  }, []);
+    try {
+      const snap = readWorkspaceSnapshot(await api<unknown>("workspace"));
+      if (!snap) throw new Error(WORKSPACE_LOAD_NOTICE);
+      return commitWorkspace(snap);
+    } catch (error) {
+      if (isAbortLike(error)) return dataRef.current;
+      throw error;
+    }
+  }, [commitWorkspace]);
+  const refresh = useCallback(
+    async (source: "poll" | "user" = "user") => {
+      if (source === "poll" && (sending.current || refreshing.current)) return;
+      refreshing.current = true;
+      try {
+        const [workspaceResult, taskResult, workflowResult] =
+          await Promise.allSettled([
+            api<unknown>("workspace"),
+            api<{ tasks?: Task[] }>("tasks"),
+            api<{ workflows: Workflow[]; artifacts?: Artifact[] }>("workflows"),
+          ]);
+        let failed = false;
+        if (workspaceResult.status === "fulfilled") {
+          const snap = readWorkspaceSnapshot(workspaceResult.value);
+          if (snap) commitWorkspace(snap);
+          else failed = true;
+        } else if (!isAbortLike(workspaceResult.reason)) {
+          failed = true;
+        }
+        if (taskResult.status === "fulfilled") {
+          setTasks((previous) =>
+            mergeTasks(previous, taskResult.value.tasks),
+          );
+        } else if (!isAbortLike(taskResult.reason)) {
+          failed = true;
+        }
+        if (workflowResult.status === "fulfilled") {
+          setWorkflows(workflowResult.value.workflows || []);
+          setArtifacts(workflowResult.value.artifacts || []);
+        } else if (!isAbortLike(workflowResult.reason)) {
+          failed = true;
+        }
+        if (failed) {
+          setOffline(true);
+          setError(WORKSPACE_LOAD_NOTICE);
+        } else {
+          setOffline(false);
+          setError((current) =>
+            current === WORKSPACE_LOAD_NOTICE ? "" : current,
+          );
+        }
+      } finally {
+        refreshing.current = false;
+      }
+    },
+    [commitWorkspace],
+  );
   useEffect(() => {
     // Remove compromised legacy connection cache; never remove conversation history.
     for (const key of [
@@ -371,9 +445,9 @@ export default function HermesConsole() {
           setProject(conv.projectId);
         }
       })
-      .catch((e) => {
+      .catch(() => {
         setAuth("ready");
-        setError((e as Error).message);
+        setError(WORKSPACE_LOAD_NOTICE);
       });
   }, [loadWorkspace]);
   useEffect(() => {
@@ -383,7 +457,7 @@ export default function HermesConsole() {
     if (auth !== "ready") return;
     api<Health>("health")
       .then(setHealth)
-      .catch((e) => setError(e.message));
+      .catch(() => setOffline(true));
     api<{ integrations: Integration[]; canva: { configured: boolean } }>(
       "integrations",
     )
@@ -395,18 +469,25 @@ export default function HermesConsole() {
     let stopped = false,
       loading = false;
     const poll = async () => {
-      if (loading || document.hidden || stopped) return;
+      if (loading || document.hidden || stopped || sending.current) return;
+      const minGap = hasActiveTaskRef.current ? POLL_ACTIVE_MS : POLL_IDLE_MS;
+      if (lastPollAt.current && Date.now() - lastPollAt.current < minGap)
+        return;
       loading = true;
+      lastPollAt.current = Date.now();
       try {
-        await refresh();
+        await refresh("poll");
       } catch {
-        if (!stopped) setOffline(true);
+        if (!stopped) {
+          setOffline(true);
+          setError(WORKSPACE_LOAD_NOTICE);
+        }
       } finally {
         loading = false;
       }
     };
     void poll();
-    const timer = setInterval(poll, hasActiveTask ? POLL_ACTIVE_MS : POLL_IDLE_MS);
+    const timer = setInterval(poll, POLL_ACTIVE_MS);
     const disconnected = () => setOffline(true);
     window.addEventListener("online", poll);
     window.addEventListener("offline", disconnected);
@@ -418,7 +499,7 @@ export default function HermesConsole() {
       window.removeEventListener("offline", disconnected);
       document.removeEventListener("visibilitychange", poll);
     };
-  }, [auth, refresh, hasActiveTask]);
+  }, [auth, refresh]);
   useEffect(() => {
     const textarea = input.current;
     if (!textarea) return;
@@ -646,7 +727,25 @@ export default function HermesConsole() {
     if (!parentId) replaceDraft(draftScope, emptyDraft());
     setActiveId(result.conversation.id);
     writePreference("hermes.active.v2", result.conversation.id);
-    await loadWorkspace();
+    setData((previous) => {
+      const next = {
+        ...previous,
+        conversations: upsertConversation(
+          previous.conversations,
+          result.conversation,
+        ),
+      };
+      dataRef.current = next;
+      return next;
+    });
+    try {
+      await loadWorkspace();
+    } catch (error) {
+      if (!isAbortLike(error)) {
+        setOffline(true);
+        setError(WORKSPACE_LOAD_NOTICE);
+      }
+    }
     return result.conversation;
   }
   async function sendPrompt(prompt: string, attachmentIds?: string[]) {
@@ -687,12 +786,39 @@ export default function HermesConsole() {
         result.task,
         ...previous.filter((t) => t.id !== result.task.id),
       ]);
+      setData((previous) => {
+        const existing =
+          previous.conversations.find((item) => item.id === conv.id) || conv;
+        const nextConv = conversationWithTaskMessages(
+          existing,
+          result.task,
+          payload.attachments,
+        );
+        const next = {
+          ...previous,
+          conversations: upsertConversation(previous.conversations, nextConv),
+        };
+        dataRef.current = next;
+        return next;
+      });
       replaceDraft("conversation:" + conv.id, emptyDraft());
       requestKey.current = null;
-      await refresh();
+      try {
+        await refresh("user");
+      } catch (error) {
+        if (!isAbortLike(error)) {
+          setOffline(true);
+          setError(WORKSPACE_LOAD_NOTICE);
+        }
+      }
       input.current?.focus();
     } catch (e) {
-      setError((e as Error).message);
+      setError(
+        studentSafeApiMessage(
+          (e as Error).message,
+          "操作失敗，請稍後重試。",
+        ),
+      );
     } finally {
       sending.current = false;
       setBusy(false);
@@ -846,7 +972,7 @@ export default function HermesConsole() {
   function onComposerTaskPillClick(task: Task) {
     // Offline: refresh only — never open-resend or acknowledge.
     if (composerTaskPillAction(offline) === "refresh") {
-      void refresh().catch(() => setOffline(true));
+      void refresh("user").catch(() => setOffline(true));
       return;
     }
     openTask(task);
@@ -1905,7 +2031,8 @@ export default function HermesConsole() {
                 ]);
                 setInspiration(updated.items);
                 setInspirationPack(updated.pack || null);
-                setData(workspace);
+                const snap = readWorkspaceSnapshot(workspace);
+                if (snap) commitWorkspace(snap);
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />

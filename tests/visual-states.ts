@@ -26,11 +26,23 @@ export async function verifyVisualStates(
     page.getByRole("button", { name: "加入內容", exact: true }),
   ).toBeFocused();
   const image = await readFile("public/mascot/turtle.png");
-  await page.locator('#composer input[type="file"]').setInputFiles({
+  const composer = page.getByRole("textbox", { name: "訊息", exact: true });
+  await expect(composer).toBeVisible();
+  await expect(composer).toBeEnabled();
+  const fileInput = page.locator('#composer input[type="file"]');
+  await expect(fileInput).toBeEnabled();
+  const uploaded = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/materials") &&
+      response.request().method() === "POST" &&
+      response.ok(),
+  );
+  await fileInput.setInputFiles({
     name: "龜龜參考.png",
     mimeType: "image/png",
     buffer: image,
   });
+  await uploaded;
   // 上傳走 XHR＋SQLite 落檔，CI 高負載下 5s 預設逾時偶發不足（main 4eb841a
   // docs-only 仍在「上傳 0%」卡住）。只放寬此斷言，不改產品行為。
   await expect(page.locator(".context-card")).toContainText("已保存", {

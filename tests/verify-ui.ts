@@ -273,11 +273,41 @@ try {
   const dockNav = page.getByRole("navigation", { name: "快速導覽" });
   await expect(dockNav).toBeVisible();
   await page.setViewportSize({ width: 360, height: 800 });
+  await page.route("**/api/workspace", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            message:
+              "Bearer sk-live-secret postgres://user:pass@host/db HERMES_API_KEY=leak",
+          },
+        }),
+      });
+      return;
+    }
+    await route.continue();
+  });
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill(TEA);
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();
   await expect(
     page.getByRole("button", { name: /選方向 A/ }),
   ).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "今天想做什麼？" }),
+  ).toHaveCount(0);
+  const loadFail = page.getByRole("alert").filter({ hasText: "工作區讀取失敗" });
+  await expect(loadFail).toBeVisible();
+  await expect(loadFail).toContainText("連線未確認時仍可使用此工作區");
+  await expect(loadFail).not.toContainText("Bearer");
+  await expect(loadFail).not.toContainText("sk-live");
+  await expect(loadFail).not.toContainText("postgres");
+  await expect(loadFail).not.toContainText("HERMES_API");
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled();
+  await page.unroute("**/api/workspace");
   await expect(
     page.locator(".message.assistant .message-byline"),
   ).toContainText("工作區");

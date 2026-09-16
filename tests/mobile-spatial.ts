@@ -148,9 +148,16 @@ export async function verifyMobileSpatial(
     .click();
   await page.getByRole("button", { name: "Hermes 操作", exact: true }).click();
   const choosing = page.waitForEvent("filechooser");
-  await radial.getByRole("button", { name: "圖片", exact: true }).click();
   const materialName =
     "2026FreshmanWelcomeCampaignReferenceVersionFinalWithoutSpaces.png";
+  await expect(radial.getByRole("button", { name: "圖片", exact: true })).toBeEnabled();
+  const uploaded = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/materials") &&
+      response.request().method() === "POST" &&
+      response.ok(),
+  );
+  await radial.getByRole("button", { name: "圖片", exact: true }).click();
   await (
     await choosing
   ).setFiles({
@@ -158,6 +165,7 @@ export async function verifyMobileSpatial(
     mimeType: "image/png",
     buffer: await readFile("public/mascot/turtle.png"),
   });
+  await uploaded;
   await expect(page.locator(".context-card")).toContainText("已保存");
   // Full-height preview must keep its close action below a notched phone's
   // top inset, including at the largest supported text size. Desktop

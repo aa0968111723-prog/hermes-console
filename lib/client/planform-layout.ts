@@ -564,7 +564,7 @@ export function layoutFromTask(task?: Task | null): PlanformLayout | null {
   if (!task) return null;
   let found: PlanformLayout | null = null;
   const status = emptyLayout();
-  for (const event of task.events) {
+  for (const event of task.events || []) {
     if (!isPlanformEvent(event)) continue;
     const parsed = parsePlanformLayout(event.result);
     if (!parsed) continue;

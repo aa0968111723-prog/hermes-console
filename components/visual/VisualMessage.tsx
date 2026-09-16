@@ -52,15 +52,16 @@ export default function VisualMessage({
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
-  const sources = [...new Set(task.events.flatMap((event) => event.sources))]
+  const events = task.events || [];
+  const sources = [...new Set(events.flatMap((event) => event.sources || []))]
     .map(safeSource)
     .filter((value): value is string => !!value);
   const steps = progressSteps(task);
-  const results = task.events.map((event) => event.result);
+  const results = events.map((event) => event.result);
   const twinPanel = twinPanelFromResults(results);
   const imageReview = results.find(isImageReviewPack);
   const knowledge = results.find(isClubKnowledgePack);
-  const inspiration = task.events
+  const inspiration = events
     .map((event) => event.result)
     .find(isInspirationSearchPack);
   const artifacts = artifactsForConversation(

@@ -83,6 +83,40 @@ try {
   });
   assert.equal(created.status, 201);
   browser = await chromium.launch({ headless: true });
+  const failContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+  });
+  const failPage = await failContext.newPage();
+  await failPage.route("**/api/workspace", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: {
+            message:
+              "Bearer sk-live-secret postgres://user:pass@host/db HERMES_API_KEY=leak",
+          },
+        }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+  await failPage.goto(base);
+  await expect(failPage.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await expect(failPage.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
+  await expect(failPage.getByText("受邀電子信箱")).toHaveCount(0);
+  await expect(failPage.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await expect(failPage.getByRole("button", { name: "送出訊息", exact: true })).toBeEnabled();
+  const failBanner = failPage.getByRole("alert");
+  await expect(failBanner).toContainText("工作區讀取失敗");
+  await expect(failBanner).toContainText("連線未確認時仍可使用此工作區");
+  await expect(failBanner).not.toContainText("Bearer");
+  await expect(failBanner).not.toContainText("sk-live");
+  await expect(failBanner).not.toContainText("postgres");
+  await expect(failBanner).not.toContainText("HERMES_API");
+  await failContext.close();
   const context = await browser.newContext({
     viewport: { width: 390, height: 844 },
   });

@@ -32,7 +32,7 @@ export function turtleState(task: Task | undefined, offline: boolean) {
   if (task.state === "cancelled") return { id: "idle", label: "準備好了" };
   if (task.state === "queued")
     return { id: "planning", label: "正在規劃" };
-  const tool = workingEvent(task) || task.events.filter((e) => !!e.toolName).at(-1);
+  const tool = workingEvent(task) || (task.events || []).filter((e) => !!e.toolName).at(-1);
   if (tool?.status === "waiting_authorization")
     return { id: "waiting", label: "等你授權" };
   if (tool?.status === "waiting_user")
