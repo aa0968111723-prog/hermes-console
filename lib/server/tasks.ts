@@ -148,12 +148,30 @@ function event(
   task.events.push(record);
   if (task.events.length > 300) task.events.shift();
 }
+function failedToolEvents(task: Task) {
+  return task.events.filter((event) => {
+    const isTool = event.kind === "tool" || Boolean(event.toolName);
+    return (
+      isTool &&
+      (event.status === "failed" ||
+        event.status === "tool.failed" ||
+        event.status === "uncertain")
+    );
+  });
+}
+
 function finish(
   owner: string,
   task: Task,
   state: Task["state"],
   error: string | null = null,
 ) {
+  if (state === "completed" && failedToolEvents(task).length)
+    event(
+      task,
+      "部分步驟目前做不到，只保留已確認的內容。",
+      "fallback",
+    );
   task.state = state;
   task.error = error;
   task.endedAt = now();
@@ -396,19 +414,6 @@ async function execute(
     task.goal = orchestration.goal;
     task.plan = orchestration.plan;
     event(task, "已整理目標與可見執行計畫。", "plan");
-    event(
-      task,
-      "意圖 " +
-        orchestration.goal.intentTier +
-        "；budgetMode=" +
-        orchestration.plan.budgetMode +
-        "；歷史 " +
-        windowed.messages.length +
-        " 則（省略 " +
-        windowed.omitted +
-        "）。",
-      "plan",
-    );
     for (const step of orchestration.plan.steps)
       event(task, "計畫：" + step.title, "queued");
     for (const fallback of orchestration.plan.fallbacks)
@@ -483,17 +488,8 @@ async function execute(
       );
     instructions = fitted.instructions;
     const boundedHistory = fitted.history;
-    event(
-      task,
-      "任務輸入估計 " +
-        fitted.estimated +
-        "/" +
-        tokenBudget +
-        " tokens" +
-        (fitted.trimmed || windowed.omitted ? "（已裁切歷史）" : "") +
-        "。",
-      "budget",
-    );
+    if (fitted.trimmed || windowed.omitted)
+      event(task, "內容較長，已整理成這次能送出的範圍。", "budget");
     task.state = "running";
     event(task, "正在向 Hermes 提交請求。");
     save(owner, task);
