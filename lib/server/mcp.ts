@@ -577,7 +577,8 @@ async function execute(
       const input = schemas[name].parse(args);
       return {
         memories: listMemories(owner, input.projectId || "workspace"),
-        notice: "Console 共用記憶；不是 Hermes 遠端記憶全文。",
+        notice:
+          "僅此 scope 的 Console 記憶。工作區偏好與專案記憶分開存放，不是 Hermes 遠端記憶全文。",
       };
     }
     case "workspace_get_memory":

@@ -1,6 +1,5 @@
 import type { BudgetMode, Conversation } from "../../contracts";
-import { list } from "../store";
-import { listMemories } from "../memory";
+import { memoriesForProject } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
 import { listMaterials } from "../materials";
 import { estimateTokens, recencyScore, type ContextItem } from "./provenance";
@@ -50,7 +49,11 @@ export function assembleContext(input: {
       truth: "FACT",
     }),
   );
-  for (const memory of listMemories(input.owner, input.projectId).slice(0, 20)) {
+  const scoped = memoriesForProject(input.owner, input.projectId);
+  for (const memory of [...scoped.project, ...scoped.workspacePrefs].slice(
+    0,
+    20,
+  )) {
     const text = memory.title + " " + memory.content;
     items.push(
       item({

@@ -218,6 +218,7 @@ test("shared memory persists and is the Hermes Console store", async (t) => {
       "importance",
       "lastUsedAt",
       "confidence",
+      "scope",
     ]);
   });
 

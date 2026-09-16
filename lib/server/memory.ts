@@ -105,8 +105,20 @@ export function listMemories(owner: string, scope?: string) {
     .map(normalizeMemory)
     .filter((item) => {
       if (!scope || scope === "all") return true;
-      return item.scope === scope || item.scope === "workspace";
+      return item.scope === scope;
     });
+}
+
+/** Project rows plus workspace preferences, each keeping its own scope label. */
+export function memoriesForProject(owner: string, projectId: string) {
+  const project = listMemories(owner, projectId);
+  const workspacePrefs =
+    projectId === "workspace"
+      ? []
+      : listMemories(owner, "workspace").filter(
+          (item) => item.kind === "preference",
+        );
+  return { project, workspacePrefs };
 }
 
 export function saveMemory(
@@ -236,7 +248,16 @@ function memoryStoreLabel() {
 }
 
 export function memoryDigest(owner: string, projectId?: string) {
-  const items = listMemories(owner, projectId || "workspace").slice(0, 8);
+  const scope = projectId || "workspace";
+  const { project, workspacePrefs } = memoriesForProject(owner, scope);
+  const seen = new Set<string>();
+  const items = [...project, ...workspacePrefs]
+    .filter((item) => {
+      if (seen.has(item.id)) return false;
+      seen.add(item.id);
+      return true;
+    })
+    .slice(0, 8);
   if (!items.length) return "";
   touchMemories(
     owner,
@@ -292,6 +313,7 @@ export function memoryShareStatus(owner: string, connection?: Health) {
       "importance",
       "lastUsedAt",
       "confidence",
+      "scope",
     ] as const,
     notice:
       hermesRemote === "available"

@@ -4,6 +4,7 @@ import { ApiError, hash, redact } from "./security";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest } from "./canva";
 import { activity } from "./creative";
+import { recordDesignRevision } from "./artifacts";
 const url = z
   .string()
   .url()
@@ -56,6 +57,8 @@ export interface Workflow {
   updatedAt: string;
   canvaJobId: string | null;
   design: Record<string, unknown> | null;
+  artifactId?: string | null;
+  revisionId?: string | null;
   error: string | null;
 }
 export function saveDirections(
@@ -88,6 +91,8 @@ export function saveDirections(
     updatedAt: new Date().toISOString(),
     canvaJobId: null,
     design: null,
+    artifactId: null,
+    revisionId: null,
     error: null,
   };
   return put("workflow", owner, record);
@@ -238,7 +243,19 @@ export async function pollDraft(owner: string, id: string) {
     | { status?: string; result?: { design?: Record<string, unknown> } }
     | undefined;
   if (job?.status === "success" && job.result?.design) {
-    record.design = JSON.parse(redact(JSON.stringify(job.result.design)));
+    const design = JSON.parse(
+      redact(JSON.stringify(job.result.design)),
+    ) as Record<string, unknown>;
+    record.design = design;
+    const artifact = recordDesignRevision(owner, {
+      artifactId: record.artifactId || undefined,
+      projectId: record.projectId,
+      workflowId: record.id,
+      source: "canva",
+      design,
+    });
+    record.artifactId = artifact.id;
+    record.revisionId = artifact.currentRevisionId;
     record.state = "draft_ready";
   } else if (job?.status === "failed") {
     record.state = "failed";
