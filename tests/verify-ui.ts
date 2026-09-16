@@ -282,7 +282,10 @@ try {
   ).toContainText("工作區");
   await expect(page.getByText("不是 Hermes", { exact: true })).toBeVisible();
   await expect(page.getByText("未搜全站")).toBeVisible();
-  await expect(page.getByText(/不是 Hermes Agent 執行/)).toBeVisible();
+  await expect(
+    page.locator(".conversation-scroll .message.assistant").first(),
+  ).toContainText("不是 Hermes Agent 執行");
+  await expect(page.getByRole("button", { name: /選方向 A/ })).toHaveCount(1);
   await expect(page.getByText(/已搜尋整個 Instagram/)).toHaveCount(0);
   await page.screenshot({
     path: join(output, "chat-inspiration-mobile.png"),

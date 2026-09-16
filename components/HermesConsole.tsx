@@ -268,11 +268,13 @@ export default function HermesConsole() {
   const input = useRef<HTMLTextAreaElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
-  const composing = useRef(false);
+  const sending = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
   const pendingXHR = useRef(new Map<string, XMLHttpRequest>());
   const activeConv = data.conversations.find((c) => c.id === activeId);
-  const currentTasks = tasks.filter((t) => t.conversationId === activeId);
+  const currentTasks = tasks
+    .filter((t) => t.conversationId === activeId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const currentTask = currentTasks[0];
   const pending = currentTasks.find(isActive);
   const uncertain = currentTasks.find((t) => t.state === "uncertain");
@@ -582,7 +584,7 @@ export default function HermesConsole() {
   }
   async function sendPrompt(prompt: string, attachmentIds?: string[]) {
     const trimmed = prompt.trim();
-    if (busy || blocked || !trimmed) return;
+    if (sending.current || busy || blocked || !trimmed) return;
     const files = attachmentIds
       ? []
       : uploads.filter((u) => u.material);
@@ -607,6 +609,7 @@ export default function HermesConsole() {
       );
       return;
     }
+    sending.current = true;
     setBusy(true);
     setError("");
     nearBottom.current = true;
@@ -638,12 +641,9 @@ export default function HermesConsole() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      sending.current = false;
       setBusy(false);
     }
-  }
-  async function send() {
-    await sendPrompt(text);
-  }
   async function pickInspirationDirection(
     id: "A" | "B" | "C",
     pack: InspirationSearchPack,
@@ -1332,6 +1332,7 @@ export default function HermesConsole() {
                       </article>
                     ))}
                     {currentTask &&
+                      currentTask.state !== "completed" &&
                       !activeConv.messages.some(
                         (m) =>
                           m.taskId === currentTask.id && m.role === "assistant",
