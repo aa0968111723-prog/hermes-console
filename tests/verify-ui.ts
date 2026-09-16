@@ -232,11 +232,16 @@ try {
         path: join(output, "home-desktop.png"),
         fullPage: true,
       });
-    if (name === "mobile-390")
+    if (name === "mobile-390") {
       await page.screenshot({
         path: join(output, "home-mobile.png"),
         fullPage: true,
       });
+      await page.screenshot({
+        path: join(output, "chat-mobile.png"),
+        fullPage: true,
+      });
+    }
   }
   await page.locator(".mobile-bottom-dock").getByRole("button", { name: "Agent", exact: true }).click();
   await expect(
@@ -274,6 +279,7 @@ try {
   await expect(
     page.getByRole("dialog").filter({ has: page.getByRole("navigation") }),
   ).toBeVisible();
+  await page.screenshot({ path: join(output, "drawer-mobile.png") });
   await page.keyboard.press("Escape");
   await page.locator(".mobile-bottom-dock").getByRole("button", { name: "靈感", exact: true }).click();
   await expect(
@@ -314,6 +320,7 @@ try {
     "project page must own vertical scroll",
   );
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
+  await page.screenshot({ path: join(output, "project.png"), fullPage: true });
   await page.locator(".reference-disclosure > summary").click();
   await page
     .getByRole("textbox", { name: "參考標題" })
@@ -364,6 +371,10 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: join(output, "settings-mobile-390.png"),
+    fullPage: true,
+  });
+  await page.screenshot({
+    path: join(output, "modal.png"),
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -498,6 +509,10 @@ try {
     path: join(output, "composer-keyboard-390x420.png"),
     clip: { x: 0, y: 0, width: 390, height: 420 },
   });
+  await page.screenshot({
+    path: join(output, "keyboard.png"),
+    clip: { x: 0, y: 0, width: 390, height: 420 },
+  });
   await page.evaluate(() => {
     if (!window.visualViewport) return;
     Reflect.deleteProperty(window.visualViewport, "height");
@@ -523,6 +538,7 @@ try {
     Object.defineProperty(Storage.prototype, method, { value: function () { throw new DOMException("Storage denied", "SecurityError"); } });
   }`,
   });
+  await bootstrapOwner(base, restricted);
   const restrictedPage = await restricted.newPage();
   restrictedPage.on("pageerror", (e) => errors.push(e.message));
   await restrictedPage.goto(base);

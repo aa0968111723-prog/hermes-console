@@ -2,6 +2,7 @@ import { chromium, webkit, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { writeFile } from "node:fs/promises";
+import { bootstrapOwner } from "./browser-auth";
 
 // Browser emulation only. WebKit on CI is not a physical iPhone Safari run.
 export async function verifyMobileEngines(base: string, output: string) {
@@ -17,6 +18,7 @@ export async function verifyMobileEngines(base: string, output: string) {
         isMobile: true,
         hasTouch: true,
       });
+      await bootstrapOwner(base, context);
       const page = await context.newPage(),
         errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));

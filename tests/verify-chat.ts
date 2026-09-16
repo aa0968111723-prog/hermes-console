@@ -2,9 +2,9 @@ import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
 import { bootstrapOwner } from "./browser-auth";
 
@@ -218,6 +218,9 @@ try {
   await expect(
     page.getByRole("button", { name: "回到最新訊息" }),
   ).not.toBeVisible();
+  const output = resolve("output/playwright");
+  await mkdir(output, { recursive: true });
+  await page.screenshot({ path: join(output, "long-chat.png"), fullPage: true });
   assert.equal(calls, 1);
   const tasks = await (await context.request.get(base + "/api/tasks")).json();
   assert.equal(
