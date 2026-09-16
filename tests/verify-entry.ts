@@ -171,6 +171,7 @@ try {
   await expect(page.getByRole("heading", { name: "連線", exact: true })).toBeVisible();
   await expect(page.locator(".runtime-human-summary")).toContainText("Hermes 未驗證");
   await expect(page.locator(".runtime-human-summary")).toContainText("記憶 未設定");
+  await expect(page.locator(".runtime-human-summary")).toContainText("工具 未設定");
   await expect(page.locator(".runtime-human-summary")).toContainText("MCP 未設定");
   await expect(page.locator(".runtime-human-summary")).not.toContainText("過期");
   await expect(page.locator(".runtime-state")).toHaveClass(/unconfigured/);

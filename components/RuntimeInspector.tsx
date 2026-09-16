@@ -313,7 +313,11 @@ export default function RuntimeInspector({
             aria-hidden="true"
           />
           工具{" "}
-          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未設定"}
+          {availableTools > 0
+            ? `${availableTools}/${snapshot!.tools.length}`
+            : health?.credential === "valid"
+              ? "無可用"
+              : "未設定"}
         </span>
         <span>
           <i
