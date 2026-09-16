@@ -370,10 +370,10 @@ try {
   ).toHaveAttribute("aria-selected", "true");
   const accountPanel = page.getByRole("tabpanel", { name: "帳號" });
   await expect(accountPanel.getByText("目前這台")).toBeVisible();
+  await expect(accountPanel.getByText("其他裝置")).toBeVisible();
   await expect(accountPanel.getByText("Google 登入尚未完成設定")).toBeVisible();
   await expect(accountPanel.getByText("淡江 SSO 尚未完成設定")).toBeVisible();
   await expect(accountPanel.getByRole("button", { name: "登出", exact: true })).toBeVisible();
-  await expect(accountPanel.getByRole("button", { name: "結束其他工作階段" })).toHaveCount(0);
   assert.doesNotMatch(await accountPanel.innerText(), /[a-f0-9]{64}/);
   await page.screenshot({
     path: join(output, "settings-account.png"),
@@ -385,6 +385,16 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
+  await accountPanel.getByRole("button", { name: "結束其他工作階段" }).click();
+  await expect(
+    accountPanel.getByRole("alertdialog", { name: "結束其他登入" }),
+  ).toBeVisible();
+  await accountPanel.getByRole("button", { name: "確定結束" }).click();
+  await expect(accountPanel.getByRole("alert")).toContainText(
+    "已結束其他裝置的登入",
+  );
+  await expect(accountPanel.getByText("目前這台")).toBeVisible();
+  await expect(accountPanel.getByRole("button", { name: "結束其他工作階段" })).toHaveCount(0);
   await page.getByRole("tab", { name: "外觀", exact: true }).click();
   await audit("settings-appearance");
   await page.screenshot({
