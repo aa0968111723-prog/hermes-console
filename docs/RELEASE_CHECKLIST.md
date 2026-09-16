@@ -6,7 +6,7 @@
 
 - [ ] 360×800、390×844、412×915、430×932、768×1024 可捲動（聊天與專案）
 - [ ] Composer 不被鍵盤／Home Indicator／Android 導覽列擋住
-- [ ] Dock：對話／專案／靈感／Agent；設定在齒輪／頭像
+- [ ] Dock：對話／專案／靈感／Agent；設定在齒輪／頭像；漢堡是對話列表
 - [ ] 預覽關閉後仍可繼續滑
 
 ## Auth
@@ -16,6 +16,7 @@
 - [ ] 淡江：有 metadata 才跳校方 IdP；否則「尚未完成設定」
 - [ ] Email 註冊／驗證／magic link／重設／登出
 - [ ] 連結身份不會因 email 相同而自動合併
+- [ ] 帳號頁可看到工作階段；結束其他裝置要確認
 - [ ] 無 membership 不能打工作區 API
 
 ## Chat / Agent
@@ -33,6 +34,7 @@
 ## Artifacts / Memory
 
 - [ ] 作品有可接續的 ID；「第二版」不是無關重生
+- [ ] 多版本可並排預覽（不是像素 diff）後再還原
 - [ ] Memory 分得清對話／專案／工作區（Partial 則寫明）
 
 ## DB / Security

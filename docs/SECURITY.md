@@ -19,7 +19,9 @@
 ## Sessions
 
 - 使用既有 `console_sessions`／SQLite `sessions` 表，owner 為 user id。
-- 登出刪除 digest 並清 cookie。
+- 額外以 `console_records` kind `auth_session` 保存裝置標籤與建立時間，不另 ALTER。
+- `GET/DELETE /api/auth/sessions`：列出目前使用者的有效工作階段；不能結束目前這個瀏覽器（請用登出）；DELETE 驗證 Origin。
+- 登出刪除 digest、工作階段紀錄並清 cookie。
 - `CONSOLE_ALLOW_LOCAL_ACCESS` 與空閘道只適用 loopback；公開部署 fail closed。
 
 ## MCP / SSRF
