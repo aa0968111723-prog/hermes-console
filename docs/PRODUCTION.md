@@ -1,0 +1,63 @@
+# Production
+
+這份文件描述**目前程式實際支援**的部署方式。未完成的能力標 Partial，不標成功。
+
+## Zeabur / 長駐 Node
+
+- 使用倉庫 `Dockerfile` 的 standalone Node 服務，單一 replica。
+- 掛載可寫持久卷到 `/app/data`（SQLite 後備）。
+- 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（`console_records`／`console_sessions`／`console_limits`）。不要指向 ai_os。
+- 不適用無狀態 serverless。
+
+## 必要環境
+
+| 變數 | 用途 |
+| --- | --- |
+| `CONSOLE_ORIGIN` | 公開 HTTPS origin。寫入請求 Origin 驗證。啟動時必填。 |
+| `CONSOLE_DATA_DIR` | SQLite／uploads／vault.key |
+| `HERMES_API_URL`／`HERMES_API_KEY` | 未設時聊天顯示尚未連線，不假裝 Hermes 可用 |
+
+正式登入（AuthGate）至少擇一：
+
+- Google：`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`（可選 `GOOGLE_REDIRECT_URI`，預設 `${CONSOLE_ORIGIN}/api/auth/google/callback`）
+- Email：`RESEND_API_KEY`、`CONSOLE_EMAIL_FROM`
+
+`CONSOLE_ALLOW_LOCAL_ACCESS=true` 只允許 loopback 測試略過登入閘與部分環境檢查。公開部署必須為 `false`。
+
+## 建議環境
+
+- `CONSOLE_GATEWAY_SECRET`（≥32）或前置已驗證的閘道
+- `CONSOLE_VAULT_KEY`（64 hex）；否則程序會在資料目錄寫 `vault.key`
+- `DATABASE_URL`
+- 各 MCP `*_URL`／`*_TOKEN`：未設必須顯示 unconfigured
+
+## 資料庫
+
+- 無 `DATABASE_URL`：SQLite。
+- 有 Postgres：啟動時若 Postgres 空且 SQLite 有列，一次性搬移。
+- Schema 變更走程式內 `CREATE TABLE IF NOT EXISTS`。此版本**沒有**獨立 SQL migration 目錄；回滾策略是還原卷／Postgres 備份，而不是 down migration。**Partial。**
+
+## OAuth / SSO
+
+- Google：Authorization Code + PKCE。Secret 只在伺服器。
+- 淡江 SSO：需要 `TAMKANG_SSO_ISSUER`、`TAMKANG_SSO_CLIENT_ID`、`TAMKANG_SSO_CLIENT_SECRET`、`TAMKANG_SSO_PROTOCOL=oidc|oauth`。沒有校方 metadata 時畫面為「淡江 SSO 尚未完成設定」。SAML／CAS 僅預留，未實作。Console **不**收集學校密碼。設定頁 Tamkang MCP 權杖交換不是 SSO。
+- Email：註冊、登入、驗證、magic link、忘記／重設密碼。密碼為 Argon2id。
+
+## Domain / HTTPS
+
+外部必須 HTTPS。OAuth callback 與 `CONSOLE_ORIGIN` 必須一致。
+
+## Health
+
+- `GET /api/ready`：store liveness／readiness（200／503）。不需登入，不回秘密。
+- `GET /api/health`：Hermes 連線探測。不回秘密。App 活著 ≠ Agent 可用。
+
+## Backup / Rollback
+
+- 部署前備份 Postgres 或 SQLite 卷與 `uploads/`、`vault.key`。
+- 回滾：還原映像＋資料卷。不要 force-push。
+- 曾暴露的金鑰一律視為 compromised，必須輪替，不要重用。
+
+## MCP
+
+Hermes 連 Console `/api/mcp`。外部 MCP 必須是受控 HTTPS，禁止 GitHub 倉庫網址、localhost（除非明確 loopback 測試）、私網與 metadata。狀態：`unconfigured`／`verifying`／`available`／`partial`／`failed`（UI）；registry 另有 `connected`／`verified`。不得把 tools/list 當成完全可用。

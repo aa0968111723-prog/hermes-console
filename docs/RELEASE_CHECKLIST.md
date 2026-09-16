@@ -1,0 +1,49 @@
+# Release checklist
+
+每次 release 勾選。未完成就標 Partial，不要打綠勾。
+
+## Mobile
+
+- [ ] 360×800、390×844、412×915、430×932、768×1024 可捲動（聊天與專案）
+- [ ] Composer 不被鍵盤／Home Indicator／Android 導覽列擋住
+- [ ] Dock：對話／專案／靈感／Agent；設定在齒輪／頭像
+- [ ] 預覽關閉後仍可繼續滑
+
+## Auth
+
+- [ ] 未登入看到登入，不先載工作區
+- [ ] Google Authorization Code 真的跳轉 Google
+- [ ] 淡江：有 metadata 才跳校方 IdP；否則「尚未完成設定」
+- [ ] Email 註冊／驗證／magic link／重設／登出
+- [ ] 連結身份不會因 email 相同而自動合併
+- [ ] 無 membership 不能打工作區 API
+
+## Chat / Agent
+
+- [ ] 使用者只說目標，不必選工具
+- [ ] 工具失敗顯示不可用或明確 fallback，不假裝有資料
+- [ ] 取消會打後端 cancel
+- [ ] 長任務重啟後不是假 running
+
+## MCP
+
+- [ ] 每個已設定 MCP 的真實狀態（unconfigured／partial／failed／available）
+- [ ] 未設 token 不是綠燈
+
+## Artifacts / Memory
+
+- [ ] 作品有可接續的 ID；「第二版」不是無關重生
+- [ ] Memory 分得清對話／專案／工作區（Partial 則寫明）
+
+## DB / Security
+
+- [ ] 備份 Postgres 或 SQLite 卷
+- [ ] 無 secret 進 Git／log／client
+- [ ] Origin、SSRF、OAuth state 仍有效
+
+## Tests / Deploy
+
+- [ ] `npm run lint` `typecheck` `test` `build`
+- [ ] CI GitHub Actions 全過
+- [ ] `GET /api/ready`、`GET /api/health` 不回秘密
+- [ ] 回滾步驟已確認
