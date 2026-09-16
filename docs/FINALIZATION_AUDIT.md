@@ -108,3 +108,4 @@
 24. 研究／行政模式不再告訴模型這是免登入共用工作區。靈感頁 Drive 索引、招生漏斗與現場觀察收到進階。連線健康驗證也在進階。帳號工作階段不顯示 session id。
 25. 首頁只留龜龜與「今天想做什麼？」；MCP 軌道不在空對話。圖片封面走 WebP 縮圖，預覽仍用原檔。PDF 沒有假裝頁面封面。
 26. 連線設定與 `POST /api/settings/tamkang` 的 `login` 不再轉送校園帳密；一律 `tku_password_refused`。Agent 一般畫面只留四個狀態點，「重新同步」與 MCP 軌道在進階。龜龜面板不再放能力連線圖。
+27. 鍵盤未開啟時 `--app-height` 跟 layout viewport，不再把關掉鍵盤後的 visualViewport 殘高當成 App 高度。登入頁的 viewport 監聽在進入工作區後卸載。Zeabur 從學生連線格子改到「進階 · 部署」。PDF 仍無頁面封面（本環境 sharp 不能 raster PDF）。

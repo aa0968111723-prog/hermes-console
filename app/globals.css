@@ -2624,6 +2624,15 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .connection-editor section { min-width: 0; }
 .connection-editor section h3 { font-size: 1rem; }
 .connection-storage > summary { font-size: var(--type-caption); color: var(--color-muted); }
+.connection-deploy { margin-top: 10px; }
+.connection-deploy > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-muted);
+  font-size: var(--type-caption);
+  cursor: pointer;
+}
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
 .visual-concept-deck { display: grid; gap: 12px; }

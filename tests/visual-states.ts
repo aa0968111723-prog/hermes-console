@@ -61,7 +61,6 @@ export async function verifyVisualStates(
     "Atlas",
     "FrameLab",
     "訊核",
-    "Zeabur",
     "Hermes",
   ]) {
     await picker
@@ -71,6 +70,13 @@ export async function verifyVisualStates(
       page.locator(".connection-editor section:visible"),
     ).toHaveCount(1);
   }
+  await expect(
+    picker.getByRole("button", { name: /^Zeabur：/ }),
+  ).toHaveCount(0);
+  await page.locator(".connection-deploy > summary").click();
+  await expect(
+    page.getByRole("heading", { name: "Zeabur 部署", exact: true }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
     path: join(output, "settings-connections-desktop.png"),

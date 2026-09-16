@@ -419,15 +419,19 @@ export default function ConnectionSettings({
             name: "淡江",
             state: data?.tamkang.state || "unconfigured",
           },
-          {
-            id: "zeabur",
-            name: "Zeabur",
-            state: data?.zeabur?.token.configured
-              ? "configured"
-              : "unconfigured",
-          },
         ]}
       />
+      <details
+        className="connection-deploy"
+        open={selected === "zeabur"}
+        onToggle={(event) => {
+          const open = event.currentTarget.open;
+          if (open && selected !== "zeabur") setSelected("zeabur");
+          if (!open && selected === "zeabur") setSelected(null);
+        }}
+      >
+        <summary>進階 · 部署</summary>
+      </details>
       {selected === "canva" && canva}
       <div
         className="connection-editor"
