@@ -30,6 +30,8 @@ const certification = await import("../app/api/certification/route");
 const runtimeTools = await import("../app/api/runtime/tools/route");
 const runtimeMcp = await import("../app/api/runtime/mcp/route");
 const runtimeAgents = await import("../app/api/runtime/agents/route");
+const healthRoute = await import("../app/api/health/route");
+const { presentHealth } = await import("../lib/server/hermes/health-view");
 const { authenticate, authenticateOperator } = await import(
   "../lib/server/security"
 );
@@ -327,6 +329,40 @@ test("workspace members cannot change connection secrets", async () => {
     200,
   );
 
+  const memberHealth = await healthRoute.GET(
+    request("health", member.cookie),
+  );
+  assert.equal(memberHealth.status, 200);
+  const memberHealthBody = await memberHealth.json();
+  assert.equal(memberHealthBody.live, true);
+  assert.equal(memberHealthBody.configSource, undefined);
+  assert.deepEqual(memberHealthBody.models, []);
+  assert.deepEqual(memberHealthBody.skills, []);
+  assert.deepEqual(memberHealthBody.toolsets, []);
+  assert.doesNotMatch(
+    JSON.stringify(memberHealthBody),
+    /hermesKey|HERMES_API_KEY|_MCP_TOKEN/,
+  );
+
+  const ownerHealth = await healthRoute.GET(request("health", owner.cookie));
+  assert.equal(ownerHealth.status, 200);
+  const ownerHealthBody = await ownerHealth.json();
+  assert.ok(ownerHealthBody.configSource);
+  assert.equal(ownerHealthBody.configSource.hermesKey, "none");
+
+  assert.equal(
+    (
+      await healthRoute.POST(request("health", member.cookie, "POST", {}))
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await healthRoute.POST(request("health", owner.cookie, "POST", {}))
+    ).status,
+    200,
+  );
+
   assert.equal(
     (
       await credentials.GET(request("settings/credentials", admin.cookie))
@@ -340,4 +376,39 @@ test("workspace members cannot change connection secrets", async () => {
   const published = await ownerGet.json();
   assert.match(published.openSettingsWarning, /擁有者或管理者/);
   assert.ok(!JSON.stringify(published).includes("member-must-not-write"));
+});
+
+test("public health probe strips tool names and credential sources", () => {
+  const sample = {
+    checkedAt: "2026-01-01T00:00:00.000Z",
+    reachable: true,
+    credential: "valid" as const,
+    agent: "verified" as const,
+    status: "partial" as const,
+    message: "憑證已通過模型清單驗證。",
+    httpStatus: 200,
+    features: { sessions: true },
+    models: ["fixture-agent"],
+    skills: [{ name: "research", description: "搜尋", tools: ["web_search"] }],
+    toolsets: [{ name: "tku", description: "campus", tools: ["getToDo"] }],
+    discovery: { toolsets: "available" as const },
+    configSource: { hermesUrl: "env" as const, hermesKey: "vault" as const },
+    backend: "sqlite" as const,
+    dataDir: "/tmp/console",
+    storeReady: true,
+  };
+  const publicView = presentHealth(sample, false);
+  assert.equal(publicView.configSource, undefined);
+  assert.deepEqual(publicView.models, []);
+  assert.deepEqual(publicView.skills, []);
+  assert.deepEqual(publicView.toolsets, []);
+  assert.deepEqual(publicView.features, {});
+  assert.equal(publicView.httpStatus, null);
+  assert.equal(publicView.storeReady, true);
+  const operatorView = presentHealth(sample, true);
+  assert.equal(operatorView.configSource?.hermesKey, "vault");
+  assert.ok(operatorView.models.includes("fixture-agent"));
+  assert.ok(
+    operatorView.toolsets.some((item) => item.tools?.includes("getToDo")),
+  );
 });
