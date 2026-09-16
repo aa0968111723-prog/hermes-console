@@ -114,9 +114,10 @@ export function wantsWorkspaceInspiration(goal: StructuredGoal): boolean {
   return goal.intentTier === "create" && hasCreateCue(goal.goal);
 }
 
-/** Club lookups use the Drive index snapshot instead of a poster mill. */
+/** Club fact questions use the Drive index snapshot, not a poster mill. */
 export function wantsWorkspaceKnowledge(goal: StructuredGoal): boolean {
   if (goal.directionLocked || goal.requiresImageReview) return false;
-  if (goal.intentTier !== "lookup") return false;
+  if (goal.intentTier === "chitchat") return false;
+  if (wantsWorkspaceInspiration(goal)) return false;
   return needsZenclubKnowledge(goal.goal);
 }

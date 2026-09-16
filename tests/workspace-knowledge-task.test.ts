@@ -56,6 +56,8 @@ test("unconfigured Hermes returns club index facts for spoken tea lookup", async
     wantsWorkspaceKnowledge(interpretGoal("我想辦禪學社茶會")),
     false,
   );
+  assert.equal(wantsWorkspaceKnowledge(interpretGoal("今天社博在哪")), true);
+  assert.equal(wantsWorkspaceInspiration(interpretGoal("今天社博在哪")), false);
 
   const conversationId = conv();
   const requestKey = randomUUID();
@@ -128,5 +130,34 @@ test("paper lookup still refuses when Hermes is unconfigured", async () => {
       assert.equal(error.code, "hermes_not_ready");
       return true;
     },
+  );
+});
+
+test("spoken club questions without 幫我查 still return the Drive index", async () => {
+  const prompt = "今天社博在哪";
+  const task = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: prompt,
+    attachments: [],
+  });
+  assert.equal(task.state, "completed");
+  const tool = task.events.find((event) => event.toolName === KNOWLEDGE_TOOL);
+  assert.ok(tool);
+  assert.equal(isClubKnowledgePack(tool?.result), true);
+  const pack = tool?.result as {
+    hits: Array<{ title: string; claims: Array<{ value: string }> }>;
+  };
+  assert.ok(pack.hits.some((hit) => /社博|攤位/.test(hit.title)));
+  assert.ok(
+    pack.hits.some((hit) =>
+      hit.claims.some((claim) => claim.value.includes("文館左側")),
+    ),
+  );
+  assert.match(task.output, /不是 Hermes Agent 執行/);
+  assert.doesNotMatch(task.output, /UNKNOWN/);
+  assert.equal(
+    task.events.some((event) => event.toolName === "workspace_search_inspiration"),
+    false,
   );
 });
