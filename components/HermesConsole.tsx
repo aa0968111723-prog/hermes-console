@@ -151,6 +151,15 @@ const connectionLabels: Record<string, string> = {
 };
 const isActive = (task: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
+function showComposerTask(task: Task, conv?: Conversation) {
+  if (task.state !== "completed") return true;
+  return !conv?.messages.some(
+    (message) =>
+      message.taskId === task.id &&
+      message.role === "assistant" &&
+      message.provenance === "workspace",
+  );
+}
 const POLL_ACTIVE_MS = 3000;
 const POLL_IDLE_MS = 8000;
 const DIRECTION_LETTERS = ["A", "B", "C"] as const;
@@ -1462,7 +1471,7 @@ export default function HermesConsole() {
                   回到最新訊息
                 </button>
               )}
-              {currentTask && (
+              {currentTask && showComposerTask(currentTask, activeConv) && (
                 <ComposerTaskStatus
                   task={currentTask}
                   offline={offline}

@@ -286,6 +286,9 @@ try {
   await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
   await expect(page.getByRole("button", { name: /選方向 A/ })).toBeInViewport();
   await expect(
+    page.getByRole("button", { name: "查看目前任務：完成", exact: true }),
+  ).toHaveCount(0);
+  await expect(
     page
       .locator(".conversation-scroll")
       .getByText("已從工作區整理創作方向"),
@@ -356,13 +359,13 @@ try {
   await expect(twinFold.locator(".twin-card").first()).toBeHidden();
   await expect(page.getByText(/個工具完成/)).toHaveCount(0);
   await expect(page.getByText(/已讀取像素/)).toHaveCount(0);
-  await imageReview.scrollIntoViewIfNeeded();
-  await page
-    .locator(".conversation-scroll .message.assistant")
-    .last()
-    .screenshot({
-      path: join(output, "chat-image-review-mobile.png"),
-    });
+  await expect(
+    page.getByRole("button", { name: "查看目前任務：完成", exact: true }),
+  ).toHaveCount(0);
+  await expect(imageReview).toBeInViewport();
+  await page.screenshot({
+    path: join(output, "chat-image-review-mobile.png"),
+  });
   await expect(page.getByRole("button", { name: "對話列表" })).toBeVisible();
   await page.getByRole("button", { name: "對話列表" }).click();
   await expect(conversationDrawer).toBeVisible();
