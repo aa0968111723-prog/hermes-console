@@ -2201,9 +2201,6 @@ summary .badge {
   font-size: 12px;
   font-weight: 650;
 }
-.account-identities li[data-linked="true"] > span:last-child {
-  color: var(--color-success, #3f8c55);
-}
 .account-providers {
   text-align: left;
   padding-left: 1.2em;
