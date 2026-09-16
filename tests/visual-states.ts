@@ -524,7 +524,9 @@ export async function verifyVisualStates(
   await expect(critique).not.toContainText("toolCallId");
   await expect(critique).not.toContainText("已搜尋整個 Instagram");
   await page.setViewportSize({ width: 390, height: 844 });
+  await critique.scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(output, "chat-critique-mobile.png") });
+  await critique.screenshot({ path: join(output, "chat-critique-stage.png") });
   await audit("chat-critique");
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("button", { name: "任務與成果" }).click();
