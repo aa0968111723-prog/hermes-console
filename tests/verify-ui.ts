@@ -320,13 +320,22 @@ try {
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("未搜全站")).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "靈感方向" }),
+  ).toBeVisible();
+  const inspirationJson = await (
+    await context.request.get(base + "/api/inspiration")
+  ).json();
+  assert.equal(inspirationJson.sheetsSync, null);
+  assert.equal(inspirationJson.pack.fullSiteSearch, false);
+  assert.equal(inspirationJson.pack.kind, "inspiration_search");
+  assert.ok(inspirationJson.pack.directions.length >= 1);
+  await page.screenshot({
+    path: join(output, "inspiration-mobile.png"),
+    fullPage: true,
+  });
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
-  await expect(syncButton).toBeVisible();
-  assert.equal(
-    (await (await context.request.get(base + "/api/inspiration")).json())
-      .sheetsSync,
-    null,
-  );
   const syncBox = await syncButton.boundingBox();
   assert.ok(syncBox && syncBox.height >= 44);
   // UI error fixture only; the real import handler is independently covered in sheets-sync.test.ts.
