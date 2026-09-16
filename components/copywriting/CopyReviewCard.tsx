@@ -1,6 +1,21 @@
 "use client";
 import type { CopyReview } from "@/lib/server/copywriting";
 
+const CHANNEL: Record<string, string> = {
+  ig_caption: "貼文",
+  carousel: "輪播",
+  poster_title: "海報主標",
+  poster_subtitle: "海報副標",
+  cta: "行動呼籲",
+  reels_hook: "短影音開頭",
+  story: "限時動態",
+  recruitment: "招生",
+  dm_invite: "私訊邀請",
+  event_intro: "活動說明",
+  post_event: "活動後",
+  google_form: "表單",
+};
+
 export default function CopyReviewCard({
   review,
 }: {
@@ -16,7 +31,7 @@ export default function CopyReviewCard({
     <section className="copy-review" aria-label="新生視角文案審核">
       <header className="copy-review-head">
         <p>
-          {review.channel} · 規則審核 · 不會發佈
+          {CHANNEL[review.channel] || "文案"} · 規則審核 · 不會發佈
         </p>
         <p>
           {stopped}/{review.personas.length} 個新生視角會停下來

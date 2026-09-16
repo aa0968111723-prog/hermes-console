@@ -430,6 +430,24 @@ try {
     page.locator(".conversation-scroll").getByRole("region", { name: "已選方向規格" }),
   ).toHaveCount(0);
   await expect(page.getByText(/規格已整理/)).toHaveCount(0);
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(
+    "幫我查淡大禪學社茶會",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const clubFacts = page.getByRole("region", { name: "社團資料" });
+  await expect(clubFacts).toBeVisible({ timeout: 15_000 });
+  await expect(clubFacts).toContainText("茶會");
+  await expect(clubFacts).toContainText("未提供");
+  await expect(clubFacts).toContainText("尚未確認");
+  await expect(page.getByRole("region", { name: "靈感方向" })).toHaveCount(0);
+  await expect(page.locator(".conversation-scroll")).not.toContainText("UNKNOWN");
+  await expect(page.locator(".conversation-scroll")).not.toContainText("live=");
+  await expect(
+    page.locator(".message.assistant .message-byline"),
+  ).toContainText("工作區");
+  await page.screenshot({
+    path: join(output, "chat-knowledge-mobile.png"),
+  });
   const poster = await readFile("public/mascot/turtle.png");
   await page.locator('#composer input[type="file"]').setInputFiles({
     name: "茶會海報.png",

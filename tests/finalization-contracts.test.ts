@@ -295,3 +295,21 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(orbit, /developer && chosen\.detail/);
   assert.match(orbit, /developer && \(/);
 });
+
+test("student copy hides channel ids, provenance enums, and covers spoken lookup", async () => {
+  const review = await readFile(
+    new URL("../components/copywriting/CopyReviewCard.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(review, /CHANNEL\[review\.channel\]/);
+  assert.doesNotMatch(review, /\{review\.channel\}/);
+  const board = await readFile(
+    new URL("../components/inspiration/InspirationBoard.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(board, /PROVENANCE_LABEL/);
+  assert.doesNotMatch(board, /\{language\.live\.story\.provenance\}/);
+  const ui = await readFile(new URL("./verify-ui.ts", import.meta.url), "utf8");
+  assert.match(ui, /幫我查淡大禪學社茶會/);
+  assert.match(ui, /社團資料/);
+});

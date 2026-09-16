@@ -22,6 +22,14 @@ const KIND_LABEL: Record<VisualPattern["kind"], string> = {
   audience: "受眾",
 };
 
+const PROVENANCE_LABEL: Record<string, string> = {
+  FACT: "事實",
+  EVIDENCE: "已有來源",
+  INFERENCE: "推論",
+  INSPIRATION: "靈感",
+  UNKNOWN: "尚未確認",
+};
+
 export default function InspirationBoard({
   items,
   notice,
@@ -104,7 +112,7 @@ export default function InspirationBoard({
           {language.live.feed.stale ? "（已過期）" : ""}
         </p>
         <p>
-          限動 {language.live.story.provenance}：{language.live.story.note}
+          限動 {PROVENANCE_LABEL[language.live.story.provenance] || "尚未確認"}：{language.live.story.note}
         </p>
         <p>{language.live.planVsLive}</p>
       </article>
@@ -116,7 +124,10 @@ export default function InspirationBoard({
         </strong>
         <p>
           {language.nextSlot.location.value}
-          <span className="provenance-pill">{language.nextSlot.location.provenance}</span>
+          <span className="provenance-pill">
+            {PROVENANCE_LABEL[language.nextSlot.location.provenance] ||
+              "尚未確認"}
+          </span>
         </p>
         <p>Visual：{language.nextSlot.visualAgentInput}</p>
         <p>文案：{language.nextSlot.copywritingAgentInput}</p>
@@ -247,7 +258,9 @@ function PatternCard({
       <p className="pattern-meta">
         {avoid ? <Ban size={14} aria-hidden="true" /> : null}
         <span>{KIND_LABEL[pattern.kind]}</span>
-        <span>{pattern.evidence[0]?.provenance}</span>
+        <span>
+          {PROVENANCE_LABEL[pattern.evidence[0]?.provenance || ""] || "尚未確認"}
+        </span>
       </p>
       <strong>{pattern.title}</strong>
       <p>{pattern.summary}</p>
@@ -257,7 +270,10 @@ function PatternCard({
         <ul>
           {pattern.evidence.map((item) => (
             <li key={item.source + item.note}>
-              <span className="provenance-pill">{item.provenance}</span> {item.note}
+              <span className="provenance-pill">
+                {PROVENANCE_LABEL[item.provenance] || "尚未確認"}
+              </span>{" "}
+              {item.note}
             </li>
           ))}
         </ul>
