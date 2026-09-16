@@ -182,3 +182,56 @@ test("magic link and password reset are single-use and do not enumerate mail", a
   assert.equal(forgotUnknownBody.message, forgotKnownBody.message);
   assert.match(forgotKnownBody.message, /寄信已設定|重設/);
 });
+
+test("linking email keeps the same user and does not merge another account", async () => {
+  const { createUser, getUser, linkIdentity, providerStatus } = await import(
+    "../lib/server/auth/identity"
+  );
+  const { issueSession } = await import("../lib/server/auth/session");
+
+  const googleUser = createUser({ name: "Google 使用者" });
+  linkIdentity(googleUser.id, {
+    provider: "google",
+    subject: "google-sub-link",
+    email: null,
+    emailVerified: false,
+  });
+  const cookie = issueSession(googleUser.id).header.split(";")[0];
+  const linked = await emailRoute.POST(
+    request(
+      "auth/email",
+      "POST",
+      {
+        action: "link_email",
+        email: "linked@example.test",
+        password: "correct-horse-battery",
+      },
+      cookie,
+    ),
+  );
+  assert.equal(linked.status, 200);
+  assert.equal((await linked.json()).email, "linked@example.test");
+  assert.equal(getUser(googleUser.id)?.email, "linked@example.test");
+  assert.equal(providerStatus(googleUser.id).google, true);
+  assert.equal(providerStatus(googleUser.id).email, true);
+
+  const taken = await emailRoute.POST(
+    request(
+      "auth/email",
+      "POST",
+      {
+        action: "link_email",
+        email: "owner@example.test",
+        password: "correct-horse-battery",
+      },
+      cookie,
+    ),
+  );
+  assert.equal(taken.status, 409);
+
+  const resend = await emailRoute.POST(
+    request("auth/email", "POST", { action: "resend_verify" }, cookie),
+  );
+  assert.equal(resend.status, 202);
+  assert.match((await resend.json()).message, /尚未完成設定|驗證/);
+});

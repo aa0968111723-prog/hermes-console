@@ -11,6 +11,7 @@ import {
   loginEmail,
   redeemMagicLink,
   registerEmail,
+  requestEmailVerification,
   requestMagicLink,
   requestPasswordReset,
   resetPassword,
@@ -22,6 +23,7 @@ import {
   getUser,
   linkIdentity,
   putCredential,
+  saveUser,
 } from "@/lib/server/auth/identity";
 import { emailInput } from "@/lib/server/invitations";
 import { hashPassword } from "@/lib/server/auth/password";
@@ -62,6 +64,7 @@ export const POST = route(async (request) => {
         email: emailInput,
         password: z.string().min(10).max(200),
       }),
+      z.object({ action: z.literal("resend_verify") }),
     ])
     .parse(await jsonBody(request, 4000));
 
@@ -101,7 +104,9 @@ export const POST = route(async (request) => {
   checkOrigin(request);
   const access = readAccess(request);
   if (!access)
-    throw new ApiError(401, "AUTH_ERROR", "請先登入再連結電子信箱。", "AUTH_ERROR");
+    throw new ApiError(401, "AUTH_ERROR", "請先登入。", "AUTH_ERROR");
+  if (input.action === "resend_verify")
+    return respond(await requestEmailVerification(access.user.id), 202);
   const taken = findIdentity("email", input.email);
   if (taken && taken.userId !== access.user.id)
     throw new ApiError(
@@ -118,5 +123,7 @@ export const POST = route(async (request) => {
   });
   putCredential(access.user.id, await hashPassword(input.password));
   const user = getUser(access.user.id)!;
+  if (!user.email)
+    saveUser({ ...user, email: input.email, emailVerified: false });
   return respond({ linked: true, email: user.email || input.email });
 });

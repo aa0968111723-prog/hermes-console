@@ -54,7 +54,7 @@ async function redeemHashToken() {
   const login = params.get("login");
   const token = verify || login;
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return;
-  await fetch("/api/auth/email", {
+  const response = await fetch("/api/auth/email", {
     method: "POST",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
@@ -64,6 +64,11 @@ async function redeemHashToken() {
     }),
     signal: AbortSignal.timeout(15_000),
   });
+  const result = (await response.json().catch(() => ({}))) as {
+    error?: { message?: string };
+  };
+  if (!response.ok)
+    throw new Error(result.error?.message || "連結無效或已過期。");
   window.history.replaceState(null, "", window.location.pathname);
 }
 
@@ -132,7 +137,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     void redeemHashToken()
-      .catch(() => undefined)
+      .catch((err) => {
+        if (typeof window === "undefined") return;
+        const next = new URL(window.location.href);
+        next.hash = "";
+        next.searchParams.set(
+          "auth_error",
+          err instanceof Error ? err.message : "連結無效或已過期。",
+        );
+        window.history.replaceState(null, "", next.pathname + next.search);
+      })
       .then(() => refresh())
       .catch(() =>
         setSnapshot((current) => ({ ...current, loading: false, required: true })),

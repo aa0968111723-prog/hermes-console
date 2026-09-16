@@ -206,6 +206,31 @@ export async function requestPasswordReset(rawEmail: string) {
   return { message: "若此信箱已註冊且寄信已設定，系統將寄出重設連結。" };
 }
 
+export async function requestEmailVerification(userId: string) {
+  limited("email:verify:" + userId, 5, 15 * 60_000);
+  const user = getUser(userId);
+  if (!user?.email)
+    return { message: "尚未連結電子信箱。" };
+  if (user.emailVerified) return { message: "電子信箱已驗證。" };
+  if (mailConfigured()) {
+    const token = issueToken(user.id, "verify_email");
+    try {
+      await sendMail(
+        user.email,
+        "驗證 Hermes 電子信箱",
+        "請在 24 小時內開啟（一次性）：\n" + origin() + "/#verify=" + token,
+      );
+    } catch {
+      /* public response does not reveal delivery */
+    }
+  }
+  return {
+    message: mailConfigured()
+      ? "若寄信已設定，系統將寄出驗證信。"
+      : "寄信尚未完成設定。電子信箱仍標為未驗證。",
+  };
+}
+
 export async function resetPassword(token: string, rawPassword: string) {
   const password = passwordInput.parse(rawPassword);
   const user = redeemToken(token, "reset_password");

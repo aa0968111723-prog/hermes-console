@@ -65,6 +65,8 @@ try {
   await expect(page.getByRole("button", { name: "Magic Link" })).toBeVisible();
   await expect(page.getByRole("button", { name: "忘記密碼" })).toBeVisible();
   await expect(page.getByText("寄信尚未完成設定")).toBeVisible();
+  await page.goto(base + "/#verify=" + "a".repeat(64));
+  await expect(page.getByRole("alert")).toContainText(/無效|過期/);
   await signInEmail(page);
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();

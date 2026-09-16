@@ -20,6 +20,27 @@ export default function AccountPanel() {
   }
   if (!auth.user) return null;
 
+  async function resendVerify() {
+    if (busy) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const response = await fetch("/api/auth/email", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "resend_verify" }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || "無法寄出。");
+      setNotice(result.message || "若寄信已設定，系統將寄出驗證信。");
+    } catch (err) {
+      setNotice((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function linkEmail() {
     if (busy) return;
     setBusy(true);
@@ -65,10 +86,21 @@ export default function AccountPanel() {
         <li>淡江 SSO {auth.providers.tamkang ? "✓" : "—"}</li>
         <li>電子信箱 {auth.providers.email ? "✓" : "—"}</li>
       </ul>
+      <p className="muted">
+        {auth.user.emailVerified ? "電子信箱已驗證" : "電子信箱未驗證"}
+      </p>
+      {!auth.user.emailVerified && auth.user.email && (
+        <button type="button" disabled={busy} onClick={() => void resendVerify()}>
+          重寄驗證信
+        </button>
+      )}
       {auth.google === "available" && !auth.providers.google && (
         <a className="button-link" href="/api/auth/google">
           連結 Google
         </a>
+      )}
+      {auth.google !== "available" && (
+        <p className="muted">Google 尚未完成設定</p>
       )}
       {auth.tamkang === "available" && !auth.providers.tamkang ? (
         <a className="button-link" href="/api/auth/tamkang">
