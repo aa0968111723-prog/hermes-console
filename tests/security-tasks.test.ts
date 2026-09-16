@@ -465,11 +465,17 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
     const systemText = String(system?.content || "");
     assert.equal(/lumen_utter|framelab_list_projects/.test(systemText), false);
     assert.match(systemText, /直接回覆|短回覆|接續修改/);
-    assert.ok(
-      done.events.some((event) => /意圖 continue/.test(event.summary)),
+    assert.equal(done.goal?.intentTier, "continue");
+    assert.equal(
+      done.events.some((event) =>
+        /意圖 continue|budgetMode=|\btokens\b/.test(event.summary),
+      ),
+      false,
     );
     assert.ok(
-      done.events.some((event) => /tokens/.test(event.summary)),
+      done.events.some((event) =>
+        /已整理成這次能送出的範圍|已整理目標/.test(event.summary),
+      ),
     );
   });
   await t.test("over-budget task fails visibly after trim", async () => {
