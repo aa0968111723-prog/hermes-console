@@ -121,10 +121,9 @@ try {
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("今天好嗎");
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("還沒準備好", {
-    timeout: 15_000,
-  });
-  await expect(page.getByRole("alert")).not.toContainText("連線頁");
+  const notice = page.locator(".notice-bar.warning");
+  await expect(notice).toContainText("還沒準備好", { timeout: 15_000 });
+  await expect(notice).not.toContainText("連線頁");
 
   await page.goto(base + "/#reset=" + "a".repeat(64));
   await expect(page.getByRole("heading", { name: "重設密碼" })).toBeVisible();
