@@ -160,7 +160,9 @@ try {
   await openAuthHash("login", "a".repeat(64));
   await expect(page.getByRole("button", { name: "確認登入" })).toBeVisible();
   await page.getByRole("button", { name: "確認登入" }).click();
-  await expect(page.getByRole("alert")).toContainText("登入連結無效");
+  await expect(page.locator(".login-card [role='alert']")).toContainText(
+    "連結已使用、已過期或不存在",
+  );
   await expect(page.getByRole("heading", { name: "登入 Hermes" })).toBeVisible();
 
   await page.getByRole("button", { name: "建立帳號", exact: true }).click();
