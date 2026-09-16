@@ -1,6 +1,6 @@
 # Hermes Console 收尾盤點
 
-盤點基準：`main` `a4462a9` + 本 finalization 分支。評等只描述程式現況，不是行銷承諾。
+盤點基準：`main` `094a0b0` + 本 finalization 分支。評等只描述程式現況，不是行銷承諾。
 
 評等：`live`＝已接真實路徑；`partial`＝有實作但不完整或未驗證；`legacy`＝休眠；`danger`＝仍需部署端處理。
 
@@ -29,6 +29,9 @@
 | 研究筆記檢索 | live 契約 | `workspace_search_research` 讀快照；沒有命中不編造；不進主 UI。 |
 | 空工具結果 | live 契約 | HTTP 200 且 payload 為 `{}`／空字串不算成功。 |
 | 次要畫面載入 | live | 專案／靈感／Runtime／設定等 `next/dynamic`，對話路徑維持靜態。 |
+| Production auth | live 契約 | 正式環境禁止 `CONSOLE_AUTH_MODE=workspace`。 |
+| GALLEY 路由 | live 契約 | 僅 registry 為 partial／verified／connected 才走 `galley_research`；未設定不假裝。 |
+| 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
 
 ## 仍為 Partial（禁止打綠勾）
 
