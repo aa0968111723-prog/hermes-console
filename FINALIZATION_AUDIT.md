@@ -38,6 +38,8 @@
 | Health liveness | 可用（契約） | `GET /api/health` 不等 Hermes。`live` 在 store／Hermes 掛掉時仍為 true。憑證在但還沒探測是 verifying，不是 available。 |
 | 備份／演練 | 可用（契約） | `npm run backup` 複製 sqlite／WAL／vault.key，不印秘密。`npm run rehearse` 只報告已設定／未設定。不是 Zeabur 實機快照。 |
 | 對話／記憶讀取 | 可用（契約） | 沒有 Hermes session 的對話 GET、記憶 GET、Brain GET 不等 discovery。任務提交在 unconfigured／failed 快取上立即 503。 |
+| 任務提交探測 | 可用（契約） | `ensureHermesReady` 只打 `/v1/models`，逾時用 `HERMES_CONNECT_TIMEOUT_MS`（契約 hanging 1s → ~1s failed）。不跑 skills／toolsets。學生 503 為「Hermes 還沒連上。請到設定的連線頁。」或「現在沒辦法連到 Hermes。」，不含環境變數字樣。 |
+| 連線狀態點 | 可用（契約） | 頂欄只顯示 44px 狀態點。文案在 `aria-label` 與 `.sr-only`。 |
 
 ## 本輪驗證（2026-09-16）
 

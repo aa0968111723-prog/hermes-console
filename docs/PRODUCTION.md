@@ -79,6 +79,7 @@ Set `CONSOLE_ORIGIN` to the public origin. Cookies use `Secure` on HTTPS. Mutati
 | --- | --- | --- |
 | `GET /api/health` | public | Process live (`live: true` even if Hermes or the store is down). `ready` / `storeReady` come from the store probe. `agentReady` is true only from a **fresh cached** Hermes probe (`reachable` + valid credential). Missing cache with credentials present is `verifying`, not available. This GET never waits on `/v1/models`. No secrets, no tool names, no vault/env sources for anonymous callers. Owner/admin cookies receive the developer cache view. |
 | `GET /api/ready` | public | Store writable. 200 or 503. Use this as the deploy readiness probe. |
+| Task submit | member + origin | `ensureHermesReady` does not wait on skills/toolsets. Cached valid/unconfigured/failed answers immediately. Verifying credentials probe `/v1/models` with `HERMES_CONNECT_TIMEOUT_MS`. Student 503 copy never names env vars. |
 | `POST /api/health` | owner or admin + origin | Forced Hermes discovery with models / skills / toolsets. Members receive 403. May wait up to `HERMES_DISCOVERY_TIMEOUT_MS`. |
 | `GET/POST /api/settings/credentials` | owner or admin | Connection secrets. Members receive 403. |
 

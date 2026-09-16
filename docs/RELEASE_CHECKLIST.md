@@ -24,6 +24,7 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 ## Chat / Agent
 
 - [ ] Natural-language request does not require picking GALLEY / Canva / Tamkang
+- [ ] Unconfigured submit 503 is student copy, not env-var names
 - [ ] Cancel hits backend
 - [ ] Empty tool output is not success
 - [ ] Offline banner; reconnect does not drop the thread
