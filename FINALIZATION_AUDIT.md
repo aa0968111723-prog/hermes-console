@@ -34,13 +34,14 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry`、`test:ui` 通過。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry`、`test:ui`、`test:runtime` 通過。
 - `npm test`：396 tests, 394 pass, 2 skipped, 0 fail。
 - `/` First Load JS 239 kB（shared 103 kB）。
 - `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊且可開連線設定；magic redeem；密碼重設；email 驗證；成員看不到連線／進階且 GET credentials 為 403；Google-only 帳號頁不提供未驗證的信箱連結表單。
 - `test:ui`：含 connections-mobile / connection-editor；axe 無 violations。
 - `test:gateway`：閘道／跨來源寫入拒絕。
-- 本輪未重跑：`test:chat`、`test:workbench`、`test:runtime`。
+- `test:runtime`：owner 可開 Developer 工具詳情；300 工具搜尋；離線重連。
+- 本輪未重跑：`test:chat`、`test:workbench`。
 
 ## 仍是 Partial（禁止標綠）
 
