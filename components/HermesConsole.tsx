@@ -2,12 +2,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
-  ArrowUp,
   Check,
   ChevronDown,
   Copy,
   Folder,
-  ImagePlus,
   Images,
   Leaf,
   ListTodo,
@@ -20,7 +18,6 @@ import {
   Plus,
   RefreshCw,
   Settings,
-  Square,
   X,
   Link as LinkIcon,
 } from "lucide-react";
@@ -28,7 +25,6 @@ import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
 import MessageBody from "./MessageBody";
-import Turtle from "./Turtle";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
 import AgentOrbit from "./visual/AgentOrbit";
@@ -36,12 +32,11 @@ import AgentActivity from "./visual/AgentActivity";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
 import ArtifactDeck from "./visual/ArtifactDeck";
-import ComposerMenu from "./visual/ComposerMenu";
-import ComposerTaskStatus, {
+import {
   OFFLINE_NOTICE,
   composerTaskPillAction,
 } from "./visual/ComposerTaskStatus";
-import ContextTray from "./visual/ContextTray";
+import Composer from "./console/Composer";
 import MaterialThumb from "./visual/MaterialThumb";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
@@ -325,43 +320,6 @@ export default function HermesConsole() {
       document.removeEventListener("visibilitychange", poll);
     };
   }, [auth, refresh, hasActiveTask]);
-  useEffect(() => {
-    const textarea = input.current;
-    if (!textarea) return;
-    const resize = () => {
-      textarea.style.height = "auto";
-      const limit = Math.max(
-        66,
-        Math.min(
-          190,
-          Math.floor(
-            (window.visualViewport?.height || window.innerHeight) * 0.28,
-          ),
-        ),
-      );
-      textarea.style.height = Math.min(textarea.scrollHeight, limit) + "px";
-      textarea.style.overflowY =
-        textarea.scrollHeight > limit ? "auto" : "hidden";
-    };
-    resize();
-    let previousWidth = textarea.parentElement?.clientWidth;
-    const observer = new ResizeObserver(() => {
-      const width = textarea.parentElement?.clientWidth;
-      if (width !== previousWidth) {
-        previousWidth = width;
-        resize();
-      }
-    });
-    // Observe the parent width, not the textarea whose height we update.
-    if (textarea.parentElement) observer.observe(textarea.parentElement);
-    window.visualViewport?.addEventListener("resize", resize);
-    window.addEventListener("resize", resize);
-    return () => {
-      observer.disconnect();
-      window.visualViewport?.removeEventListener("resize", resize);
-      window.removeEventListener("resize", resize);
-    };
-  }, [text, auth, nav]);
   useEffect(() => {
     const viewport = window.visualViewport;
     let baselineHeight = viewport?.height || window.innerHeight;
@@ -1248,216 +1206,69 @@ export default function HermesConsole() {
                 )}
               </div>
             </div>
-            <div className="composer-area">
-              <span
-                className="sr-only"
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {currentTask
-                  ? "Hermes 任務：" + taskLabels[currentTask.state]
-                  : ""}
-              </span>
-              {jump && (
-                <button
-                  className="jump-button"
-                  onClick={() => {
-                    nearBottom.current = true;
-                    setJump(false);
-                    scroll.current?.scrollTo({
-                      top: scroll.current.scrollHeight,
-                      behavior: "auto",
-                    });
-                  }}
-                >
-                  <ChevronDown size={16} />
-                  回到最新訊息
-                </button>
-              )}
-              {currentTask && (
-                <ComposerTaskStatus
-                  task={currentTask}
-                  offline={offline}
-                  onClick={() => onComposerTaskPillClick(currentTask)}
-                />
-              )}
-              {uncertain && (
-                <div className="composer-uncertain-hint" role="status">
-                  <p>
-                    結果待確認，此對話暫時不能再送出。可確認後在原對話重試，或建立分支保留原紀錄；未宣稱遠端已停止。
-                  </p>
-                  <div className="composer-uncertain-actions">
-                    <button
-                      type="button"
-                      onClick={() => void acknowledgeTask(uncertain)}
-                    >
-                      <RefreshCw size={16} aria-hidden="true" />
-                      確認並可重試
-                    </button>
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => retryBranchFromTask(uncertain)}
-                      disabled={busy}
-                    >
-                      建立重試分支（保留原紀錄）
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="composer-row">
-                {prefs.turtle && !!activeConv?.messages.length && (
-                  <Turtle
-                    task={currentTask}
-                    offline={offline}
-                    animation={prefs.animation}
-                    size={Math.min(prefs.turtleSize, 72)}
-                    compact
-                    onClick={() =>
-                      currentTask
-                        ? onComposerTaskPillClick(currentTask)
-                        : undefined
-                    }
-                  />
-                )}
-                <form
-                  id="composer"
-                  className="composer"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void send();
-                  }}
-                >
-                  <ContextTray
-                    uploads={uploads}
-                    references={references}
-                    materials={data.materials}
-                    disabled={busy}
-                    onPreview={(material) => {
-                      setPreview(material);
-                      setPanel("preview");
-                    }}
-                    onRetry={(upload) => uploadFile(upload.file, upload.key)}
-                    onRemoveUpload={(key) => {
-                      pendingXHR.current.get(key)?.abort();
-                      setUploads((old) => old.filter((u) => u.key !== key));
-                    }}
-                    onRemoveReference={(id) =>
-                      setReferences((old) =>
-                        old.filter((value) => value !== id),
-                      )
-                    }
-                  />
-                  <textarea
-                    ref={input}
-                    value={text}
-                    rows={1}
-                    maxLength={20_000}
-                    placeholder="想做什麼？"
-                    aria-label="訊息"
-                    aria-describedby="composer-hint"
-                    readOnly={busy}
-                    onChange={(e) => setText(e.target.value)}
-                    onCompositionStart={() => {
-                      composing.current = true;
-                    }}
-                    onCompositionEnd={() => {
-                      composing.current = false;
-                    }}
-                    onKeyDown={(e) => {
-                      if (
-                        e.key === "Enter" &&
-                        !e.shiftKey &&
-                        !e.nativeEvent.isComposing &&
-                        !composing.current &&
-                        e.keyCode !== 229
-                      ) {
-                        e.preventDefault();
-                        void send();
-                      }
-                    }}
-                  />
-                  <div className="composer-tools">
-                    <input
-                      ref={uploadInput}
-                      className="sr-only"
-                      tabIndex={-1}
-                      type="file"
-                      aria-label="選擇附件檔案"
-                      accept="image/png,image/jpeg,image/webp,text/plain,application/pdf"
-                      multiple
-                      disabled={busy}
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        e.target.value = "";
-                        if (
-                          files.length + uploads.length + references.length >
-                          4
-                        ) {
-                          setError("每則訊息最多四個附件。");
-                          return;
-                        }
-                        files.forEach((file) => uploadFile(file));
-                      }}
-                    />
-                    <ComposerMenu
-                      disabled={busy}
-                      onUpload={(kind) => {
-                        if (uploadInput.current) {
-                          uploadInput.current.accept =
-                            kind === "image"
-                              ? "image/png,image/jpeg,image/webp"
-                              : "text/plain,application/pdf";
-                          uploadInput.current.click();
-                        }
-                      }}
-                      onNavigate={(kind) => {
-                        if (kind === "canva") {
-                          setText(
-                            "請查回我已有的 Canva 設計，選擇要接續修改的作品。",
-                          );
-                          input.current?.focus();
-                        } else {
-                          setNav("projects");
-                          setReferenceOpen(kind === "reference");
-                        }
-                      }}
-                    />
-                    {pending ? (
-                      <button
-                        className="send-button"
-                        type="button"
-                        aria-label="停止任務"
-                        onClick={() => stopTask(pending)}
-                      >
-                        <Square size={18} />
-                      </button>
-                    ) : (
-                      <button
-                        className="send-button"
-                        type="submit"
-                        aria-label="送出訊息"
-                        disabled={
-                          busy ||
-                          blocked ||
-                          !text.trim() ||
-                          uploads.some((u) => !u.material)
-                        }
-                      >
-                        <ArrowUp size={21} />
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </div>
-              <p className="sr-only" id="composer-hint">
-                {text || uploads.length || references.length
-                  ? "草稿暫存於此分頁，重新整理將清除。"
-                  : "請核對重要資訊與素材權利。"}
-                <span>Enter 送出 · Shift + Enter 換行</span>
-              </p>
-            </div>
+            <Composer
+              jump={jump}
+              onJumpLatest={() => {
+                nearBottom.current = true;
+                setJump(false);
+                scroll.current?.scrollTo({
+                  top: scroll.current.scrollHeight,
+                  behavior: "auto",
+                });
+              }}
+              task={currentTask}
+              offline={offline}
+              onTaskPillClick={onComposerTaskPillClick}
+              uncertain={uncertain}
+              onAcknowledge={(item) => void acknowledgeTask(item)}
+              onRetryBranch={retryBranchFromTask}
+              busy={busy}
+              blocked={blocked}
+              pending={pending}
+              turtle={{
+                shown: prefs.turtle && !!activeConv?.messages.length,
+                size: prefs.turtleSize,
+                animation: prefs.animation,
+              }}
+              text={text}
+              setText={setText}
+              uploads={uploads}
+              references={references}
+              materials={data.materials}
+              inputRef={input}
+              uploadInputRef={uploadInput}
+              composingRef={composing}
+              onSend={() => void send()}
+              onStop={(item) => void stopTask(item)}
+              onFiles={(files) => {
+                if (files.length + uploads.length + references.length > 4) {
+                  setError("每則訊息最多四個附件。");
+                  return;
+                }
+                files.forEach((file) => uploadFile(file));
+              }}
+              onPreview={(material) => {
+                setPreview(material);
+                setPanel("preview");
+              }}
+              onRetryUpload={(upload) => uploadFile(upload.file, upload.key)}
+              onRemoveUpload={(key) => {
+                pendingXHR.current.get(key)?.abort();
+                setUploads((old) => old.filter((u) => u.key !== key));
+              }}
+              onRemoveReference={(id) =>
+                setReferences((old) => old.filter((value) => value !== id))
+              }
+              onNavigate={(kind) => {
+                if (kind === "canva") {
+                  setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");
+                  input.current?.focus();
+                } else {
+                  setNav("projects");
+                  setReferenceOpen(kind === "reference");
+                }
+              }}
+            />
           </>
         ) : nav === "projects" ? (
           <section className="secondary-page page-scroll">
