@@ -757,6 +757,9 @@ body:has(.app-shell) {
   :root {
     --dock-offset: calc(72px + var(--safe-area-bottom));
   }
+  .hermes-actions-trigger {
+    display: inline-flex;
+  }
   .app-shell,
   .app-shell.sidebar-closed {
     padding-bottom: var(--dock-offset);
