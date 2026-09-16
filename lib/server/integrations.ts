@@ -1,5 +1,6 @@
 import type { Health, Task, IntegrationState } from "../contracts";
 import { list } from "./store";
+import { redact } from "./security";
 import { canvaStatus } from "./canva";
 import { instagramPublishStatus } from "./publish";
 import { pinterestResearchLimits, instagramResearchLimits } from "./inspiration";
@@ -10,7 +11,7 @@ import { planformStatus } from "./planform";
 import { lumenStatus } from "./lumen";
 import { framelabStatus } from "./framelab";
 import { duigaoStatus } from "./duigao";
-import { seedRegistry } from "./mcp-registry";
+import { seedRegistry, getMcp } from "./mcp-registry";
 export interface Integration {
   id: string;
   name: string;
@@ -95,6 +96,13 @@ export function integrationsSnapshot(
       pattern: /lumen|創作台|海報|文宣|招新|茶會/,
       detail: "文宣意圖走 lumen_*／mcp.lumen.*；選定方向留給使用者。GitHub 倉庫網址不是 MCP。",
       requirements: ["連線設定或 LUMEN_MCP_URL／LUMEN_MCP_TOKEN", "initialize／tools/list 驗證"],
+    },
+    {
+      id: "atlas",
+      name: "場圖 Atlas",
+      pattern: /atlas|場圖/i,
+      detail: "Hermes 經 MCP 呼叫 Atlas 導覽與場圖工具。GitHub 倉庫網址不是 MCP。",
+      requirements: ["ATLAS_MCP_URL（Atlas /api/mcp）", "ATLAS_MCP_TOKEN", "initialize／tools/list 驗證"],
     },
     {
       id: "framelab",
@@ -258,6 +266,24 @@ export function integrationsSnapshot(
       const lumen = lumenStatus();
       item.state = lumen.state as IntegrationState;
       item.detail = lumen.detail;
+    }
+    if (item.id === "atlas") {
+      const atlas = bestEffort(() => getMcp("atlas"), null, failed);
+      item.state = !atlas?.endpoint
+        ? "unconfigured"
+        : atlas.status === "failed"
+          ? "failed"
+          : atlas.status === "verified"
+            ? "available"
+            : atlas.tools?.length
+              ? "partial"
+              : "unconfigured";
+      item.detail =
+        (atlas?.lastError && redact(atlas.lastError)) ||
+        (item.state === "partial"
+          ? "已列出工具，尚未完成安全讀取驗證。"
+          : item.detail);
+      item.tools = (atlas?.tools || []).map((tool) => tool.name);
     }
     if (item.id === "framelab") {
       const framelab = framelabStatus();

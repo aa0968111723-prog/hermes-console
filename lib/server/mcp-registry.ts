@@ -13,6 +13,7 @@ import { runtimeEnv } from "./credentials";
 
 export type McpStatus =
   | "unconfigured"
+  | "verifying"
   | "connected"
   | "partial"
   | "verified"
@@ -254,7 +255,7 @@ export function seedRegistry(): McpEntry[] {
         endpoint: "",
         credentialReference: null,
         tools: [],
-        status: "unconfigured",
+        status: "unconfigured" as const,
         verifiedAt: null,
         lastError: "舊連接未在後端核准清單中，已停用。",
         enabled: false,
@@ -311,6 +312,32 @@ export function interpretVerification(steps: {
 export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
+  if (!config.endpoint) {
+    return put("mcp_registry", WORKSPACE_OWNER, {
+      ...entry,
+      ...config,
+      tools: [],
+      status: "unconfigured" as const,
+      verifiedAt: null,
+      lastError: "尚未設定端點。",
+    });
+  }
+  if (config.credentialReference && !runtimeEnv(config.credentialReference)) {
+    return put("mcp_registry", WORKSPACE_OWNER, {
+      ...entry,
+      ...config,
+      tools: [],
+      status: "unconfigured" as const,
+      verifiedAt: null,
+      lastError: "尚未設定權杖。",
+    });
+  }
+  put("mcp_registry", WORKSPACE_OWNER, {
+    ...entry,
+    ...config,
+    status: "verifying" as const,
+    lastError: null,
+  });
   const client = new Client({ name: "hermes-console-discovery", version: "2" });
   let connected = false;
   const deadline = AbortSignal.timeout(20_000);
@@ -434,7 +461,11 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       ...entry,
       ...config,
       tools,
-      status: "partial" as const,
+      status: interpretVerification({
+        initialize: true,
+        toolsList: tools.length > 0,
+        safeRead: false,
+      }),
       verifiedAt: new Date().toISOString(),
       lastError: null,
       serverInfo: JSON.parse(
