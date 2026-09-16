@@ -1913,19 +1913,20 @@ export default function HermesConsole() {
                   workflows.find((item) => item.id === id) ||
                   workflows.find((item) => item.artifactId === id);
                 const conversationId = workflow?.conversationId;
-                if (conversationId) {
-                  const conv = data.conversations.find(
-                    (item) => item.id === conversationId,
-                  );
-                  if (conv) {
-                    setActiveId(conv.id);
-                    setProject(conv.projectId);
-                    writePreference("hermes.active.v2", conv.id);
-                    pinBriefAfterPick.current = true;
-                  }
+                const conv = conversationId
+                  ? data.conversations.find((item) => item.id === conversationId)
+                  : null;
+                if (conv) {
+                  setActiveId(conv.id);
+                  setProject(conv.projectId);
+                  writePreference("hermes.active.v2", conv.id);
+                  pinBriefAfterPick.current = true;
                 }
                 setNav("chat");
-                setText(CONTINUE_SAME_WORK_PROMPT);
+                replaceDraft(
+                  conv ? "conversation:" + conv.id : draftScope,
+                  { ...emptyDraft(), text: CONTINUE_SAME_WORK_PROMPT },
+                );
               }}
               onRestore={async (artifactId, revisionId) => {
                 try {
