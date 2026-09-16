@@ -6,7 +6,7 @@
 
 本輪已改：AuthGate、手機 scroll ownership、Dock（對話／專案／靈感／Agent）、誠實 MCP probe（含 safe-read）、health live/ready/agentReady、Canva artifact V1/V2 還原／分叉／比較、GALLEY 依 live MCP 可用性路由、倉庫研究筆記檢索（confidence 0.4）、Runtime 工具清單收入 Advanced、視覺優先首頁與連線點、龜龜狀態光／姿勢、看圖分析不假裝、重啟後不假裝任務仍在跑、文件。
 
-本輪驗證（此環境，非 Zeabur 實機）：見最新測試輸出。
+本輪驗證（此環境，非 Zeabur 實機）：`npm test` 403 pass / 2 skip；`lint`／`typecheck`／`build`／`check:secrets`／`rehearse`／`test:entry`／`test:ui`／`test:chat`／`test:workbench`／`test:runtime`／`test:gateway` 全過。
 
 尚未完成（必須標 Partial）：淡江 SSO 校方 Client、Google OAuth 部署密鑰、正式 Zeabur 實機部署、實體 Android Chrome 鍵盤、HERMES_IMAGE_INPUT 未驗證時的真實看圖、PDF 頁面封面抽取。
 
@@ -98,3 +98,4 @@
 10. `npm run rehearse` 驗證 production `next start`：`/`、`/api/health`、`/api/ready`、workspace 401、禁止秘密 JSON。
 12. 登入頁未設定的 Google／淡江都顯示「尚未完成設定」，不假裝可登入。
 14. Hermes 未設定時，禪學社問題改讀本地 Drive 索引；標明不是 live MCP／IG，不假裝 GALLEY。無關問題仍 503。同一任務只顯示一則助手回覆，不把已保存訊息再畫一次。
+15. 關閉的任務面板不再掛上輸出預覽，避免聊天與隱藏 dialog 各畫一次相同回覆。
