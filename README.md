@@ -57,6 +57,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run rehearse
 ```
 
 瀏覽器契約（需先 `npm run build`）：
@@ -80,7 +81,7 @@ npm run test:runtime
 
 - Unit／integration：`tests/*.test.ts`
 - Playwright：上述 `test:*` scripts
-- CI：lint、typecheck、unit、build、secrets、audit、Playwright
+- CI：lint、typecheck、unit、build、secrets、rehearse、audit、Playwright
 
 ## 誠實限制
 

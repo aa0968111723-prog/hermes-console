@@ -1,9 +1,9 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { signInConsole } from "./playwright-login";
 
 const dataDir = await mkdtemp(join(tmpdir(), "hermes-entry-"));
@@ -67,6 +67,8 @@ try {
     body: JSON.stringify({ title: "免登入對話" }),
   });
   assert.equal(created.status, 401);
+  const output = resolve("output/playwright");
+  await mkdir(output, { recursive: true });
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const errors: string[] = [];
@@ -89,8 +91,33 @@ try {
     "正在驗證工作區存取",
   ])
     assert.ok(!text.includes(word), "invitation UI visible: " + word);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "外觀設定" }).click();
+  await page.getByRole("tab", { name: "帳號", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "登入方式" })).toBeVisible();
+  await expect(page.getByText("電子信箱 ✓", { exact: true })).toBeVisible();
+  const linkButtons = page.getByRole("link", { name: "連結", exact: true });
+  await expect(linkButtons).toHaveCount(2);
+  await expect(linkButtons.nth(0)).toHaveAttribute(
+    "href",
+    "/api/auth/google/start",
+  );
+  await expect(linkButtons.nth(1)).toHaveAttribute(
+    "href",
+    "/api/auth/tamkang/start",
+  );
+  await expect(
+    page.getByText("不會只因為電子信箱相同就自動合併帳號。"),
+  ).toBeVisible();
+  await page.screenshot({
+    path: join(output, "account-mobile.png"),
+    fullPage: true,
+  });
+  await page.keyboard.press("Escape");
   assert.deepEqual(errors, []);
-  console.log("PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI. Not live Zeabur.");
+  console.log(
+    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, account identities. Not live Zeabur.",
+  );
 } finally {
   await browser?.close();
   child.kill();

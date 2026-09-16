@@ -22,6 +22,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run check:secrets
+      - run: npm run rehearse
       - run: npm audit --omit=dev
       - name: Install Playwright browsers (chromium + webkit, retry)
         run: |

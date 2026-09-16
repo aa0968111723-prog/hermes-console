@@ -42,6 +42,6 @@
 
 - [ ] migration／backup／rollback 已準備
 - [ ] 無 secret 進 Git、log、health
-- [ ] `npm run lint` `typecheck` `test` `test:ui` `test:chat` `test:workbench` `test:gateway` `test:entry` `test:runtime` `build` `check:secrets`
+- [ ] `npm run lint` `typecheck` `test` `test:ui` `test:chat` `test:workbench` `test:gateway` `test:entry` `test:runtime` `build` `rehearse` `check:secrets`
 - [ ] `/api/health` 與 `/api/ready` 不含秘密；`agentReady` 誠實
 - [ ] 部署 image／env／卷已記錄，可回滾

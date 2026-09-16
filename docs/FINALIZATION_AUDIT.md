@@ -23,8 +23,8 @@
 | 看圖／多模態 | `usable`（契約）／`partial`（部署） | 「這張哪裡可以改？」不再走 continue。`HERMES_IMAGE_INPUT` 未驗證不得假裝已看圖。PDF 只顯示種類圖示，沒有頁面 raster。 |
 | 作品版本 | `usable`（Canva／workflow）／`partial`（跨工具 graph） | 同一 `artifactId` 上 V1/V2、還原、分叉；空 Canva 不當成作品。 |
 | 記憶分層 | `partial` | project／workspace／personal + provenance。不是單一 dump。 |
-| 部署 | `partial` | Docker + `/api/health` + `/api/ready` + PRODUCTION／SECURITY／ARCHITECTURE／RELEASE。未做 live Zeabur rehearsal。 |
-| CI | `usable` | lint、typecheck、unit、build、secrets、audit、Playwright（含 `test:runtime`）。 |
+| 部署 | `partial` | Docker + `/api/health` + `/api/ready` + `npm run rehearse`（本機 loopback）+ PRODUCTION／SECURITY／ARCHITECTURE／RELEASE。未做 live Zeabur rehearsal。 |
+| CI | `usable` | lint、typecheck、unit、build、secrets、rehearse、audit、Playwright（含 `test:runtime`）。 |
 
 ## 完全可用（契約／本機）
 
@@ -94,3 +94,6 @@
 6. 龜龜狀態用光與姿勢區分，不是同一套 sway。
 7. 海報評論走看圖／視覺層級／修改建議，未驗證圖片輸入不假裝已看圖。
 8. 重啟後無法確認的 runs 標 `uncertain`，不維持假 running。
+9. 工作區輪詢：忙碌 3s、閒置 12s、背景分頁 30s；專案頁 12s。
+10. `npm run rehearse` 驗證 production `next start`：`/`、`/api/health`、`/api/ready`、workspace 401、禁止秘密 JSON。
+11. Playwright 帳號頁：電子信箱 ✓、Google／淡江「連結」、不自動合併聲明。

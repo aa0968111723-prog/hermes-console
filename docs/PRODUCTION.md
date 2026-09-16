@@ -73,6 +73,7 @@ GitHub 倉庫網址不是 MCP。localhost／169.254.*／私網／metadata／file
 - `GET /api/health`：liveness + `live`／`ready`／`agentReady`。不回傳 secret。
 - `GET /api/ready`：儲存庫探測。App 活著 ≠ Agent 可用（看 `agentReady`）。
 - 兩者都不需要 session，方便負載平衡探針。
+- 本機正式預覽（需先 `npm run build`）：`npm run rehearse`。確認 `/`、health、ready、未登入 workspace 401，且探針 JSON 不含秘密。這不是 Zeabur 實機。
 
 ## Backup / Rollback
 
