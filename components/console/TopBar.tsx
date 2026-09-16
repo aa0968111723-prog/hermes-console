@@ -40,7 +40,7 @@ export default function TopBar({
   onOpenTasks: () => void;
   onOpenSettings: (tab: "帳號" | "外觀" | "連線") => void;
 }) {
-  const chatHome = mobile && nav === "chat";
+  const hideTitle = mobile;
   const title =
     nav === "chat"
       ? "創作對話"
@@ -52,7 +52,7 @@ export default function TopBar({
             ? "任務"
             : "Agent";
   return (
-    <header className="topbar" data-chat-home={chatHome ? "true" : "false"}>
+    <header className="topbar" data-compact-title={hideTitle ? "true" : "false"}>
       <button
         className="icon-button desktop-toggle"
         aria-label={sidebar ? "收合側欄" : "展開側欄"}
@@ -77,8 +77,8 @@ export default function TopBar({
       >
         <Plus size={20} />
       </button>
-      <div className="topbar-title" aria-hidden={chatHome}>
-        {!chatHome && (
+      <div className="topbar-title" aria-hidden={hideTitle}>
+        {!hideTitle && (
           <>
             {title}
             <span>{projectName}</span>

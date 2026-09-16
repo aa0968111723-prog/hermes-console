@@ -260,13 +260,13 @@ try {
           JSON.stringify({ title, tasks }),
       );
       await expect(page.locator(".topbar")).toHaveAttribute(
-        "data-chat-home",
+        "data-compact-title",
         "true",
       );
       assert.equal(
         (await page.locator(".topbar-title").innerText()).trim(),
         "",
-        "mobile chat must not clip a Hermes title at " + width,
+        "mobile chrome must not clip a topbar title at " + width,
       );
       await expect(page.locator(".connection-label")).toBeVisible();
       await expect(page.locator(".connection-pill")).toContainText("未設定");
@@ -317,6 +317,11 @@ try {
   await expect(
     page.getByRole("heading", { name: "狀態", exact: true }),
   ).toBeVisible();
+  assert.equal(
+    (await page.locator(".topbar-title").innerText()).trim(),
+    "",
+    "mobile Agent must not clip the topbar to Ag",
+  );
   await expect(
     page.getByRole("region", { name: "Hermes 狀態" }),
   ).toBeVisible();
@@ -357,10 +362,20 @@ try {
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
+  assert.equal(
+    (await page.locator(".topbar-title").innerText()).trim(),
+    "",
+    "mobile tasks must not clip the topbar title",
+  );
   await page.locator(".mobile-bottom-dock").getByRole("button", { name: "靈感", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "靈感", exact: true }),
   ).toBeVisible();
+  assert.equal(
+    (await page.locator(".topbar-title").innerText()).trim(),
+    "",
+    "mobile inspiration must not clip the topbar to 靈",
+  );
   const inspirationScroll = page.locator(".page-scroll, .secondary-page").first();
   assert.ok(
     await inspirationScroll.evaluate(
@@ -420,6 +435,11 @@ try {
   await page.unroute("**/api/inspiration");
   await page.locator(".mobile-bottom-dock").getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  assert.equal(
+    (await page.locator(".topbar-title").innerText()).trim(),
+    "",
+    "mobile projects must not clip the topbar to 專案與",
+  );
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
   await page.locator(".reference-disclosure > summary").click();
   await page
