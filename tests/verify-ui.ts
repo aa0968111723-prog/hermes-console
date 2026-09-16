@@ -272,11 +272,19 @@ try {
     .getByRole("button", { name: "Agent", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Agent Runtime", exact: true }),
+    page.getByRole("heading", { name: "狀態", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("region", { name: "Hermes Runtime 狀態" }),
+    page.getByRole("region", { name: "Hermes 狀態" }),
   ).toBeVisible();
+  await expect(page.locator(".runtime-human-summary")).toContainText("Hermes");
+  await expect(page.locator(".runtime-human-summary")).toContainText("Memory");
+  await expect(page.locator(".runtime-human-summary")).toContainText("Tools");
+  await expect(page.locator(".runtime-human-summary")).toContainText("MCP");
+  await expect(page.locator(".runtime-developer")).not.toHaveAttribute("open");
+  await expect(
+    page.getByRole("searchbox", { name: "搜尋工具用途" }),
+  ).toBeHidden();
   await expect(
     page.getByRole("button", { name: "重新同步", exact: true }),
   ).toBeEnabled();
@@ -326,6 +334,7 @@ try {
   );
   await inspirationScroll.evaluate((el) => el.scrollTo(0, el.scrollHeight));
   await inspirationScroll.evaluate((el) => el.scrollTo(0, 0));
+  await expect(page.getByRole("heading", { name: "Drive 知識" })).toHaveCount(0);
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(

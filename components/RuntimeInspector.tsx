@@ -17,6 +17,27 @@ const labels: Record<string, string> = {
 };
 const statusLabel = (value: string) => labels[value] || value;
 
+function dotLabel(
+  kind: "good" | "partial" | "failed" | "unknown",
+  good: string,
+  partial = "部分可用",
+) {
+  if (kind === "good") return good;
+  if (kind === "partial") return partial;
+  if (kind === "failed") return "失敗";
+  return "未設定";
+}
+
+function mcpTone(servers: { enabled: boolean; status: string }[]) {
+  const live = servers.filter((server) => server.enabled);
+  if (!live.length) return "unknown" as const;
+  if (live.every((server) => server.status === "available")) return "good" as const;
+  if (live.some((server) => server.status === "available" || server.status === "partial"))
+    return "partial" as const;
+  if (live.every((server) => server.status === "failed")) return "failed" as const;
+  return "unknown" as const;
+}
+
 const ToolRow = memo(function ToolRow({
   tool,
   stale,
@@ -216,31 +237,72 @@ export default function RuntimeInspector({
     }
     return [...map.entries()];
   }, [filtered, limit]);
-  const state =
-    stale || snapshot?.status === "stale"
-      ? "stale"
-      : snapshot?.status || "unknown";
   const availableTools =
     snapshot?.tools.filter(
       (tool) => tool.enabled && tool.status === "available",
     ).length || 0;
+  const enabledTools =
+    snapshot?.tools.filter((tool) => tool.enabled).length || 0;
+  const hermesTone =
+    stale
+      ? "unknown"
+      : health?.agent === "verified" && health.credential === "valid"
+        ? "good"
+        : health?.status === "failed" || health?.agent === "failed"
+          ? "failed"
+          : "unknown";
+  const toolsTone = !snapshot
+    ? "unknown"
+    : availableTools === 0
+      ? "unknown"
+      : availableTools < enabledTools
+        ? "partial"
+        : "good";
+  const memoryTone =
+    snapshot?.memorySupport === "available"
+      ? "good"
+      : snapshot?.memorySupport === "partial"
+        ? "partial"
+        : snapshot?.memorySupport === "failed"
+          ? "failed"
+          : "unknown";
+  const mcpToneValue = mcpTone(snapshot?.mcpServers || []);
   return (
-    <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
-      <header>
-        <div>
-          <p className="eyebrow">一般</p>
-          <h2>能力中心</h2>
-        </div>
-        <div className="runtime-actions">
-          <button onClick={() => void refresh()} disabled={busy}>
-            <RefreshCw size={15} />
-            {busy ? "同步中…" : "重新同步"}
-          </button>
-          <span className={`runtime-state ${state}`}>
-            <i aria-hidden="true" />
-            {snapshot ? statusLabel(state) : "尚未同步"}
-          </span>
-        </div>
+    <section className="runtime-inspector" aria-label="Hermes 狀態">
+      <header className="runtime-normal">
+        <ul className="runtime-human-summary">
+          <li>
+            <i className={hermesTone} aria-hidden="true" />
+            <span>Hermes</span>
+            <span className="sr-only">
+              {dotLabel(hermesTone, "已驗證", "待確認")}
+            </span>
+          </li>
+          <li>
+            <i className={memoryTone} aria-hidden="true" />
+            <span>Memory</span>
+            <span className="sr-only">{dotLabel(memoryTone, "可用")}</span>
+          </li>
+          <li>
+            <i className={toolsTone} aria-hidden="true" />
+            <span>Tools</span>
+            <span className="sr-only">{dotLabel(toolsTone, "可用")}</span>
+          </li>
+          <li>
+            <i className={mcpToneValue} aria-hidden="true" />
+            <span>MCP</span>
+            <span className="sr-only">{dotLabel(mcpToneValue, "可用")}</span>
+          </li>
+        </ul>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          disabled={busy}
+          aria-label={busy ? "同步中" : "重新同步"}
+        >
+          <RefreshCw size={15} />
+          {busy ? "同步中…" : "重新同步"}
+        </button>
       </header>
       {error && (
         <p role="alert" className="error">
@@ -248,54 +310,6 @@ export default function RuntimeInspector({
           {error}
         </p>
       )}
-      <div className="runtime-human-summary">
-        <span>
-          <i
-            className={
-              !stale &&
-              health?.credential === "valid" &&
-              health.agent === "verified"
-                ? "good"
-                : "unknown"
-            }
-            aria-hidden="true"
-          />
-          Hermes{" "}
-          {stale
-            ? "待重新驗證"
-            : health?.agent === "verified" && health.credential === "valid"
-              ? "已驗證"
-              : "未驗證"}
-        </span>
-        <span>
-          <i
-            className={!stale && availableTools > 0 ? "good" : "unknown"}
-            aria-hidden="true"
-          />
-          工具{" "}
-          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未知"}
-        </span>
-        <span>
-          <i
-            className={
-              !stale && snapshot?.memorySupport === "available"
-                ? "good"
-                : "unknown"
-            }
-            aria-hidden="true"
-          />
-          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
-        </span>
-        <span>
-          <i
-            className={
-              !stale && (snapshot?.mcpServers.length || 0) > 0 ? "good" : "unknown"
-            }
-            aria-hidden="true"
-          />
-          MCP {snapshot ? snapshot.mcpServers.length : "未知"}
-        </span>
-      </div>
       <AgentOrbit
         snapshot={snapshot}
         task={task}
@@ -303,12 +317,11 @@ export default function RuntimeInspector({
         animation={animation}
       />
       {snapshot && (
-        <>
+        <details className="runtime-developer">
+          <summary>進階 · 工具</summary>
           <p className="muted">
             探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
           </p>
-          <details className="runtime-developer" open>
-            <summary>Developer · 工具清單</summary>
           <label>
             搜尋工具用途
             <input
@@ -322,36 +335,48 @@ export default function RuntimeInspector({
             />
           </label>
           <div className="runtime-tool-groups">
-            {groups.map(([source, tools]) => (
-              <details key={source} open>
-                <summary>
-                  {source} · {tools.length} 個工具
-                </summary>
-                <ul>
-                  {tools.map((tool) => (
-                    <ToolRow
-                      key={tool.canonicalName}
-                      tool={tool}
-                      stale={stale}
-                    />
-                  ))}
-                </ul>
-              </details>
-            ))}
+            {groups.length === 1 ? (
+              <ul>
+                {groups[0][1].map((tool) => (
+                  <ToolRow
+                    key={tool.canonicalName}
+                    tool={tool}
+                    stale={stale}
+                  />
+                ))}
+              </ul>
+            ) : (
+              groups.map(([source, tools]) => (
+                <details key={source}>
+                  <summary>
+                    {source} · {tools.length} 個工具
+                  </summary>
+                  <ul>
+                    {tools.map((tool) => (
+                      <ToolRow
+                        key={tool.canonicalName}
+                        tool={tool}
+                        stale={stale}
+                      />
+                    ))}
+                  </ul>
+                </details>
+              ))
+            )}
           </div>
           {filtered.length > limit && (
-            <button onClick={() => setLimit((value) => value + 100)}>
+            <button type="button" onClick={() => setLimit((value) => value + 100)}>
               顯示更多（共 {filtered.length} 個）
             </button>
           )}
           {!groups.length && (
             <p>目前沒有符合的工具；這不代表工具已可用。</p>
           )}
-          </details>
-        </>
+        </details>
       )}
       <details className="runtime-advanced">
-        <summary>Advanced · Runtime 詳情</summary>
+        <summary>進階 · Runtime</summary>
+
         {snapshot && (
           <>
             <p className="muted">

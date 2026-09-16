@@ -18,7 +18,6 @@ import {
 import type { Conversation, Health, Material, Task } from "@/lib/contracts";
 import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
-import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
 import {
   OFFLINE_NOTICE,
@@ -63,9 +62,6 @@ import { useSpatialMode } from "./visual/useSpatialMode";
 const ProjectWorkbench = dynamic(() => import("./ProjectWorkbench"));
 const InspirationBoard = dynamic(
   () => import("./inspiration/InspirationBoard"),
-);
-const KnowledgeArchive = dynamic(
-  () => import("./knowledge/KnowledgeArchive"),
 );
 const RuntimeInspector = dynamic(() => import("./RuntimeInspector"));
 const AgentPanel = dynamic(() => import("./agents/AgentPanel"));
@@ -1211,24 +1207,17 @@ export default function HermesConsole() {
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />
-            <KnowledgeArchive />
           </section>
         ) : nav === "agents" ? (
           <section className="secondary-page page-scroll">
-            <div className="page-heading-row">
-              <div>
-                <p className="eyebrow">能力</p>
-                <h1>Agent Runtime</h1>
-              </div>
-              <VisualStatus health={health} offline={offline} />
-            </div>
+            <h1>狀態</h1>
             <RuntimeInspector
               task={currentTask}
               health={health}
               animation={prefs.animation}
             />
             <details className="agent-profiles">
-              <summary>Agent OS · 設定檔</summary>
+              <summary>進階 · Agent 設定檔</summary>
               <AgentPanel
                 agents={agents.filter(
                   (agent) =>

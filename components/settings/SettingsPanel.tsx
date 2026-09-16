@@ -22,6 +22,9 @@ const CapabilityCertification = dynamic(
 const SharedMemory = dynamic(() => import("./SharedMemory"));
 const LearningMap = dynamic(() => import("../LearningMap"));
 const HelpPage = dynamic(() => import("../help/HelpPage"));
+const KnowledgeArchive = dynamic(
+  () => import("../knowledge/KnowledgeArchive"),
+);
 
 const TABS = ["帳號", "外觀", "連線", "工作區", "進階"] as const;
 
@@ -470,6 +473,10 @@ export default function SettingsPanel({
             {!tasks.length && <p className="muted">尚無任務使用量資料。</p>}
             <h3>說明</h3>
             <HelpPage />
+            <details>
+              <summary>進階 · Drive 知識</summary>
+              <KnowledgeArchive />
+            </details>
           </div>
         ) : (
           <div className="settings-stack">

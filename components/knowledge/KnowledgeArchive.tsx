@@ -122,8 +122,8 @@ export default function KnowledgeArchive() {
       {error && <p role="alert">{error}</p>}
       {payload?.source && (
         <p className="quiet">
-          快照 {new Date(payload.source.snapshotAt).toLocaleString("zh-TW")} ·
-          live={String(payload.source.live)}
+          快照 {new Date(payload.source.snapshotAt).toLocaleString("zh-TW")}
+          。這是索引，不是即時 Drive。
         </p>
       )}
       {result?.conflicts?.length ? (

@@ -18,4 +18,6 @@ test("settings shell is extracted and still hosts Help plus five tabs", async ()
   assert.match(panel, /["']帳號["'], ["']外觀["'], ["']連線["'], ["']工作區["'], ["']進階["']/);
   assert.doesNotMatch(panel, /校園密碼|以校園憑證|tkuPassword/);
   assert.match(panel, /conversations\?id=" \+ conversationId/);
+  assert.match(panel, /knowledge\/KnowledgeArchive/);
+  assert.match(panel, /進階 · Drive 知識/);
 });

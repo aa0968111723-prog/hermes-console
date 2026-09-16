@@ -29,7 +29,7 @@ Human
 - 任務狀態：`queued`／`running`／`waiting_user`／`waiting_authorization`／`stopping`／`completed`／`failed`／`cancelled`／`uncertain`。
 - 取消會打後端 stop，不是只藏 UI。
 - 長任務中斷標 `uncertain`，不假裝仍在跑。程序啟動會立刻把沒有活 worker 的 chat／未取得 remoteId 任務改成 uncertain；有 remoteId 的 runs 才向 Hermes 查回。
-- Runtime Inspector：一般只看 Hermes／Memory／Tools／MCP 狀態；Developer 才看工具清單、schema、latency。
+- Runtime Inspector：一般只看 Hermes／Memory／Tools／MCP 狀態點；進階才看工具清單、schema、latency。
 - 只對 `read` 工具自動重試 429／短暫 503／504（exponential backoff + jitter）。發佈、刪除、寫入、空結果、未設定端點不重試。
 - 每次 Tool：`toolCallId`／tool／start／end／status／latency／error category。latency 來自實際起訖，不是估算成功。
 - 一般 UI 任務進度是 理解／研究／創作／完成。靈感是 keep／avoid 卡片；讀圖是海報預覽與模擬修改方向；創作方向在對話內挑選；Canva 成果用 ArtifactStage 大預覽。不是 tool JSON。工具名稱、計數、schema、traceId 只在 Developer／任務詳情「技術資訊」。
