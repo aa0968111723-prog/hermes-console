@@ -286,6 +286,10 @@ try {
   await expect(
     page.locator(".knowledge-disclosure > summary"),
   ).toHaveText("進階 · Drive 索引");
+  await expect(page.locator(".language-problem")).toBeHidden();
+  await expect(
+    page.locator(".inspiration-research > summary"),
+  ).toHaveText("進階 · 招生與現場觀察");
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(

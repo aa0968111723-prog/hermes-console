@@ -53,57 +53,6 @@ export default function InspirationBoard({
         <Sparkles size={25} aria-hidden="true" />
       </div>
 
-      <RecruitmentTruthNotice />
-      <RecruitmentFunnelFold />
-
-      <article className="language-problem">
-        <p className="eyebrow">目前最大問題</p>
-        <h2>{language.biggestProblem}</h2>
-        <p className="muted">
-          已讀 {language.imageReadCount} 張 tku_zc 封面。未連接 Instagram。限動、Reels 動態與完整格狀仍是 UNKNOWN。
-        </p>
-        <ol>
-          {language.improvements.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
-      </article>
-
-      <article className="handoff-card live-watch">
-        <p className="eyebrow">現場觀察 · {language.live.today}</p>
-        <p>
-          Feed EVIDENCE：{language.live.feed.hook}
-          {language.live.feed.stale ? "（已過期）" : ""}
-        </p>
-        <p>
-          限動 {language.live.story.provenance}：{language.live.story.note}
-        </p>
-        <p>{language.live.planVsLive}</p>
-      </article>
-
-      <article className="handoff-card next-slot">
-        <p className="eyebrow">下一步 · {language.nextSlot.format}</p>
-        <strong>
-          {language.nextSlot.title} {language.nextSlot.date}
-        </strong>
-        <p>
-          {language.nextSlot.location.value}
-          <span className="provenance-pill">{language.nextSlot.location.provenance}</span>
-        </p>
-        <p>Visual：{language.nextSlot.visualAgentInput}</p>
-        <p>文案：{language.nextSlot.copywritingAgentInput}</p>
-        {language.nextSlot.beats && (
-          <ol className="story-beats">
-            {language.nextSlot.beats.map((beat) => (
-              <li key={beat.frame}>
-                {beat.frame}. {beat.onImage}
-                <small> ≤{beat.maxChars}字</small>
-              </li>
-            ))}
-          </ol>
-        )}
-      </article>
-
       <h2 className="language-section">值得學</h2>
       <ul className="pattern-grid">
         {language.keep.map((pattern) => (
@@ -117,29 +66,6 @@ export default function InspirationBoard({
           <PatternCard key={pattern.id} pattern={pattern} avoid />
         ))}
       </ul>
-
-      <div className="handoff-grid">
-        <article className="handoff-card">
-          <p className="eyebrow">給 Visual Agent</p>
-          <p>{language.visualAgent.brief}</p>
-          <p>
-            <strong>做</strong> {language.visualAgent.do.join("、")}
-          </p>
-          <p>
-            <strong>不做</strong> {language.visualAgent.dont.join("、")}
-          </p>
-        </article>
-        <article className="handoff-card">
-          <p className="eyebrow">給 Copywriting Agent</p>
-          <p>{language.copywritingAgent.brief}</p>
-          <p>
-            <strong>做</strong> {language.copywritingAgent.do.join("、")}
-          </p>
-          <p>
-            <strong>不做</strong> {language.copywritingAgent.dont.join("、")}
-          </p>
-        </article>
-      </div>
 
       <button type="button" disabled={busy} onClick={sync} style={{ minHeight: 44 }}>
         {busy ? "讀取中…" : "匯入已設定來源"}
@@ -197,6 +123,83 @@ export default function InspirationBoard({
           </li>
         ))}
       </ul>
+
+      <details className="inspiration-research">
+        <summary>進階 · 招生與現場觀察</summary>
+        <RecruitmentTruthNotice />
+        <RecruitmentFunnelFold />
+
+        <article className="language-problem">
+          <p className="eyebrow">目前最大問題</p>
+          <h2>{language.biggestProblem}</h2>
+          <p className="muted">
+            已讀 {language.imageReadCount} 張 tku_zc 封面。未連接 Instagram。限動、Reels 動態與完整格狀仍是 UNKNOWN。
+          </p>
+          <ol>
+            {language.improvements.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
+        </article>
+
+        <article className="handoff-card live-watch">
+          <p className="eyebrow">現場觀察 · {language.live.today}</p>
+          <p>
+            Feed EVIDENCE：{language.live.feed.hook}
+            {language.live.feed.stale ? "（已過期）" : ""}
+          </p>
+          <p>
+            限動 {language.live.story.provenance}：{language.live.story.note}
+          </p>
+          <p>{language.live.planVsLive}</p>
+        </article>
+
+        <article className="handoff-card next-slot">
+          <p className="eyebrow">下一步 · {language.nextSlot.format}</p>
+          <strong>
+            {language.nextSlot.title} {language.nextSlot.date}
+          </strong>
+          <p>
+            {language.nextSlot.location.value}
+            <span className="provenance-pill">{language.nextSlot.location.provenance}</span>
+          </p>
+          <p>Visual：{language.nextSlot.visualAgentInput}</p>
+          <p>文案：{language.nextSlot.copywritingAgentInput}</p>
+          {language.nextSlot.beats && (
+            <ol className="story-beats">
+              {language.nextSlot.beats.map((beat) => (
+                <li key={beat.frame}>
+                  {beat.frame}. {beat.onImage}
+                  <small> ≤{beat.maxChars}字</small>
+                </li>
+              ))}
+            </ol>
+          )}
+        </article>
+
+        <div className="handoff-grid">
+          <article className="handoff-card">
+            <p className="eyebrow">給 Visual Agent</p>
+            <p>{language.visualAgent.brief}</p>
+            <p>
+              <strong>做</strong> {language.visualAgent.do.join("、")}
+            </p>
+            <p>
+              <strong>不做</strong> {language.visualAgent.dont.join("、")}
+            </p>
+          </article>
+          <article className="handoff-card">
+            <p className="eyebrow">給 Copywriting Agent</p>
+            <p>{language.copywritingAgent.brief}</p>
+            <p>
+              <strong>做</strong> {language.copywritingAgent.do.join("、")}
+            </p>
+            <p>
+              <strong>不做</strong> {language.copywritingAgent.dont.join("、")}
+            </p>
+          </article>
+        </div>
+      </details>
     </section>
   );
 }
