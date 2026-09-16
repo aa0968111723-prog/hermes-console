@@ -34,16 +34,16 @@
 
 ## 本輪驗證（2026-09-16）
 
-- `npm test`：393 tests, 391 pass, 2 skipped, 0 fail。
-- `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 239 kB（shared 103 kB）。
-- Playwright：`test:ui`、`test:entry`、`test:chat`、`test:workbench`、`test:gateway`、`test:runtime` 通過。`check:secrets` 647 files PASS。
-- `test:ui` 接續作品：composer 為「請接續修改這個作品。」，不含 `ui-fixture-artifact-B`。截圖 `continue-artifact-composer.png`。
-- `test:runtime` 選定方向：composer 為「已選定方向 2。請依此製作。」，不含 workflow id。
-- 首頁 360／390 為龜龜 + 六個短標籤 + composer + dock。axe 0。LCP 80ms、CLS 0.00008。
-- `test:ui` 離線頁：jump 在右側，寬高 ≥ 44px。`test:chat` 回到最新訊息仍用 accessible name。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:ui`、`test:entry` 通過。
+- `npm test`：394 tests, 392 pass, 2 skipped, 0 fail。
+- `/` First Load JS 239 kB（shared 103 kB）。
+- `test:ui` 帳號頁：目前這台／其他裝置、Google／淡江尚未完成設定、登出、無 session hash；結束其他工作階段需確認。連線格：12 個狀態點、卡片上無「未設定」字句；淡江 MCP 密碼收在「不是淡江 SSO」。
+- `check:secrets`：648 files PASS。History/deployment rotation 未驗證。
+- `test:entry`：登入閘、未設定 Google／淡江、公開 health、匿名 API 401。
+- axe wcag2a/aa + 2.1：0 violations。LCP 112ms、CLS 0.00008。
 - Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
-- axe wcag2a/aa + 2.1：0 violations（`output/playwright/browser-report.json`）。
-- 登入 bootstrap：Node 註冊後用頁內 `fetch` 登入。`APIRequestContext` / CDP cookie 在 `127.0.0.1` 不會進 document jar。
+- 登入 bootstrap：Node 註冊後用頁內 `fetch` 登入。註冊留下的第二個 session 在帳號頁顯示為其他裝置。
+- 本輪未重跑：`test:chat`、`test:workbench`、`test:gateway`、`test:runtime`（先前同分支已通過）。
 
 ## 仍是 Partial（禁止標綠）
 
