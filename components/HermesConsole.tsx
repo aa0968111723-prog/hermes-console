@@ -543,7 +543,7 @@ export default function HermesConsole() {
         el.scrollTo({ top: Math.max(0, top) });
         pinBriefAfterPick.current = false;
         nearBottom.current = false;
-        setJump(true);
+        setJump(false);
         return;
       }
     }
