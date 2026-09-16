@@ -314,8 +314,7 @@ try {
   await expect(
     chatBrief.locator(".direction-format-frame").first(),
   ).toBeInViewport();
-  await chatBrief.locator(".direction-format-frame").first().scrollIntoViewIfNeeded();
-  await chatBrief.screenshot({
+  await page.screenshot({
     path: join(output, "chat-direction-brief-mobile.png"),
   });
   await page.getByRole("button", { name: "對話列表" }).click();
@@ -456,7 +455,7 @@ try {
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
   const boardBrief = page.getByRole("region", { name: "已選方向規格" });
   await boardBrief.locator(".direction-format-frame").first().scrollIntoViewIfNeeded();
-  await boardBrief.screenshot({
+  await page.screenshot({
     path: join(output, "direction-brief-mobile.png"),
   });
   await dockNav.getByRole("button", { name: "專案", exact: true }).click();
