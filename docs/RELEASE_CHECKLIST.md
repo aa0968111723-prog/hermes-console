@@ -28,7 +28,7 @@
 - [ ] 工具 HTTP 200 但內容為空記為失敗，不是完成
 - [ ] 取消會打後端 cancel
 - [ ] 長任務重啟後不是假 running（立刻 reconcile 為 uncertain）
-- [ ] 未開 `HERMES_IMAGE_INPUT` 時附圖不假裝已分析
+- [ ] 未開 `HERMES_IMAGE_INPUT` 時附圖不假裝已分析；「這張哪裡可以改」可走工作區模擬並標明沒有讀像素
 
 ## MCP
 

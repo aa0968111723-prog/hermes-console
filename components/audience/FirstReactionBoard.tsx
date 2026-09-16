@@ -27,7 +27,7 @@ export default function FirstReactionBoard({ panel }: { panel: TwinPanel }) {
       {panel.unknowns.length > 0 && (
         <ul className="twin-unknowns">
           {panel.unknowns.map((item) => (
-            <li key={item}>UNKNOWN · {item}</li>
+            <li key={item}>未確認 · {item}</li>
           ))}
         </ul>
       )}

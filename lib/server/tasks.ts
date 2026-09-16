@@ -47,6 +47,8 @@ import {
   toInspirationPack,
 } from "./inspiration/engine";
 import { isInspirationSearchPack } from "../inspiration-pack";
+import { isImageReviewPack, workspaceImageReview } from "../image-review";
+import { simulateFreshmanReactions } from "./audience/personas";
 import type { StructuredGoal } from "../contracts";
 
 const runtimeTasks = globalThis as typeof globalThis & {
@@ -195,8 +197,6 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   for (const id of input.attachments)
     if (material(owner, id).projectId !== conv.projectId)
       throw new ApiError(403, "scope_mismatch", "附件不屬於此專案。");
-  // Validate actual attachment support before reserving a task or transmitting anything.
-  await attachmentParts(owner, input.attachments);
   const payloadHash = hash(JSON.stringify(input));
   const existing = list<Task>("task", owner).find(
     (t) => t.requestKey === input.requestKey,
@@ -218,10 +218,27 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     goal,
     input.attachments,
   );
-  if (connection.credential !== "valid" && !localInspiration)
+  const localImageReview = canFulfillLocalImageReview(
+    connection.credential,
+    goal,
+  );
+  if (localImageReview && imageAttachmentIds(owner, input.attachments).length < 1)
+    throw new ApiError(
+      400,
+      "invalid_input",
+      "請先附上海報或圖片。沒有畫面時無法審查，也不會假裝已看圖。",
+    );
+  if (!localInspiration && !localImageReview)
+    await attachmentParts(owner, input.attachments);
+  if (
+    connection.credential !== "valid" &&
+    !localInspiration &&
+    !localImageReview
+  )
     throw new ApiError(503, "hermes_not_ready", connection.message);
   const native =
     !localInspiration &&
+    !localImageReview &&
     connection.features.run_submission &&
     connection.features.run_status &&
     input.attachments.length === 0;
@@ -273,7 +290,9 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       task,
       localInspiration
         ? "已在後端保存任務，改由工作區靈感搜尋；不是 Hermes。"
-        : "已在後端保存任務，準備提交 Hermes。",
+        : localImageReview
+          ? "已在後端保存任務，改由工作區畫面審查；不是 Hermes，也沒有讀像素。"
+          : "已在後端保存任務，準備提交 Hermes。",
     );
     put("task", owner, task);
     conv.messages.push({
@@ -297,6 +316,12 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       reserved,
       conversation(owner, reserved.conversationId),
     );
+  if (localImageReview)
+    return fulfillImageReview(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
   const controller = new AbortController();
   workers.set(task.id, controller);
   // Requires a persistent Node process (not a serverless invocation).
@@ -304,6 +329,9 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     workers.delete(task.id),
   );
   return task;
+}
+function imageInputEnabled() {
+  return process.env.HERMES_IMAGE_INPUT === "true";
 }
 function canFulfillLocalInspiration(
   credential: string,
@@ -314,8 +342,18 @@ function canFulfillLocalInspiration(
     credential !== "valid" &&
     goal.requiresInspiration &&
     !goal.directionLocked &&
+    !goal.requiresImageReview &&
     attachments.length === 0
   );
+}
+function canFulfillLocalImageReview(credential: string, goal: StructuredGoal) {
+  return (
+    goal.requiresImageReview &&
+    !(credential === "valid" && imageInputEnabled())
+  );
+}
+function imageAttachmentIds(owner: string, ids: string[]) {
+  return ids.filter((id) => material(owner, id).kind === "image");
 }
 function httpsEventSources(urls: string[]) {
   return urls.filter((value) => {
@@ -384,6 +422,71 @@ function fulfillWorkspaceInspiration(
   task.endedAt = now();
   task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
   event(task, "工作區已回傳靈感方向（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillImageReview(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const goal = interpretGoal(task.input);
+  task.goal = goal;
+  const images = imageAttachmentIds(owner, task.attachments).map((id) =>
+    material(owner, id),
+  );
+  const titles = images.map((item) => item.title).join("、");
+  const twin = simulateFreshmanReactions({
+    kind: "poster",
+    title: titles,
+    copy: [userFacingGoalText(task.input), titles].filter(Boolean).join("\n"),
+    visualNotes: "",
+  });
+  const pack = workspaceImageReview({
+    materialIds: images.map((item) => item.id),
+    twinPanel: twin,
+  });
+  if (!isImageReviewPack(pack) || pack.pixelRead !== false) {
+    task.state = "failed";
+    task.error = "工作區畫面審查沒有誠實標示未讀像素。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  event(task, "沒有讀取圖片像素。", "plan");
+  event(
+    task,
+    pack.notice,
+    "completed",
+    "workspace_simulate_audience",
+    pack,
+  );
+  task.output = [
+    "已附上海報，但沒有讀取像素。",
+    pack.notice,
+    "這不是 Hermes Agent 執行，也沒有分析構圖、字級或對比。",
+    "客群反應是模擬，不是民調。",
+    ...pack.suggestions,
+  ].join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳畫面審查草稿（不是 Hermes 驗證）。");
   if (
     !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
   ) {

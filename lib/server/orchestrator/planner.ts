@@ -95,6 +95,16 @@ export function buildPlan(
       ),
     );
   }
+  if (goal.requiresImageReview) {
+    steps.push(
+      step(
+        "讀取附圖",
+        "先讀真實像素才能評論構圖與字級；沒讀到就標未確認，不得假裝已看圖。",
+        "workspace_read_material",
+        "ask_user",
+      ),
+    );
+  }
   if (goal.requiresAudienceEvaluation) {
     const audience = routes.find((item) => item.id === "audience");
     steps.push(
@@ -108,7 +118,17 @@ export function buildPlan(
       ),
     );
   }
-  if (goal.requiresDesign || goal.output) {
+  if (goal.requiresImageReview) {
+    steps.push(
+      step(
+        "視覺修改建議",
+        "只給可執行建議，不自動覆蓋原檔，也不假裝已改圖。",
+        null,
+        null,
+      ),
+    );
+  }
+  if (!goal.requiresImageReview && (goal.requiresDesign || goal.output)) {
     steps.push(
       step(
         "編譯視覺規格",

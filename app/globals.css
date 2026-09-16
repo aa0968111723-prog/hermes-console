@@ -2573,6 +2573,42 @@ button.inspiration-direction-card.selected { border-color: var(--color-primary);
 .inspiration-direction-card strong { display: block; margin: 8px 0 6px; font-size: 15px; }
 .inspiration-direction-card p { margin: 0 0 8px; font-size: 13px; line-height: 1.4; }
 .inspiration-direction-card small { color: var(--muted); font-size: 11px; }
+.image-review { display: grid; gap: 12px; margin: 12px 0 18px; }
+.image-review-checks,
+.image-review-suggestions {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.image-review-checks {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+.image-review-checks > li {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dce9d8;
+  border-radius: 18px;
+  background: linear-gradient(165deg, #fff, #f4f8f1);
+  box-shadow: var(--depth-card);
+}
+.image-review-checks > li[data-status="unread"] span,
+.image-review-checks > li[data-status="simulated"] span {
+  display: inline-block;
+  margin: 4px 0 6px;
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--color-primary);
+}
+.image-review-checks strong { display: block; font-size: 13px; }
+.image-review-checks p,
+.image-review-suggestions { margin: 0; font-size: 13px; line-height: 1.4; }
+.image-review-suggestions > li {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #f7faf5;
+}
 .direction-brief { display: grid; gap: 12px; margin: 16px 0 20px; }
 .direction-brief h2 { margin: 0; font-size: 1.15rem; }
 .direction-brief > p { margin: 0; font-size: 14px; line-height: 1.45; }
@@ -2599,13 +2635,17 @@ button.inspiration-direction-card.selected { border-color: var(--color-primary);
   display: grid;
   place-items: center;
   width: 100%;
-  max-height: 180px;
+  min-height: 160px;
+  max-height: min(42vh, 320px);
   margin-bottom: 8px;
   border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0)),
     linear-gradient(145deg, #e7f0e1, #c9dcc4);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), var(--depth-1, 0 4px 12px rgba(40,70,40,.06));
+  box-shadow:
+    inset 0 0 0 10px rgba(255,255,255,.18),
+    inset 0 1px 0 rgba(255,255,255,.7),
+    var(--depth-1, 0 4px 12px rgba(40,70,40,.06));
   text-align: center;
 }
 .direction-format-frame span { font-size: 11px; letter-spacing: .08em; color: var(--color-primary); }

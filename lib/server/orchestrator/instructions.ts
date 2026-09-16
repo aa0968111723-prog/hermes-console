@@ -83,8 +83,9 @@ export function composeTaskInstructions(input: {
     packs.push("tamkang");
   }
   if (
-    input.goal.requiresInspiration ||
-    (input.goal.requiresDesign && !input.goal.directionLocked)
+    !input.goal.requiresImageReview &&
+    (input.goal.requiresInspiration ||
+      (input.goal.requiresDesign && !input.goal.directionLocked))
   ) {
     parts.push(GALLEY_INSTRUCTION_PACK, INSPIRATION_INSTRUCTION_PACK);
     packs.push("galley", "inspiration");
@@ -94,8 +95,7 @@ export function composeTaskInstructions(input: {
     packs.push("audience");
   }
   const imageReview =
-    Boolean(input.hasImageAttachments) ||
-    /這張(圖|海報|稿|設計)?|哪裡可以改|視覺層級|分析這[張個]/.test(input.text);
+    input.goal.requiresImageReview || Boolean(input.hasImageAttachments);
   if (imageReview) {
     parts.push(IMAGE_REVIEW_PACK);
     packs.push("image");
@@ -109,16 +109,20 @@ export function composeTaskInstructions(input: {
     }
   }
   if (
-    input.goal.requiresDesign ||
-    input.goal.output ||
-    /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
-      input.text,
-    )
+    !input.goal.requiresImageReview &&
+    (input.goal.requiresDesign ||
+      input.goal.output ||
+      /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
+        input.text,
+      ))
   ) {
     parts.push(COPYWRITING_INSTRUCTION_PACK);
     packs.push("copywriting");
   }
-  if (input.goal.requiresDesign || input.goal.output) {
+  if (
+    !input.goal.requiresImageReview &&
+    (input.goal.requiresDesign || input.goal.output)
+  ) {
     parts.push(VISUAL_INSTRUCTION_PACK);
     if (input.goal.directionLocked) {
       parts.push(LOCKED_DIRECTION_INSTRUCTION_PACK);

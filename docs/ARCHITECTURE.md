@@ -38,6 +38,6 @@ App shell 鎖定視窗；**唯一主捲動**在 `.conversation-scroll`（聊天�
 
 - UI：`components/HermesConsole.tsx`、`components/auth/`、`components/visual/`
 - 授權：`lib/server/auth/`
-- 編排：`lib/server/orchestrator/`、`lib/server/tasks.ts`（Hermes 未設定時，使用者「找靈感」可走工作區搜尋，不寫 Agent verified）
+- 編排：`lib/server/orchestrator/`、`lib/server/tasks.ts`（Hermes 未設定時，「找靈感」走工作區搜尋；「這張哪裡可以改」走未讀像素的畫面審查。兩者都不寫 Agent verified）
 - MCP：`lib/server/mcp-registry.ts`、`lib/server/mcp.ts`
 - 儲存：`lib/server/store.ts`

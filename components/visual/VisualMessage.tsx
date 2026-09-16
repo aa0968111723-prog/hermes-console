@@ -4,7 +4,9 @@ import { eventState, highLevelProgress, safeSource } from "@/lib/client/activity
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
 import { isInspirationSearchPack, type InspirationSearchPack } from "@/lib/inspiration-pack";
+import { isImageReviewPack } from "@/lib/image-review";
 import InspirationResult from "./InspirationResult";
+import ImageReviewResult from "./ImageReviewResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
 export default function VisualMessage({
@@ -35,12 +37,24 @@ export default function VisualMessage({
   const completed = [...calls.values()].filter(
     (state) => state === "completed",
   ).length;
-  const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
+  const imageReview = task.events
+    .map((event) => event.result)
+    .find(isImageReviewPack);
+  const twinPanel =
+    imageReview?.twinPanel ||
+    task.events.map((event) => event.result).find(isTwinPanel);
   const inspiration = task.events
     .map((event) => event.result)
     .find(isInspirationSearchPack);
   const progress = highLevelProgress(task);
-  if (!sources.length && !calls.size && !twinPanel && !layout && !inspiration)
+  if (
+    !sources.length &&
+    !calls.size &&
+    !twinPanel &&
+    !layout &&
+    !inspiration &&
+    !imageReview
+  )
     return null;
   return (
     <div className="visual-message">
@@ -57,7 +71,8 @@ export default function VisualMessage({
           busy={pickingInspiration}
         />
       )}
-      {!!calls.size && !inspiration && progress && (
+      {imageReview && <ImageReviewResult pack={imageReview} />}
+      {!!calls.size && !inspiration && !imageReview && progress && (
         <button className="tool-result-summary" onClick={onInspect}>
           {completed === calls.size ? (
             <Check size={15} />

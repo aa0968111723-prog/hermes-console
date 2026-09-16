@@ -6,7 +6,7 @@ import { verifyMobileEngines } from "./mobile-engines";
 import { verifyScrollOwnership } from "./mobile-scroll";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -302,6 +302,32 @@ try {
   await expect(page.getByText(/Hermes 尚未連線/)).toBeVisible();
   await page.screenshot({
     path: join(output, "chat-direction-brief-mobile.png"),
+    fullPage: true,
+  });
+  const poster = await readFile("public/mascot/turtle.png");
+  await page.locator('#composer input[type="file"]').setInputFiles({
+    name: "茶會海報.png",
+    mimeType: "image/png",
+    buffer: poster,
+  });
+  await expect(page.locator(".context-card")).toContainText("尚未驗證讀圖", {
+    timeout: 30_000,
+  });
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("這張哪裡可以改？");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(page.getByRole("region", { name: "畫面審查" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("region", { name: "畫面審查" })).toContainText(
+    "沒有讀取像素",
+  );
+  await expect(
+    page.getByRole("region", { name: "新生第一眼模擬" }),
+  ).toBeVisible();
+  await expect(page.getByText(/個工具完成/)).toHaveCount(0);
+  await expect(page.getByText(/已看圖/)).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "chat-image-review-mobile.png"),
     fullPage: true,
   });
   await expect(page.getByRole("button", { name: "對話列表" })).toBeVisible();

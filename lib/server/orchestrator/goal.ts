@@ -28,7 +28,9 @@ export function interpretGoal(input: string): StructuredGoal {
     !directionLocked && (AUDIENCE.test(text) || imageReview);
   const requiresInspiration = directionLocked
     ? false
-    : INSPIRATION.test(text) || requiresDesign;
+    : imageReview
+      ? false
+      : INSPIRATION.test(text) || requiresDesign;
   const audience = requiresTamkang
     ? "淡江大一新生（模擬，不是民調）"
     : /受眾|學生/.test(text)
@@ -53,6 +55,7 @@ export function interpretGoal(input: string): StructuredGoal {
     requiresAudienceEvaluation,
     requiresTamkang,
     requiresInspiration,
+    requiresImageReview: imageReview,
     directionLocked,
     intentTier,
   };

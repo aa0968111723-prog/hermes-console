@@ -100,6 +100,7 @@ export interface StructuredGoal {
   requiresAudienceEvaluation: boolean;
   requiresTamkang: boolean;
   requiresInspiration: boolean;
+  requiresImageReview: boolean;
   directionLocked: boolean;
   intentTier: IntentTier;
 }

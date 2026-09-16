@@ -57,6 +57,6 @@ export function compileDirectionBrief(input: {
     copy: scaffold.variants,
     review,
     notice:
-      "這是依已選方向整理的文案與視覺規格。不是 Hermes 生成、不是已出圖、不是已發佈。日期地點未確認標 UNKNOWN。",
+      "這是依已選方向整理的文案與視覺規格。不是 Hermes 生成、不是已出圖、不是已發佈。日期地點未確認。",
   };
 }

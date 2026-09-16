@@ -149,6 +149,8 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
 
   await t.test("poster image review routes visual and audience simulation", () => {
     const goal = interpretGoal("這張哪裡可以改？");
+    assert.equal(goal.requiresImageReview, true);
+    assert.equal(goal.requiresInspiration, false);
     assert.equal(goal.requiresDesign, true);
     assert.equal(goal.requiresAudienceEvaluation, true);
     const composed = composeTaskInstructions({
@@ -160,9 +162,27 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.ok(composed.packs.includes("image"));
     assert.ok(composed.packs.includes("audience"));
     assert.ok(composed.packs.includes("visual"));
+    assert.equal(composed.packs.includes("inspiration"), false);
+    assert.equal(composed.packs.includes("canva"), false);
     assert.match(composed.instructions, /workspace_read_material/);
     assert.match(composed.instructions, /SIMULATION/);
     assert.equal(composed.instructions.includes("chain-of-thought"), false);
+    const plan = buildPlan(goal, routeTools(goal, [emptyIntegration("hermes")]), "balanced");
+    assert.ok(plan.steps.some((step) => step.title === "讀取附圖"));
+    assert.ok(plan.steps.some((step) => step.title === "受眾模擬"));
+    assert.ok(plan.steps.some((step) => step.title === "視覺修改建議"));
+    assert.equal(
+      plan.steps.find((step) => step.title === "找靈感"),
+      undefined,
+    );
+    assert.equal(
+      plan.steps.find((step) => step.title === "提出創作方向"),
+      undefined,
+    );
+    assert.equal(
+      plan.steps.find((step) => step.title.includes("Canva")),
+      undefined,
+    );
   });
 
   await t.test("untrusted Instagram URLs do not flip inspiration routing", async () => {

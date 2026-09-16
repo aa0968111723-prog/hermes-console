@@ -82,7 +82,7 @@ export function routeTools(
     });
   }
 
-  if (goal.requiresDesign) {
+  if (goal.requiresDesign && !goal.requiresImageReview) {
     routes.push({
       id: "visual_spec",
       tool: "workspace_get_visual_concepts",

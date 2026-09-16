@@ -21,8 +21,8 @@ test("image attachments stay honest when Hermes image input is unverified", asyn
     "utf8",
   );
   assert.match(tray, /尚未驗證讀圖/);
-  assert.match(consoleSource, /imageAttached && !data\.imageInput/);
-  assert.match(consoleSource, /部署端尚未驗證圖片輸入/);
+  assert.doesNotMatch(consoleSource, /imageAttached && !data\.imageInput/);
+  assert.doesNotMatch(consoleSource, /部署端尚未驗證圖片輸入/);
   assert.match(inspector, /讀圖 \{statusLabel\(snapshot\.imageInputSupport\)\}/);
   assert.match(
     sync,

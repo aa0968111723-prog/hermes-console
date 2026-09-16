@@ -595,21 +595,6 @@ export default function HermesConsole() {
     )
       return;
     const refs = attachmentIds ? [] : references;
-    const imageAttached = attachmentIds
-      ? false
-      : [
-          ...files.flatMap((u) => (u.material ? [u.material] : [])),
-          ...refs.flatMap((id) => {
-            const item = data.materials.find((material) => material.id === id);
-            return item ? [item] : [];
-          }),
-        ].some((item) => item.kind === "image");
-    if (imageAttached && !data.imageInput) {
-      setError(
-        "圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。",
-      );
-      return;
-    }
     sending.current = true;
     setBusy(true);
     setError("");

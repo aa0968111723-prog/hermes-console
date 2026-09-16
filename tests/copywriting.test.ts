@@ -128,7 +128,7 @@ test("freshman-friendly copy stops more twins and keeps unknown location", () =>
   assert.ok(review.structure.relatable);
   assert.ok(review.structure.cta);
   assert.ok(review.personas.filter((item) => item.wouldStop).length >= 4);
-  assert.ok(review.next.some((item) => /UNKNOWN/.test(item)));
+  assert.ok(review.next.some((item) => /未確認/.test(item)));
 });
 
 test("caption intent uses copywriting pack; Hermes review tool is listed", async () => {

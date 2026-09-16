@@ -60,7 +60,7 @@
 18. 設定頁不再收集淡江學校密碼；連線密鑰變更限 owner／admin；附圖／「這張哪裡可以改」走讀圖 + 受眾模擬
 19. 已登入帳號可連結 Email；Google → 淡江 → Email 後用淡江回來仍是同一 User。淡江 OIDC 以本機 mock IdP 契約測試（discovery + PKCE）；SAML／CAS 誠實未設定
 20. 忘記密碼信件的 `/#reset=` 會打開重設密碼表單，不會把 token 當成登入／驗證一次用掉
-21. 未設 `HERMES_IMAGE_INPUT=true` 時，附圖顯示「尚未驗證讀圖」，送出前拒絕，不假裝已分析。Runtime 開發者檢視的讀圖狀態跟 env 走，不是 unknown
+21. 未設 `HERMES_IMAGE_INPUT=true` 時，附圖顯示「尚未驗證讀圖」。一般附圖送 Hermes 仍拒絕；「這張哪裡可以改」走工作區模擬，明確標沒有讀像素。Runtime 開發者檢視的讀圖狀態跟 env 走，不是 unknown
 22. Planner 不再指向不存在的 `project_inspiration_then_web`／`creative_directions`／`audience_simulation`。找靈感走 `workspace_search_inspiration`（已收藏分群＋三個方向）；受眾走 `workspace_simulate_audience`；方向保存走 `workspace_save_directions`。`淡大` 視為淡江。對話與靈感板顯示方向卡，不丟連結清單或 JSON
 23. 方向卡可點選：寫入既有 workflow、`chooseDirection`，並自動送出「我選方向 A/B/C」接續整理文案。`workspace_project_context` 帶出已選定方向，不必叫使用者貼流程 ID
 24. 選定方向後 `directionLocked`：不再找靈感、不再 `workspace_save_directions`；計畫改為專案上下文 → 視覺規格 → 文案 → Canva 規格。即使跟進句含「文案／視覺／淡大」也不重跑靈感搜尋。token 裁切後仍保留鎖定指示，不會退回「再找靈感」
@@ -68,3 +68,5 @@
 26. 選定方向會寫入候選活動（無捏造日期地點）與可改版文案 `copyId`。同一方向的後續修改沿用同一文案 id；專案脈絡帶出 `activityId`／`copyId`
 27. Hermes 未設定時，對話「找靈感」仍走工作區 `workspace_search_inspiration`，顯示方向卡。 provenance=`workspace`，不寫 Agent verified，不假裝已搜 Instagram／已連淡江／已出圖。非靈感對話仍回 `hermes_not_ready`
 28. 對話選方向 A/B/C 後，同一捲動區顯示文案／規格草稿（未出圖）。一般訊息不顯示「N/N 個工具完成」；執行紀錄改為圖示，accessible name 仍保留
+29. 上傳海報問「這張哪裡可以改」：未驗證讀圖時仍可送出。回傳畫面審查清單＋新生模擬，provenance=`workspace`，`pixelRead=false`，不寫 Agent verified，不假裝已看像素。沒有附件則 `invalid_input`，不走靈感假路徑
+30. 學生可見文案把日期地點寫成「未確認」，資料模型仍用 `UNKNOWN`。已選方向的 4:5／9:16／A4 規格框加大
