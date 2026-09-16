@@ -58,6 +58,11 @@ try {
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.live, true);
+  assert.match(String(healthBody.message || ""), /還沒準備好/);
+  assert.doesNotMatch(
+    String(healthBody.message || ""),
+    /連線頁|HERMES_API|環境變數/,
+  );
   assert.doesNotMatch(JSON.stringify(healthBody), /Bearer |sk-|postgres(?:ql)?:\/\//i);
   const runtime = await fetch(base + "/api/runtime");
   assert.notEqual(runtime.status, 401);
@@ -99,6 +104,27 @@ try {
     assert.ok(box && box.width >= 44 && box.height >= 44);
   }
   await page.screenshot({ path: join(output, "home-mobile.png"), fullPage: true });
+
+  await page.locator(".connection-pill").click();
+  await expect(page.getByRole("heading", { name: "能力", exact: true })).toBeVisible();
+  await expect(page.getByText("Hermes 憑證")).toHaveCount(0);
+  await expect(page.getByText("填寫網址與權杖")).toHaveCount(0);
+  await expect(page.getByText("尚未取得工具清單")).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "agent-status-mobile.png"),
+    fullPage: true,
+  });
+  await page
+    .getByRole("navigation", { name: "快速導覽" })
+    .getByRole("button", { name: "對話", exact: true })
+    .click();
+  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("今天好嗎");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("還沒準備好", {
+    timeout: 15_000,
+  });
+  await expect(page.getByRole("alert")).not.toContainText("連線頁");
 
   await page.goto(base + "/#reset=" + "a".repeat(64));
   await expect(page.getByRole("heading", { name: "重設密碼" })).toBeVisible();
