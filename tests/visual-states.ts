@@ -540,10 +540,8 @@ export async function verifyVisualStates(
   await page.keyboard.press("Escape");
   await page.screenshot({ path: join(output, "error-fixture.png") });
     await page.context().setOffline(true);
-  await expect(page.locator(".turtle")).toHaveAttribute(
-    "aria-label",
-    /連線待確認/,
-  );
+  await expect(page.locator(".turtle")).toHaveAttribute("data-state", "offline");
+  await expect(page.locator(".turtle")).toHaveAttribute("aria-label", /離線/);
   await page.setViewportSize({ width: 390, height: 844 });
   // Wait until offline pill replaces prior failed state (avoid flake on 「失敗」).
   await expect(page.locator(".composer-task-status")).toContainText(
