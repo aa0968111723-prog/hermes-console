@@ -81,10 +81,55 @@ export default function AccountPanel() {
           <p className="muted">{auth.membership?.role}</p>
         </div>
       </div>
-      <ul className="account-providers">
-        <li>Google {auth.providers.google ? "✓" : "—"}</li>
-        <li>淡江 SSO {auth.providers.tamkang ? "✓" : "—"}</li>
-        <li>電子信箱 {auth.providers.email ? "✓" : "—"}</li>
+      <ul className="account-identities" aria-label="登入方式">
+        <li data-linked={auth.providers.google ? "true" : "false"}>
+          <span
+            className="connection-state"
+            data-state={
+              auth.providers.google
+                ? "verified"
+                : auth.google === "available"
+                  ? "unconfigured"
+                  : "unknown"
+            }
+          >
+            <i aria-hidden="true" />
+          </span>
+          <strong>Google</strong>
+          <span>{auth.providers.google ? "✓" : "○"}</span>
+        </li>
+        <li data-linked={auth.providers.tamkang ? "true" : "false"}>
+          <span
+            className="connection-state"
+            data-state={
+              auth.providers.tamkang
+                ? "verified"
+                : auth.tamkang === "available"
+                  ? "unconfigured"
+                  : "unknown"
+            }
+          >
+            <i aria-hidden="true" />
+          </span>
+          <strong>淡江 SSO</strong>
+          <span>{auth.providers.tamkang ? "✓" : "○"}</span>
+        </li>
+        <li data-linked={auth.providers.email ? "true" : "false"}>
+          <span
+            className="connection-state"
+            data-state={
+              auth.providers.email
+                ? auth.user.emailVerified
+                  ? "verified"
+                  : "partial"
+                : "unconfigured"
+            }
+          >
+            <i aria-hidden="true" />
+          </span>
+          <strong>電子信箱</strong>
+          <span>{auth.providers.email ? "✓" : "○"}</span>
+        </li>
       </ul>
       <p className="muted">
         {auth.user.emailVerified ? "電子信箱已驗證" : "電子信箱未驗證"}

@@ -348,6 +348,14 @@ try {
     path: join(output, "inspiration-mobile.png"),
     fullPage: true,
   });
+  await page.getByRole("heading", { name: "先避開" }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("heading", { name: "先避開" })).toBeInViewport();
+  await expect(page.getByText("進階 · 研究")).toBeVisible();
+  await expect(page.getByText("Feed EVIDENCE")).toBeHidden();
+  await page.screenshot({
+    path: join(output, "inspiration-avoid-mobile.png"),
+  });
+  await inspirationScroll.evaluate((el) => el.scrollTo(0, 0));
   const syncButton = page.getByRole("button", { name: "匯入已設定來源" });
   await expect(syncButton).toBeVisible();
   assert.equal(
@@ -418,6 +426,38 @@ try {
     path: join(output, "project-mobile.png"),
     fullPage: true,
   });
+  const previewMaterial = page.getByRole("button", {
+    name: "預覽素材：官方 Hermes 文件",
+  });
+  await previewMaterial.scrollIntoViewIfNeeded();
+  await previewMaterial.click();
+  const projectPreview = page.getByRole("dialog", { name: "素材預覽" });
+  await expect(projectPreview).toBeVisible();
+  await page.screenshot({
+    path: join(output, "project-preview-mobile.png"),
+  });
+  await projectPreview.getByRole("button", { name: "關閉面板" }).click();
+  await expect(projectPreview).not.toBeVisible();
+  assert.notEqual(
+    await projectScroll.evaluate((el) => getComputedStyle(el).overflowY),
+    "hidden",
+    "project scroll must survive closing preview",
+  );
+  await projectScroll.evaluate((el) => el.scrollTo(0, el.scrollHeight));
+  if (scrolled.scroll > scrolled.height + 8)
+    assert.ok(
+      (await projectScroll.evaluate((el) => el.scrollTop)) > 0,
+      "project page must still scroll after preview",
+    );
+  await page.locator(".mobile-bottom-dock").getByRole("button", { name: "對話", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "今天想做什麼？" }),
+  ).toBeVisible();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("茶會宣傳");
+  await expect(
+    page.getByRole("button", { name: "送出訊息", exact: true }),
+  ).toBeEnabled();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();
   await page.getByRole("button", { name: "關閉面板" }).click();
@@ -445,6 +485,16 @@ try {
   await expect(
     page.getByRole("tab", { name: "帳號", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("list", { name: "登入方式" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "登入方式" })).toContainText(
+    "Google",
+  );
+  await expect(page.getByRole("list", { name: "登入方式" })).toContainText(
+    "淡江 SSO",
+  );
+  await expect(page.getByRole("list", { name: "登入方式" })).toContainText(
+    "電子信箱",
+  );
   await audit("settings-appearance");
   await page.screenshot({
     path: join(output, "settings-desktop.png"),

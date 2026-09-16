@@ -29,6 +29,8 @@ test("inspiration main surface is visual patterns; research stays in closed é€²é
   );
   const ui = await readFile(new URL("./verify-ui.ts", import.meta.url), "utf8");
   assert.match(ui, /inspiration-mobile\.png/);
+  assert.match(ui, /inspiration-avoid-mobile\.png/);
+  assert.match(ui, /project-preview-mobile\.png/);
   const engines = await readFile(
     new URL("./mobile-engines.ts", import.meta.url),
     "utf8",

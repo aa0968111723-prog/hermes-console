@@ -27,7 +27,7 @@
 | Memory scopes | live 契約 | conversation／user_preference／system／project／workspace；digest 標 scope。 |
 | Runtime 一般／Developer | live | 四顆狀態點（Hermes／Memory／Tools／MCP）不含工具計數；工具清單與 Runtime 詳情在關閉的進階區。 |
 | 靈感頁 | live | 主畫面是值得學／先避開視覺卡。Drive 知識與招生／漏斗研究在設定或「進階 · 研究」，不進主靈感板。手機 Dock 切頁後截圖會等到 `aria-current` 與標題落地。 |
-| 登入畫面 | live UI | 龜龜 + 軌道／光，不是說明長文。未設定的 Google／淡江／寄信維持誠實停用文案。 |
+| 帳號頁 | live UI | 頭像／名稱／信箱；登入方式為 Google／淡江／Email 狀態列（✓／○）。未設定維持誠實文案。禁止 Email 相同自動合併。 |
 | 長任務中斷 | live 契約 | 啟動時 chat／無 remoteId 改 uncertain；不假裝 still running。 |
 | 設定分類 | live | 帳號／外觀／連線／工作區／進階。 |
 | Liveness | live | `GET /api/live`。Readiness 仍是 `/api/ready`。 |
