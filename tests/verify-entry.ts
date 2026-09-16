@@ -191,6 +191,37 @@ try {
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
   await expect(page.locator(".conversation-scroll")).not.toContainText("210:297");
   await page.screenshot({ path: join(output, "spoken-goal-spec.png") });
+  const dismiss = page.getByRole("button", { name: "關閉提示" });
+  if ((await dismiss.count()) > 0) await dismiss.click();
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "今天社博在哪" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "今天社博在哪",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const clubFacts = page.getByRole("region", { name: "社團資料" });
+  await expect(clubFacts).toBeVisible({ timeout: 15_000 });
+  await expect(clubFacts).toContainText(/社博|攤位/);
+  await expect(clubFacts).toContainText("尚未確認");
+  await expect(clubFacts).toBeInViewport();
+  await expect(page.locator(".conversation-scroll")).not.toContainText("UNKNOWN");
+  await page.screenshot({ path: join(output, "spoken-lookup-results.png") });
   await voice.click();
   await page.evaluate(() => {
     const current = (
