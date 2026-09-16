@@ -34,10 +34,11 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets` 通過。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:entry` 通過。
 - `npm test`：399 tests, 397 pass, 2 skipped, 0 fail。含 memory layer 隔離（runtime 不進任務、conversation 只進同一對話）、過期事實標 STALE、copy artifact 進入任務上下文、公開 `GET /api/health` 不含 models／skills／toolsets／configSource。
 - `/` First Load JS 239 kB（shared 103 kB）。
-- 本輪未重跑：`test:chat`、`test:workbench`、`test:ui`、`test:runtime`、`test:gateway`、`test:entry`。
+- `test:entry`：未設定寄件；無效 magic token；第一位擁有者註冊且可開連線設定；magic redeem；密碼重設；email 驗證；成員看不到連線／進階且 GET credentials 為 403。
+- 本輪未重跑：`test:chat`、`test:workbench`、`test:ui`、`test:runtime`、`test:gateway`。
 
 ## 仍是 Partial（禁止標綠）
 
