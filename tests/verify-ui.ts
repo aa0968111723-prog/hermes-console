@@ -454,6 +454,47 @@ try {
     page.getByRole("button", { name: "預覽附件：draft-a.txt" }),
   ).toBeVisible();
   await expect(page.locator(".upload-chip")).toContainText("已保存");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#composer input[type="file"]').setInputFiles({
+    name: "poster.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  await expect(
+    page.getByRole("button", { name: "預覽附件：poster.png" }),
+  ).toBeVisible();
+  const imageNotice = page.locator(".composer-image-notice");
+  await expect(imageNotice).toBeVisible();
+  await expect(imageNotice).toHaveText(
+    "圖片已保存。還沒驗證看圖，送出後只會根據你的文字，不會假裝已看過圖片。",
+  );
+  await expect(imageNotice).not.toContainText(/像素|部署端|金鑰|環境變數/);
+  const sendWithImage = await page
+    .getByRole("button", { name: "送出訊息", exact: true })
+    .boundingBox();
+  assert.ok(
+    sendWithImage && sendWithImage.y + sendWithImage.height <= 844,
+    "unverified-image notice must not push send off the 390×844 viewport",
+  );
+  await page.screenshot({
+    path: join(output, "chat-image-unverified.png"),
+    fullPage: true,
+  });
+  await page
+    .locator(".upload-chip")
+    .filter({
+      has: page.getByRole("button", { name: "預覽附件：poster.png" }),
+    })
+    .getByRole("button", { name: "移除附件" })
+    .click();
+  await expect(imageNotice).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "預覽附件：draft-a.txt" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.unroute("**/api/materials?projectId=personal");
   await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();
   await expect(textarea).toHaveValue("B 獨立草稿");
