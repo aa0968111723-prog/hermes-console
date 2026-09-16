@@ -14,6 +14,8 @@ export function fallbacksFromRoutes(routes: RoutedTool[]): FallbackRecord[] {
 
 export function userVisibleFallback(route: RoutedTool) {
   if (route.id === "research") return route.reason;
+  if (route.id === "galley")
+    return "GALLEY 來源優先研究；沒有來源就會說明資料不足，不會用模型填空。";
   if (route.tool === "hermes_authorized_web")
     return "淡江 MCP 暫時不可用，已改用 Hermes 已授權網頁來源。";
   if (route.tool === "official_web_directory")

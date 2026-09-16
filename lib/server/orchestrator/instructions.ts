@@ -21,7 +21,7 @@ import {
   ZENCLUB_INSTRUCTION_PACK,
 } from "../hermes";
 import { needsZenclubKnowledge } from "../zenclub";
-import { isFastTier, type IntentTier } from "./intent";
+import { isFastTier, shouldFastPlan, type IntentTier } from "./intent";
 
 export type InstructionPackId =
   | "fast"
@@ -50,7 +50,7 @@ export function composeTaskInstructions(input: {
 }) {
   const tier = input.intentTier || input.goal.intentTier;
   const specialist = specialistInstructions(input.mode);
-  if (isFastTier(tier)) {
+  if (shouldFastPlan(input.goal) && isFastTier(tier)) {
     return {
       instructions: specialist || FAST_TASK_INSTRUCTIONS,
       packs: ["fast"] as InstructionPackId[],
@@ -77,9 +77,17 @@ export function composeTaskInstructions(input: {
     parts.push(TAMKANG_INSTRUCTION_PACK);
     packs.push("tamkang");
   }
+  if (
+    input.goal.requiresResearch ||
+    input.goal.requiresInspiration ||
+    input.goal.requiresDesign
+  ) {
+    parts.push(GALLEY_INSTRUCTION_PACK);
+    packs.push("galley");
+  }
   if (input.goal.requiresInspiration || input.goal.requiresDesign) {
-    parts.push(GALLEY_INSTRUCTION_PACK, INSPIRATION_INSTRUCTION_PACK);
-    packs.push("galley", "inspiration");
+    parts.push(INSPIRATION_INSTRUCTION_PACK);
+    packs.push("inspiration");
   }
   if (input.goal.requiresAudienceEvaluation) {
     parts.push(AUDIENCE_INSTRUCTION_PACK);

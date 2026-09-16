@@ -1,4 +1,4 @@
-import type { IntentTier } from "../../contracts";
+import type { IntentTier, StructuredGoal } from "../../contracts";
 
 export type { IntentTier };
 
@@ -11,7 +11,8 @@ const CHITCHAT =
 const CONTINUE_CUE =
   /改(一?下|軟|短|長|語氣|顏色|標題)|再(短|長|改|試|寫|來)|語氣|繼續|剛剛|那個|換個|縮短|加長|潤稿|潤色/;
 
-const LOOKUP = /研究|查一?下|查詢|搜尋|文獻|資料來源|找資料|查資料|來源|議題/;
+const LOOKUP =
+  /研究|查一?下|查詢|搜尋|文獻|資料來源|找資料|查資料|來源|議題|幫我找|找淡|宣傳方向|社團宣傳/;
 
 const CREATE =
   /海報|網宣|Canva|canva|視覺|設計|稿|文宣|招新|茶會|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/;
@@ -29,4 +30,26 @@ export function classifyIntent(input: string): IntentTier {
 
 export function isFastTier(tier: IntentTier) {
   return tier === "chitchat" || tier === "continue";
+}
+
+/** Short campus / research / design asks must not skip tools just because they look like follow-ups. */
+export function shouldFastPlan(
+  goal: Pick<
+    StructuredGoal,
+    | "intentTier"
+    | "requiresTamkang"
+    | "requiresDesign"
+    | "requiresInspiration"
+    | "requiresAudienceEvaluation"
+  >,
+) {
+  if (
+    goal.requiresTamkang ||
+    goal.requiresDesign ||
+    goal.requiresInspiration ||
+    goal.requiresAudienceEvaluation
+  ) {
+    return false;
+  }
+  return isFastTier(goal.intentTier);
 }

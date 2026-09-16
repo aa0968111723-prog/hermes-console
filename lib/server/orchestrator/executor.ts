@@ -4,12 +4,13 @@ import { routeTools } from "./tool-router";
 import { buildPlan, formatPlanForInstructions } from "./planner";
 import { formatFallbacksForUser } from "./fallback";
 import { getCertification } from "../certification";
+import { seedRegistry } from "../mcp-registry";
 import {
   assembleContext,
   formatContextForInstructions,
 } from "../context/assembler";
 import { CONTEXT_TOKEN_BUDGET } from "../context/budget";
-import { isFastTier } from "./intent";
+import { shouldFastPlan } from "./intent";
 
 export function prepareOrchestration(
   owner: string,
@@ -18,10 +19,21 @@ export function prepareOrchestration(
   budgetMode: BudgetMode = task.budgetMode || "balanced",
 ) {
   const goal = interpretGoal(task.input);
-  const fast = isFastTier(goal.intentTier);
+  const fast = shouldFastPlan(goal);
   const effectiveBudget: BudgetMode = fast ? "fast" : budgetMode;
   const certifications = getCertification(owner).integrations;
-  const routes = routeTools(goal, certifications);
+  let mcp: Array<{ id: string; status: string; tools: Array<{ name: string }> }> =
+    [];
+  try {
+    mcp = seedRegistry().map((item) => ({
+      id: item.id,
+      status: item.status,
+      tools: item.tools.map((tool) => ({ name: tool.name })),
+    }));
+  } catch {
+    mcp = [];
+  }
+  const routes = routeTools(goal, certifications, mcp);
   const plan = buildPlan(goal, routes, effectiveBudget);
   const context = fast
     ? {

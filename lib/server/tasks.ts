@@ -21,7 +21,8 @@ import {
   historyTokenBudget,
   windowConversationHistory,
 } from "./context/history";
-import { classifyIntent, isFastTier } from "./orchestrator/intent";
+import { interpretGoal } from "./orchestrator/goal";
+import { shouldFastPlan } from "./orchestrator/intent";
 import {
   composeTaskInstructions,
   dropOptionalPacks,
@@ -219,7 +220,7 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
-    budgetMode: isFastTier(classifyIntent(input.input))
+    budgetMode: shouldFastPlan(interpretGoal(input.input))
       ? "fast"
       : input.budgetMode || "balanced",
   };

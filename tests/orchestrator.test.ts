@@ -74,7 +74,7 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
       const campus = routeTools(goal, [tamkang]).find((item) => item.id === "campus");
       assert.equal(campus, undefined, prompt);
     }
-    for (const prompt of ["淡江新生茶會", "淡江大一新生", "教心所研究倫理"]) {
+    for (const prompt of ["淡江新生茶會", "淡江大一新生", "淡大禪學社", "教心所研究倫理"]) {
       const goal = interpretGoal(prompt);
       assert.equal(goal.requiresTamkang, true, prompt);
       assert.equal(goal.audience, "淡江大一新生（模擬，不是民調）");
@@ -130,5 +130,58 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     } as Task;
     assert.equal(classifyResume(task, false), "unknown");
     assert.match(resumeNotice("unknown"), /尚未確認/);
+  });
+
+  await t.test("usable GALLEY is chosen without the user picking a tool", () => {
+    const goal = interpretGoal(
+      "幫我找淡江新生最近可能喜歡的社團宣傳方向",
+    );
+    assert.equal(goal.intentTier, "lookup");
+    assert.equal(goal.requiresTamkang, true);
+    assert.equal(goal.requiresResearch, true);
+    assert.equal(goal.requiresAudienceEvaluation, true);
+    const hermes = emptyIntegration("hermes");
+    hermes.capabilities.find((item) => item.id === "hermes.api")!.status =
+      "reachable";
+    const routes = routeTools(
+      goal,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      [
+        {
+          id: "galley",
+          status: "verified",
+          tools: [{ name: "galley_research" }],
+        },
+      ],
+    );
+    assert.equal(
+      routes.find((item) => item.id === "campus")?.tool,
+      "hermes_authorized_web",
+    );
+    assert.equal(
+      routes.find((item) => item.id === "galley")?.tool,
+      "galley_research",
+    );
+    assert.equal(
+      routes.find((item) => item.id === "galley")?.availability,
+      "available",
+    );
+    const plan = buildPlan(goal, routes, "balanced");
+    assert.ok(plan.steps.some((step) => step.tool === "galley_research"));
+    assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
+  });
+
+  await t.test("unconfigured GALLEY is not treated as available", () => {
+    const goal = interpretGoal("幫我找淡大禪學社茶會宣傳靈感");
+    const routes = routeTools(
+      goal,
+      [emptyIntegration("tamkang"), emptyIntegration("hermes")],
+      [{ id: "galley", status: "unconfigured" }],
+    );
+    assert.equal(goal.requiresTamkang, true);
+    assert.equal(
+      routes.find((item) => item.id === "galley"),
+      undefined,
+    );
   });
 });

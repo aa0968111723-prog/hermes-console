@@ -7,7 +7,7 @@ import type {
 } from "../../contracts";
 import type { RoutedTool } from "./tool-router";
 import { fallbacksFromRoutes } from "./fallback";
-import { isFastTier } from "./intent";
+import { shouldFastPlan } from "./intent";
 
 function step(
   title: string,
@@ -33,7 +33,7 @@ export function buildPlan(
   routes: RoutedTool[],
   budgetMode: BudgetMode = "balanced",
 ): ExecutionPlan {
-  if (isFastTier(goal.intentTier)) {
+  if (shouldFastPlan(goal)) {
     return {
       summary: goal.goal.slice(0, 180),
       budgetMode: "fast",
@@ -50,8 +50,9 @@ export function buildPlan(
   }
   const campus = routes.find((item) => item.id === "campus");
   const research = routes.find((item) => item.id === "research");
+  const galley = routes.find((item) => item.id === "galley");
   const club = routes.find((item) => item.id === "club_knowledge");
-  const sourceRoute = campus || research;
+  const sourceRoute = campus || galley || research;
   const steps: PlanStep[] = [
     step("讀取專案上下文", "確認目前專案、素材與近期對話。", "context_engine", null),
     step("讀取共用記憶", "只帶入相關、近期、已確認的記憶，不把整庫塞進提示。", "shared_memory", null),
@@ -81,6 +82,16 @@ export function buildPlan(
         "執行研究查詢並保存來源；沒有外部 evidence 不得標已完成。",
         sourceRoute?.tool || "hermes_authorized_web",
         sourceRoute?.fallback || "official_web_directory",
+      ),
+    );
+  }
+  if (galley && sourceRoute?.id !== "galley") {
+    steps.push(
+      step(
+        "來源優先研究",
+        "GALLEY 已列入計畫；沒有可核對來源時標資料不足，不得填空。",
+        galley.tool,
+        galley.fallback,
       ),
     );
   }
