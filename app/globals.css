@@ -701,6 +701,10 @@ nav button[aria-current="page"] {
   margin-left: auto;
   font-size: 11px;
   min-height: 44px;
+  min-width: 44px;
+  width: 44px;
+  padding: 0;
+  justify-content: center;
   border-color: #e4eadb;
   background: #f7faf2;
   border-radius: 20px;
@@ -2248,9 +2252,10 @@ summary .badge {
     font-size: 14px;
   }
   .connection-pill {
-    font-size: 10px;
-    padding: 5px 10px;
-    min-height: 44px;
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+    justify-content: center;
   }
   .topbar > .icon-button:last-child {
     width: 40px;

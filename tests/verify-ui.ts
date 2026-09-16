@@ -124,7 +124,10 @@ try {
   await audit("home-desktop");
   const initialMetrics = await page.evaluate("window.__metrics");
   await assertNoInvitationGate();
-  await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await expect(page.locator(".connection-pill")).toHaveAttribute(
+    "aria-label",
+    "連線狀態：未設定",
+  );
   await expect(page.locator(".quick-action-label")).toHaveCount(6);
   for (const label of await page
     .locator(".quick-action-label")

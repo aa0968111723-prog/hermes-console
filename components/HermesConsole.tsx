@@ -1114,7 +1114,7 @@ export default function HermesConsole() {
                 "status-dot " + (health?.credential === "valid" ? "good" : "")
               }
             />
-            <span className="connection-label">
+            <span className="connection-label sr-only">
               {offline
                 ? "離線"
                 : health

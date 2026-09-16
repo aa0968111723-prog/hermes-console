@@ -136,7 +136,10 @@ try {
   await expect(
     page.getByRole("heading", { name: "今天想做什麼？" }),
   ).toBeVisible();
-  await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await expect(page.locator(".connection-pill")).toHaveAttribute(
+    "aria-label",
+    "連線狀態：未設定",
+  );
   assert.equal(
     (await context.request.get(origin + "/api/workspace")).status(),
     200,
