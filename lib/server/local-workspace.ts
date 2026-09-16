@@ -44,20 +44,25 @@ export function localWorkspaceReply(
     "Hermes Agent 尚未連線，沒有上網搜尋，也沒有使用 GALLEY 或 Canva。",
     knowledge.notice,
   ];
-  const cards = knowledge.hits
-    .map((hit) => formatEntity(hit.entity))
-    .filter(Boolean)
-    .slice(0, 4);
+  const shown = knowledge.hits.slice(0, 4).map((hit) => hit.entity);
+  const cards = shown.map(formatEntity).filter(Boolean);
   if (!cards.length) {
     lines.push("索引沒有命中。缺資料標 UNKNOWN，不得自行補日期或地點。");
   } else {
     lines.push(...cards);
   }
-  const unknownPlaces = knowledge.unknowns.filter((item) =>
-    /place|location|地點/.test(item),
-  );
-  if (unknownPlaces.length) {
-    lines.push(["### UNKNOWN", ...unknownPlaces.slice(0, 6).map((item) => "- " + item)].join("\n"));
+  const unknownLines: string[] = [];
+  for (const entity of shown) {
+    for (const claim of entity.claims) {
+      if (!STUDENT_FIELDS.has(claim.field)) continue;
+      if (claim.status !== "UNKNOWN" && claim.value != null) continue;
+      unknownLines.push(
+        `- ${entity.title} · ${FIELD_LABEL[claim.field] || claim.field}：UNKNOWN`,
+      );
+    }
+  }
+  if (unknownLines.length) {
+    lines.push(["### UNKNOWN", ...unknownLines.slice(0, 6)].join("\n"));
   } else if (!knowledge.hits.length && knowledge.unknowns.length) {
     lines.push(
       ["### UNKNOWN", ...knowledge.unknowns.slice(0, 6).map((item) => "- " + item)].join(
