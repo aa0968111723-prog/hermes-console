@@ -569,13 +569,24 @@ async function execute(
           "PDF 原檔已保存，但尚未接入文字抽取；請提供 UTF-8 TXT 或頁面截圖。",
         );
       const bytes = await readFile(filePath(owner, asset.id));
+      const imageRead = asset.kind === "image";
+      const nativeImageInput = process.env.HERMES_IMAGE_INPUT === "true";
       return {
         materialId: asset.id,
         projectId: asset.projectId,
         mime: asset.mime,
         bytes: bytes.length,
         readAt: new Date().toISOString(),
-        ...(asset.kind === "image"
+        title: asset.title,
+        kind: asset.kind,
+        imageRead,
+        nativeImageInput,
+        notice: imageRead
+          ? nativeImageInput
+            ? "已讀取上傳畫面，對話也可看圖。"
+            : "已讀取上傳畫面並交給工具。原生對話插圖尚未開啟，不把檔名當成已看過。"
+          : "已讀取文字內容，不是圖片分析。",
+        ...(imageRead
           ? { imageData: bytes.toString("base64") }
           : { text: redact(bytes.toString("utf8")) }),
       };

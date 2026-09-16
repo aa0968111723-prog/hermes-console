@@ -75,8 +75,8 @@ test("turtle maps planner, research, create, tool, wait, error, and offline", ()
         events: [{ toolName: "workspace_read_material", status: "running" } as TaskEvent],
       },
       false,
-    ).id,
-    "tool",
+    ).label,
+    "正在看圖",
   );
   assert.equal(turtleState(task("waiting_user"), false).id, "waiting");
   assert.equal(turtleState(task("failed"), false).id, "error");

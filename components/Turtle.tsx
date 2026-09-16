@@ -34,6 +34,8 @@ export function turtleState(task: Task | undefined, offline: boolean) {
       /pinterest|instagram|inspiration|search|browse|fetch|extract/i.test(name)
     )
       return { id: "searching", label: "正在搜尋設計參考" };
+    if (/read_material/i.test(name))
+      return { id: "thinking", label: "正在看圖" };
     if (/audience|twin/i.test(name))
       return { id: "thinking", label: "正在建立 Audience Twin" };
     if (/plan|planner/i.test(name))

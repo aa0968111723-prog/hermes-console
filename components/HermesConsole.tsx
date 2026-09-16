@@ -594,6 +594,17 @@ export default function HermesConsole() {
     setSelectedTask(task?.id || null);
     setPanel("task");
   }
+  function useDirection(prompt: string) {
+    setText(prompt);
+    setNav("chat");
+    input.current?.focus();
+  }
+  function openMaterial(materialId: string) {
+    const asset = data.materials.find((item) => item.id === materialId);
+    if (!asset) return;
+    setPreview(asset);
+    setPanel("preview");
+  }
   function closePanel() {
     setPanel(null);
   }
@@ -1087,11 +1098,8 @@ export default function HermesConsole() {
                                   tasks.find((t) => t.id === message.taskId),
                                 )
                               }
-                              onUseDirection={(prompt) => {
-                                setText(prompt);
-                                setNav("chat");
-                                input.current?.focus();
-                              }}
+                              onUseDirection={useDirection}
+                              onOpenMaterial={openMaterial}
                             />
                           )}
                           {!!message.attachments?.length && (
@@ -1170,6 +1178,12 @@ export default function HermesConsole() {
                           {currentTask.output && (
                             <MessageBody text={currentTask.output} />
                           )}
+                          <VisualMessage
+                            task={currentTask}
+                            onInspect={() => openTask(currentTask)}
+                            onUseDirection={useDirection}
+                            onOpenMaterial={openMaterial}
+                          />
                           {currentTask.error && (
                             <p className="error">{currentTask.error}</p>
                           )}

@@ -61,6 +61,8 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
   assert.equal(activityKind("workspace_search_inspiration"), "research");
   assert.equal(toolDisplayLabel("workspace_search_inspiration"), "靈感 · 參考");
+  assert.equal(activityKind("workspace_read_material"), "request");
+  assert.equal(toolDisplayLabel("workspace_read_material"), "畫面 · 讀取");
   assert.equal(activityKind("unrecognized_tool"), "tool");
 });
 test("chat progress is high-level stages, not tool counts", () => {

@@ -3,7 +3,9 @@ import type { Task } from "@/lib/contracts";
 import { eventState, highLevelProgress, safeSource } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
+import ImageCritiqueResult from "./ImageCritiqueResult";
 import InspirationResult from "./InspirationResult";
+import { isImageRead } from "@/lib/client/image-critique";
 import { isInspirationBrief } from "@/lib/client/inspiration-result";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
@@ -11,10 +13,12 @@ export default function VisualMessage({
   task,
   onInspect,
   onUseDirection,
+  onOpenMaterial,
 }: {
   task?: Task;
   onInspect: () => void;
   onUseDirection?: (prompt: string) => void;
+  onOpenMaterial?: (materialId: string) => void;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
@@ -30,11 +34,31 @@ export default function VisualMessage({
   const inspiration = task.events
     .map((event) => event.result)
     .find(isInspirationBrief);
-  if (!sources.length && !calls.size && !twinPanel && !layout && !inspiration)
+  const imageRead = task.events.map((event) => event.result).find(isImageRead);
+  if (
+    !sources.length &&
+    !calls.size &&
+    !twinPanel &&
+    !layout &&
+    !inspiration &&
+    !imageRead
+  )
     return null;
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
+      {imageRead && (
+        <ImageCritiqueResult
+          read={imageRead}
+          panel={twinPanel}
+          onOpen={
+            onOpenMaterial
+              ? () => onOpenMaterial(imageRead.materialId)
+              : undefined
+          }
+          onUseDirection={onUseDirection}
+        />
+      )}
       {!!calls.size && (
         <button
           className="tool-result-summary"

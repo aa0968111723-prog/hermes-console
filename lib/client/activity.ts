@@ -27,6 +27,7 @@ export function activityKind(name: string | null): ActivityKind {
   if (/audience|persona|twin/i.test(name)) return "audience";
   if (/inspiration/i.test(name)) return "research";
   if (/memory|learning|skill/i.test(name)) return "memory";
+  if (/read_material/i.test(name)) return "request";
   if (/workspace|project|material/i.test(name)) return "workspace";
   return "tool";
 }
@@ -45,6 +46,7 @@ export function toolDisplayLabel(name: string | null): string | null {
   if (/atlas/i.test(name)) return "場景 · Atlas";
   if (/duigao/i.test(name)) return "協作 · 對稿";
   if (/inspiration/i.test(name)) return "靈感 · 參考";
+  if (/read_material/i.test(name)) return "畫面 · 讀取";
   if (/audience|persona|twin/i.test(name)) return "模擬 · 目標客群";
   if (/memory|learning|skill/i.test(name)) return "讀取 · 記憶";
   if (/workspace|project|material/i.test(name)) return "整理 · 工作區";

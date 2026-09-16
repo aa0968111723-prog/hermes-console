@@ -330,6 +330,9 @@ test("MCP requires an active task, enforces project/budget, emits actual image c
   const saved = taskFor("workspace", id).events[0];
   assert.equal(saved.toolCallId, "real-call-image");
   assert.ok(!JSON.stringify(saved.result).includes("imageData"));
+  assert.match(String((saved.result as { notice?: string }).notice), /不把檔名當成已看過/);
+  assert.equal((saved.result as { imageRead?: boolean }).imageRead, true);
+  assert.equal((saved.result as { nativeImageInput?: boolean }).nativeImageInput, false);
   const crossed = await callTool("workspace", "workspace_list_references", {
     projectId: "second",
     taskId: id,
