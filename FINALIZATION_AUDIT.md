@@ -25,9 +25,9 @@
 
 ## 本輪驗證（2026-09-16）
 
-- `npm test`：385 tests, 383 pass, 2 skipped, 0 fail。
+- `npm test`：387 tests, 385 pass, 2 skipped, 0 fail。
 - `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 238 kB（shared 103 kB）。
-- Playwright Chromium：`test:ui` 本輪重跑通過（過程完成、對話內設計成果預覽、axe 0 violations）。`test:entry` `test:chat` `test:workbench` `test:gateway` `test:runtime` 先前已過。
+- Playwright Chromium：`test:ui` 與 `test:runtime` 本輪重跑通過。Agent 預設頁沒有工具清單；Developer 展開後可搜尋 300 個 fixture 工具。axe 0 violations。LCP 104ms、CLS 0.00008。
 - Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
 - axe wcag2a/aa + 2.1：0 violations（`output/playwright/browser-report.json`）。
 - 本機 Chromium LCP 136ms、CLS 0.00008。不是 field 裝置實驗室。
