@@ -269,6 +269,17 @@ export default function RuntimeInspector({
         </span>
         <span>
           <i
+            className={
+              !stale && snapshot?.memorySupport === "available"
+                ? "good"
+                : "unknown"
+            }
+            aria-hidden="true"
+          />
+          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+        </span>
+        <span>
+          <i
             className={!stale && availableTools > 0 ? "good" : "unknown"}
             aria-hidden="true"
           />
@@ -278,13 +289,21 @@ export default function RuntimeInspector({
         <span>
           <i
             className={
-              !stale && snapshot?.memorySupport === "available"
+              !stale &&
+              (snapshot?.mcpServers || []).some(
+                (server) =>
+                  server.enabled &&
+                  ["available", "partial"].includes(server.status),
+              )
                 ? "good"
                 : "unknown"
             }
             aria-hidden="true"
           />
-          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+          MCP{" "}
+          {snapshot
+            ? `${snapshot.mcpServers.filter((server) => server.enabled).length}`
+            : "未知"}
         </span>
         {!stale && snapshot?.status === "available" && (
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />

@@ -40,6 +40,7 @@ import ProjectWorkbench from "./ProjectWorkbench";
 import LearningMap from "./LearningMap";
 import IntegrationHealth from "./settings/IntegrationHealth";
 import CapabilityCertification from "./settings/CapabilityCertification";
+import AccountSettings from "./settings/AccountSettings";
 import ConnectionSettings from "./settings/ConnectionSettings";
 import SharedMemory from "./settings/SharedMemory";
 import HermesCore from "./visual/HermesCore";
@@ -119,6 +120,7 @@ const taskLabels: Record<string, string> = {
   queued: "準備提交",
   running: "執行中",
   waiting_user: "等待確認",
+  waiting_authorization: "等待授權",
   stopping: "停止確認中",
   completed: "已完成",
   failed: "失敗",
@@ -129,12 +131,14 @@ const connectionLabels: Record<string, string> = {
   unconfigured: "未設定",
   awaiting_authorization: "待授權",
   verifying: "驗證中",
+  connected: "驗證中",
+  verified: "可用",
   available: "可用",
   partial: "部分可用",
   failed: "失敗",
 };
 const isActive = (task: Task) =>
-  ["queued", "running", "waiting_user", "stopping"].includes(task.state);
+  ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
 const time = (value: string) =>
   new Date(value).toLocaleString("zh-TW", {
     month: "numeric",
@@ -412,19 +416,23 @@ export default function HermesConsole() {
         baseline = current;
       }
       previousWidth = current.width;
-      document.documentElement.style.setProperty(
-        "--app-height",
-        current.height + "px",
-      );
       const keyboardOpen =
         composerFocused &&
         !widthChanged &&
         Math.max(baseline.height, window.innerHeight) - current.height >= 96 &&
         (viewport?.scale || 1) <= 1.01;
+      // Root cause: copying visualViewport.height into --app-height after the
+      // keyboard closed permanently shortened the shell on Android Chrome.
+      // Only pin height while the composer keyboard is actually open.
       if (keyboardOpen) {
         document.documentElement.dataset.composerKeyboard = "open";
+        document.documentElement.style.setProperty(
+          "--app-height",
+          current.height + "px",
+        );
       } else {
         delete document.documentElement.dataset.composerKeyboard;
+        document.documentElement.style.removeProperty("--app-height");
       }
     };
     const schedule = () => {
@@ -845,7 +853,7 @@ export default function HermesConsole() {
           aria-label="新增專案"
           onClick={() => {
             setPanel("settings");
-            setSettingsTab("專案");
+            setSettingsTab("工作區");
             setDrawer(false);
           }}
         >
@@ -932,6 +940,7 @@ export default function HermesConsole() {
       data-spatial={spatial.mode}
       data-page-visible={spatial.visible}
       data-sheet-open={!!panel || drawer || radialOpen}
+      data-scroll-mode={nav === "chat" ? "chat" : "page"}
     >
       <a className="skip-link" href="#composer">
         跳至輸入區
@@ -978,9 +987,9 @@ export default function HermesConsole() {
           </button>
           <div className="topbar-title">
             {nav === "chat"
-              ? spatial.mobile ? "Hermes" : "創作對話"
+              ? "Hermes"
               : nav === "projects"
-                ? "專案與素材"
+                ? "專案"
                 : nav === "inspiration"
                   ? "靈感"
                   : nav === "tasks"
@@ -1489,7 +1498,7 @@ export default function HermesConsole() {
               }}
               onCreate={() => {
                 setPanel("settings");
-                setSettingsTab("專案");
+                setSettingsTab("工作區");
               }}
             />
             <details className="workbench-disclosure">
@@ -1803,7 +1812,7 @@ export default function HermesConsole() {
       <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
         onAction={action=>{
           if(action==="spatial")setPanel("spatial");
-          else if(action==="memory"){setSettingsTab("記憶");setPanel("settings");}
+          else if(action==="memory"){setSettingsTab("工作區");setPanel("settings");}
           else {setNav("chat");setText("請查回我已有的 Canva 設計，選擇要接續修改的作品。");}
         }}
         onFiles={files=>{
@@ -1844,7 +1853,7 @@ export default function HermesConsole() {
           )}
           {panel === "spatial" ? <SpatialPanel key={project} projectId={project} task={currentTask} integrations={integrations}
             animation={prefs.animation} offline={offline} onTask={()=>openTask(currentTask)}
-            onMemory={()=>{setSettingsTab("記憶");setPanel("settings");}}
+            onMemory={()=>{setSettingsTab("工作區");setPanel("settings");}}
             onNavigate={next=>{setPanel(null);navigate(next);}} /> : panel === "settings" ? (
             <>
               <div
@@ -1880,7 +1889,7 @@ export default function HermesConsole() {
                   tabs[next]?.click();
                 }}
               >
-                {["外觀", "連線", "記憶", "使用量", "說明", "專案"].map((tab) => (
+                {["帳號", "外觀", "連線", "工作區", "進階"].map((tab) => (
                   <button
                     key={tab}
                     role="tab"
@@ -1900,7 +1909,9 @@ export default function HermesConsole() {
                 aria-labelledby={"setting-tab-" + settingsTab}
                 tabIndex={0}
               >
-                {settingsTab === "外觀" ? (
+                {settingsTab === "帳號" ? (
+                  <AccountSettings />
+                ) : settingsTab === "外觀" ? (
                   <div className="settings-stack">
                     <p className="muted">
                       固定明亮介面。外觀偏好只儲存在此瀏覽器。
@@ -2086,9 +2097,107 @@ export default function HermesConsole() {
                         }
                       }}
                     />
-
+                  </div>
+                ) : settingsTab === "工作區" ? (
+                  <div className="settings-stack">
+                    <p>
+                      目前有 {data.projects.length}{" "}
+                      個自訂專案；不包含預設個人工作區。
+                    </p>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        try {
+                          await api("workspace", "POST", { name: newProject });
+                          setNewProject("");
+                          await loadWorkspace();
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      <label>
+                        新增專案
+                        <input
+                          required
+                          maxLength={80}
+                          value={newProject}
+                          onChange={(e) => setNewProject(e.target.value)}
+                        />
+                      </label>
+                      <button className="primary">
+                        <Plus size={16} />
+                        建立專案
+                      </button>
+                    </form>
+                    <h3>記憶與會話</h3>
+                    <SharedMemory projectId={project} />
+                    <LearningMap
+                      key={project}
+                      projectId={project}
+                      skills={health?.skills || []}
+                      materials={data.materials}
+                      onTask={(id) => {
+                        setSelectedTask(id);
+                        setPanel("task");
+                      }}
+                    />
+                    <p>{data.memory.scope}</p>
+                    <p className="muted">
+                      上方「共用記憶庫」是 Console 持久化庫（DATABASE_URL
+                      Postgres，未設定時為 CONSOLE_DATA_DIR SQLite），Hermes
+                      可經 Workspace MCP 與任務指示讀寫同一批資料。
+                      學習地圖仍是「請 Hermes
+                      學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
+                    </p>
+                    <button
+                      disabled={!activeConv?.hermesSessionId}
+                      onClick={async () => {
+                        try {
+                          const result = await api<{
+                            remoteHistory: typeof remoteHistory;
+                          }>("conversations?id=" + activeId);
+                          setRemoteHistory(result.remoteHistory);
+                          if (!result.remoteHistory)
+                            setNotice("部署版本不支援會話歷史查詢。");
+                        } catch (e) {
+                          setError((e as Error).message);
+                        }
+                      }}
+                    >
+                      讀取目前 Hermes 會話歷史
+                    </button>
+                    {remoteHistory?.map((m, i) => (
+                      <details key={i}>
+                        <summary>
+                          {m.role}
+                          {m.name ? " · " + m.name : ""}
+                        </summary>
+                        <MessageBody text={m.content} />
+                      </details>
+                    ))}
+                    {legacy && (
+                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="settings-stack">
+                    <p>
+                      僅顯示 Hermes
+                      回傳的統計。未知費用不是零，也不推測外部工具費用。
+                    </p>
+                    {tasks.map((t) => (
+                      <details key={t.id}>
+                        <summary>{t.input.slice(0, 40)}</summary>
+                        <TaskUsageSummary task={t} />
+                      </details>
+                    ))}
+                    {!tasks.length && (
+                      <p className="muted">尚無任務使用量資料。</p>
+                    )}
+                    <HelpPage />
                     <details className="connection-advanced">
-                      <summary>Advanced · 工具、技能與驗證證據</summary>
+                      <summary>進階 · 工具、技能與驗證證據</summary>
                       <IntegrationHealth items={integrations} />
                       <CapabilityCertification />
                       <label>
@@ -2142,109 +2251,6 @@ export default function HermesConsole() {
                           </details>
                         ))}
                     </details>
-                  </div>
-                ) : settingsTab === "記憶" ? (
-                  <div className="settings-stack">
-                    <h3>記憶與會話</h3>
-                    <SharedMemory projectId={project} />
-                    <LearningMap
-                      key={project}
-                      projectId={project}
-                      skills={health?.skills || []}
-                      materials={data.materials}
-                      onTask={(id) => {
-                        setSelectedTask(id);
-                        setPanel("task");
-                      }}
-                    />
-                    <p>{data.memory.scope}</p>
-                    <p className="muted">
-                      上方「共用記憶庫」是 Console 持久化庫（DATABASE_URL
-                      Postgres，未設定時為 CONSOLE_DATA_DIR SQLite），Hermes
-                      可經 Workspace MCP 與任務指示讀寫同一批資料。
-                      學習地圖仍是「請 Hermes
-                      學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
-                    </p>
-                    <button
-                      disabled={!activeConv?.hermesSessionId}
-                      onClick={async () => {
-                        try {
-                          const result = await api<{
-                            remoteHistory: typeof remoteHistory;
-                          }>("conversations?id=" + activeId);
-                          setRemoteHistory(result.remoteHistory);
-                          if (!result.remoteHistory)
-                            setNotice("部署版本不支援會話歷史查詢。");
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      讀取目前 Hermes 會話歷史
-                    </button>
-                    {remoteHistory?.map((m, i) => (
-                      <details key={i}>
-                        <summary>
-                          {m.role}
-                          {m.name ? " · " + m.name : ""}
-                        </summary>
-                        <MessageBody text={m.content} />
-                      </details>
-                    ))}
-                    {legacy && (
-                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
-                    )}
-                  </div>
-                ) : settingsTab === "使用量" ? (
-                  <div className="settings-stack">
-                    <p>
-                      僅顯示 Hermes
-                      回傳的統計。未知費用不是零，也不推測外部工具費用。
-                    </p>
-                    {tasks.map((t) => (
-                      <details key={t.id}>
-                        <summary>{t.input.slice(0, 40)}</summary>
-                        <TaskUsageSummary task={t} />
-                      </details>
-                    ))}
-                    {!tasks.length && (
-                      <p className="muted">尚無任務使用量資料。</p>
-                    )}
-                  </div>
-                ) : settingsTab === "說明" ? (
-                  <HelpPage />
-                ) : (
-                  <div className="settings-stack">
-                    <p>
-                      目前有 {data.projects.length}{" "}
-                      個自訂專案；不包含預設個人工作區。
-                    </p>
-                    <form
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        try {
-                          await api("workspace", "POST", { name: newProject });
-                          setNewProject("");
-                          await loadWorkspace();
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      <label>
-                        新增專案
-                        <input
-                          required
-                          maxLength={80}
-                          value={newProject}
-                          onChange={(e) => setNewProject(e.target.value)}
-                        />
-                      </label>
-                      <button className="primary">
-                        <Plus size={16} />
-                        建立專案
-                      </button>
-                    </form>
                   </div>
                 )}
               </div>

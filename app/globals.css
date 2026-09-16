@@ -787,11 +787,16 @@ nav button[aria-current="page"] {
 }
 .turtle[data-animate="true"][data-state="thinking"] img,
 .turtle[data-animate="true"][data-state="processing"] img,
+.turtle[data-animate="true"][data-state="planning"] img,
 .turtle[data-animate="true"][data-state="searching"] img,
 .turtle[data-animate="true"][data-state="researching"] img,
+.turtle[data-animate="true"][data-state="creating"] img,
 .turtle[data-animate="true"][data-state="designing"] img,
 .turtle[data-animate="true"][data-state="tool"] img {
   animation: sway 3s ease-in-out infinite;
+}
+.turtle[data-state="offline"] img {
+  filter: grayscale(0.55) opacity(0.7);
 }
 .turtle[data-animate="true"][data-state="success"] img,
 .turtle[data-animate="true"][data-state="completed"] img {
@@ -1960,7 +1965,9 @@ summary .badge {
   display: grid;
   place-items: center;
   min-height: 100dvh;
-  padding: 30px 20px;
+  overflow-y: auto;
+  padding: max(30px, env(safe-area-inset-top, 0px)) 20px
+    max(30px, env(safe-area-inset-bottom, 0px));
   background: var(--color-canvas);
 }
 .login-card {
@@ -1980,10 +1987,64 @@ summary .badge {
   text-align: left;
   margin-top: 27px;
 }
-.login-card > small {
-  display: block;
-  margin-top: 24px;
-  font-size: 11px;
+.login-providers {
+  display: grid;
+  gap: 10px;
+  margin: 22px 0 8px;
+}
+.login-providers a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  text-decoration: none;
+}
+.login-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 12px;
+}
+.login-links .text-button {
+  min-height: 44px;
+}
+.account-card {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  text-align: left;
+}
+.account-card img,
+.account-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.account-avatar {
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-soft, #eaf4e4);
+  font-weight: 700;
+}
+.identity-list,
+.session-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+.identity-list li,
+.session-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
 }
 .sr-only {
   position: absolute;

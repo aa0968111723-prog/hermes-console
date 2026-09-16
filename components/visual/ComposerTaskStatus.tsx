@@ -44,7 +44,7 @@ export function composerTaskStatus(task: Task, offline: boolean) {
   const tone = task.state === "failed" ? "error"
     : task.state === "uncertain" ? "warning"
     : task.state === "completed" ? "success"
-    : ["queued", "waiting_user", "stopping"].includes(task.state) ? "waiting"
+    : ["queued", "waiting_user", "waiting_authorization", "stopping"].includes(task.state) ? "waiting"
     : "neutral";
   const current = workingEvent(task);
   return {
