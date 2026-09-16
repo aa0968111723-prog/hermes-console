@@ -630,6 +630,28 @@
   .conversation {
     animation: conversation-arrive var(--motion-standard) var(--ease-spatial);
   }
+  /* Dock-aware add sheet: same bottom reserve as .radial-sheet so the
+     menu stays above the 90px dock chrome + safe-area, and short
+     viewports scroll inside the dialog instead of covering Home Indicator. */
+  .composer-popover {
+    position: fixed;
+    z-index: var(--z-overlay);
+    inset: auto 0 calc(90px + var(--safe-area-bottom));
+    width: min(380px, calc(100% - 24px));
+    max-height: calc(
+      min(100dvh, var(--app-height)) - 100px - var(--safe-area-bottom)
+    );
+    margin: 0 auto;
+    padding: 12px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 0;
+    border-radius: 28px;
+    background: var(--glass-sheet);
+    box-shadow: var(--depth-overlay);
+    transform: none;
+  }
 }
 @keyframes sheet-arrive {
   from {

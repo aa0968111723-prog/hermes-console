@@ -14,7 +14,7 @@ export async function verifyVisualStates(
   await page.reload();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.getByRole("button", { name: "加入內容", exact: true }).click();
-  await expect(page.getByRole("group", { name: "加入內容選項" })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "加入內容選項" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "加入內容", exact: true }),
