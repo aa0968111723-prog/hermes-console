@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { authenticate, jsonBody, respond, route } from "@/lib/server/security";
+import { authenticateOperator, jsonBody, respond, route } from "@/lib/server/security";
 import {
   getCertification,
   publicReport,
@@ -19,12 +19,12 @@ const integrations = z.enum([
 ]);
 
 export const GET = route(async (request) => {
-  const owner = authenticate(request);
+  const owner = authenticateOperator(request);
   return respond({ report: publicReport(getCertification(owner)) });
 });
 
 export const POST = route(async (request) => {
-  const owner = authenticate(request, true);
+  const owner = authenticateOperator(request, true);
   const body = z
     .object({
       action: z.literal("run"),

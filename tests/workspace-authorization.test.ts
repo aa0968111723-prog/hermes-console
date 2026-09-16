@@ -23,6 +23,13 @@ const runtime = await import("../app/api/runtime/route");
 const canva = await import("../app/api/canva/route");
 const bindings = await import("../app/api/runtime/bindings/route");
 const workspace = await import("../app/api/workspace/route");
+const integrations = await import("../app/api/integrations/route");
+const agents = await import("../app/api/agents/route");
+const usage = await import("../app/api/usage/route");
+const certification = await import("../app/api/certification/route");
+const runtimeTools = await import("../app/api/runtime/tools/route");
+const runtimeMcp = await import("../app/api/runtime/mcp/route");
+const runtimeAgents = await import("../app/api/runtime/agents/route");
 const { authenticate, authenticateOperator } = await import(
   "../lib/server/security"
 );
@@ -177,7 +184,87 @@ test("workspace members cannot change connection secrets", async () => {
     ).status,
     403,
   );
+  const memberInt = await integrations.GET(
+    request("integrations", member.cookie),
+  );
+  assert.equal(memberInt.status, 200);
+  const memberIntBody = await memberInt.json();
+  assert.equal(memberIntBody.view, "normal");
+  const memberIntDump = JSON.stringify(memberIntBody);
+  assert.doesNotMatch(
+    memberIntDump,
+    /TKU_MCP_|GALLEY_MCP_|XUNHE_MCP_|PLANFORM_MCP_|LUMEN_MCP_|FRAMELAB_MCP_|DUIGAO_MCP_|HERMES_API_|MCP_BRIDGE|_MCP_TOKEN|_MCP_URL/,
+  );
+  assert.ok(
+    (
+      memberIntBody.integrations as Array<{
+        tools?: string[];
+        requirements?: string[];
+        detail?: string;
+        evidence?: string | null;
+      }>
+    ).every(
+      (row) =>
+        Array.isArray(row.tools) &&
+        row.tools.length === 0 &&
+        Array.isArray(row.requirements) &&
+        row.requirements.length === 0 &&
+        row.detail === "" &&
+        row.evidence === null,
+    ),
+  );
+  assert.equal(memberIntBody.canva.message, "");
+
+  const ownerInt = await integrations.GET(
+    request("integrations", owner.cookie),
+  );
+  assert.equal(ownerInt.status, 200);
+  const ownerIntBody = await ownerInt.json();
+  assert.equal(ownerIntBody.view, "developer");
+  assert.ok(
+    (ownerIntBody.integrations as Array<{ requirements?: string[] }>).some(
+      (row) =>
+        (row.requirements || []).some((value) => /HERMES_API_|_MCP_/.test(value)),
+    ),
+  );
+
+  const memberAgents = await agents.GET(request("agents", member.cookie));
+  assert.equal(memberAgents.status, 200);
+  const memberAgentsBody = await memberAgents.json();
+  assert.equal(memberAgentsBody.view, "normal");
+  assert.doesNotMatch(JSON.stringify(memberAgentsBody), /HERMES_API_KEY|_API_KEY/);
+  assert.ok(
+    (
+      memberAgentsBody.agents as Array<{
+        tools?: string[];
+        credentialReference?: string;
+        skills?: unknown[];
+      }>
+    ).every(
+      (row) =>
+        Array.isArray(row.tools) &&
+        row.tools.length === 0 &&
+        row.credentialReference === "" &&
+        Array.isArray(row.skills) &&
+        row.skills.length === 0,
+    ),
+  );
+
+  const ownerAgents = await agents.GET(request("agents", owner.cookie));
+  assert.equal(ownerAgents.status, 200);
+  const ownerAgentsBody = await ownerAgents.json();
+  assert.equal(ownerAgentsBody.view, "developer");
+  assert.ok(
+    (ownerAgentsBody.agents as Array<{ credentialReference?: string }>).some(
+      (row) => /HERMES_/.test(String(row.credentialReference || "")),
+    ),
+  );
+
   assert.equal((await canva.GET(request("canva", member.cookie))).status, 200);
+  const memberCanva = await (
+    await canva.GET(request("canva", member.cookie))
+  ).json();
+  assert.equal(memberCanva.message, "");
   assert.equal(
     (
       await canva.POST(
@@ -188,7 +275,40 @@ test("workspace members cannot change connection secrets", async () => {
   );
   assert.equal(
     (await bindings.GET(request("runtime/bindings", member.cookie))).status,
-    200,
+    403,
+  );
+  assert.equal((await usage.GET(request("usage", member.cookie))).status, 403);
+  assert.equal(
+    (await certification.GET(request("certification", member.cookie))).status,
+    403,
+  );
+  assert.equal(
+    (
+      await certification.POST(
+        request("certification", member.cookie, "POST", { action: "run" }),
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await runtimeTools.GET(request("runtime/tools", member.cookie))).status,
+    403,
+  );
+  assert.equal(
+    (await runtimeMcp.GET(request("runtime/mcp", member.cookie))).status,
+    403,
+  );
+  assert.equal(
+    (await runtimeAgents.GET(request("runtime/agents", member.cookie))).status,
+    403,
+  );
+  assert.equal(
+    (
+      await agents.POST(
+        request("agents", member.cookie, "POST", { refresh: true }),
+      )
+    ).status,
+    403,
   );
   assert.equal(
     (
