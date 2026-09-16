@@ -20,7 +20,8 @@
 | 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。Composer 與折疊事件只顯示這些高階進度，不顯示 GALLEY／Canva。工具 JSON 與 toolName 只在展開的技術資訊。創作回覆帶 ArtifactStage 大圖。 |
 | 龜龜狀態 | 可用（契約） | Idle／思考／規劃／搜尋／研究／創作／整理／等待／完成／錯誤／離線。姿勢、光、陰影分開；標籤不出現廠商名。reduced-motion 停止動畫。 |
 | 作品版本 | 可用（契約） | 文案 V1／V2 比較、還原確認、匯出、修改同一作品。不自動重建無關輸出。任務上下文會帶入專案 copy artifact 與創作方向，讓「第二版字放大」沿用同一作品。 |
-| 視覺附件 | 可用（契約） | 列表與 chips 用 WebP 縮圖。PDF／連結顯示種類或 hostname。不抓取任意網頁當預覽。 |
+| 視覺附件 | 可用（契約） | 列表與 chips 用 WebP 縮圖。上傳中的圖片先用本機檔案預覽，保存後再換成伺服器 thumb。PDF／連結顯示種類或 hostname。不抓取任意網頁當預覽。手機 Composer 附件換行鋪滿寬度，不使用 245px 橫向 carousel。 |
+
 | Runtime Normal／Developer | 可用（契約） | Agent 頁只顯示 Hermes／記憶／工具／MCP 狀態與軌道。工具清單、schema、MCP 連線在 Developer。成員 API 不含 endpoint、credentialReference、tool schema、hermesKeySource。公開 `GET /api/health` 不含 models／skills／toolsets／configSource；`POST /api/health` 僅 owner／admin。 |
 | 空工具結果 | 可用（契約） | `{}`／空字串／空 content 不得標 completed；taxonomy `empty_tool_result` → TOOL_UNAVAILABLE。 |
 | 首頁 | 可用（契約） | 龜龜 + 今天想做什麼？ + 六個短標籤。手機與桌面同一組。無 MCP 軌道、無英文 welcome overlay。 |
@@ -41,13 +42,17 @@
 | 任務提交探測 | 可用（契約） | `ensureHermesReady` 只打 `/v1/models`，逾時用 `HERMES_CONNECT_TIMEOUT_MS`（契約 hanging 1s → ~1s failed）。不跑 skills／toolsets。學生 503 為「Hermes 還沒連上。請到設定的連線頁。」或「現在沒辦法連到 Hermes。」，不含環境變數字樣。 |
 | 長任務重啟 | 可用（契約） | 程序啟動立即 `recoverOrphanedTasks`。沒有 in-memory worker 的 chat 任務改 `uncertain`，訊息含「不會自動重送」。已完成任務不動。 |
 | 學生連線錯誤 | 可用（契約） | 公開 health、成員 health、`POST /api/tasks`、對話錯誤都不出現金鑰／後端／環境變數。401 金鑰 →「還沒連上」。Hanging POST `/api/tasks` ~1s 503。`hermes_unconfigured`→TOOL_UNAVAILABLE，`hermes_not_ready`→UPSTREAM_ERROR。Operator `POST /api/health` 仍保留探測原文。 |
+| 未驗證看圖 | 可用（契約） | `HERMES_IMAGE_INPUT` 未開時，圖片附件改送「已保存、沒有像素」文字，不 409 擋送出，也不把 base64 傳給 Hermes。Composer 提示不會假裝已看圖。開旗標後仍送 `image_url`。390×844 Playwright：提示可見、兩張 chip 與 44px 移除鈕都在 Composer 內、送出不被蓋住。 |
+
 | 連線狀態點 | 可用（契約） | 頂欄只顯示 44px 狀態點。文案在 `aria-label` 與 `.sr-only`。 |
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test` 通過。UI 未改，未重跑 Playwright。
-- `npm test`：417 tests, 415 pass, 2 skipped, 0 fail。含程序重啟後 orphaned chat 任務改 uncertain、不重送；計畫事件不含 `budgetMode=`／token 計數。
-- 已 merge `origin/main` 研究筆記 `6591e40`，未回退產品路徑。
+- 本輪指令：`lint`（含於 `next build`）、`typecheck`（含於 `next build`）、`npm test`、`npm run build`、`npm run test:ui`、`npm run check:secrets` 通過。
+- `npm test`：417 tests, 415 pass, 2 skipped, 0 fail。含未驗證看圖附件為文字而非 base64；程序重啟後 orphaned chat 任務改 uncertain、不重送。
+- Production First Load JS `/`：109 kB（page 6.13 kB，shared 103 kB）。
+- `test:ui` 本地 Chrome：LCP 364ms，CLS 0，axe 0。含 360×800、390×844、412×915、430×932、768×1024、1024、1440。`chat-image-unverified.png` 顯示文件卡＋圖片縮圖＋誠實看圖提示。
+- 已 merge `origin/main` 研究筆記 `6591e40`，未回退產品路徑。本輪 `HEAD..origin/main` 為空。
 
 ## 仍是 Partial（禁止標綠）
 

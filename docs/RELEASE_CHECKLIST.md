@@ -29,6 +29,7 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 - [ ] Cancel hits backend
 - [ ] Restart leaves running chat tasks `uncertain` (no auto-resend)
 - [ ] Unverified vision: image asks continue without pixel pretence
+- [ ] Composer image chips wrap on 390×844; local thumbnail while uploading
 - [ ] Empty tool output is not success
 - [ ] Offline banner; reconnect does not drop the thread
 
