@@ -79,8 +79,10 @@ import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
 import {
   directionPickFollowUp,
+  isInspirationSearchPack,
   type InspirationSearchPack,
 } from "@/lib/inspiration-pack";
+import { isImageReviewPack } from "@/lib/image-review";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
 import {
   emptyDraft,
@@ -93,6 +95,22 @@ import {
   writePreference,
   removeLegacyPreference,
 } from "@/lib/client/storage";
+
+function pinScrollerTo(scroller: HTMLElement, target: HTMLElement) {
+  const top =
+    target.getBoundingClientRect().top -
+    scroller.getBoundingClientRect().top +
+    scroller.scrollTop -
+    8;
+  scroller.scrollTo({ top: Math.max(0, top) });
+}
+
+function taskHasStructuredPack(task?: Task) {
+  return !!task?.events.some(
+    (event) =>
+      isInspirationSearchPack(event.result) || isImageReviewPack(event.result),
+  );
+}
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -533,28 +551,33 @@ export default function HermesConsole() {
   useEffect(() => {
     const el = scroll.current;
     if (!el) return;
-    if (pinBriefAfterPick.current && chatDirectionBrief) {
-      const brief = el.querySelector<HTMLElement>(".direction-brief");
-      if (brief) {
-        const top =
-          brief.getBoundingClientRect().top -
-          el.getBoundingClientRect().top +
-          el.scrollTop -
-          8;
-        el.scrollTo({ top: Math.max(0, top) });
-        pinBriefAfterPick.current = false;
-        nearBottom.current = false;
-        suppressJump.current = true;
-        setJump(false);
+    const pin = (selector: string) => {
+      const target = el.querySelector<HTMLElement>(selector);
+      if (!target) return false;
+      pinScrollerTo(el, target);
+      nearBottom.current = false;
+      suppressJump.current = true;
+      setJump(false);
+      requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            suppressJump.current = false;
-          });
+          suppressJump.current = false;
         });
+      });
+      return true;
+    };
+    if (pinBriefAfterPick.current && chatDirectionBrief) {
+      if (pin(".direction-brief")) {
+        pinBriefAfterPick.current = false;
         return;
       }
     }
-    if (nearBottom.current) el.scrollTop = el.scrollHeight;
+    if (!nearBottom.current) return;
+    if (
+      pin(".message.assistant:last-of-type .inspiration-result") ||
+      pin(".message.assistant:last-of-type .image-review")
+    )
+      return;
+    el.scrollTop = el.scrollHeight;
   }, [activeConv?.messages.length, currentTask?.output, chatDirectionBrief]);
   useEffect(() => {
     nearBottom.current = true;
@@ -1259,7 +1282,13 @@ export default function HermesConsole() {
                         onInspect={() => openTask(currentTask)}
                       />
                     )}
-                    {activeConv.messages.map((message) => (
+                    {activeConv.messages.map((message) => {
+                      const visualTask =
+                        message.role === "assistant" && message.taskId
+                          ? tasks.find((item) => item.id === message.taskId)
+                          : undefined;
+                      const hideBody = taskHasStructuredPack(visualTask);
+                      return (
                       <article
                         key={message.id}
                         className={"message " + message.role}
@@ -1281,15 +1310,11 @@ export default function HermesConsole() {
                           )}
                         </div>
                         <div className="message-content">
-                          <MessageBody text={message.content} />
-                          {message.role === "assistant" && message.taskId && (
+                          {!hideBody && <MessageBody text={message.content} />}
+                          {visualTask && (
                             <VisualMessage
-                              task={tasks.find((t) => t.id === message.taskId)}
-                              onInspect={() =>
-                                openTask(
-                                  tasks.find((t) => t.id === message.taskId),
-                                )
-                              }
+                              task={visualTask}
+                              onInspect={() => openTask(visualTask)}
                               onPickInspiration={pickInspirationDirection}
                               pickingInspiration={pickingInspiration}
                               selectedInspiration={selectedInspiration}
@@ -1356,7 +1381,8 @@ export default function HermesConsole() {
                           )}
                         </div>
                       </article>
-                    ))}
+                      );
+                    })}
                     {currentTask &&
                       currentTask.state !== "completed" &&
                       !activeConv.messages.some(

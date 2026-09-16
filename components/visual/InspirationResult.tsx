@@ -22,6 +22,9 @@ export default function InspirationResult({
   selectedId?: "A" | "B" | "C" | null;
   busy?: boolean;
 }) {
+  const visibleClusters = pack.clusters.filter(
+    (cluster) => cluster.itemIds.length > 0,
+  );
   return (
     <section className="inspiration-result" aria-label="靈感方向">
       <p className="eyebrow">
@@ -68,9 +71,9 @@ export default function InspirationResult({
           );
         })}
       </ul>
-      {pack.clusters.length > 0 && (
+      {visibleClusters.length > 0 && (
         <ul className="inspiration-cluster-rail">
-          {pack.clusters.map((cluster) => (
+          {visibleClusters.map((cluster) => (
             <li key={cluster.id}>
               <span>{KIND_LABEL[cluster.kind] || cluster.kind}</span>
               {cluster.title}
