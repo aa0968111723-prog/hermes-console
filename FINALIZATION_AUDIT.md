@@ -16,7 +16,7 @@
 | API 授權 | 可用 | `authenticate()` 要 session + membership。連線／MCP／Zeabur／Canva 授權／runtime bindings 變更走 `authenticateOperator()`（owner／admin）。成員 403 `permission_denied`。GET `/api/integrations` 與 `/api/agents` 成員為 `view: normal`，不含工具名與 `*_MCP_TOKEN`。`/api/runtime/tools|mcp|agents|bindings`、`/api/certification`、`/api/usage` 僅 owner／admin。Health/ready 仍公開且不含秘密。 |
 | MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。GET `/api/mcp-registry` 成員只得 status；endpoint／schema 僅 owner／admin。 |
 | 設定分頁 | 可用 | 擁有者／管理者：帳號 / 外觀 / 連線 / 工作區 / 進階。成員看不到連線與進階；API 仍拒絕。 |
-| Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
+| Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。GALLEY／Lumen／FrameLab／Planform 只有 status 為 partial 或 available 才進計畫；未設定不假裝。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
 | 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。工具 JSON 只在「原始結果」。創作回覆帶 ArtifactStage 大圖，不是工具計數。 |
 | 作品版本 | 可用（契約） | 文案 V1／V2 比較、還原確認、匯出、修改同一作品。不自動重建無關輸出。 |
 | 視覺附件 | 可用（契約） | 列表與 chips 用 WebP 縮圖。PDF／連結顯示種類或 hostname。不抓取任意網頁當預覽。 |
