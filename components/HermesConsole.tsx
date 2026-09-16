@@ -539,6 +539,15 @@ export default function HermesConsole() {
     if (drawer) mobileNav.current?.showModal();
     else mobileNav.current?.close();
   }, [drawer]);
+  const visualPinKey =
+    currentTask?.events
+      .map((event) => event.toolName)
+      .filter(
+        (name) =>
+          name === "workspace_search_inspiration" ||
+          name === "workspace_simulate_audience",
+      )
+      .join(",") || "";
   useEffect(() => {
     const el = scroll.current;
     if (!el) return;
@@ -556,24 +565,39 @@ export default function HermesConsole() {
       el.scrollTo({ top: pinnedScrollTop.current });
       return true;
     };
-    if (pinBriefAfterPick.current && chatDirectionBrief) {
-      if (pin(".direction-brief")) {
-        pinBriefAfterPick.current = false;
-        return;
+    const frame = requestAnimationFrame(() => {
+      if (pinBriefAfterPick.current && chatDirectionBrief) {
+        if (pin(".direction-brief")) {
+          pinBriefAfterPick.current = false;
+          return;
+        }
       }
-    }
-    if (!nearBottom.current) return;
-    if (
-      pin(".message.assistant:last-of-type .inspiration-result") ||
-      pin(".message.assistant:last-of-type .image-review")
-    )
-      return;
-    el.scrollTop = el.scrollHeight;
-  }, [activeConv?.messages.length, currentTask?.output, chatDirectionBrief]);
+      if (!nearBottom.current) return;
+      if (pin(".inspiration-result") || pin(".image-review")) return;
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    activeConv?.messages.length,
+    currentTask?.output,
+    chatDirectionBrief,
+    visualPinKey,
+  ]);
   useEffect(() => {
     nearBottom.current = true;
     setJump(false);
-    if (scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
+    const el = scroll.current;
+    if (!el) return;
+    const frame = requestAnimationFrame(() => {
+      if (
+        el.querySelector(
+          ".inspiration-result, .image-review, .direction-brief",
+        )
+      )
+        return;
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
   }, [activeId]);
   useEffect(
     () => () => {
