@@ -31,7 +31,12 @@ export default function FirstReactionBoard({ panel }: { panel: TwinPanel }) {
           ))}
         </ul>
       )}
-      <div className="twin-rail" role="list">
+      <div
+        className="twin-rail"
+        role="list"
+        tabIndex={0}
+        aria-label="十個新生模擬卡片"
+      >
         {panel.personas.map((persona) => (
           <article
             key={persona.personaId}

@@ -60,10 +60,15 @@ test("image read is a poster preview, not a fake pixel score", async () => {
     new URL("../components/HermesConsole.tsx", import.meta.url),
     "utf8",
   );
+  const twins = await readFile(
+    new URL("../components/audience/FirstReactionBoard.tsx", import.meta.url),
+    "utf8",
+  );
   assert.match(ui, /ImageCritiqueResult/);
   assert.match(board, /畫面 · 已讀取/);
   assert.match(board, /依這個改/);
   assert.match(live, /onOpenMaterial=\{openMaterial\}/);
+  assert.match(twins, /tabIndex=\{0\}/);
   assert.doesNotMatch(board, /toolCallId|inputSchema|轉換率|已搜尋整個 Instagram/);
   assert.doesNotMatch(ui, /traceId|credentialReference/);
 });
