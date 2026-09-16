@@ -31,6 +31,7 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 - [ ] Restart leaves running chat tasks `uncertain` (no auto-resend)
 - [ ] Unverified vision: image asks continue without pixel pretence
 - [ ] Design completion without copy/Canva/thumbnail does not claim a finished result
+- [ ] Student chrome for that case is 「規格已保留」, not green 「完成」/「過程完成」
 - [ ] Composer image chips wrap on 390×844; local thumbnail while uploading
 - [ ] Empty tool output is not success, including `{}` behind `tool.completed`
 - [ ] Offline banner; reconnect does not drop the thread
