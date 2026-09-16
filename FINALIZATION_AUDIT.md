@@ -47,9 +47,12 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：待 `lint`、`typecheck`、`npm test`、`build`、`test:ui`。
-- 新增：研究／淡江任務沒有 https 來源不得說已回傳完成結果；缺預覽的助理回覆會帶上誠實句子。
-- 已 merge `origin/main` 研究筆記 `24b4fb8`（NIXL），未回退產品路徑。
+- 本輪指令：`lint`、`typecheck`、`npm test`、`check:secrets`、`build`、`test:ui`／`entry`／`chat`／`workbench`／`gateway`／`runtime` 通過。
+- `npm test`：425 tests, 423 pass, 2 skipped, 0 fail。含研究沒有 https 來源不得說已回傳完成結果；有來源時仍可完成。缺預覽的助理回覆帶誠實句子。
+- `test:ui`：`design-spec-only-honesty.png`、`research-without-sources-honesty.png`。Composer 為 warning，無「過程完成」。本地 Chrome LCP 372ms，CLS 0，axe 0。
+- Production First Load JS `/`：110 kB（page 6.57 kB，shared 103 kB）。
+- 含 360×800、390×844、412×915、430×932、768×1024。
+- 已 merge `origin/main` `24b4fb8`（NIXL）與 `295fac2`（post-PR20 charter），未回退產品路徑。本輪 `HEAD..origin/main` 為空。
 
 ## 仍是 Partial（禁止標綠）
 
