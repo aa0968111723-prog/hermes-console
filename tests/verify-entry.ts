@@ -1,7 +1,7 @@
 import { chromium, expect } from "@playwright/test";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdir, mkdtemp } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { signInConsole } from "./playwright-login";
@@ -114,6 +114,9 @@ try {
   await expect(page.locator(".visual-concept-caption")).toContainText("報名");
   await expect(page.getByText(/Canva 未授權/)).toBeVisible();
   await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "執行紀錄", exact: true }),
+  ).toHaveCount(0);
   const workflows = await page.request.get(base + "/api/workflows");
   const body = (await workflows.json()) as {
     workflows: Array<{ selected: number | null; design: unknown; state: string }>;
@@ -158,6 +161,15 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "專案", exact: true }).click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  const poster = await readFile("public/mascot/turtle.png");
+  await page.locator(".secondary-page input[type=\"file\"]").setInputFiles({
+    name: "龜龜參考.png",
+    mimeType: "image/png",
+    buffer: poster,
+  });
+  await expect(
+    page.getByRole("button", { name: "預覽素材：龜龜參考.png" }),
+  ).toBeVisible({ timeout: 30_000 });
   await page.locator(".workbench-disclosure > summary").click();
   const projectPage = page.locator(".secondary-page");
   const scrolled = await projectPage.evaluate((el) => {
@@ -169,6 +181,43 @@ try {
   });
   assert.equal(["auto", "scroll", "overlay"].includes(scrolled.overflowY), true);
   assert.equal(scrolled.reached, true);
+  const beforePreview = await projectPage.evaluate((el) => el.scrollTop);
+  await page.getByRole("button", { name: "預覽素材：龜龜參考.png" }).click();
+  const preview = page.getByRole("dialog", { name: "素材預覽" });
+  await expect(preview.locator("img")).toBeVisible();
+  assert.ok(
+    await preview
+      .locator("img")
+      .evaluate(
+        (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
+      ),
+  );
+  await page.screenshot({
+    path: join(output, "project-preview-mobile.png"),
+  });
+  await page.getByRole("button", { name: "關閉面板" }).click();
+  await expect(preview).toBeHidden();
+  await expect
+    .poll(() =>
+      projectPage.evaluate(
+        (el, previous) => Math.abs(el.scrollTop - previous) < 48,
+        beforePreview,
+      ),
+    )
+    .toBe(true);
+  const afterClose = await projectPage.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+    return {
+      reached: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
+      overflowY: getComputedStyle(el).overflowY,
+      htmlOverflow: getComputedStyle(document.documentElement).overflow,
+      bodyOverflow: getComputedStyle(document.body).overflow,
+    };
+  });
+  assert.equal(["auto", "scroll", "overlay"].includes(afterClose.overflowY), true);
+  assert.equal(afterClose.reached, true);
+  assert.equal(["hidden", "clip"].includes(afterClose.htmlOverflow), true);
+  assert.equal(["hidden", "clip"].includes(afterClose.bodyOverflow), true);
   await expect(page.getByRole("button", { name: "專案", exact: true })).toBeVisible();
   await page.screenshot({
     path: join(output, "project-mobile-390.png"),
@@ -187,6 +236,15 @@ try {
   });
   await page.screenshot({
     path: join(output, "project-mobile-430.png"),
+  });
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await projectPage.evaluate((el) => {
+    el.scrollTop = el.scrollHeight;
+  });
+  await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "預覽素材：龜龜參考.png" })).toBeVisible();
+  await page.screenshot({
+    path: join(output, "project-tablet-768.png"),
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "對話", exact: true }).click();
@@ -224,7 +282,7 @@ try {
   await page.keyboard.press("Escape");
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, honest Google/Tamkang hints, local club index without fake MCP, account identities. Not live Zeabur.",
+    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, honest Google/Tamkang hints, local club index without fake MCP or 執行紀錄 chrome, project upload/preview/close scroll, 768, account identities. Not live Zeabur.",
   );
 } finally {
   await browser?.close();

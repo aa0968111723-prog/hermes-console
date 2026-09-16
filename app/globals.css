@@ -2448,7 +2448,16 @@ body::before {
 .upload-list { padding: 6px 8px 2px; gap: 8px; }.upload-chip { min-width: 82px; min-height: 47px; padding: 5px 6px; border-radius: 13px; background: #f6faf3; border-color: #dce9d6; box-shadow: var(--depth-1); }.upload-chip > span { font-size: 10px; }.upload-chip small { color: var(--muted); font-size: 9px; }.upload-chip img { width: 40px; height: 40px; border-radius: 9px; }
 .secondary-page { max-width: 1140px; margin: 0 auto; width: 100%; padding: 38px clamp(18px, 4vw, 56px); }
 .secondary-page > .muted { max-width: 62ch; }
-.page-heading-row { display: flex; align-items: center; justify-content: space-between; }
+.page-heading-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.page-heading-row h1 { margin: 0; }
+.page-heading-actions { display: flex; align-items: center; gap: 8px; }
+.page-heading-actions button {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 .agent-orbit { position: relative; margin: 18px auto 28px; width: min(400px, 82vw); height: 170px; display: grid; place-items: center; }
 .orbit-center { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; color: var(--color-primary); background: #e3f0da; border: 1px solid #c9dfbf; box-shadow: var(--depth-card); z-index: 2; }
 .orbit-center::after { content: ""; position: absolute; width: 120px; height: 65px; border: 1px solid rgba(88,143,77,.25); border-radius: 50%; transform: rotateX(65deg); }
@@ -3124,7 +3133,6 @@ html, body {
   min-height: 44px;
   width: 100%;
 }
-.page-heading-actions { display: flex; align-items: center; gap: 8px; }
 .turtle[data-state="offline"] span { background: #f4e6dc; color: #8a4b32; }
 @media (max-width: 760px) {
   :root { --dock-space: calc(80px + var(--safe-area-bottom)); }

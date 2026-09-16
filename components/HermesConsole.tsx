@@ -243,6 +243,9 @@ export default function HermesConsole() {
   const scroll = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLTextAreaElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
+  const projectUpload = useRef<HTMLInputElement>(null);
+  const secondaryPage = useRef<HTMLElement>(null);
+  const secondaryScroll = useRef(0);
   const nearBottom = useRef(true);
   const composing = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
@@ -510,7 +513,13 @@ export default function HermesConsole() {
   }, []);
   useEffect(() => {
     if (panel) dialog.current?.showModal();
-    else dialog.current?.close();
+    else {
+      dialog.current?.close();
+      // Chromium showModal() writes inline overflow; leaving it as auto
+      // would override html/body { overflow: hidden } and steal page scroll.
+      document.documentElement.style.removeProperty("overflow");
+      document.body.style.removeProperty("overflow");
+    }
   }, [panel]);
   const previousPanel = useRef(panel);
   useEffect(() => {
@@ -519,6 +528,13 @@ export default function HermesConsole() {
     if (was === "task" && !panel) {
       // Chat-first: closing task sheet returns focus to composer.
       const frame = requestAnimationFrame(() => input.current?.focus());
+      return () => cancelAnimationFrame(frame);
+    }
+    if (was === "preview" && !panel) {
+      const top = secondaryScroll.current;
+      const frame = requestAnimationFrame(() => {
+        if (secondaryPage.current) secondaryPage.current.scrollTop = top;
+      });
       return () => cancelAnimationFrame(frame);
     }
   }, [panel]);
@@ -743,6 +759,17 @@ export default function HermesConsole() {
   function closePanel() {
     setPanel(null);
   }
+  function openPreview(material: Material) {
+    if (secondaryPage.current) {
+      secondaryScroll.current = secondaryPage.current.scrollTop;
+    }
+    setPreview(material);
+    setPanel("preview");
+  }
+  function rememberPageScroll(el: HTMLElement) {
+    if (dialog.current?.open) return;
+    secondaryScroll.current = el.scrollTop;
+  }
   function onComposerTaskPillClick(task: Task) {
     // Offline: refresh only — never open-resend or acknowledge.
     if (composerTaskPillAction(offline) === "refresh") {
@@ -751,36 +778,44 @@ export default function HermesConsole() {
     }
     openTask(task);
   }
-  function uploadFile(file: File, key = crypto.randomUUID()) {
+  function uploadFile(file: File, key = crypto.randomUUID(), attach = true) {
     if (file.size > 8_000_000) {
       setError("每個檔案上限 8 MB。");
       return;
     }
     const record: Upload = { key, file, progress: 0, error: null };
-    setUploads((old) => [...old.filter((u) => u.key !== key), record]);
+    if (attach) {
+      setUploads((old) => [...old.filter((u) => u.key !== key), record]);
+    } else {
+      setNotice("正在上傳…");
+    }
     const xhr = new XMLHttpRequest();
     pendingXHR.current.set(key, xhr);
     xhr.open("POST", "/api/materials?projectId=" + encodeURIComponent(project));
     xhr.setRequestHeader("Content-Type", file.type || "text/plain");
     xhr.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
     xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable)
-        setUploads((old) =>
-          old.map((u) =>
-            u.key === key
-              ? {
-                  ...u,
-                  progress: Math.round((event.loaded / event.total) * 100),
-                }
-              : u,
-          ),
-        );
+      if (!event.lengthComputable || !attach) return;
+      setUploads((old) =>
+        old.map((u) =>
+          u.key === key
+            ? {
+                ...u,
+                progress: Math.round((event.loaded / event.total) * 100),
+              }
+            : u,
+        ),
+      );
     };
     const fail = (message: string) => {
       pendingXHR.current.delete(key);
-      setUploads((old) =>
-        old.map((u) => (u.key === key ? { ...u, error: message } : u)),
-      );
+      if (attach) {
+        setUploads((old) =>
+          old.map((u) => (u.key === key ? { ...u, error: message } : u)),
+        );
+      } else {
+        setError(message);
+      }
     };
     xhr.timeout = 120_000;
     xhr.ontimeout = () => fail("上傳逾時，請移除或重試。");
@@ -796,13 +831,17 @@ export default function HermesConsole() {
           fail(result.error?.message || "上傳失敗");
           return;
         }
-        setUploads((old) =>
-          old.map((u) =>
-            u.key === key
-              ? { ...u, progress: 100, material: result.material }
-              : u,
-          ),
-        );
+        if (attach) {
+          setUploads((old) =>
+            old.map((u) =>
+              u.key === key
+                ? { ...u, progress: 100, material: result.material }
+                : u,
+            ),
+          );
+        } else {
+          setNotice("素材已保存");
+        }
         void loadWorkspace().catch(() => {});
       } catch {
         fail("回應格式錯誤，請重試。");
@@ -1183,10 +1222,7 @@ export default function HermesConsole() {
                                 return asset ? (
                                   <button
                                     key={id}
-                                    onClick={() => {
-                                      setPreview(asset);
-                                      setPanel("preview");
-                                    }}
+                                    onClick={() => openPreview(asset)}
                                   >
                                     <AttachmentCover material={asset} />
                                     <span>{asset.title}</span>
@@ -1214,7 +1250,9 @@ export default function HermesConsole() {
                               <Pencil size={15} />
                             </button>
                           )}
-                          {message.taskId && message.role === "assistant" && (
+                          {message.taskId &&
+                            message.role === "assistant" &&
+                            message.provenance !== "workspace" && (
                             <button
                               onClick={() =>
                                 openTask(
@@ -1375,10 +1413,7 @@ export default function HermesConsole() {
                     references={references}
                     materials={data.materials}
                     disabled={busy}
-                    onPreview={(material) => {
-                      setPreview(material);
-                      setPanel("preview");
-                    }}
+                    onPreview={openPreview}
                     onRetry={(upload) => uploadFile(upload.file, upload.key)}
                     onRemoveUpload={(key) => {
                       pendingXHR.current.get(key)?.abort();
@@ -1501,8 +1536,43 @@ export default function HermesConsole() {
             </div>
           </>
         ) : nav === "projects" ? (
-          <section className="secondary-page">
-            <h1>素材與靈感</h1>
+          <section
+            className="secondary-page"
+            ref={secondaryPage}
+            onScroll={(e) => rememberPageScroll(e.currentTarget)}
+          >
+            <div className="page-heading-row">
+              <h1>素材與靈感</h1>
+              <div className="page-heading-actions">
+                <input
+                  ref={projectUpload}
+                  className="sr-only"
+                  tabIndex={-1}
+                  type="file"
+                  aria-label="上傳專案素材"
+                  accept="image/png,image/jpeg,image/webp,text/plain,application/pdf"
+                  multiple
+                  disabled={busy}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    e.target.value = "";
+                    files.forEach((file) =>
+                      uploadFile(file, crypto.randomUUID(), false),
+                    );
+                  }}
+                />
+                <button
+                  type="button"
+                  className="text-button"
+                  aria-label="上傳素材"
+                  disabled={busy}
+                  onClick={() => projectUpload.current?.click()}
+                >
+                  <ImagePlus size={18} />
+                  上傳
+                </button>
+              </div>
+            </div>
             <ProjectShelf
               projects={data.projects}
               materials={data.materials}
@@ -1593,10 +1663,7 @@ export default function HermesConsole() {
                     <button
                       className="material-preview"
                       aria-label={"預覽素材：" + m.title}
-                      onClick={() => {
-                        setPreview(m);
-                        setPanel("preview");
-                      }}
+                      onClick={() => openPreview(m)}
                     >
                       {m.kind === "image" ? (
                         <img src={"/api/materials?id=" + m.id} alt={m.title} />
@@ -1632,17 +1699,17 @@ export default function HermesConsole() {
             {!data.materials.some((m) => m.projectId === project) && (
               <div className="empty-state">
                 <Images size={30} />
-                <h2>靈感板還是一張白紙</h2>
-                <p>
-                  收藏 Instagram、Pinterest 或其他 HTTPS 來源，
-                  <br />
-                  也可以從對話輸入區上傳圖片。
-                </p>
+                <h2>還沒有素材</h2>
+                <p>上傳圖片，或收藏連結。</p>
               </div>
             )}
           </section>
         ) : nav === "inspiration" ? (
-          <section className="secondary-page">
+          <section
+            className="secondary-page"
+            ref={secondaryPage}
+            onScroll={(e) => rememberPageScroll(e.currentTarget)}
+          >
             <InspirationBoard
               items={inspiration}
               syncStatus={sheetsSync}
@@ -1665,7 +1732,11 @@ export default function HermesConsole() {
             <KnowledgeArchive />
           </section>
         ) : nav === "agents" ? (
-          <section className="secondary-page">
+          <section
+            className="secondary-page"
+            ref={secondaryPage}
+            onScroll={(e) => rememberPageScroll(e.currentTarget)}
+          >
             <div className="page-heading-row">
               <div>
                 <p className="eyebrow">能力</p>
@@ -1698,7 +1769,11 @@ export default function HermesConsole() {
             </details>
           </section>
         ) : (
-          <section className="secondary-page">
+          <section
+            className="secondary-page"
+            ref={secondaryPage}
+            onScroll={(e) => rememberPageScroll(e.currentTarget)}
+          >
             <h1>任務</h1>
             <ArtifactDeck
               items={workflows.filter((w) => w.projectId === project)}
