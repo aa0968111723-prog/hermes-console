@@ -45,6 +45,8 @@
 | 任務輪詢 | live 契約 | 進行中 3s；閒置 20s。隱藏分頁不打。重連只 refresh，不重送。 |
 | 一般進度 | live 契約 | 聊天顯示 理解／研究／創作／完成，不顯示工具計數。技術名稱只在任務詳情。 |
 | 完成自檢 | live 契約 | 缺讀圖／缺研究資料／缺作品／Lumen 無結果時寫入誠實 notice，不拿空成功當完成。 |
+| 工具目錄 | live 契約 | Planner 指示含 MCP availability／trust／permission／cost=unknown；不含 endpoint／secret。未可用明確不要呼叫。 |
+| 任務追蹤 | live 契約 | 新任務有 taskId／traceId／workspaceId／projectId；工具事件有 latencyMs。只在技術資訊展開。 |
 | 記憶時效 | live 契約 | `confidence * recencyScore(updatedAt)`；超過 30 天降至 0.3 倍，不永遠沿用舊偏好。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
 | 匿名 Health | live 契約 | required 且未登入時 `/api/health` 不含 models／skills／toolsets。 |
