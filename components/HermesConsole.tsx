@@ -52,7 +52,6 @@ import type { ConsoleNav } from "./visual/TopBar";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
 import AgentActivity from "./visual/AgentActivity";
-import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
 import SpatialPanel from "./visual/SpatialPanel";
 import { useSpatialMode } from "./visual/useSpatialMode";
@@ -1743,12 +1742,7 @@ export default function HermesConsole() {
             ref={secondaryPage}
             onScroll={(e) => rememberPageScroll(e.currentTarget)}
           >
-            <div className="page-heading-row">
-              <h1 className="sr-only">Hermes</h1>
-              <div className="page-heading-actions">
-                <VisualStatus health={health} offline={offline} />
-              </div>
-            </div>
+            <h1 className="sr-only">Hermes</h1>
             <RuntimeInspector
               task={currentTask}
               health={health}
