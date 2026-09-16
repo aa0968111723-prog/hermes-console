@@ -215,10 +215,11 @@ test("direction brief shows tone and A4 label, not paper millimetre aspect", asy
     "utf8",
   );
   assert.match(brief, /\{COPY_LABEL\[id\]\}/);
-  assert.match(brief, /\{format\.label\}/);
+  assert.match(brief, /studentFormatLabel\(format\.label\)/);
   assert.match(brief, /data-aspect=\{format\.aspect\}/);
   assert.doesNotMatch(brief, /\{format\.aspect\} ·/);
   assert.doesNotMatch(brief, />\{format\.aspect\}</);
+  assert.doesNotMatch(brief, />\{format\.label\}</);
 });
 
 test("student Agent dock is status, not Runtime or authorization copy", async () => {
