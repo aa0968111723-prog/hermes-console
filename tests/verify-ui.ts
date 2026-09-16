@@ -207,7 +207,7 @@ try {
       "send button occluded at " + width,
     );
     const mascot = await page.locator(".turtle").boundingBox();
-    await expect(page.locator(".quick-action")).toHaveCount(width<=760 ? 4 : 6);
+    await expect(page.locator(".quick-action")).toHaveCount(6);
     const columns = await page
       .locator(".quick-actions")
       .evaluate(
@@ -239,11 +239,16 @@ try {
         path: join(output, "home-desktop.png"),
         fullPage: true,
       });
-    if (name === "mobile-390")
+    if (name === "mobile-390") {
       await page.screenshot({
         path: join(output, "home-mobile.png"),
         fullPage: true,
       });
+      await page.screenshot({
+        path: join(output, "chat-mobile.png"),
+        fullPage: true,
+      });
+    }
     if (
       name === "mobile-360" ||
       name === "mobile-390" ||
@@ -258,6 +263,8 @@ try {
   const mobileNavigation = page
     .getByRole("dialog")
     .filter({ has: page.getByRole("navigation") });
+  await expect(mobileNavigation).toBeVisible();
+  await page.screenshot({ path: join(output, "drawer.png"), fullPage: true });
   await mobileNavigation
     .getByRole("button", { name: "Agent", exact: true })
     .click();
@@ -335,6 +342,7 @@ try {
     .click();
   await expect(page.getByRole("heading", { name: "素材與靈感" })).toBeVisible();
   await page.screenshot({ path: join(output, "projects.png"), fullPage: true });
+  await page.screenshot({ path: join(output, "project.png"), fullPage: true });
   await page.locator(".reference-disclosure > summary").click();
   await page
     .getByRole("textbox", { name: "參考標題" })
@@ -387,9 +395,17 @@ try {
     path: join(output, "settings-desktop.png"),
     fullPage: true,
   });
+  await page.screenshot({
+    path: join(output, "modal.png"),
+    fullPage: true,
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: join(output, "settings-mobile-390.png"),
+    fullPage: true,
+  });
+  await page.screenshot({
+    path: join(output, "settings.png"),
     fullPage: true,
   });
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -524,6 +540,10 @@ try {
     path: join(output, "composer-keyboard-390x420.png"),
     clip: { x: 0, y: 0, width: 390, height: 420 },
   });
+  await page.screenshot({
+    path: join(output, "keyboard.png"),
+    clip: { x: 0, y: 0, width: 390, height: 420 },
+  });
   await page.evaluate(() => {
     if (!window.visualViewport) return;
     Reflect.deleteProperty(window.visualViewport, "height");
@@ -534,12 +554,81 @@ try {
     "open",
   );
   await expect(page.locator(".mobile-bottom-dock")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator(".app-shell")
+        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
+    )
+    .toBe(844);
+  assert.equal(
+    await page.evaluate(() =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--app-height")
+        .trim(),
+    ),
+    "100dvh",
+  );
+  await page.screenshot({
+    path: join(output, "long-chat.png"),
+    fullPage: true,
+  });
   await textarea.fill("重新整理前仍保留的草稿");
   assert.ok((await textarea.boundingBox())!.height < 100);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(textarea).toHaveValue("重新整理前仍保留的草稿");
   await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
   await expect(textarea).toHaveValue("A 尚未送出的內容");
+
+  const loginContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  await loginContext.route("**/api/auth/session", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        required: true,
+        user: null,
+        membership: null,
+        providers: [
+          {
+            id: "google",
+            configured: false,
+            message: "Google 登入尚未完成設定",
+          },
+          {
+            id: "tamkang",
+            configured: false,
+            message: "淡江 SSO 尚未完成設定",
+          },
+          {
+            id: "email",
+            configured: false,
+            message: "電子信箱驗證尚未完成寄信設定",
+          },
+        ],
+      }),
+    }),
+  );
+  const loginPage = await loginContext.newPage();
+  await loginPage.goto(base);
+  await expect(
+    loginPage.getByRole("heading", { name: "登入 Hermes" }),
+  ).toBeVisible();
+  await expect(
+    loginPage.getByRole("button", { name: /Google 登入尚未完成設定/ }),
+  ).toBeDisabled();
+  await expect(
+    loginPage.getByRole("button", { name: /淡江 SSO 尚未完成設定/ }),
+  ).toBeDisabled();
+  await loginPage.screenshot({
+    path: join(output, "login-mobile.png"),
+    fullPage: true,
+  });
+  await loginContext.close();
 
   // Storage may be denied by browser policy; it must not crash the workspace.
   const restricted = await browser.newContext();

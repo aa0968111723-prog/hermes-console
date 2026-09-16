@@ -22,7 +22,7 @@ export async function verifyMobileEngines(base: string, output: string) {
         errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(base);
-      await expect(page.locator(".quick-action")).toHaveCount(4);
+      await expect(page.locator(".quick-action")).toHaveCount(6);
       for (const [width, height] of [
         [360, 800],
         [375, 812],

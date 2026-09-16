@@ -48,3 +48,6 @@
 5. Memory scope 隔離
 6. Runtime／任務 JSON 收到開發者檢視
 7. 設定頁收斂
+8. Android 鍵盤：`--app-height` 只在鍵盤開啟時跟隨 visualViewport，關閉後回到 `100dvh`
+9. 連線格：Hermes／Workspace／Atlas／Zeabur 不再把「已填密鑰」顯示成已連線
+10. 首頁快捷：手機與桌面同一組六個短標籤（研究／創作／分析／客群／靈感／設計）

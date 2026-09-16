@@ -31,6 +31,8 @@ Console 是使用者與 Hermes Agent Runtime 的主介面。它不是工具清�
 
 App shell 鎖定視窗；**唯一主捲動**在 `.conversation-scroll`（聊天）或 `.secondary-page`（其他頁）。底部 dock `position: fixed`。不要對捲動祖先做 transform，也不要用 `overflow-y: auto !important` 當修法。
 
+`--app-height` 只在 Composer 軟鍵盤開啟時綁定 `visualViewport.height`。鍵盤關閉後必須回到 CSS `100dvh`，避免 Android Chrome 把殼層留在鍵盤縮小後的高度。
+
 ## 檔案
 
 - UI：`components/HermesConsole.tsx`、`components/auth/`、`components/visual/`
