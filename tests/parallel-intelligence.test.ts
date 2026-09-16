@@ -247,6 +247,8 @@ test("research fallback, ranking, canva spec, social, router, publish", async ()
   const spec = directionToSpec(dirs[2], "notes");
   const missing = validateSpecForTemplate(spec, { OTHER: { type: "text" } });
   assert.equal(missing.ok, false);
+  assert.match(String(missing.blocked), /尚未/);
+  assert.doesNotMatch(String(missing.blocked), /Needs Canva|headline field/);
   const social = socialDrafts({
     title: "茶會",
     copy: "來坐一下認識朋友",

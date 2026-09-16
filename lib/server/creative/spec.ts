@@ -65,7 +65,7 @@ export function validateSpecForTemplate(
   return {
     ok: mapping.missing.length === 0,
     blocked: mapping.missing.includes("TITLE")
-      ? "缺 headline field，不能硬送 autofill。"
+      ? "缺標題欄位，不能直接套用範本。"
       : mapping.missing.length
         ? "欄位與範本不符。"
         : null,
