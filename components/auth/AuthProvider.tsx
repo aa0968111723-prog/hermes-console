@@ -30,6 +30,7 @@ export type AuthSnapshot = {
   membership: { role: string; workspaceId: string } | null;
   providers: { google: boolean; tamkang: boolean; email: boolean };
   sessionCount: number;
+  sessions: Array<{ expiresAt: string }>;
   refresh: () => Promise<void>;
   logout: (all?: boolean) => Promise<void>;
 };
@@ -80,6 +81,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     membership: null,
     providers: { google: false, tamkang: false, email: false },
     sessionCount: 0,
+    sessions: [],
   });
 
   const refresh = useCallback(async () => {
@@ -102,6 +104,16 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       membership: data.membership || null,
       providers: data.providers || { google: false, tamkang: false, email: false },
       sessionCount: Number(data.sessionCount) || 0,
+      sessions: Array.isArray(data.sessions)
+        ? data.sessions
+            .filter(
+              (item: { expiresAt?: string }) =>
+                typeof item?.expiresAt === "string",
+            )
+            .map((item: { expiresAt: string }) => ({
+              expiresAt: item.expiresAt,
+            }))
+        : [],
     });
   }, []);
 

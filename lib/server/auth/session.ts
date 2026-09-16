@@ -80,5 +80,8 @@ export function sessionPayload(user: AuthUser, membership: AuthMembership) {
     })),
     providers: providerStatus(user.id),
     sessionCount: listSessions(user.id).length,
+    sessions: listSessions(user.id).map((item) => ({
+      expiresAt: new Date(item.expires).toISOString(),
+    })),
   };
 }

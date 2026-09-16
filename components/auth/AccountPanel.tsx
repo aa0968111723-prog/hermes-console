@@ -110,6 +110,15 @@ export default function AccountPanel() {
         </form>
       )}
       <p className="muted">工作階段 {auth.sessionCount || 1}</p>
+      {auth.sessions.length > 0 && (
+        <ul className="account-sessions">
+          {auth.sessions.map((item) => (
+            <li key={item.expiresAt}>
+              至 {new Date(item.expiresAt).toLocaleString("zh-TW")}
+            </li>
+          ))}
+        </ul>
+      )}
       {notice && (
         <p role="alert" className={notice.startsWith("已") ? "muted" : "error"}>
           {notice}

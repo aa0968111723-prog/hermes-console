@@ -77,6 +77,10 @@ test("email argon2id register/login and workspace membership", async () => {
   assert.equal(body.google, "unconfigured");
   assert.equal(body.tamkang, "unconfigured");
   assert.equal(body.user.email, "owner@example.test");
+  assert.ok(Array.isArray(body.sessions));
+  assert.ok(body.sessions.length >= 1);
+  assert.ok(body.sessions[0].expiresAt);
+  assert.equal("digest" in body.sessions[0], false);
 
   const logoutRoute = await import("../app/api/auth/logout/route");
   const loggedOut = await logoutRoute.POST(
