@@ -50,6 +50,7 @@
 | 專案上下文 | live 契約 | 組裝上下文與 `workspace_project_context` 含專案名稱與 artifactId／revisionId；不含 preview JSON。 |
 | 靈感結果 UI | live 契約 | 對話用 keep／avoid 卡片選方向；標已保存來源，不把 JSON 或全站搜尋當成成功。 |
 | 圖片評論 UI | live 契約 | 讀圖結果用海報預覽＋視覺層級＋模擬修改方向；進行中任務也會掛上同一畫面。 |
+| 創作方向／成果 | live 契約 | 對話可選三個方向並顯示 Canva 成果預覽；不把 workflow JSON 丟給使用者。 |
 | 輸入列 | live | `Composer` 從 `HermesConsole` 拆出；IME／鍵盤／龜龜 compact 狀態仍接同一 refs。 |
 | 記憶時效 | live 契約 | `confidence * recencyScore(updatedAt)`；超過 30 天降至 0.3 倍，不永遠沿用舊偏好。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
