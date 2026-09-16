@@ -138,9 +138,11 @@ try {
       }
     ).__hermesSpeech;
     current?.onresult?.({
+      resultIndex: 0,
       results: [{ isFinal: true, 0: { transcript: "我想辦茶會" } }],
     });
     current?.onresult?.({
+      resultIndex: 1,
       results: [
         { isFinal: true, 0: { transcript: "我想辦茶會" } },
         { isFinal: true, 0: { transcript: "再幫我看場佈" } },

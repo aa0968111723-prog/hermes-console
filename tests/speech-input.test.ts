@@ -138,6 +138,7 @@ test("speech stays continuous across pauses until the session ends", () => {
         results: [{ isFinal: true, 0: { transcript: "我想辦茶會" } }],
       });
       this.onresult?.({
+        resultIndex: 1,
         results: [
           { isFinal: true, 0: { transcript: "我想辦茶會" } },
           { isFinal: true, 0: { transcript: "再幫我看場佈" } },

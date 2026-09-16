@@ -11,6 +11,7 @@ export type SpeechRecognitionLike = {
 };
 
 export type SpeechResultEvent = {
+  resultIndex?: number;
   results: ArrayLike<{
     isFinal: boolean;
     0: { transcript: string };
@@ -66,10 +67,17 @@ export function createSpeechSession(options: {
   // Android Chrome / zh-TW ends a non-continuous session at the first pause.
   rec.continuous = true;
   rec.onresult = (event) => {
-    const last = event.results[event.results.length - 1];
-    if (!last?.isFinal) return;
-    const text = last[0]?.transcript || "";
-    if (text.trim()) options.onFinal(text);
+    const results = event.results;
+    const start =
+      typeof event.resultIndex === "number"
+        ? event.resultIndex
+        : Math.max(0, results.length - 1);
+    for (let i = start; i < results.length; i++) {
+      const item = results[i];
+      if (!item?.isFinal) continue;
+      const text = item[0]?.transcript || "";
+      if (text.trim()) options.onFinal(text);
+    }
   };
   rec.onerror = (event) => {
     options.onError?.(event?.error);

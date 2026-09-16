@@ -49,7 +49,9 @@ export default function ComposerVoiceButton({
     const next = createSpeechSession({
       onFinal: (text) => {
         heardRef.current = true;
-        onChange(appendTranscript(valueRef.current, text));
+        const next = appendTranscript(valueRef.current, text);
+        valueRef.current = next;
+        onChange(next);
       },
       onError: (code) => {
         if (code === "no-speech" && heardRef.current) return;
