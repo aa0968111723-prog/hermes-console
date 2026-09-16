@@ -49,11 +49,16 @@ export async function verifyVisualStates(
   await page.getByRole("tab", { name: "連線", exact: true }).click();
   await expect(page.getByRole("group", { name: "選擇連線" })).toBeVisible();
   await expect(page.locator(".connection-editor")).toBeHidden();
+  const picker = page.getByRole("group", { name: "選擇連線" });
+  await expect(picker.locator(".connection-state i")).toHaveCount(12);
+  assert.doesNotMatch(
+    await picker.innerText(),
+    /未設定|已驗證|部分可用|待授權|已連線/,
+  );
   await page.screenshot({
     path: join(output, "settings-connections-mobile.png"),
   });
   await audit("connections-mobile");
-  const picker = page.getByRole("group", { name: "選擇連線" });
   for (const name of [
     "GALLEY",
     "淡江",
@@ -71,6 +76,20 @@ export async function verifyVisualStates(
       page.locator(".connection-editor section:visible"),
     ).toHaveCount(1);
   }
+  await picker.getByRole("button", { name: /^GALLEY：/ }).click();
+  await expect(page.locator(".connection-editor section:visible")).toContainText(
+    "進階說明",
+  );
+  await expect(page.locator(".connection-editor")).not.toContainText(
+    "galley_research",
+  );
+  await picker.getByRole("button", { name: /^淡江：/ }).click();
+  await expect(page.locator(".connection-editor section:visible")).toContainText(
+    "不是淡江 SSO",
+  );
+  await expect(
+    page.locator(".connection-editor section:visible").getByLabel("MCP 密碼"),
+  ).toBeHidden();
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
     path: join(output, "settings-connections-desktop.png"),

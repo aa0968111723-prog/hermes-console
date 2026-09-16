@@ -368,6 +368,23 @@ try {
   await expect(
     page.getByRole("tab", { name: "帳號", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  const accountPanel = page.getByRole("tabpanel", { name: "帳號" });
+  await expect(accountPanel.getByText("目前這台")).toBeVisible();
+  await expect(accountPanel.getByText("Google 登入尚未完成設定")).toBeVisible();
+  await expect(accountPanel.getByText("淡江 SSO 尚未完成設定")).toBeVisible();
+  await expect(accountPanel.getByRole("button", { name: "登出", exact: true })).toBeVisible();
+  await expect(accountPanel.getByRole("button", { name: "結束其他工作階段" })).toHaveCount(0);
+  assert.doesNotMatch(await accountPanel.innerText(), /[a-f0-9]{64}/);
+  await page.screenshot({
+    path: join(output, "settings-account.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({
+    path: join(output, "settings-account-mobile.png"),
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("tab", { name: "外觀", exact: true }).click();
   await audit("settings-appearance");
   await page.screenshot({

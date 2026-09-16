@@ -388,5 +388,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.doesNotMatch(ui, /tku-exchanged-token/);
     assert.doesNotMatch(ui, />帳號</);
     assert.doesNotMatch(ui, />登入</);
+    assert.doesNotMatch(ui, /galley_research|lumen_utter|planform_run_agent/);
+    assert.doesNotMatch(ui, /淡江密碼/);
+    assert.match(ui, /不是淡江 SSO/);
   });
 });
