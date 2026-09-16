@@ -118,6 +118,7 @@
 73. 口語送出後不把焦點搶回 composer，避免 Android 鍵盤蓋住方向卡。任務 POST 一落地就解除 `busy`，選方向不會在 refresh 期間被忽略
 74. 選方向規格來自 `POST /api/inspiration`（`readSelectedDirectionWorkflow` + 本地 `upsertWorkflow`），不等待、也不被空的或失敗的 `GET /api/workflows` 蓋掉（`mergeWorkflows` 保留已有 `directionBrief`）
 75. 出圖／改暖規格來自任務 POST 的 `workspace_continue_direction_spec`／`workspace_revise_direction_spec` 事件（`applyDirectionBriefFromTask`），立刻更新對話尾端規格。後續較舊的 GET 不得把較高 `revision` 蓋回 V1。規格已存在時，失敗 refresh 不得用「工作區讀取失敗」取代「Hermes 尚未連線，沒有出圖」
+76. 任務頁「任務與成果」預覽跟對話規格同一 `revision`。select POST 寫在 `workflow.design` 的 V1 不得在改暖／出圖後把舞台留在舊稿；`workflowPreviewDesign` 與 `withPreferredSpec` 讓 deck 跟 `directionBrief` 走較新的 pack
 
 ## 口語主路徑（契約，非正式真機）
 
@@ -128,7 +129,7 @@
 3. 方向卡可點；選方向 A 後「已選方向規格」來自 POST，即使 workflows GET 500 仍可見，且不出現「工作區讀取失敗」蓋掉「沒有出圖」
 4. 同一對話口說「今天社博在哪」→「社團資料」卡（不是即時）
 5. 「幫我出圖」接續同一件 V1，標未出圖，不重開靈感
-6. 「顏色改暖一點」同一件 V2（配色偏暖、未出圖），composer 不掛「過程完成」
+6. 「顏色改暖一點」同一件 V2（配色偏暖、未出圖），composer 不掛「過程完成」。任務頁預覽不得停在 V1 `design`
 
 ## 本輪不宣稱
 

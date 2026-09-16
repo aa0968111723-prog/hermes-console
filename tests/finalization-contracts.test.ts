@@ -480,6 +480,7 @@ test("finalization audit tracks HEAD spoken POST-spec path and keeps ops docs", 
   assert.match(audit, /cursor\/workspace-load-keep-chat-cf7e/);
   assert.match(audit, /readSelectedDirectionWorkflow/);
   assert.match(audit, /applyDirectionBriefFromTask/);
+  assert.match(audit, /workflowPreviewDesign/);
   assert.match(audit, /說完了，請按送出/);
   assert.match(audit, /實體 Android Chrome/);
   assert.match(audit, /#106／#107 保持關閉/);
@@ -508,4 +509,5 @@ test("finalization audit tracks HEAD spoken POST-spec path and keeps ops docs", 
   );
   assert.match(checklist, /說完了，請按送出/);
   assert.match(checklist, /GET \/api\/workflows/);
+  assert.match(checklist, /同一 revision/);
 });
