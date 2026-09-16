@@ -37,6 +37,14 @@ export const directionsInput = z
     directions: z.array(direction).min(3).max(5),
   })
   .strict();
+export type ArtifactRevision = {
+  revisionId: string;
+  revision: number;
+  design: Record<string, unknown>;
+  createdAt: string;
+  source: "canva";
+};
+
 export interface Workflow {
   id: string;
   projectId: string;
@@ -57,6 +65,84 @@ export interface Workflow {
   canvaJobId: string | null;
   design: Record<string, unknown> | null;
   error: string | null;
+  /** Stable Console id; same as workflow id. */
+  artifactId?: string;
+  /** Present when this row is a fork of another artifact. */
+  parentArtifactId?: string;
+  revisions?: ArtifactRevision[];
+  activeRevision?: number | null;
+}
+
+export function designHasContent(design: Record<string, unknown> | null) {
+  if (!design) return false;
+  const thumbnail = design.thumbnail as { url?: unknown } | undefined;
+  const urls = design.urls as { edit_url?: unknown; view_url?: unknown } | undefined;
+  return Boolean(
+    (typeof design.id === "string" && design.id.trim()) ||
+      (typeof design.url === "string" && design.url.trim()) ||
+      (typeof thumbnail?.url === "string" && thumbnail.url.trim()) ||
+      (typeof urls?.edit_url === "string" && urls.edit_url.trim()) ||
+      (typeof urls?.view_url === "string" && urls.view_url.trim()),
+  );
+}
+
+export function normalizeWorkflow(record: Workflow): Workflow {
+  const revisions =
+    record.revisions?.length
+      ? record.revisions
+      : record.design && designHasContent(record.design)
+        ? [
+            {
+              revisionId: record.id,
+              revision: 1,
+              design: record.design,
+              createdAt: record.updatedAt || record.createdAt,
+              source: "canva" as const,
+            },
+          ]
+        : [];
+  return {
+    ...record,
+    artifactId: record.artifactId || record.id,
+    revisions,
+    activeRevision:
+      record.activeRevision ?? revisions.at(-1)?.revision ?? null,
+  };
+}
+
+export function applySuccessfulDesign(
+  record: Workflow,
+  design: Record<string, unknown>,
+): Workflow {
+  const snapshot = JSON.parse(redact(JSON.stringify(design))) as Record<
+    string,
+    unknown
+  >;
+  const current = normalizeWorkflow(record);
+  const last = current.revisions?.at(-1);
+  const same = last && JSON.stringify(last.design) === JSON.stringify(snapshot);
+  const revisions = same
+    ? current.revisions || []
+    : [
+        ...(current.revisions || []),
+        {
+          revisionId: randomUUID(),
+          revision: (last?.revision || 0) + 1,
+          design: snapshot,
+          createdAt: new Date().toISOString(),
+          source: "canva" as const,
+        },
+      ];
+  const active = revisions.at(-1);
+  return {
+    ...current,
+    design: snapshot,
+    revisions,
+    activeRevision: active?.revision ?? null,
+    state: "draft_ready",
+    error: null,
+    updatedAt: new Date().toISOString(),
+  };
 }
 export function saveDirections(
   owner: string,
@@ -89,6 +175,9 @@ export function saveDirections(
     canvaJobId: null,
     design: null,
     error: null,
+    artifactId: id,
+    revisions: [],
+    activeRevision: null,
   };
   return put("workflow", owner, record);
 }
@@ -96,7 +185,7 @@ export function workflow(owner: string, id: string) {
   const record = get<Workflow>("workflow", owner, id);
   if (!record)
     throw new ApiError(404, "workflow_not_found", "找不到創作流程。");
-  return record;
+  return normalizeWorkflow(record);
 }
 export function chooseDirection(owner: string, id: string, selected: number) {
   return transaction(() => {
@@ -238,8 +327,19 @@ export async function pollDraft(owner: string, id: string) {
     | { status?: string; result?: { design?: Record<string, unknown> } }
     | undefined;
   if (job?.status === "success" && job.result?.design) {
-    record.design = JSON.parse(redact(JSON.stringify(job.result.design)));
-    record.state = "draft_ready";
+    if (!designHasContent(job.result.design)) {
+      record.state = "failed";
+      record.error = "Canva 回報成功但沒有可用設計內容。";
+    } else {
+      return put(
+        "workflow",
+        owner,
+        applySuccessfulDesign(record, job.result.design),
+      );
+    }
+  } else if (job?.status === "success") {
+    record.state = "failed";
+    record.error = "Canva 回報成功但沒有可用設計內容。";
   } else if (job?.status === "failed") {
     record.state = "failed";
     record.error = "Canva 回報製作失敗。";
@@ -247,6 +347,63 @@ export async function pollDraft(owner: string, id: string) {
   record.updatedAt = new Date().toISOString();
   return put("workflow", owner, record);
 }
+export function restoreArtifact(
+  owner: string,
+  id: string,
+  revision: number,
+) {
+  return transaction(() => {
+    const record = workflow(owner, id);
+    const found = (record.revisions || []).find((item) => item.revision === revision);
+    if (!found)
+      throw new ApiError(404, "revision_not_found", "找不到這個作品版本。");
+    return put("workflow", owner, {
+      ...record,
+      design: found.design,
+      activeRevision: found.revision,
+      updatedAt: new Date().toISOString(),
+    } satisfies Workflow);
+  });
+}
+export function forkArtifact(owner: string, id: string, revision?: number) {
+  const record = workflow(owner, id);
+  const source =
+    revision != null
+      ? (record.revisions || []).find((item) => item.revision === revision)
+      : (record.revisions || []).find(
+          (item) => item.revision === record.activeRevision,
+        ) || record.revisions?.at(-1);
+  if (!source?.design || !designHasContent(source.design))
+    throw new ApiError(409, "design_required", "還沒有可分叉的作品。");
+  const forkId = hash(
+    JSON.stringify({ forkOf: record.id, revision: source.revision }),
+  );
+  const existing = get<Workflow>("workflow", owner, forkId);
+  if (existing) return normalizeWorkflow(existing);
+  const now = new Date().toISOString();
+  const snapshot: ArtifactRevision = {
+    revisionId: randomUUID(),
+    revision: 1,
+    design: source.design,
+    createdAt: now,
+    source: "canva",
+  };
+  return put("workflow", owner, {
+    ...record,
+    id: forkId,
+    artifactId: forkId,
+    parentArtifactId: record.id,
+    canvaJobId: null,
+    state: "ready",
+    selected: record.selected,
+    design: source.design,
+    revisions: [snapshot],
+    activeRevision: 1,
+    error: null,
+    createdAt: now,
+    updatedAt: now,
+  } satisfies Workflow);
+}
 export function listWorkflows(owner: string) {
-  return list<Workflow>("workflow", owner);
+  return list<Workflow>("workflow", owner).map(normalizeWorkflow);
 }

@@ -1681,7 +1681,40 @@ export default function HermesConsole() {
         ) : (
           <section className="secondary-page">
             <h1>任務</h1>
-            <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} />
+            <ArtifactDeck
+              items={workflows.filter((w) => w.projectId === project)}
+              onContinue={(id) => {
+                setNav("chat");
+                setText(
+                  "請查回創作流程 " +
+                    id +
+                    " 的現有設計，接續修改同一作品，不要另建無關作品。",
+                );
+              }}
+              onRestore={async (id, revision) => {
+                try {
+                  await api("workflows", "PATCH", {
+                    id,
+                    restoreRevision: revision,
+                  });
+                  await refresh();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+              onFork={async (id, revision) => {
+                try {
+                  await api("workflows", "PATCH", {
+                    id,
+                    fork: true,
+                    forkRevision: revision,
+                  });
+                  await refresh();
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              }}
+            />
             {workflows
               .filter((w) => w.projectId === project)
               .map((w) => (

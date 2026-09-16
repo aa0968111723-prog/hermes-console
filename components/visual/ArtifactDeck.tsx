@@ -6,9 +6,13 @@ import ArtifactStage from "./ArtifactStage";
 export default function ArtifactDeck({
   items,
   onContinue,
+  onRestore,
+  onFork,
 }: {
   items: Workflow[];
   onContinue: (id: string) => void;
+  onRestore?: (id: string, revision: number) => void;
+  onFork?: (id: string, revision: number) => void;
 }) {
   const rail = useRef<HTMLDivElement>(null),
     designs = items.filter((w) => !!w.design);
@@ -50,7 +54,13 @@ export default function ArtifactDeck({
           <ArtifactStage
             key={w.id}
             design={w.design!}
+            revisions={w.revisions}
+            activeRevision={w.activeRevision}
             onContinue={() => onContinue(w.id)}
+            onRestore={
+              onRestore ? (revision) => onRestore(w.id, revision) : undefined
+            }
+            onFork={onFork ? (revision) => onFork(w.id, revision) : undefined}
           />
         ))}
       </div>
