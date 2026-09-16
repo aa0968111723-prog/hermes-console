@@ -329,8 +329,11 @@ export default function HermesConsole() {
         metrics.keyboardOpen &&
         document.documentElement.dataset.composerKeyboard !== "open";
       applyShellMetrics(document.documentElement, metrics);
-      if (keyboardJustOpened && scroll.current) {
-        scroll.current.scrollTop = scroll.current.scrollHeight;
+      if (keyboardJustOpened) {
+        if (scroll.current) {
+          scroll.current.scrollTop = scroll.current.scrollHeight;
+        }
+        viewport?.dispatchEvent(new Event("resize"));
       }
     };
     const schedule = () => {

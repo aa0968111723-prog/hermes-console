@@ -10,7 +10,11 @@ import {
 } from "react";
 import { ArrowUp, ChevronDown, RefreshCw, Square } from "lucide-react";
 import type { Material, Task } from "@/lib/contracts";
-import { composerHeightLimit } from "@/lib/client/viewport";
+import {
+  composerHeightLimit,
+  detectComposerKeyboard,
+  readViewportFrame,
+} from "@/lib/client/viewport";
 import { taskLabels } from "@/lib/client/workspace-ui";
 import Turtle from "../Turtle";
 import ComposerMenu from "../visual/ComposerMenu";
@@ -88,21 +92,26 @@ export default function Composer({
     if (!textarea) return;
     const resize = () => {
       textarea.style.height = "auto";
-      const keyboardOpen =
-        document.documentElement.dataset.composerKeyboard === "open";
-      const limit = composerHeightLimit(
-        keyboardOpen,
-        window.visualViewport?.height || window.innerHeight,
-      );
+      const frame = readViewportFrame(window.visualViewport, window);
+      const keyboardOpen = detectComposerKeyboard({
+        composerFocused: document.activeElement === textarea,
+        widthChanged: false,
+        frame,
+        baselineHeight: frame.innerHeight,
+      });
+      const limit = composerHeightLimit(keyboardOpen, frame.height);
       textarea.style.height = Math.min(textarea.scrollHeight, limit) + "px";
       textarea.style.overflowY =
         textarea.scrollHeight > limit ? "auto" : "hidden";
-      if (
+      const revealEnd =
         document.activeElement === textarea &&
-        textarea.selectionEnd >= textarea.value.length
-      ) {
+        (keyboardOpen || textarea.selectionEnd >= textarea.value.length);
+      if (!revealEnd) return;
+      const pin = () => {
         textarea.scrollTop = textarea.scrollHeight;
-      }
+      };
+      pin();
+      requestAnimationFrame(pin);
     };
     resize();
     let previousWidth = textarea.parentElement?.clientWidth;
