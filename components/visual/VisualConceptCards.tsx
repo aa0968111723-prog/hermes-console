@@ -175,7 +175,7 @@ export default function VisualConceptCards({
       <header className="visual-concept-meta">
         <p className="visual-concept-title">{pack.title}</p>
         <p className="visual-concept-format">
-          {pack.format.label}
+          {pack.format.label}{" "}
           <span>
             {pack.format.width}×{pack.format.height}
           </span>

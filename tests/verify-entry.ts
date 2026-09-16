@@ -169,11 +169,12 @@ try {
   });
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   await expect(page.getByRole("heading", { name: "連線", exact: true })).toBeVisible();
-  await expect(page.locator(".runtime-human-summary")).toContainText("Hermes");
-  await expect(page.locator(".runtime-human-summary")).toContainText("MCP");
-  await expect(page.locator(".runtime-human-summary")).toContainText("未驗證");
-  await expect(page.locator(".runtime-human-summary")).toContainText("未設定");
+  await expect(page.locator(".runtime-human-summary")).toContainText("Hermes 未驗證");
+  await expect(page.locator(".runtime-human-summary")).toContainText("記憶 未設定");
+  await expect(page.locator(".runtime-human-summary")).toContainText("MCP 未設定");
+  await expect(page.locator(".runtime-human-summary")).not.toContainText("過期");
   await expect(page.locator(".runtime-advanced > summary")).toBeVisible();
+  await expect(page.locator(".runtime-inspector > .orbit-layout")).toHaveCount(0);
   await page.screenshot({
     path: join(output, "agent-status-dots-mobile.png"),
   });

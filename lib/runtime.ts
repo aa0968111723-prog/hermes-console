@@ -7,7 +7,8 @@ export type RuntimeStatus =
   | "partial"
   | "unsupported"
   | "failed"
-  | "stale";
+  | "stale"
+  | "unconfigured";
 
 export type ToolPermission =
   | "read"

@@ -105,3 +105,4 @@
 20. 本地索引回覆不顯示「執行紀錄」。專案頁可上傳素材（不自動掛到下一則對話）、預覽、關閉後仍能繼續滑；Chromium `showModal()` 的 inline overflow 會清掉。補 768×1024。
 21. 切回對話會清掉「素材已保存」提示；本地索引任務不顯示 Composer「完成」pill。Hermes 未連線時，附圖看圖走本地誠實回覆，不再被 `images_unverified` 409 擋成紅條。`verify-entry` 模擬 visualViewport 鍵盤與離線／重連；實體 Android 與 Zeabur 仍 Partial。
 22. 手機頂欄可開新對話。「幫我做一張淡江新生茶會宣傳」走同一套視覺卡，不假裝 Canva。Agent 頁只顯示 Hermes／記憶／工具／MCP 點；工具清單在進階。
+23. 未設定 Hermes／MCP 顯示「未設定」，不再把從未連線標成記憶過期或 MCP 未知。連線圖收到進階。

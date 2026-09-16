@@ -18,9 +18,10 @@ const labels: Record<string, string> = {
   partial: "部分可用",
   unsupported: "不支援",
   unknown: "未知",
-  stale: "過期",
+  stale: "待重新驗證",
   failed: "失敗",
   syncing: "同步中",
+  unconfigured: "未設定",
 };
 const statusLabel = (value: string) => labels[value] || value;
 
@@ -242,7 +243,14 @@ export default function RuntimeInspector({
         ? "partial"
         : mcpServers.some((server) => server.status === "failed")
           ? "failed"
-          : "unknown";
+          : mcpServers.every(
+              (server) =>
+                !server.enabled || server.status === "unconfigured",
+            )
+            ? "unconfigured"
+            : mcpServers.some((server) => server.status === "stale")
+              ? "stale"
+              : "unknown";
   const mcpLabel =
     mcpState === "unconfigured"
       ? "未設定"
@@ -297,7 +305,7 @@ export default function RuntimeInspector({
             }
             aria-hidden="true"
           />
-          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
+          記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未設定"}
         </span>
         <span>
           <i
@@ -305,7 +313,7 @@ export default function RuntimeInspector({
             aria-hidden="true"
           />
           工具{" "}
-          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未知"}
+          {snapshot ? `${availableTools}/${snapshot.tools.length}` : "未設定"}
         </span>
         <span>
           <i
@@ -324,14 +332,14 @@ export default function RuntimeInspector({
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />
         )}
       </div>
-      <AgentOrbit
-        snapshot={snapshot}
-        task={task}
-        stale={stale}
-        animation={animation}
-      />
       <details className="runtime-advanced">
         <summary>進階</summary>
+        <AgentOrbit
+          snapshot={snapshot}
+          task={task}
+          stale={stale}
+          animation={animation}
+        />
         {snapshot && (
           <>
             <label>

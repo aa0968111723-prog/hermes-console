@@ -169,7 +169,7 @@ export function runtimeDiff(
   };
 }
 function mcpStatus(entry: McpEntry): RuntimeStatus {
-  if (!entry.enabled) return "unknown";
+  if (!entry.enabled || entry.status === "unconfigured") return "unconfigured";
   if (entry.status === "failed") return "failed";
   if (entry.status === "verified") return "available";
   if (entry.status === "partial" || entry.status === "connected") return "partial";
@@ -354,13 +354,21 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
   const capabilities = online
     ? connection!.features
     : before?.capabilities || {};
+  const neverReached =
+    !connection ||
+    connection.status === "unconfigured" ||
+    connection.credential === "missing";
   const capability = (key: string): RuntimeStatus =>
-    !online
-      ? "stale"
-      : capabilities[key] === true
+    online
+      ? capabilities[key] === true
         ? "available"
         : capabilities[key] === false
           ? "unsupported"
+          : "unknown"
+      : before
+        ? "stale"
+        : neverReached
+          ? "unconfigured"
           : "unknown";
   const skills =
     !online || connection?.discovery?.skills === "failed"
@@ -434,7 +442,9 @@ async function discover(owner: string): Promise<HermesRuntimeSnapshot> {
       !online && before
         ? "stale"
         : !online
-          ? "unknown"
+          ? neverReached
+            ? "unconfigured"
+            : "unknown"
           : errors.length
             ? "partial"
             : connection!.status === "available"
