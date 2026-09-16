@@ -292,14 +292,9 @@ try {
     (await directionRail.evaluate((el) => el.scrollWidth - el.clientWidth)) > 40,
     "360px direction rail must overflow so C is reachable",
   );
-  await directionRail.evaluate((el) => {
-    el.scrollLeft = el.scrollWidth;
-  });
-  await expect(page.getByRole("button", { name: /選方向 C/ })).toBeInViewport();
-  await directionRail.evaluate((el) => {
-    el.scrollLeft = 0;
-  });
-  await expect(page.getByRole("button", { name: /選方向 A/ })).toBeInViewport();
+  await expect(
+    page.getByRole("button", { name: "回到最新訊息" }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "查看目前任務：完成", exact: true }),
   ).toHaveCount(0);
@@ -314,6 +309,17 @@ try {
   await page.screenshot({
     path: join(output, "chat-inspiration-mobile.png"),
   });
+  await directionRail.evaluate((el) => {
+    el.scrollLeft = el.scrollWidth;
+  });
+  await expect(page.getByRole("button", { name: /選方向 C/ })).toBeInViewport();
+  await expect(
+    page.getByRole("button", { name: "回到最新訊息" }),
+  ).toHaveCount(0);
+  await directionRail.evaluate((el) => {
+    el.scrollLeft = 0;
+  });
+  await expect(page.getByRole("button", { name: /選方向 A/ })).toBeInViewport();
   await page.getByRole("button", { name: /選方向 A/ }).click();
   await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible({
     timeout: 15_000,
