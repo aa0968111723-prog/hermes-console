@@ -2017,6 +2017,14 @@ summary .badge {
   gap: 4px;
   margin-top: 12px;
 }
+.login-alt .text-button {
+  min-height: 44px;
+}
+.login-mail-hint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #5c6b52;
+}
 .account-card {
   display: flex;
   gap: 12px;

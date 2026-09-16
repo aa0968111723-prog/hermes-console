@@ -164,4 +164,21 @@ test("magic link and password reset are single-use and do not enumerate mail", a
   assert.equal(unknown.status, 202);
   assert.equal(known.status, 202);
   assert.equal((await unknown.json()).message, (await known.json()).message);
+
+  const forgotUnknown = await emailRoute.POST(
+    request("auth/email", "POST", {
+      action: "forgot",
+      email: "nobody@example.test",
+    }),
+  );
+  const forgotKnown = await emailRoute.POST(
+    request("auth/email", "POST", {
+      action: "forgot",
+      email: "token@example.test",
+    }),
+  );
+  const forgotUnknownBody = await forgotUnknown.json();
+  const forgotKnownBody = await forgotKnown.json();
+  assert.equal(forgotUnknownBody.message, forgotKnownBody.message);
+  assert.match(forgotKnownBody.message, /寄信已設定|重設/);
 });

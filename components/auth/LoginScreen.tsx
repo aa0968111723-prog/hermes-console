@@ -168,7 +168,7 @@ export default function LoginScreen() {
               : mode === "create"
                 ? "建立帳號"
                 : mode === "magic"
-                  ? "寄送登入連結"
+                  ? "寄送一次性連結"
                   : mode === "reset"
                     ? "重設密碼"
                     : "進入工作區"}
@@ -183,23 +183,22 @@ export default function LoginScreen() {
             >
               {mode === "create" ? "已有帳號" : "建立電子信箱帳號"}
             </button>
-            {auth.magicLink === "available" && (
-              <>
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => setMode(mode === "magic" ? "enter" : "magic")}
-                >
-                  {mode === "magic" ? "改用密碼" : "Magic Link"}
-                </button>
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => void forgot()}
-                >
-                  忘記密碼
-                </button>
-              </>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setMode(mode === "magic" ? "enter" : "magic")}
+            >
+              {mode === "magic" ? "改用密碼" : "Magic Link"}
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => void forgot()}
+            >
+              忘記密碼
+            </button>
+            {auth.magicLink !== "available" && (
+              <p className="login-mail-hint">寄信尚未完成設定</p>
             )}
           </div>
         )}

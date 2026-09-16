@@ -62,6 +62,9 @@ try {
   await page.goto(base);
   await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "淡江 SSO 尚未完成設定" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Magic Link" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "忘記密碼" })).toBeVisible();
+  await expect(page.getByText("寄信尚未完成設定")).toBeVisible();
   await signInEmail(page);
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
