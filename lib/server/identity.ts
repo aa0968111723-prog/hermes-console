@@ -441,7 +441,7 @@ export function loginEmail(input: { email: string; password: string }) {
   const user = identity ? get<User>("user", SCOPE, identity.userId) : null;
   if (!user?.passwordHash || !verifyPasswordHash(input.password, user.passwordHash))
     throw new ApiError(401, "invalid_login", "帳號或密碼不正確。");
-  if (!user.emailVerified)
+  if (!identity.emailVerified)
     throw new ApiError(403, "unverified_email", "請先完成電子信箱驗證。");
   ensureMembership(user.id, "member");
   return issueSession(user.id);
