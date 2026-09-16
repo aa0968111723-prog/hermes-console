@@ -1215,6 +1215,22 @@ nav button[aria-current="page"] {
   padding: 0;
   border-radius: 12px;
 }
+.send-button.send-ready {
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .send-button.send-ready {
+    animation: send-ready-pulse 1.2s ease-out 2;
+  }
+}
+@keyframes send-ready-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-primary);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
 .composer-footnote {
   max-width: var(--reading-width);
   margin: 10px auto 0;

@@ -169,10 +169,11 @@ test("runtime inspector hides schemas until developer view", async () => {
     "utf8",
   );
   assert.match(ui, /開發者檢視/);
-  assert.match(ui, /developer && \(/);
+  assert.match(ui, /allowDeveloper/);
+  assert.match(ui, /inspect && snapshot/);
   assert.match(ui, /Hermes/);
   assert.match(ui, /StatusPill/);
-  assert.match(ui, /developer=\{developer\}/);
+  assert.match(ui, /developer=\{inspect\}/);
 });
 
 test("artifact stage compare is side-by-side preview, not a pixel diff", async () => {
@@ -235,6 +236,10 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, /CONTINUE_SAME_WORK_PROMPT/);
   assert.doesNotMatch(actions, /若未授權/);
   assert.doesNotMatch(actions, /Canva/);
+  assert.match(consoleUi, /allowDeveloper=\{runtimeOps\}/);
+  assert.match(consoleUi, /顯示維運檢視/);
+  assert.match(consoleUi, /說完了，請按送出/);
+  assert.doesNotMatch(consoleUi, /setInspectDeveloper\(\(value\) => !value\)/);
   const pill = consoleUi.slice(
     consoleUi.indexOf('className="connection-pill"'),
     consoleUi.indexOf('className="icon-button"', consoleUi.indexOf('connection-pill')),

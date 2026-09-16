@@ -487,6 +487,9 @@ try {
   ).not.toContainText("/");
   await expect(page.getByText("Agent OS")).toHaveCount(0);
   await expect(
+    page.getByRole("button", { name: "開發者檢視", exact: true }),
+  ).toHaveCount(0);
+  await expect(
     page.getByRole("button", { name: "重新同步", exact: true }),
   ).toBeEnabled();
   await page.screenshot({
@@ -500,6 +503,10 @@ try {
     path: join(output, "runtime-desktop.png"),
     fullPage: true,
   });
+  await page.getByRole("button", { name: "外觀設定", exact: true }).click();
+  await page.getByRole("tab", { name: "進階", exact: true }).click();
+  await page.getByRole("checkbox", { name: /顯示維運檢視/ }).check();
+  await page.getByRole("button", { name: "關閉面板", exact: true }).click();
   await page.getByRole("button", { name: "開發者檢視", exact: true }).click();
   const advancedRuntime = page.locator(".runtime-advanced > summary");
   await expect(advancedRuntime).toBeVisible();

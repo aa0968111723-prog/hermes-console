@@ -228,6 +228,8 @@ export default function HermesConsole() {
     null,
   );
   const [inspectDeveloper, setInspectDeveloper] = useState(false);
+  const [runtimeOps, setRuntimeOps] = useState(false);
+  const [voiceReady, setVoiceReady] = useState(false);
   const [settingsTab, setSettingsTab] = useState("外觀");
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
   const [preview, setPreview] = useState<Material | null>(null);
@@ -671,6 +673,7 @@ export default function HermesConsole() {
     const refs = attachmentIds ? [] : references;
     sending.current = true;
     setBusy(true);
+    setVoiceReady(false);
     setError("");
     nearBottom.current = true;
     try {
@@ -849,6 +852,7 @@ export default function HermesConsole() {
   }
   function closePanel() {
     setPanel(null);
+    setInspectDeveloper(false);
   }
   function onComposerTaskPillClick(task: Task) {
     // Offline: refresh only — never open-resend or acknowledge.
@@ -1658,6 +1662,7 @@ export default function HermesConsole() {
                         setText(next);
                         input.current?.focus();
                       }}
+                      onReady={() => setVoiceReady(true)}
                     />
                     <ComposerMenu
                       disabled={busy}
@@ -1698,7 +1703,9 @@ export default function HermesConsole() {
                       </button>
                     ) : (
                       <button
-                        className="send-button"
+                        className={
+                          "send-button" + (voiceReady ? " send-ready" : "")
+                        }
                         type="submit"
                         aria-label="送出訊息"
                         disabled={
@@ -1719,6 +1726,9 @@ export default function HermesConsole() {
                   ? "草稿暫存於此分頁，重新整理將清除。"
                   : "請核對重要資訊與素材權利。"}
                 <span>Enter 送出 · Shift + Enter 換行</span>
+              </p>
+              <p className="sr-only" aria-live="polite">
+                {voiceReady ? "說完了，請按送出" : ""}
               </p>
             </div>
           </>
@@ -1929,6 +1939,7 @@ export default function HermesConsole() {
               task={currentTask}
               health={health}
               animation={prefs.animation}
+              allowDeveloper={runtimeOps}
             />
           </section>
         ) : (
@@ -2555,6 +2566,17 @@ export default function HermesConsole() {
                   </div>
                 ) : (
                   <div className="settings-stack">
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={runtimeOps}
+                        onChange={(e) => setRuntimeOps(e.target.checked)}
+                      />
+                      顯示維運檢視（工具清單與 schema）
+                    </label>
+                    <p className="muted">
+                      一般使用只看 Hermes／記憶／工具／MCP 狀態。開啟後，能力頁才會出現開發者檢視。
+                    </p>
                     <h3>使用量</h3>
                     <p>
                       僅顯示 Hermes
@@ -2749,17 +2771,17 @@ export default function HermesConsole() {
                   {shortTaskError(chosenTask.observationError)}
                 </p>
               )}
-              <button
-                aria-pressed={inspectDeveloper}
-                onClick={() => setInspectDeveloper((value) => !value)}
+              <details
+                className="task-technical"
+                onToggle={(event) =>
+                  setInspectDeveloper(
+                    (event.currentTarget as HTMLDetailsElement).open,
+                  )
+                }
               >
-                {inspectDeveloper ? "一般檢視" : "開發者檢視"}
-              </button>
-              {inspectDeveloper && (
-              <details className="task-technical">
                 <summary>
                   <Code2 size={15} aria-hidden="true" />
-                  技術資訊
+                  維運檢視
                 </summary>
                 <dl>
                   <div>
@@ -2778,7 +2800,6 @@ export default function HermesConsole() {
                   </div>
                 </dl>
               </details>
-              )}
               <TaskUsageSummary task={chosenTask} />
               {chosenTask.plan?.steps?.length ? (
                 <>

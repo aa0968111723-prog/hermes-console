@@ -113,10 +113,12 @@ export default function RuntimeInspector({
   task,
   health = null,
   animation = true,
+  allowDeveloper = false,
 }: {
   task?: Task;
   health?: Health | null;
   animation?: boolean;
+  allowDeveloper?: boolean;
 }) {
   const [snapshot, setSnapshot] = useState<HermesRuntimeSnapshot | null>(null);
   const [stale, setStale] = useState(false);
@@ -125,6 +127,10 @@ export default function RuntimeInspector({
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(100);
   const [developer, setDeveloper] = useState(false);
+  const inspect = allowDeveloper && developer;
+  useEffect(() => {
+    if (!allowDeveloper) setDeveloper(false);
+  }, [allowDeveloper]);
   const accept = useCallback((next: HermesRuntimeSnapshot) => {
     setSnapshot((previous) =>
       previous && Date.parse(previous.fetchedAt) > Date.parse(next.fetchedAt)
@@ -262,12 +268,14 @@ export default function RuntimeInspector({
             <RefreshCw size={15} />
             {busy ? "同步中…" : "重新同步"}
           </button>
-          <button
-            aria-pressed={developer}
-            onClick={() => setDeveloper((value) => !value)}
-          >
-            {developer ? "一般檢視" : "開發者檢視"}
-          </button>
+          {allowDeveloper && (
+            <button
+              aria-pressed={inspect}
+              onClick={() => setDeveloper((value) => !value)}
+            >
+              {inspect ? "一般檢視" : "開發者檢視"}
+            </button>
+          )}
           <span className={`runtime-state ${state}`}>
             <i aria-hidden="true" />
             {snapshot ? statusLabel(state) : "尚未同步"}
@@ -295,13 +303,13 @@ export default function RuntimeInspector({
                 ? "已驗證"
                 : "未驗證"
           }
-          developer={developer}
+          developer={inspect}
         />
         <StatusPill
           good={!stale && snapshot?.memorySupport === "available"}
           label="記憶"
           detail={snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
-          developer={developer}
+          developer={inspect}
         />
         <StatusPill
           good={!stale && availableTools > 0}
@@ -309,13 +317,13 @@ export default function RuntimeInspector({
           detail={
             snapshot ? availableTools + "/" + snapshot.tools.length : "未知"
           }
-          developer={developer}
+          developer={inspect}
         />
         <StatusPill
           good={!stale && mcpAvailable > 0}
           label="MCP"
           detail={snapshot ? mcpAvailable + "/" + mcpEnabled : "未知"}
-          developer={developer}
+          developer={inspect}
         />
         {!stale && snapshot?.status === "available" && (
           <Check size={16} className="runtime-check" aria-label="狀態已同步" />
@@ -326,9 +334,9 @@ export default function RuntimeInspector({
         task={task}
         stale={stale}
         animation={animation}
-        developer={developer}
+        developer={inspect}
       />
-      {developer && snapshot && (
+      {inspect && snapshot && (
         <>
           <p className="muted">
             探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
@@ -357,7 +365,7 @@ export default function RuntimeInspector({
                       key={tool.canonicalName}
                       tool={tool}
                       stale={stale}
-                      developer={developer}
+                      developer={inspect}
                     />
                   ))}
                 </ul>

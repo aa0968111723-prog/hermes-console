@@ -107,6 +107,7 @@ try {
 
   await page.locator(".connection-pill").click();
   await expect(page.getByRole("heading", { name: "能力", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
   await expect(page.getByText("Hermes 憑證")).toHaveCount(0);
   await expect(page.getByText("填寫網址與權杖")).toHaveCount(0);
   await expect(page.getByText("尚未取得工具清單")).toHaveCount(0);

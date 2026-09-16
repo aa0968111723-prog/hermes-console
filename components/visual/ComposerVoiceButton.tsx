@@ -13,11 +13,13 @@ export default function ComposerVoiceButton({
   isComposing,
   value,
   onChange,
+  onReady,
 }: {
   disabled?: boolean;
   isComposing: () => boolean;
   value: string;
   onChange: (next: string) => void;
+  onReady?: () => void;
 }) {
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
@@ -39,7 +41,10 @@ export default function ComposerVoiceButton({
     }
     if (isComposing()) return;
     const next = createSpeechSession({
-      onFinal: (text) => onChange(appendTranscript(valueRef.current, text)),
+      onFinal: (text) => {
+        onChange(appendTranscript(valueRef.current, text));
+        onReady?.();
+      },
       onEnd: () => {
         session.current = null;
         setListening(false);

@@ -116,8 +116,13 @@ try {
   await page.goto(base);
   await page.getByRole("button", { name: "Agent", exact: true }).click();
   const inspector = page.getByRole("region", { name: "Hermes Runtime 狀態" });
-  await expect(inspector.getByRole("button", { name: "開發者檢視", exact: true })).toBeVisible();
+  await expect(inspector.getByRole("button", { name: "開發者檢視", exact: true })).toHaveCount(0);
   await expect(inspector.getByText("fixture_tool_000", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "外觀設定", exact: true }).click();
+  await page.getByRole("tab", { name: "進階", exact: true }).click();
+  await page.getByRole("checkbox", { name: /顯示維運檢視/ }).check();
+  await page.getByRole("button", { name: "關閉面板", exact: true }).click();
+  await expect(inspector.getByRole("button", { name: "開發者檢視", exact: true })).toBeVisible();
   await inspector.getByRole("button", { name: "開發者檢視", exact: true }).click();
   await expect(
     inspector.getByText("fixture_tool_000", { exact: true }),
