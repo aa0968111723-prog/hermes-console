@@ -61,6 +61,14 @@ test("unconfigured Hermes returns club index facts for spoken tea lookup", async
   assert.equal(wantsWorkspaceKnowledge(interpretGoal("淡江迎新在哪")), true);
   assert.equal(wantsWorkspaceInspiration(interpretGoal("淡江迎新在哪")), false);
   assert.equal(wantsWorkspaceKnowledge(interpretGoal("我想辦迎新")), false);
+  assert.equal(wantsWorkspaceKnowledge(interpretGoal("我想擺攤")), false);
+  assert.equal(wantsWorkspaceKnowledge(interpretGoal("茶會幾點")), true);
+  assert.equal(wantsWorkspaceInspiration(interpretGoal("茶會幾點")), false);
+  assert.equal(wantsWorkspaceKnowledge(interpretGoal("擺攤在哪")), true);
+  assert.equal(
+    wantsWorkspaceKnowledge(interpretGoal("幫我研究禪學社招生靈感")),
+    false,
+  );
 
   const conversationId = conv();
   const requestKey = randomUUID();
@@ -186,6 +194,33 @@ test("spoken orientation facts stay on the Drive index, not a poster mill", asyn
     hits: Array<{ title: string; claims: Array<{ value: string }> }>;
   };
   assert.ok(pack.hits.some((hit) => /社博|攤位|入社/.test(hit.title)));
+  assert.match(task.output, /不是 Hermes Agent 執行/);
+  assert.doesNotMatch(task.output, /UNKNOWN/);
+  assert.equal(
+    task.events.some((event) => event.toolName === "workspace_search_inspiration"),
+    false,
+  );
+});
+
+test("spoken tea time questions still return the Drive index", async () => {
+  const prompt = "茶會幾點";
+  const goal = interpretGoal(prompt);
+  assert.equal(goal.intentTier, "lookup");
+  assert.equal(wantsWorkspaceInspiration(goal), false);
+  assert.equal(wantsWorkspaceKnowledge(goal), true);
+
+  const task = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: prompt,
+    attachments: [],
+  });
+  assert.equal(task.state, "completed");
+  const tool = task.events.find((event) => event.toolName === KNOWLEDGE_TOOL);
+  assert.ok(tool);
+  assert.equal(isClubKnowledgePack(tool?.result), true);
+  const pack = tool?.result as { hits: Array<{ title: string }> };
+  assert.ok(pack.hits.some((hit) => /茶會/.test(hit.title)));
   assert.match(task.output, /不是 Hermes Agent 執行/);
   assert.doesNotMatch(task.output, /UNKNOWN/);
   assert.equal(

@@ -220,6 +220,13 @@ test("spoken orientation and booth layout still return workspace inspiration", a
     wantsWorkspaceInspiration(interpretGoal("淡江迎新在哪")),
     false,
   );
+  assert.equal(wantsWorkspaceInspiration(interpretGoal("我想辦活動")), true);
+  assert.equal(wantsWorkspaceInspiration(interpretGoal("我想擺攤")), true);
+  assert.equal(wantsWorkspaceInspiration(interpretGoal("茶會幾點")), false);
+  assert.equal(
+    wantsWorkspaceInspiration(interpretGoal("幫我研究禪學社招生靈感")),
+    true,
+  );
 
   const conversationId = conv();
   const task = await submit("workspace", {
@@ -248,6 +255,40 @@ test("spoken orientation and booth layout still return workspace inspiration", a
   assert.equal(assistant?.length, 1);
   assert.equal(assistant?.[0].provenance, "workspace");
   assert.equal(get("agent", "workspace", "verified"), null);
+
+  const activity = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: "我想辦活動",
+    attachments: [],
+  });
+  assert.equal(activity.state, "completed");
+  assert.ok(
+    activity.events.some(
+      (event) => event.toolName === "workspace_search_inspiration",
+    ),
+  );
+  assert.equal(
+    activity.events.some((event) => event.toolName === "zenclub_drive_index"),
+    false,
+  );
+
+  const booth = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: "我想擺攤",
+    attachments: [],
+  });
+  assert.equal(booth.state, "completed");
+  assert.ok(
+    booth.events.some(
+      (event) => event.toolName === "workspace_search_inspiration",
+    ),
+  );
+  assert.equal(
+    booth.events.some((event) => event.toolName === "zenclub_drive_index"),
+    false,
+  );
 });
 
 test("unconfigured Hermes revises the same spec when asked to enlarge type", async () => {

@@ -109,7 +109,7 @@ export function interpretGoal(
 /** Spoken create asks still get workspace cards when Hermes is unconfigured. */
 export function wantsWorkspaceInspiration(goal: StructuredGoal): boolean {
   if (goal.directionLocked || goal.requiresImageReview) return false;
-  if (goal.intentTier === "lookup") return false;
+  if (goal.intentTier === "lookup") return goal.requiresInspiration;
   if (goal.requiresInspiration || goal.requiresDesign) return true;
   return goal.intentTier === "create" && hasCreateCue(goal.goal);
 }

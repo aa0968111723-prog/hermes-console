@@ -18,7 +18,7 @@ const LOOKUP = /研究|幫我查|查一?下|查詢|搜尋|文獻|資料來源|�
 const FACT_QUESTION = /在哪|幾點|什麼時候|何時舉辦/;
 
 const CREATE =
-  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|招新|迎新|攤位|場佈|茶會|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題|這張|哪裡可以改|視覺層級/;
+  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|招新|迎新|攤位|場佈|擺攤|茶會|我想辦|辦活動|招生|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題|這張|哪裡可以改|視覺層級/;
 
 export function hasCreateCue(input: string): boolean {
   return CREATE.test(input.trim());

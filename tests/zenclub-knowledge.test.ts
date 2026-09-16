@@ -120,6 +120,8 @@ test("knowledge routing is club-specific, not every tea party", () => {
   assert.equal(needsZenclubKnowledge("禪學社社博攤位"), true);
   assert.equal(needsZenclubKnowledge("今天社博在哪"), true);
   assert.equal(needsZenclubKnowledge("淡江迎新在哪"), true);
+  assert.equal(needsZenclubKnowledge("茶會幾點"), true);
+  assert.equal(needsZenclubKnowledge("擺攤在哪"), true);
   assert.equal(needsZenclubKnowledge("國立臺灣大學新生茶會文宣海報"), false);
   assert.equal(needsZenclubKnowledge("淡江大一新生通勤"), false);
   const goal = interpretGoal("幫我做給淡江大一新生的期初茶會 IG");
