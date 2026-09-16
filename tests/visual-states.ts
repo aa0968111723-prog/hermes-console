@@ -149,8 +149,8 @@ export async function verifyVisualStates(
       {
         id: "event-1",
         taskId: "ui-fixture-task",
-        toolCallId: "call-1",
-        toolName: "galley_research",
+        toolCallId: "call-1" as string | null,
+        toolName: "galley_research" as string | null,
         status: "running",
         startedAt: now,
         endedAt: null as string | null,
