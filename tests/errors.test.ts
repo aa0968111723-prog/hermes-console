@@ -37,7 +37,11 @@ test("student Hermes errors never name env vars or keys", () => {
   );
   assert.equal(
     studentHermesError("憑證參照無效。", "invalid_credential_ref"),
-    "Hermes 還沒連上。請到設定的連線頁。",
+    "Hermes 還沒準備好。可以先找靈感，或稍後再試。",
+  );
+  assert.doesNotMatch(
+    studentHermesError("憑證參照無效。", "invalid_credential_ref"),
+    /設定|連線頁|環境變數|金鑰/,
   );
   assert.equal(
     studentHermesError("Hermes 未產生可顯示的回應。", "empty_output"),

@@ -55,6 +55,7 @@ export default function ComposerVoiceButton({
       type="button"
       className="icon-button composer-voice"
       aria-label={listening ? "停止語音輸入" : "語音輸入"}
+      title={listening ? "說完後按送出" : "語音輸入，說完後按送出"}
       aria-pressed={listening}
       disabled={disabled}
       onClick={toggle}

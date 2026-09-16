@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { Health, DiscoveryItem, Usage } from "../contracts";
 import { EMPTY_USAGE } from "../contracts";
 import { ApiError, assertSafeServiceUrl, redact } from "./security";
-import { studentHermesError } from "./errors";
+import { STUDENT_HERMES_UNCONFIGURED, studentHermesError } from "./errors";
 import { get, probeStore, put } from "./store";
 import { credentialPresence, runtimeEnv } from "./credentials";
 import {
@@ -41,7 +41,7 @@ export function resolveAgent(agent?: HermesAgent) {
       503,
       "hermes_unconfigured",
       role === "general"
-        ? "Hermes 還沒連上。請到設定的連線頁。"
+        ? STUDENT_HERMES_UNCONFIGURED
         : "此 Agent 尚未完成連線設定。",
     );
   return { role, credentialReference, key, url };
@@ -53,7 +53,7 @@ export function target(raw?: string, key?: string) {
     throw new ApiError(
       503,
       "hermes_unconfigured",
-      "Hermes 還沒連上。請到設定的連線頁。",
+      STUDENT_HERMES_UNCONFIGURED,
     );
   const url = assertSafeServiceUrl(urlValue, "hermes");
   url.pathname = url.pathname.replace(/\/$/, "").replace(/\/v1$/, "");
@@ -300,7 +300,7 @@ function uncheckedHealth(): Health {
     status: present ? "verifying" : "unconfigured",
     message: present
       ? "尚未完成連線探測。"
-      : "Hermes 還沒連上。請到設定的連線頁。",
+      : STUDENT_HERMES_UNCONFIGURED,
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,
@@ -337,7 +337,7 @@ export function hermesConnectionStatus() {
     status: configured ? ("verifying" as const) : ("unconfigured" as const),
     message: configured
       ? "已設定 Hermes 連線，尚未完成探測。"
-      : "Hermes 還沒連上。請到設定的連線頁。",
+      : STUDENT_HERMES_UNCONFIGURED,
   };
 }
 
@@ -371,7 +371,7 @@ export async function health(
     credential: "missing",
     agent: "unverified",
     status: "unconfigured",
-    message: "Hermes 還沒連上。請到設定的連線頁。",
+    message: STUDENT_HERMES_UNCONFIGURED,
     configSource: {
       hermesUrl: credentialPresence("HERMES_API_URL").source,
       hermesKey: credentialPresence("HERMES_API_KEY").source,

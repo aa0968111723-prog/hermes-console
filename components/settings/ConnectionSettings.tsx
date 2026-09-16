@@ -442,10 +442,12 @@ export default function ConnectionSettings({
       {!canEditConnections && (
         <p className="muted">連線與權杖由工作區管理員設定。一般成員看不到也改不了密鑰。</p>
       )}
-      <div
-        className="connection-editor"
+      <details
+        className="connection-ops"
         hidden={!canEditConnections || !selected || selected === "canva"}
       >
+        <summary>填寫網址與權杖</summary>
+      <div className="connection-editor">
         <form
           onSubmit={async (event) => {
             event.preventDefault();
@@ -1319,6 +1321,7 @@ export default function ConnectionSettings({
           </div>
         </form>
       </div>
+      </details>
     </div>
   );
 }

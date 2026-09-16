@@ -235,4 +235,22 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   assert.match(consoleUi, /CONTINUE_SAME_WORK_PROMPT/);
   assert.doesNotMatch(actions, /若未授權/);
   assert.doesNotMatch(actions, /Canva/);
+  const pill = consoleUi.slice(
+    consoleUi.indexOf('className="connection-pill"'),
+    consoleUi.indexOf('className="icon-button"', consoleUi.indexOf('connection-pill')),
+  );
+  assert.match(pill, /navigate\("agents"\)/);
+  assert.doesNotMatch(pill, /setSettingsTab\("連線"\)/);
+  const errors = await readFile(
+    new URL("../lib/server/errors.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(errors, /可以先找靈感/);
+  assert.doesNotMatch(errors, /請到設定的連線頁/);
+  const orbit = await readFile(
+    new URL("../components/visual/AgentOrbit.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(orbit, /developer && chosen\.detail/);
+  assert.match(orbit, /developer && \(/);
 });

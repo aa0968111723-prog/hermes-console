@@ -107,7 +107,7 @@ export function taxonomyFor(code: string): ErrorCategory {
 }
 
 export const STUDENT_HERMES_UNCONFIGURED =
-  "Hermes 還沒連上。請到設定的連線頁。";
+  "Hermes 還沒準備好。可以先找靈感，或稍後再試。";
 export const STUDENT_HERMES_UNAVAILABLE = "現在沒辦法連到 Hermes。";
 
 const HERMES_ENGINEERING =

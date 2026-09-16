@@ -1190,8 +1190,8 @@ export default function HermesConsole() {
                   : "確認中")
             }
             onClick={() => {
-              setSettingsTab("連線");
-              setPanel("settings");
+              closePanel();
+              navigate("agents");
             }}
           >
             <span
@@ -1654,7 +1654,10 @@ export default function HermesConsole() {
                       disabled={busy || blocked}
                       isComposing={() => composing.current}
                       value={text}
-                      onChange={(next) => setText(next)}
+                      onChange={(next) => {
+                        setText(next);
+                        input.current?.focus();
+                      }}
                     />
                     <ComposerMenu
                       disabled={busy}

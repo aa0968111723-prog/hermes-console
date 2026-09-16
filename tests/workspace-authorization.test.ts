@@ -425,6 +425,6 @@ test("public health probe strips tool names and credential sources", () => {
     },
     false,
   );
-  assert.equal(leaked.message, "Hermes 還沒連上。請到設定的連線頁。");
+  assert.equal(leaked.message, "Hermes 還沒準備好。可以先找靈感，或稍後再試。");
   assert.doesNotMatch(leaked.message, /金鑰|後端|環境變數/);
 });

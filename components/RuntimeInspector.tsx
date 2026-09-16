@@ -326,6 +326,7 @@ export default function RuntimeInspector({
         task={task}
         stale={stale}
         animation={animation}
+        developer={developer}
       />
       {developer && snapshot && (
         <>
