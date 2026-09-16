@@ -37,6 +37,7 @@ export default function ContextTray({
             <MaterialCover
               material={upload.material}
               fileName={upload.file.name}
+              file={upload.file}
             />
           </button>
           <span title={upload.file.name}>
