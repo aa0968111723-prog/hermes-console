@@ -14,9 +14,10 @@ export default function LoginScreen() {
   const [busy, setBusy] = useState(false);
   const [resetToken, setResetToken] = useState("");
   const error =
-    typeof window !== "undefined"
+    auth.linkError ||
+    (typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("auth_error")
-      : "";
+      : "");
 
   useEffect(() => {
     const token = new URLSearchParams(

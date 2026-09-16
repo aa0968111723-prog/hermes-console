@@ -31,6 +31,7 @@ export type AuthSnapshot = {
   providers: { google: boolean; tamkang: boolean; email: boolean };
   sessionCount: number;
   sessions: Array<{ expiresAt: string }>;
+  linkError: string;
   refresh: () => Promise<void>;
   logout: (all?: boolean) => Promise<void>;
 };
@@ -87,6 +88,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
     providers: { google: false, tamkang: false, email: false },
     sessionCount: 0,
     sessions: [],
+    linkError: "",
   });
 
   const refresh = useCallback(async () => {
@@ -119,6 +121,7 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
               expiresAt: item.expiresAt,
             }))
         : [],
+      linkError: "",
     });
   }, []);
 
@@ -136,21 +139,36 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
   );
 
   useEffect(() => {
-    void redeemHashToken()
-      .catch((err) => {
-        if (typeof window === "undefined") return;
-        const next = new URL(window.location.href);
-        next.hash = "";
-        next.searchParams.set(
-          "auth_error",
-          err instanceof Error ? err.message : "連結無效或已過期。",
-        );
-        window.history.replaceState(null, "", next.pathname + next.search);
-      })
-      .then(() => refresh())
-      .catch(() =>
-        setSnapshot((current) => ({ ...current, loading: false, required: true })),
-      );
+    let cancelled = false;
+    void (async () => {
+      try {
+        await redeemHashToken();
+        if (!cancelled) await refresh();
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "連結無效或已過期。";
+        if (typeof window !== "undefined") {
+          const next = new URL(window.location.href);
+          next.hash = "";
+          next.searchParams.set("auth_error", message);
+          window.history.replaceState(null, "", next.pathname + next.search);
+        }
+        if (!cancelled) {
+          await refresh();
+          setSnapshot((current) => ({ ...current, linkError: message }));
+        }
+      }
+    })().catch(() => {
+      if (!cancelled)
+        setSnapshot((current) => ({
+          ...current,
+          loading: false,
+          required: true,
+        }));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [refresh]);
 
   const value = useMemo(
