@@ -112,6 +112,18 @@ test("funnel readonly UI wired to Help + Inspiration fold; no headcount/PII rend
   assert.match(help, /招生真相/);
   assert.match(board, /RecruitmentFunnelFold/);
   assert.match(board, /RecruitmentTruthNotice/);
+  const packIndex = board.indexOf("<InspirationResult");
+  const noticeIndex = board.indexOf("<RecruitmentTruthNotice");
+  const funnelIndex = board.indexOf("<RecruitmentFunnelFold");
+  assert.ok(packIndex > 0 && packIndex < noticeIndex, "direction cards come before research notice");
+  assert.ok(noticeIndex < funnelIndex);
+  const consoleUi = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(consoleUi, /className="knowledge-fold"/);
+  assert.doesNotMatch(consoleUi, /請查回創作流程 /);
+  assert.match(consoleUi, /請接續修改同一作品/);
   // Fold sits below soft notice — not a permanent main-column card body
   assert.match(card, /FUNNEL_FOLD_SUMMARY|漏斗五階/);
   assert.match(card, /funnel-readonly-fold/);

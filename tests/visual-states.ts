@@ -535,7 +535,10 @@ export async function verifyVisualStates(
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).toContainText("ui-fixture-artifact-B");
+  ).toHaveValue("請接續修改同一作品。");
+  await expect(
+    page.getByRole("textbox", { name: "訊息", exact: true }),
+  ).not.toContainText("ui-fixture-artifact-B");
   task.state = "failed";
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();

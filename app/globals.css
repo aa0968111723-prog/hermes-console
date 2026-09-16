@@ -2744,8 +2744,13 @@ button.inspiration-direction-card.selected { border-color: var(--color-primary);
 .inspiration-cluster-rail span { color: var(--muted); }
 .inspiration-thumb-rail a { color: var(--ink); text-decoration: none; }
 .inspiration-thumb-rail img { width: 28px; height: 28px; object-fit: cover; border-radius: 8px; }
-.language-fold, .inspiration-links { margin: 12px 0 18px; }
-.language-fold > summary, .inspiration-links > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--color-primary); font-weight: 650; }
+.language-fold, .inspiration-links, .knowledge-fold { margin: 12px 0 18px; }
+.language-fold > summary, .inspiration-links > summary, .knowledge-fold > summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--color-primary); font-weight: 650; }
+.knowledge-fold .knowledge-archive {
+  border-top: 0;
+  margin: 0;
+  padding-top: 8px;
+}
 .visual-concept-deck { display: grid; gap: 12px; }
 .visual-concept-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; }
 .visual-concept-format { margin: 0; font-weight: 700; }

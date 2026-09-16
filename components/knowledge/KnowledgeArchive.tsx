@@ -42,7 +42,11 @@ const STATUS_LABEL: Record<string, string> = {
   UNKNOWN: "未知",
 };
 
-export default function KnowledgeArchive() {
+export default function KnowledgeArchive({
+  heading = true,
+}: {
+  heading?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [payload, setPayload] = useState<KnowledgePayload | null>(null);
   const [error, setError] = useState("");
@@ -87,12 +91,14 @@ export default function KnowledgeArchive() {
 
   return (
     <section className="knowledge-archive">
-      <div className="inspiration-heading">
-        <div>
-          <p className="eyebrow">社團事實</p>
-          <h2>Drive 知識</h2>
+      {heading ? (
+        <div className="inspiration-heading">
+          <div>
+            <p className="eyebrow">社團事實</p>
+            <h2>Drive 知識</h2>
+          </div>
         </div>
-      </div>
+      ) : null}
       <p className="muted">
         {result?.notice ||
           "先查禪學社 Drive 索引。沒寫進索引的日期與地點是未知，不會用 IG 補。"}

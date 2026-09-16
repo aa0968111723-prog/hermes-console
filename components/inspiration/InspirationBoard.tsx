@@ -67,8 +67,6 @@ export default function InspirationBoard({
         <Sparkles size={25} aria-hidden="true" />
       </div>
 
-      <RecruitmentTruthNotice />
-      <RecruitmentFunnelFold />
       {pack && (
         <InspirationResult
           pack={pack}
@@ -80,6 +78,9 @@ export default function InspirationBoard({
         />
       )}
       {brief && <DirectionBrief brief={brief} />}
+
+      <RecruitmentTruthNotice />
+      <RecruitmentFunnelFold />
 
       <details className="language-fold">
         <summary>社團視覺語言</summary>

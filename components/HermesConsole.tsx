@@ -1870,7 +1870,10 @@ export default function HermesConsole() {
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />
-            <KnowledgeArchive />
+            <details className="knowledge-fold">
+              <summary>Drive 知識</summary>
+              <KnowledgeArchive heading={false} />
+            </details>
           </section>
         ) : nav === "agents" ? (
           <section className="secondary-page">
@@ -1903,13 +1906,9 @@ export default function HermesConsole() {
             <ArtifactDeck
               items={workflows.filter((w) => w.projectId === project)}
               artifacts={artifacts.filter((item) => item.projectId === project)}
-              onContinue={(id) => {
+              onContinue={() => {
                 setNav("chat");
-                setText(
-                  "請查回創作流程 " +
-                    id +
-                    " 的現有設計，接續修改同一作品。",
-                );
+                setText("請接續修改同一作品。");
               }}
               onRestore={async (artifactId, revisionId) => {
                 try {
@@ -1988,11 +1987,9 @@ export default function HermesConsole() {
                               });
                               await refresh();
                               setText(
-                                "已在 Console 選定創作流程 " +
-                                  w.id +
-                                  " 的第 " +
+                                "已選定第 " +
                                   (index + 1) +
-                                  " 個方向。請查詢可用 Canva 範本欄位，依此方向製作草稿；如缺授權請保留阻塞點。",
+                                  " 個方向。請依此方向接續製作；如缺授權請保留阻塞點。",
                               );
                               setNav("chat");
                             } catch (e) {

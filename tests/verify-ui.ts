@@ -480,8 +480,26 @@ try {
   assert.ok(inspirationJson.pack.directions.length >= 1);
   const pickA = page.getByRole("button", { name: /選方向 A/ });
   await expect(pickA).toBeVisible();
+  await expect(pickA).toBeInViewport();
   const pickBox = await pickA.boundingBox();
   assert.ok(pickBox && pickBox.height >= 44);
+  assert.ok(
+    pickBox.y >= 0 && pickBox.y + pickBox.height <= 800,
+    "360px 靈感第一屏必須看得到選方向 A，不能被規格框或 Drive 知識擠掉",
+  );
+  await expect(page.getByRole("heading", { name: "Drive 知識" })).toHaveCount(0);
+  const knowledgeFold = page.locator(".knowledge-fold > summary");
+  await expect(knowledgeFold).toHaveText("Drive 知識");
+  const knowledgeBox = await knowledgeFold.boundingBox();
+  assert.ok(knowledgeBox && knowledgeBox.y > pickBox.y);
+  const a4Frame = page
+    .locator(".direction-format-frame")
+    .filter({ hasText: /A4/ })
+    .first();
+  if ((await a4Frame.count()) > 0) {
+    const a4Box = await a4Frame.boundingBox();
+    assert.ok(a4Box && a4Box.y > pickBox.y, "A4 規格框必須在方向卡下面");
+  }
   await page.screenshot({
     path: join(output, "inspiration-mobile.png"),
     fullPage: true,
