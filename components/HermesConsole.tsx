@@ -2045,15 +2045,6 @@ export default function HermesConsole() {
                                   ...emptyDraft(),
                                   text: CONTINUE_SAME_WORK_PROMPT,
                                 });
-                                return;
-                              }
-                              if (hermesCanContinue(health)) {
-                                const letter =
-                                  DIRECTION_LETTERS[index] || String(index + 1);
-                                setNav("chat");
-                                setText(
-                                  "我選方向 " + letter + "：" + d.title,
-                                );
                               }
                             } catch (e) {
                               setError((e as Error).message);
