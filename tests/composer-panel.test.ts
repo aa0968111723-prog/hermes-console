@@ -15,6 +15,8 @@ test("composer dock is extracted from HermesConsole", async () => {
   assert.doesNotMatch(consoleUi, /className="composer-area"/);
   assert.match(composer, /className="composer-area"/);
   assert.match(composer, /placeholder="想做什麼？"/);
+  assert.match(composer, /data-connected=\{connected \? "true" : "false"\}/);
+  assert.match(composer, /Hermes 尚未連線/);
   assert.match(composer, /detectComposerKeyboard/);
   assert.match(composer, /textarea.scrollTop = textarea.scrollHeight/);
   assert.match(composer, /ComposerMenu/);

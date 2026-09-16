@@ -33,6 +33,7 @@ export default function Composer({
   onRetryBranch,
   busy,
   blocked,
+  connected,
   ready,
   pending,
   turtle,
@@ -63,6 +64,7 @@ export default function Composer({
   onRetryBranch: (task: Task) => void;
   busy: boolean;
   blocked: boolean;
+  connected: boolean;
   ready: boolean;
   pending?: Task;
   turtle: {
@@ -267,6 +269,7 @@ export default function Composer({
             {pending ? (
               <button
                 className="send-button"
+                data-connected="true"
                 type="button"
                 aria-label="停止任務"
                 onClick={() => onStop(pending)}
@@ -276,8 +279,10 @@ export default function Composer({
             ) : (
               <button
                 className="send-button"
+                data-connected={connected ? "true" : "false"}
                 type="submit"
                 aria-label="送出訊息"
+                title={connected ? "送出訊息" : "Hermes 尚未連線"}
                 disabled={
                   busy ||
                   blocked ||

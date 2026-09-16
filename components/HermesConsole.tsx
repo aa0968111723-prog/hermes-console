@@ -1028,6 +1028,7 @@ export default function HermesConsole() {
               onRetryBranch={retryBranchFromTask}
               busy={busy}
               blocked={blocked}
+              connected={health?.credential === "valid"}
               ready={!!health}
               pending={pending}
               turtle={{

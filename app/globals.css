@@ -470,15 +470,24 @@ small {
   font-size: 12px;
   margin: 12px 8px;
 }
-.primary,
-.send-button {
+.primary {
   background: var(--green);
   color: var(--color-surface);
   border-color: var(--green);
 }
+.send-button {
+  background: #e7eee1;
+  color: #59675e;
+  border-color: #dce5d3;
+}
 .primary:hover,
-.send-button:hover {
+.send-button[data-connected="true"]:not(:disabled):hover {
   background: #285536;
+}
+.send-button[data-connected="true"]:not(:disabled) {
+  background: var(--green);
+  color: var(--color-surface);
+  border-color: var(--green);
 }
 .primary {
   font-weight: 500;

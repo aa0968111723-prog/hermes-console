@@ -19,6 +19,7 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
     "utf8",
   );
   assert.match(consoleUi, /ready=\{\!\!health\}/);
+  assert.match(consoleUi, /connected=\{health\?\.credential === "valid"\}/);
   assert.match(consoleUi, /!health \|\| health\.credential !== "valid"/);
   assert.match(consoleUi, /HERMES_UNCONFIGURED_MESSAGE/);
   assert.match(consoleUi, /前往連線/);
@@ -43,6 +44,17 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
     "utf8",
   );
   assert.match(css, /scroll-margin-top: 88px/);
+  assert.match(
+    css,
+    /send-button\[data-connected="true"\]:not\(:disabled\)/,
+  );
+  const deployment = await readFile(
+    new URL("../docs/DEPLOYMENT.md", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(deployment, /校園使用者名稱／密碼交換權杖/);
+  assert.doesNotMatch(deployment, /\/auth\/login/);
+  assert.match(deployment, /禁止收集校園帳號或密碼/);
   assert.ok(
     consoleUi.indexOf("health.credential !== \"valid\"") <
       consoleUi.indexOf("createConversation(text.trim())"),

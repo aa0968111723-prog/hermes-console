@@ -153,6 +153,10 @@ try {
   const initialMetrics = await page.evaluate("window.__metrics");
   await assertNoInvitation();
   await expect(page.locator(".connection-pill")).toContainText("未設定");
+  await expect(page.locator(".send-button")).toHaveAttribute(
+    "data-connected",
+    "false",
+  );
   await expect(page.locator(".quick-action-label")).toHaveCount(6);
   for (const label of await page
     .locator(".quick-action-label")
@@ -509,6 +513,10 @@ try {
   await expect(
     page.getByRole("button", { name: "送出訊息", exact: true }),
   ).toBeEnabled();
+  await expect(page.locator(".send-button")).toHaveAttribute(
+    "data-connected",
+    "false",
+  );
   await page.getByRole("button", { name: "送出訊息", exact: true }).click();
   const sendNotice = page.locator(".notice-bar[role=alert]");
   await expect(sendNotice).toContainText("Hermes 還沒連上");
