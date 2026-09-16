@@ -576,6 +576,53 @@ export function createSession(digest: string, owner: string, expires: number) {
     .run(digest, owner, expires);
 }
 
+export function readSession(digest: string): { owner: string; expires: number } | null {
+  const now = Date.now();
+  if (storeBackend() === "postgres") {
+    pg().query("DELETE FROM console_sessions WHERE expires < $1", [now]);
+    const row = pg().query(
+      "SELECT owner, expires FROM console_sessions WHERE digest=$1",
+      [digest],
+    ).rows[0];
+    return row
+      ? { owner: String(row.owner), expires: Number(row.expires) }
+      : null;
+  }
+  const database = sqlite();
+  database.prepare("DELETE FROM sessions WHERE expires < ?").run(now);
+  const row = database
+    .prepare("SELECT owner, expires FROM sessions WHERE digest=?")
+    .get(digest) as { owner: string; expires: number } | undefined;
+  return row ? { owner: row.owner, expires: Number(row.expires) } : null;
+}
+
+export function deleteSession(digest: string) {
+  if (storeBackend() === "postgres") {
+    pg().query("DELETE FROM console_sessions WHERE digest=$1", [digest]);
+    return;
+  }
+  sqlite().prepare("DELETE FROM sessions WHERE digest=?").run(digest);
+}
+
+export function listSessions(owner: string) {
+  if (storeBackend() === "postgres") {
+    return pg()
+      .query(
+        "SELECT digest, expires FROM console_sessions WHERE owner=$1 ORDER BY expires DESC",
+        [owner],
+      )
+      .rows.map((row) => ({
+        digest: String(row.digest),
+        expires: Number(row.expires),
+      }));
+  }
+  return (
+    sqlite()
+      .prepare("SELECT digest, expires FROM sessions WHERE owner=? ORDER BY expires DESC")
+      .all(owner) as Array<{ digest: string; expires: number }>
+  ).map((row) => ({ digest: row.digest, expires: Number(row.expires) }));
+}
+
 export function resetStoreForTests() {
   if (!process.env.NODE_TEST_CONTEXT) return;
   storeFault = null;

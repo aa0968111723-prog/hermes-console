@@ -105,7 +105,7 @@ export function listMemories(owner: string, scope?: string) {
     .map(normalizeMemory)
     .filter((item) => {
       if (!scope || scope === "all") return true;
-      return item.scope === scope || item.scope === "workspace";
+      return item.scope === scope;
     });
 }
 
@@ -114,9 +114,15 @@ export function saveMemory(
   raw: z.input<typeof memoryInput>,
 ): SharedMemory {
   const input = memoryInput.parse(raw);
+  const named = new Set([
+    "workspace",
+    "personal",
+    "conversation",
+    "user_preference",
+    "system",
+  ]);
   if (
-    input.scope !== "workspace" &&
-    input.scope !== "personal" &&
+    !named.has(input.scope) &&
     !storeOp(() => get("project", owner, input.scope))
   )
     throw new ApiError(404, "project_not_found", "專案不存在。");
@@ -236,7 +242,12 @@ function memoryStoreLabel() {
 }
 
 export function memoryDigest(owner: string, projectId?: string) {
-  const items = listMemories(owner, projectId || "workspace").slice(0, 8);
+  const scoped = listMemories(owner, projectId || "workspace");
+  const extra =
+    projectId && projectId !== "workspace"
+      ? listMemories(owner, "workspace")
+      : [];
+  const items = [...scoped, ...extra].slice(0, 8);
   if (!items.length) return "";
   touchMemories(
     owner,
