@@ -312,11 +312,12 @@ function finish(
       });
     conv.updatedAt = now();
     put("conversation", owner, conv);
-    put("agent", owner, {
-      id: "verified",
-      verifiedAt: now(),
-      targetHash: serviceIdentity(),
-    });
+    if (!notices.length)
+      put("agent", owner, {
+        id: "verified",
+        verifiedAt: now(),
+        targetHash: serviceIdentity(),
+      });
     recordTaskUsage(task, {
       agentId: "general",
       projectId: conv.projectId,
