@@ -46,9 +46,16 @@ import {
   searchInspiration,
   toInspirationPack,
 } from "./inspiration/engine";
+import { persistSelectedDirectionDraft } from "./inspiration/persist";
+import {
+  applyTypeEnlarge,
+  isSpecRevisionRequest,
+} from "./inspiration/revise";
 import { isInspirationSearchPack } from "../inspiration-pack";
 import { isImageReviewPack, workspaceImageReview } from "../image-review";
+import { isDirectionBriefPack } from "../direction-brief";
 import { simulateFreshmanReactions } from "./audience/personas";
+import { attachDirectionBrief, listWorkflows } from "./workflows";
 import type { StructuredGoal } from "../contracts";
 
 const runtimeTasks = globalThis as typeof globalThis & {
@@ -222,23 +229,31 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     connection.credential,
     goal,
   );
+  const localSpecRevision = canFulfillLocalSpecRevision(
+    connection.credential,
+    input.input,
+    conv,
+    owner,
+  );
   if (localImageReview && imageAttachmentIds(owner, input.attachments).length < 1)
     throw new ApiError(
       400,
       "invalid_input",
       "請先附上海報或圖片。沒有畫面時無法審查，也不會假裝已看圖。",
     );
-  if (!localInspiration && !localImageReview)
+  if (!localInspiration && !localImageReview && !localSpecRevision)
     await attachmentParts(owner, input.attachments);
   if (
     connection.credential !== "valid" &&
     !localInspiration &&
-    !localImageReview
+    !localImageReview &&
+    !localSpecRevision
   )
     throw new ApiError(503, "hermes_not_ready", connection.message);
   const native =
     !localInspiration &&
     !localImageReview &&
+    !localSpecRevision &&
     connection.features.run_submission &&
     connection.features.run_status &&
     input.attachments.length === 0;
@@ -288,11 +303,13 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
       throw new ApiError(429, "concurrency_limit", "最多同時執行三項任務。");
     event(
       task,
-      localInspiration
+        localInspiration
         ? "已在後端保存任務，改由工作區靈感搜尋；不是 Hermes。"
         : localImageReview
           ? "已在後端保存任務，改由工作區畫面審查；不是 Hermes，也沒有讀像素。"
-          : "已在後端保存任務，準備提交 Hermes。",
+          : localSpecRevision
+            ? "已在後端保存任務，改由工作區規格修訂；不是 Hermes，也沒有出圖。"
+            : "已在後端保存任務，準備提交 Hermes。",
     );
     put("task", owner, task);
     conv.messages.push({
@@ -318,6 +335,12 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     );
   if (localImageReview)
     return fulfillImageReview(
+      owner,
+      reserved,
+      conversation(owner, reserved.conversationId),
+    );
+  if (localSpecRevision)
+    return fulfillSpecRevision(
       owner,
       reserved,
       conversation(owner, reserved.conversationId),
@@ -350,6 +373,28 @@ function canFulfillLocalImageReview(credential: string, goal: StructuredGoal) {
   return (
     goal.requiresImageReview &&
     !(credential === "valid" && imageInputEnabled())
+  );
+}
+function workflowForConversation(owner: string, conv: Conversation) {
+  return listWorkflows(owner).find(
+    (item) =>
+      item.projectId === conv.projectId &&
+      item.conversationId === conv.id &&
+      item.selected !== null &&
+      isDirectionBriefPack(item.directionBrief) &&
+      !!item.copyId,
+  );
+}
+function canFulfillLocalSpecRevision(
+  credential: string,
+  input: string,
+  conv: Conversation,
+  owner: string,
+) {
+  return (
+    credential !== "valid" &&
+    isSpecRevisionRequest(userFacingGoalText(input)) &&
+    !!workflowForConversation(owner, conv)
   );
 }
 function imageAttachmentIds(owner: string, ids: string[]) {
@@ -487,6 +532,74 @@ function fulfillImageReview(
   task.endedAt = now();
   task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
   event(task, "工作區已回傳畫面審查草稿（不是 Hermes 驗證）。");
+  if (
+    !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
+  ) {
+    conv.messages.push({
+      id: randomUUID(),
+      role: "assistant",
+      content: task.output,
+      createdAt: now(),
+      taskId: task.id,
+      provenance: "workspace",
+    });
+    conv.updatedAt = now();
+    put("conversation", owner, conv);
+  }
+  return save(owner, task);
+}
+function fulfillSpecRevision(
+  owner: string,
+  task: Task,
+  conv: Conversation,
+) {
+  const record = workflowForConversation(owner, conv);
+  const brief = record?.directionBrief;
+  if (!record || !isDirectionBriefPack(brief)) {
+    task.state = "failed";
+    task.error = "這個對話沒有已選方向，不能修規格。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  const revised = applyTypeEnlarge(brief);
+  const saved = persistSelectedDirectionDraft(
+    owner,
+    attachDirectionBrief(owner, record.id, revised),
+  );
+  const pack = saved.directionBrief;
+  if (!isDirectionBriefPack(pack) || pack.rendered !== false) {
+    task.state = "failed";
+    task.error = "工作區規格修訂沒有誠實標示未出圖。";
+    task.endedAt = now();
+    task.usage.durationMs =
+      Date.parse(task.endedAt) - Date.parse(task.createdAt);
+    event(task, task.error, "failed");
+    return save(owner, task);
+  }
+  task.goal = interpretGoal(task.input);
+  event(task, "已套用主標加大；不是 Hermes，也沒有出圖。", "plan");
+  event(
+    task,
+    pack.visualNote || pack.notice,
+    "completed",
+    "workspace_revise_direction_spec",
+    pack,
+  );
+  task.output = [
+    "已在同一件規格上套用主標加大。",
+    pack.visualNote || pack.notice,
+    "這不是 Hermes Agent 執行，不是已出圖，也不是 Canva。",
+    pack.revision ? "目前是 V" + pack.revision + "。" : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  task.state = "completed";
+  task.endedAt = now();
+  task.usage.durationMs = Date.parse(task.endedAt) - Date.parse(task.createdAt);
+  event(task, "工作區已回傳規格修訂（不是 Hermes 驗證）。");
   if (
     !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
   ) {

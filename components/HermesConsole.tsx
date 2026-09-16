@@ -545,7 +545,8 @@ export default function HermesConsole() {
       .filter(
         (name) =>
           name === "workspace_search_inspiration" ||
-          name === "workspace_simulate_audience",
+          name === "workspace_simulate_audience" ||
+          name === "workspace_revise_direction_spec",
       )
       .join(",") || "";
   useEffect(() => {
@@ -573,6 +574,7 @@ export default function HermesConsole() {
         }
       }
       if (!nearBottom.current) return;
+      if (chatDirectionBrief && pin(".direction-brief")) return;
       if (pin(".inspiration-result") || pin(".image-review")) return;
       el.scrollTop = el.scrollHeight;
     });
@@ -1934,7 +1936,7 @@ export default function HermesConsole() {
               }}
             />
             {workflows
-              .filter((w) => w.projectId === project)
+              .filter((w) => w.projectId === project && !w.directionBrief)
               .map((w) => (
                 <section className="workflow" key={w.id}>
                   <h2>

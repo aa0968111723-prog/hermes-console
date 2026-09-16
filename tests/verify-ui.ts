@@ -356,6 +356,25 @@ try {
   await page.screenshot({
     path: join(output, "chat-direction-artifact-mobile.png"),
   });
+  await dockNav.getByRole("button", { name: "對話", exact: true }).click();
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("第二版字放大");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const revisedBrief = page.getByRole("region", { name: "已選方向規格" });
+  await expect(revisedBrief).toContainText("V2", { timeout: 15_000 });
+  await expect(revisedBrief).toContainText("主標加大");
+  await expect(revisedBrief).toContainText("未出圖");
+  await expect(revisedBrief.locator(".direction-format-copy").first()).toHaveAttribute(
+    "data-emphasis",
+    "larger",
+  );
+  await expect(page.getByText("Canva 草稿")).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "chat-direction-revision-mobile.png"),
+  });
+  await page.getByRole("button", { name: "任務與成果" }).click();
+  await expect(specStage).toContainText("V2");
+  await expect(specStage).toContainText("主標加大");
+  await expect(specStage.locator(".canva-result")).toHaveCount(0);
   await page.getByRole("button", { name: "對話列表" }).click();
   const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });
   await expect(conversationDrawer).toBeVisible();

@@ -2729,6 +2729,10 @@ button.inspiration-direction-card.selected { border-color: var(--color-primary);
   font-size: 13px;
   line-height: 1.4;
 }
+.direction-format-copy[data-emphasis="larger"] {
+  font-size: 16px;
+  font-weight: 650;
+}
 .direction-review-fold > summary {
   display: flex;
   align-items: center;

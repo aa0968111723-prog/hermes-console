@@ -40,7 +40,14 @@ export default function DirectionBrief({
                   {format.aspect} · {COPY_LABEL[id]}
                 </span>
                 <strong>{format.label}</strong>
-                <p className="direction-format-copy preserve-lines">{text}</p>
+                <p
+                  className="direction-format-copy preserve-lines"
+                  data-emphasis={
+                    brief.visualNote?.includes("主標加大") ? "larger" : undefined
+                  }
+                >
+                  {text}
+                </p>
               </div>
             </li>
           );
@@ -50,6 +57,7 @@ export default function DirectionBrief({
         <summary>新生視角審核（模擬）</summary>
         <CopyReviewCard review={brief.review} />
       </details>
+      {brief.visualNote ? <p className="quiet">{brief.visualNote}</p> : null}
       <p className="quiet">{brief.notice}</p>
     </section>
   );

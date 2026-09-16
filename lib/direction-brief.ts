@@ -25,6 +25,7 @@ export type DirectionBriefPack = {
   activityId?: string | null;
   copyId?: string | null;
   revision?: number | null;
+  visualNote?: string | null;
 };
 
 export function isDirectionBriefPack(

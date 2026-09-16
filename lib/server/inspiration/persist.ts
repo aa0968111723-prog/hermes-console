@@ -79,7 +79,9 @@ export function persistSelectedDirectionDraft(
     last.pages.length === pages.length &&
     last.pages.every(
       (page, index) =>
-        page.title === pages[index].title && page.body === pages[index].body,
+        page.title === pages[index].title &&
+        page.body === pages[index].body &&
+        page.visual === pages[index].visual,
     );
   const document =
     unchanged && previous
@@ -150,6 +152,8 @@ function specArtifactUnchanged(
     current.copy.a === brief.copy.a &&
     current.copy.b === brief.copy.b &&
     current.copy.c === brief.copy.c &&
-    current.title === brief.title
+    current.title === brief.title &&
+    (current.visualNote || "") === (brief.visualNote || "") &&
+    current.formats[0]?.compositionHint === brief.formats[0]?.compositionHint
   );
 }
