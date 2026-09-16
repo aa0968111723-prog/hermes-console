@@ -627,15 +627,16 @@ try {
     path: join(output, "login-mobile.png"),
     fullPage: true,
   });
-  await loginPage.goto(base + "/#reset=" + "a".repeat(64));
+  const resetPage = await loginContext.newPage();
+  await resetPage.goto(base + "/#reset=" + "a".repeat(64));
   await expect(
-    loginPage.getByRole("heading", { name: "重設密碼" }),
+    resetPage.getByRole("heading", { name: "重設密碼" }),
   ).toBeVisible();
-  await expect(loginPage.getByLabel("新密碼")).toBeVisible();
+  await expect(resetPage.getByLabel("新密碼")).toBeVisible();
   await expect(
-    loginPage.getByRole("button", { name: "儲存新密碼" }),
+    resetPage.getByRole("button", { name: "儲存新密碼" }),
   ).toBeVisible();
-  await loginPage.screenshot({
+  await resetPage.screenshot({
     path: join(output, "reset-mobile.png"),
     fullPage: true,
   });

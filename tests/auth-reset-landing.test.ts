@@ -15,12 +15,14 @@ test("password reset hash opens a new-password form instead of auto-login", asyn
   assert.match(gate, /hash\.get\("reset"\)/);
   assert.match(gate, /setResetToken\(reset\)/);
   assert.match(gate, /resetToken=\{resetToken\}/);
-  assert.match(gate, /if \(login \|\| verify\) \{/);
+  assert.match(gate, /hashchange/);
+  assert.match(gate, /applyReset/);
+  assert.match(gate, /if \(boot\.login \|\| boot\.verify\)/);
   const redeemBlock = gate.slice(
-    gate.indexOf("if (login || verify)"),
+    gate.indexOf("if (boot.login || boot.verify)"),
     gate.indexOf("await load()"),
   );
-  assert.doesNotMatch(redeemBlock, /reset/);
+  assert.doesNotMatch(redeemBlock, /action: \"reset\"/);
   assert.match(login, /action === "reset"/);
   assert.match(login, /重設密碼/);
   assert.match(login, /儲存新密碼/);

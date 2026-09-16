@@ -19,37 +19,46 @@ export default function AuthGate() {
     setSession(await response.json());
   }
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("auth") === "failed") {
-      setNotice("登入未完成，沒有假裝成功。");
-      window.history.replaceState(null, "", window.location.pathname);
+    function takeHash() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("auth") === "failed") {
+        setNotice("登入未完成，沒有假裝成功。");
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+      const hash = new URLSearchParams(window.location.hash.slice(1));
+      const login = hash.get("login");
+      const verify = hash.get("verify");
+      const reset = hash.get("reset");
+      if (login || verify || reset)
+        window.history.replaceState(null, "", window.location.pathname);
+      return { login, verify, reset };
     }
-    const hash = new URLSearchParams(window.location.hash.slice(1));
-    const login = hash.get("login");
-    const verify = hash.get("verify");
-    const reset = hash.get("reset");
-    if (login || verify || reset)
-      window.history.replaceState(null, "", window.location.pathname);
-    if (reset) {
+    function applyReset(reset: string | null) {
+      if (!reset) return;
       if (/^[a-f0-9]{64}$/.test(reset)) setResetToken(reset);
       else setNotice("重設連結無效或已使用。");
     }
+    const boot = takeHash();
+    applyReset(boot.reset);
     void (async () => {
       try {
-        if (login || verify) {
+        if (boot.login || boot.verify) {
           const response = await fetch("/api/auth/email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              action: verify ? "verify" : "redeem",
-              token: login || verify,
+              action: boot.verify ? "verify" : "redeem",
+              token: boot.login || boot.verify,
             }),
           });
           if (!response.ok) {
             const invite = await fetch("/api/auth", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "redeem", token: login || verify }),
+              body: JSON.stringify({
+                action: "redeem",
+                token: boot.login || boot.verify,
+              }),
             });
             if (!invite.ok) setNotice("登入連結無效或已使用。");
           }
@@ -59,6 +68,11 @@ export default function AuthGate() {
         setFailed("無法確認登入狀態。");
       }
     })();
+    function onHashChange() {
+      applyReset(takeHash().reset);
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
   if (failed)
     return (
