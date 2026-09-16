@@ -120,7 +120,7 @@ const address = server.address() as { port: number };
 process.env.HERMES_API_URL = "http://127.0.0.1:" + address.port;
 
 const { visibleText, health } = await import("../lib/server/hermes");
-const { put } = await import("../lib/server/store");
+const { put, get, remove } = await import("../lib/server/store");
 const {
   submit,
   reconcile,
@@ -384,6 +384,7 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
     false,
   );
   assert.match(toolsDone.output, /還沒有可預覽的作品/);
+  assert.equal(get("agent", "workspace", "verified"), null);
 
   mode = "thinking_tool";
   const both = await submit("workspace", {
@@ -395,6 +396,7 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
   const bothDone = await settle(both.id);
   assert.equal(bothDone.state, "completed");
   assert.equal(bothDone.output.includes("內部"), false);
+  assert.equal(get("agent", "workspace", "verified"), null);
 
   mode = "ok";
   const lookup = await submit("workspace", {
@@ -422,6 +424,7 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
     false,
   );
   assert.match(lookupDone.output, /還沒找到可核對的來源/);
+  assert.equal(get("agent", "workspace", "verified"), null);
 });
 
 test("Cycle 19: research with https sources may complete as found", async () => {
@@ -462,9 +465,11 @@ test("Cycle 19: research with https sources may complete as found", async () => 
     done.events.some((event) => event.summary === "Hermes 已回傳完成結果。"),
   );
   assert.equal(done.output.includes(RESEARCH_WITHOUT_SOURCES), false);
+  assert.ok(get("agent", "workspace", "verified"));
 });
 
 test("Cycle 19: unverified vision does not claim the image was analyzed", async () => {
+  remove("agent", "workspace", "verified");
   const previous = process.env.HERMES_IMAGE_INPUT;
   delete process.env.HERMES_IMAGE_INPUT;
   const sharp = (await import("sharp")).default;
@@ -505,6 +510,7 @@ test("Cycle 19: unverified vision does not claim the image was analyzed", async 
       false,
     );
     assert.match(done.output, /沒有假裝已分析畫面/);
+    assert.equal(get("agent", "workspace", "verified"), null);
   } finally {
     if (previous === undefined) delete process.env.HERMES_IMAGE_INPUT;
     else process.env.HERMES_IMAGE_INPUT = previous;
