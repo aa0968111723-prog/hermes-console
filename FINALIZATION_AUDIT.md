@@ -15,7 +15,7 @@
 | Google OIDC + PKCE | live 路徑／未填 Client 則停用 | Secret 只在 server。 |
 | 淡江 SSO | **partial**（OIDC 路徑 live） | issuer+client+secret 時跳轉校方 IdP（PKCE）。無校方 Client 時「淡江 SSO 尚未完成設定」。SAML／CAS 未接入。 |
 | Email / Argon2id / Magic Link / Reset | live 路徑 | 寄信未設時仍可密碼進出；驗證信 Partial。 |
-| Identity linking | live 契約 | 禁止 Email 相同自動合併。 |
+| Identity linking | live 契約 | 禁止 Email 相同自動合併。帳號列：已連結＝verified；提供者可用尚未連結＝partial；提供者未設定＝unconfigured。權限顯示擁有者／管理者／成員。 |
 | Membership | live | owner／admin／member；工作區 API 需 session + membership。憑證 POST 限 owner／admin。 |
 | 設定寫入授權 | live 契約 | required 時僅 owner／admin 可改憑證／MCP 測試／Zeabur。 |
 | 淡江 MCP | live 契約 | 只接受 Bearer 權杖。不收集校園帳號或密碼。 |
@@ -25,7 +25,7 @@
 | Atlas 進 integrations | live | `getMcp("atlas")`。 |
 | Artifacts | live 契約 | artifactId／revisionId／preview／restore／fork／compare UI。 |
 | Memory scopes | live 契約 | conversation／user_preference／system／project／workspace；digest 標 scope。 |
-| Runtime 一般／Developer | live | 四顆狀態點（Hermes／Memory／Tools／MCP）不含工具計數；能力連線圖在關閉的「進階 · Runtime」，工具清單在關閉的「進階 · 工具」。首頁 compact 連線圖不打開工具清單。 |
+| Runtime 一般／Developer | live | 四顆狀態點（Hermes／Memory／Tools／MCP）不含工具計數；手機 2×2。能力連線圖在關閉的「進階 · Runtime」，工具清單在關閉的「進階 · 工具」。首頁 compact 連線圖不打開工具清單。進階 Agent 設定檔狀態用中文。 |
 | 靈感頁 | live | 主畫面是值得學／先避開視覺卡。Drive 知識與招生／漏斗研究在設定或「進階 · 研究」，不進主靈感板。手機 Dock 切頁後截圖會等到 `aria-current` 與標題落地。 |
 | 未連線送出 | live 契約 | credential 不是 valid 時不建立對話。提示「Hermes 還沒連上」並「前往連線」打開 Hermes 憑證欄。 |
 | 長任務中斷 | live 契約 | 啟動時 chat／無 remoteId 改 uncertain；不假裝 still running。 |
