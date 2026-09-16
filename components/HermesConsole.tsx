@@ -810,6 +810,8 @@ export default function HermesConsole() {
           <span>Agent</span>
         </button>
         <button
+          aria-label="任務"
+          title="任務"
           aria-current={nav === "tasks" ? "page" : undefined}
           onClick={() => navigate("tasks")}
         >
@@ -817,6 +819,15 @@ export default function HermesConsole() {
           任務
         </button>
       </nav>
+      <button
+        className="drawer-tasks"
+        aria-label="任務"
+        aria-current={nav === "tasks" ? "page" : undefined}
+        onClick={() => navigate("tasks")}
+      >
+        <ListTodo size={19} />
+        任務
+      </button>
       <div className="side-section dock-section-label">
         <span>專案</span>
         <button

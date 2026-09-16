@@ -6,7 +6,7 @@ import { mkdtemp, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { randomBytes } from "node:crypto";
-import { signInEmail } from "./browser-login";
+import { signInEmail, openTasksPage } from "./browser-login";
 
 // Production Console + real Chrome + isolated HTTP discovery fixture.
 // The fixture declares tools; it never pretends to execute Hermes or Canva.
@@ -180,7 +180,7 @@ try {
       });
     }
   }
-  await page.getByRole("button", { name: "任務與成果" }).click();
+  await openTasksPage(page);
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();

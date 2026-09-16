@@ -36,12 +36,13 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
     "utf8",
   );
   assert.match(css, /\.mobile-nav \.visual-dock-nav \{\s*display: none;/);
+  assert.match(css, /\.mobile-nav \.drawer-tasks \{/);
   assert.match(css, /\.topbar-title \{[\s\S]*?overflow: hidden/);
   assert.match(
     css,
     /connection-pill\[data-ready="true"\] \.connection-label \{ display: none/,
   );
-  assert.match(css, /\.topbar \.settings-gear \{ display: none/);
+  assert.match(css, /\.topbar \.settings-gear,\s*\.topbar \.tasks-chip \{ display: none/);
   assert.match(
     css,
     /data-composer-keyboard="open"\] \.welcome \{\s*display: none/,
@@ -58,7 +59,7 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.match(consoleUi, /onOpenMaterial=\{openMaterial\}/);
   assert.match(consoleUi, /directionFollowUp/);
   assert.match(consoleUi, /function pinConversation/);
-  assert.match(consoleUi, /function openPanel/);
+  assert.match(consoleUi, /drawer-tasks/);
   assert.match(consoleUi, /panelOpener/);
   assert.match(consoleUi, /if \(node && !node\.open\)/);
   assert.match(consoleUi, /dialog\.current\?\.open/);

@@ -38,3 +38,15 @@ export async function openAppearanceSettings(page: Page) {
   await expect(settings).toBeVisible();
   await settings.getByRole("tab", { name: "外觀", exact: true }).click();
 }
+
+export async function openTasksPage(page: Page) {
+  const chip = page.getByRole("button", { name: "任務與成果", exact: true });
+  if (await chip.isVisible().catch(() => false)) {
+    await chip.click();
+    return;
+  }
+  await page.getByRole("button", { name: "開啟導覽", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "工作區導覽" });
+  await expect(drawer).toBeVisible();
+  await drawer.getByRole("button", { name: "任務", exact: true }).click();
+}

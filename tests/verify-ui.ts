@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { verifyVisualStates } from "./visual-states";
 import { verifyMobileSpatial } from "./mobile-spatial";
 import { verifyMobileEngines } from "./mobile-engines";
-import { signInEmail, openAppearanceSettings } from "./browser-login";
+import { signInEmail, openAppearanceSettings, openTasksPage } from "./browser-login";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
@@ -279,19 +279,9 @@ try {
         dock && send && send.y + send.height <= dock.y,
         "bottom dock overlaps send at "+width+": "+JSON.stringify({send,dock}),
       );
-      const title = await page.locator(".topbar-title").boundingBox();
-      const tasks = await page
-        .getByRole("button", { name: "任務與成果" })
-        .boundingBox();
-      assert.ok(
-        title &&
-          tasks &&
-          title.x + title.width <= tasks.x + 1,
-        "topbar title overlaps tasks at " +
-          width +
-          ": " +
-          JSON.stringify({ title, tasks }),
-      );
+      await expect(page.getByRole("button", { name: "任務與成果" })).toBeHidden();
+      await expect(page.getByRole("button", { name: "外觀設定" })).toBeHidden();
+      await expect(page.getByRole("button", { name: "帳號設定" })).toBeVisible();
       await expect(page.locator(".topbar")).toHaveAttribute(
         "data-compact-title",
         "true",
@@ -341,6 +331,9 @@ try {
   await expect(
     mobileNavigation.getByRole("navigation", { name: "主要導覽" }),
   ).toBeHidden();
+  await expect(
+    mobileNavigation.getByRole("button", { name: "任務", exact: true }),
+  ).toBeVisible();
   await page.screenshot({
     path: join(output, "drawer-mobile.png"),
     fullPage: true,
@@ -391,7 +384,7 @@ try {
     fullPage: true,
   });
   await page.setViewportSize({ width: 360, height: 800 });
-  await page.getByRole("button", { name: "任務與成果" }).click();
+  await openTasksPage(page);
   await expect(
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
