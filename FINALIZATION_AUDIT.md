@@ -45,11 +45,9 @@
 
 ## 本輪驗證（2026-09-16）
 
-- 本輪指令：`lint`、`typecheck`、`npm test`、`build`、`check:secrets`、`test:ui` 通過。
-- `npm test`：415 tests, 413 pass, 2 skipped, 0 fail。含 hanging POST `/api/tasks` ~1s 學生 503、401 金鑰→「還沒連上」、公開 health 不含金鑰字樣。
-- `/` First Load JS 109 kB。
-- Playwright：`test:ui` 本機 Chrome LCP 364ms／CLS 0（不是實機）。axe 0。
-- `check:secrets`：676 files。History/deployment rotation 未驗證。
+- 本輪指令：`lint`、`typecheck`、`npm test` 通過。UI 未改，未重跑 Playwright。
+- `npm test`：417 tests, 415 pass, 2 skipped, 0 fail。含程序重啟後 orphaned chat 任務改 uncertain、不重送；計畫事件不含 `budgetMode=`／token 計數。
+- 已 merge `origin/main` 研究筆記 `6591e40`，未回退產品路徑。
 
 ## 仍是 Partial（禁止標綠）
 
