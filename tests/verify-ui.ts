@@ -420,7 +420,9 @@ try {
   await textarea.fill("B 獨立草稿");
   await page.getByRole("button", { name: "草稿分流 A", exact: true }).click();
   await expect(textarea).toHaveValue("A 尚未送出的內容");
-  await expect(page.locator(".upload-chip")).toContainText("draft-a.txt");
+  await expect(
+    page.getByRole("button", { name: "預覽附件：draft-a.txt" }),
+  ).toBeVisible();
   await expect(page.locator(".upload-chip")).toContainText("已保存");
   await page.unroute("**/api/materials?projectId=personal");
   await page.getByRole("button", { name: "草稿分流 B", exact: true }).click();

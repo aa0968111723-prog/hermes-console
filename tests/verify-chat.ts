@@ -233,9 +233,9 @@ try {
     .getByRole("button", { name: "編輯並建立分支", exact: true })
     .click();
   await expect(textarea).toHaveValue("隔離契約：長任務穿越背景監測週期");
-  await expect(page.locator(".upload-chip")).toContainText(
-    "branch-reference.txt",
-  );
+  await expect(
+    page.getByRole("button", { name: "預覽附件：branch-reference.txt" }),
+  ).toBeVisible();
   const branched = await (
     await context.request.get(base + "/api/workspace")
   ).json();

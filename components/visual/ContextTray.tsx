@@ -1,7 +1,6 @@
 "use client";
 import { Check, RefreshCw, X } from "lucide-react";
 import type { Material } from "@/lib/contracts";
-import { materialKindLabel } from "@/lib/client/media";
 import type { Upload } from "../useComposerDraft";
 import MaterialCover from "./MaterialCover";
 export default function ContextTray({
@@ -41,7 +40,6 @@ export default function ContextTray({
             />
           </button>
           <span title={upload.file.name}>
-            {materialKindLabel(upload.material, upload.file.name)}
             <small role={upload.error ? "alert" : "status"}>
               {upload.error ||
                 (upload.material ? (
@@ -95,7 +93,6 @@ export default function ContextTray({
               <MaterialCover material={material} />
             </button>
             <span title={material?.title || ""}>
-              {materialKindLabel(material)}
               <small>
                 {material?.rights === "reference_only"
                   ? "僅供參考"
