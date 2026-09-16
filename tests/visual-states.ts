@@ -280,6 +280,10 @@ export async function verifyVisualStates(
     await page.keyboard.press("Enter");
     const detail = page.getByRole("dialog", { name: "進度" });
     await expect(detail).toBeVisible();
+    await expect(detail.locator(".task-resume-status .badge")).toHaveText(
+      "正在研究",
+    );
+    await expect(detail.locator(".activity-inspect")).toContainText("正在研究");
     const technical = detail.locator(".task-technical");
     const technicalSummary = detail.locator(".task-technical > summary");
     if ((await technical.getAttribute("open")) !== null)

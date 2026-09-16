@@ -274,7 +274,7 @@ try {
   ).toBeVisible();
   assert.equal(calls, 2, "restarting Console must not resubmit Hermes work");
   await page.getByRole("button", { name: "停止任務", exact: true }).click();
-  await expect(page.locator(".task-status")).toContainText("已停止", {
+  await expect(page.locator(".task-status")).toContainText("已取消", {
     timeout: 10000,
   });
   assert.equal(cancelled, true);

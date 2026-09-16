@@ -59,6 +59,7 @@ import ComposerTaskStatus, {
   composerTaskPillAction,
   shortTaskError,
 } from "./visual/ComposerTaskStatus";
+import { taskProgressLabel } from "@/lib/client/activity";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
@@ -121,17 +122,6 @@ const EMPTY: Workspace = {
     scope: "尚未同步 Hermes 記憶。",
     synced: false,
   },
-};
-const taskLabels: Record<string, string> = {
-  queued: "準備提交",
-  running: "執行中",
-  waiting_user: "等待確認",
-  waiting_authorization: "等待授權",
-  stopping: "停止確認中",
-  completed: "已完成",
-  failed: "失敗",
-  cancelled: "已停止",
-  uncertain: "結果待確認",
 };
 const connectionLabels: Record<string, string> = {
   unconfigured: "未設定",
@@ -1252,7 +1242,7 @@ export default function HermesConsole() {
                           <div className="message-byline">
                             Hermes
                             <span className="task-status">
-                              {taskLabels[currentTask.state]}
+                              {taskProgressLabel(currentTask)}
                             </span>
                           </div>
                           {currentTask.output && (
@@ -1312,7 +1302,7 @@ export default function HermesConsole() {
                 aria-atomic="true"
               >
                 {currentTask
-                  ? "Hermes 任務：" + taskLabels[currentTask.state]
+                  ? "目前進度：" + taskProgressLabel(currentTask)
                   : ""}
               </span>
               {jump && (
@@ -1601,7 +1591,7 @@ export default function HermesConsole() {
               }}
             />
             <details className="workbench-disclosure">
-              <summary>活動與文案</summary>
+              <summary>進階 · 活動與文案</summary>
               <ProjectWorkbench
                 key={project}
                 projectId={project}
@@ -1948,7 +1938,7 @@ export default function HermesConsole() {
                     <small>{time(t.createdAt)}</small>
                   </span>
                   <span className={"badge " + t.state}>
-                    {taskLabels[t.state]}
+                    {taskProgressLabel(t)}
                   </span>
                 </button>
               ))}
@@ -2436,7 +2426,7 @@ export default function HermesConsole() {
                 >
                   {offline
                     ? OFFLINE_PILL_LABEL
-                    : taskLabels[chosenTask.state]}
+                    : taskProgressLabel(chosenTask)}
                 </span>
                 <small>{time(chosenTask.updatedAt || chosenTask.createdAt)}</small>
               </div>

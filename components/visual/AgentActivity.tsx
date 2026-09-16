@@ -17,7 +17,7 @@ import {
   activityKind,
   activityLabels,
   eventState,
-  taskStateLabel,
+  taskProgressLabel,
   workingEvent,
 } from "@/lib/client/activity";
 const icons = {
@@ -74,7 +74,7 @@ export default function AgentActivity({
         onClick={onInspect}
         disabled={!onInspect}
         className="activity-inspect"
-        aria-label={"查看任務：" + taskStateLabel[task.state]}
+        aria-label={"查看任務：" + taskProgressLabel(task)}
       >
         {task.state === "completed" ? (
           <Check size={16} />
@@ -85,7 +85,7 @@ export default function AgentActivity({
         ) : (
           <Pause size={16} />
         )}
-        {taskStateLabel[task.state]}
+        {taskProgressLabel(task)}
       </button>
     </div>
   );
