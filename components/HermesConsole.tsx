@@ -2235,12 +2235,27 @@ export default function HermesConsole() {
                     />
                     <p>{data.memory.scope}</p>
                     <p className="muted">
-                      上方「共用記憶庫」是 Console 持久化庫（DATABASE_URL
-                      Postgres，未設定時為 CONSOLE_DATA_DIR SQLite），Hermes
-                      可經 Workspace MCP 與任務指示讀寫同一批資料。
-                      學習地圖仍是「請 Hermes
-                      學習／忘記」的請求紀錄，不是遠端記憶鏡像。未驗證前不會宣稱已同步。
+                      記憶存在這個工作區。未驗證前不會說已同步到 Hermes。
                     </p>
+                    {legacy && (
+                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
+                    )}
+                  </div>
+                ) : settingsTab === "進階" && canManageConnections ? (
+                  <div className="settings-stack">
+                    <p>
+                      僅顯示 Hermes
+                      回傳的統計。未知費用不是零，也不推測外部工具費用。
+                    </p>
+                    {tasks.map((t) => (
+                      <details key={t.id}>
+                        <summary>{t.input.slice(0, 40)}</summary>
+                        <TaskUsageSummary task={t} />
+                      </details>
+                    ))}
+                    {!tasks.length && (
+                      <p className="muted">尚無任務使用量資料。</p>
+                    )}
                     <button
                       disabled={!activeConv?.hermesSessionId}
                       onClick={async () => {
@@ -2267,25 +2282,6 @@ export default function HermesConsole() {
                         <MessageBody text={m.content} />
                       </details>
                     ))}
-                    {legacy && (
-                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
-                    )}
-                  </div>
-                ) : settingsTab === "進階" && canManageConnections ? (
-                  <div className="settings-stack">
-                    <p>
-                      僅顯示 Hermes
-                      回傳的統計。未知費用不是零，也不推測外部工具費用。
-                    </p>
-                    {tasks.map((t) => (
-                      <details key={t.id}>
-                        <summary>{t.input.slice(0, 40)}</summary>
-                        <TaskUsageSummary task={t} />
-                      </details>
-                    ))}
-                    {!tasks.length && (
-                      <p className="muted">尚無任務使用量資料。</p>
-                    )}
                     <HelpPage />
                     <details className="connection-advanced">
                       <summary>進階 · 工具、技能與驗證證據</summary>
