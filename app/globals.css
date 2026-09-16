@@ -1212,12 +1212,22 @@ nav button[aria-current="page"] {
 }
 .jump-button {
   position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border-radius: 24px;
-  font-size: 11px;
-  box-shadow: 0 2px 12px #26332b0a;
+  right: max(10px, env(safe-area-inset-right));
+  bottom: calc(100% + 8px);
+  left: auto;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #d9e8d4;
+  background: #fff;
+  color: var(--color-primary);
+  box-shadow: 0 2px 12px #26332b14;
 }
 .upload-list {
   display: flex;

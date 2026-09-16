@@ -26,6 +26,7 @@ const {
   continueActivity,
   continueCaptionSet,
   continueCopy,
+  continueCurrentDesign,
   continueDesign,
   continueProjectDraft,
   revisionLabel,
@@ -124,6 +125,34 @@ test("student continue lines keep ids and tools off the composer", () => {
   );
   assert.doesNotMatch(continueProjectDraft().text, /workspace_/);
   assert.doesNotMatch(continueCaptionSet().text, /workspace_/);
+  const older = "ab".repeat(32);
+  const newer = "cd".repeat(32);
+  const current = continueCurrentDesign(
+    [
+      {
+        id: older,
+        projectId: "personal",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      {
+        id: newer,
+        projectId: "personal",
+        updatedAt: "2026-02-01T00:00:00.000Z",
+      },
+      {
+        id: "ef".repeat(32),
+        projectId: "other",
+        updatedAt: "2026-03-01T00:00:00.000Z",
+      },
+    ],
+    "personal",
+  );
+  assert.equal(current.focus?.workflowId, newer);
+  assert.doesNotMatch(current.text, new RegExp(newer));
+  assert.equal(
+    continueCurrentDesign([], "personal").text,
+    "請接續我現有的設計。",
+  );
 });
 
 test("artifact restore requires a workspace session", async () => {

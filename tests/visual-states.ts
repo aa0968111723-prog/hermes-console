@@ -590,6 +590,15 @@ export async function verifyVisualStates(
     "離線 · 顯示上次資料",
     { timeout: 15_000 },
   );
+  const jump = page.getByRole("button", { name: "回到最新訊息" });
+  if (await jump.isVisible()) {
+    const box = await jump.boundingBox();
+    assert.ok(
+      box && box.width >= 44 && box.height >= 44 && box.x >= 390 / 2,
+      "jump chip must stay on the right and keep a 44px target: " +
+        JSON.stringify(box),
+    );
+  }
   await page.screenshot({ path: join(output, "offline-mobile.png") });
   await page.context().setOffline(false);
   await page.unrouteAll({ behavior: "wait" });

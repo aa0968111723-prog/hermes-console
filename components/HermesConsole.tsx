@@ -65,7 +65,7 @@ import MaterialCover from "./visual/MaterialCover";
 import TaskEventSummary, { EventResult } from "./visual/TaskEventSummary";
 import { progressSteps } from "@/lib/client/activity";
 import { materialFileSrc } from "@/lib/client/media";
-import { selectDirection } from "@/lib/client/artifacts";
+import { continueCurrentDesign, selectDirection } from "@/lib/client/artifacts";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -530,6 +530,10 @@ export default function HermesConsole() {
     setText(next);
     setFocus(nextFocus || null);
     input.current?.focus();
+  }
+  function continueExistingDesign() {
+    const next = continueCurrentDesign(workflows, project);
+    continueDraft(next.text, next.focus);
   }
   async function createConversation(
     title: string,
@@ -1290,6 +1294,8 @@ export default function HermesConsole() {
               {jump && (
                 <button
                   className="jump-button"
+                  type="button"
+                  aria-label="回到最新訊息"
                   onClick={() => {
                     nearBottom.current = true;
                     setJump(false);
@@ -1299,8 +1305,7 @@ export default function HermesConsole() {
                     });
                   }}
                 >
-                  <ChevronDown size={16} />
-                  回到最新訊息
+                  <ChevronDown size={18} />
                 </button>
               )}
               {currentTask && (
@@ -1455,7 +1460,7 @@ export default function HermesConsole() {
                       }}
                       onNavigate={(kind) => {
                         if (kind === "canva") {
-                          continueDraft("請接續我現有的設計。");
+                          continueExistingDesign();
                           input.current?.focus();
                         } else {
                           setNav("projects");
@@ -1831,7 +1836,7 @@ export default function HermesConsole() {
         onAction={action=>{
           if(action==="spatial")setPanel("spatial");
           else if(action==="memory"){setSettingsTab("工作區");setPanel("settings");}
-          else { continueDraft("請接續我現有的設計。"); }
+          else { continueExistingDesign(); }
         }}
         onFiles={files=>{
           if(files.length+uploads.length+references.length>4){setError("每則訊息最多四個附件。");return;}
