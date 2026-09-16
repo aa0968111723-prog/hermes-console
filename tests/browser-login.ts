@@ -14,7 +14,7 @@ export async function signInEmail(
   if (await enter.isVisible().catch(() => false)) await enter.click();
   const home = page.getByRole("heading", { name: "今天想做什麼？" });
   try {
-    await home.waitFor({ timeout: 5000 });
+    await home.waitFor({ timeout: 15_000 });
     return;
   } catch {
     const createToggle = page.getByRole("button", { name: "建立帳號" });
@@ -23,6 +23,6 @@ export async function signInEmail(
     await page.getByLabel("電子信箱").fill(email);
     await page.getByLabel("密碼").fill(password);
     await page.getByRole("button", { name: "建立帳號" }).click();
-    await expect(home).toBeVisible();
+    await expect(home).toBeVisible({ timeout: 15_000 });
   }
 }

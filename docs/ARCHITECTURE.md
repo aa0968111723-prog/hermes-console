@@ -16,7 +16,7 @@ Human
 
 ## Console
 
-- Next.js App Router。`/` → `AuthProvider` → `AuthGate` → `LoginScreen` 或 `HermesConsole`。
+- Next.js App Router。`/` → `AuthProvider` → `AuthGate` → `LoginScreen`；登入（或契約 `workspace` 模式）後才 `next/dynamic` 載入 `HermesConsole`。未登入不把工作區 JS 打進 First Load。
 - 正式環境 `CONSOLE_AUTH_MODE=required`（`NODE_ENV=production` 預設）。契約測試可用 `workspace` 單一 owner。
 - 前端只渲染結構化事件與結果。不展示內部推理、tool JSON、credentialReference。
 - 對話殼層逐步拆出 `PreviewPanel`／`TaskSheet`／`SettingsPanel`／`Composer`／`TopBar`／`Conversation`／`TasksPage`。
