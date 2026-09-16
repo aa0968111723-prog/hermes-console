@@ -788,20 +788,39 @@ nav button[aria-current="page"] {
 }
 .turtle[data-animate="true"][data-state="idle"] img {
   animation: breathe 5s ease-in-out infinite;
+  filter: drop-shadow(0 10px 12px rgba(47, 80, 45, 0.14));
 }
-.turtle[data-animate="true"][data-state="thinking"] img,
-.turtle[data-animate="true"][data-state="planning"] img,
+.turtle[data-animate="true"][data-state="thinking"] img {
+  animation: think 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 8px 10px rgba(121, 89, 31, 0.16));
+}
+.turtle[data-animate="true"][data-state="planning"] img {
+  animation: plan 3.2s ease-in-out infinite;
+  filter: drop-shadow(0 8px 12px rgba(53, 107, 69, 0.16));
+}
 .turtle[data-animate="true"][data-state="processing"] img,
 .turtle[data-animate="true"][data-state="searching"] img,
-.turtle[data-animate="true"][data-state="researching"] img,
+.turtle[data-animate="true"][data-state="researching"] img {
+  animation: search 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 8px 12px rgba(70, 110, 150, 0.16));
+}
 .turtle[data-animate="true"][data-state="creating"] img,
-.turtle[data-animate="true"][data-state="designing"] img,
+.turtle[data-animate="true"][data-state="designing"] img {
+  animation: create 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 10px 14px rgba(180, 140, 40, 0.18));
+}
 .turtle[data-animate="true"][data-state="tool"] img {
-  animation: sway 3s ease-in-out infinite;
+  animation: tool 2s ease-in-out infinite;
+  filter: drop-shadow(0 8px 12px rgba(47, 80, 45, 0.18));
+}
+.turtle[data-animate="true"][data-state="waiting"] img {
+  animation: wait 2.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(201, 162, 39, 0.32));
 }
 .turtle[data-animate="true"][data-state="success"] img,
 .turtle[data-animate="true"][data-state="completed"] img {
   animation: celebrate 0.55s ease-out 1;
+  filter: drop-shadow(0 8px 10px rgba(53, 107, 69, 0.2));
 }
 .turtle[data-state="offline"] img,
 .turtle[data-state="error"] img {
@@ -821,12 +840,35 @@ nav button[aria-current="page"] {
     transform: translateY(-3px);
   }
 }
-@keyframes sway {
-  25% {
-    transform: rotate(-2deg);
+@keyframes think {
+  50% {
+    transform: translateY(-2px) rotate(-2deg);
   }
-  75% {
-    transform: rotate(2deg);
+}
+@keyframes plan {
+  50% {
+    transform: translateY(-2px) rotateY(6deg);
+  }
+}
+@keyframes search {
+  50% {
+    transform: translateX(3px) translateY(-2px);
+  }
+}
+@keyframes create {
+  50% {
+    transform: translateY(-4px) scale(1.03);
+  }
+}
+@keyframes tool {
+  50% {
+    transform: rotate(3deg) translateY(-2px);
+  }
+}
+@keyframes wait {
+  50% {
+    opacity: 0.84;
+    transform: translateY(-1px);
   }
 }
 @keyframes celebrate {
@@ -1136,6 +1178,10 @@ nav button[aria-current="page"] {
   min-width: 44px;
 }
 @media (prefers-reduced-motion: reduce) {
+  .turtle img,
+  .hermes-core .turtle img {
+    animation: none !important;
+  }
   .composer-task-status,
   .task-resume-sheet,
   .task-offline-banner,
@@ -2659,10 +2705,14 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .integration-picker button[aria-pressed="true"] { border-color: var(--color-primary); box-shadow: var(--focus-ring); }
 .integration-picker strong { max-width: 100%; overflow-wrap: anywhere; font-size: .85rem; }
 .connection-state { display: inline-flex; align-items: center; gap: 5px; font-size: .75rem; color: var(--color-muted); }
-.connection-state i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral); }
+.connection-state i { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--color-neutral); }
 .connection-state[data-state="verified"] i, .connection-state[data-state="available"] i { background: var(--color-success); }
-.connection-state[data-state="partial"] i { background: var(--color-warning); }
+.connection-state[data-state="partial"] i, .connection-state[data-state="configured"] i, .connection-state[data-state="connected"] i { background: var(--color-warning); }
 .connection-state[data-state="failed"] i { background: var(--color-error); }
+.connection-state[data-state="unconfigured"] i, .connection-state[data-state="unknown"] i {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--color-neutral);
+}
 .connection-editor section { min-width: 0; }
 .connection-editor section h3 { font-size: 1rem; }
 .connection-storage > summary { font-size: var(--type-caption); color: var(--color-muted); }

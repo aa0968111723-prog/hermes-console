@@ -62,7 +62,6 @@ export default function IntegrationGrid({
             <strong>{item.name}</strong>
             <span className="connection-state" data-state={item.state}>
               <i aria-hidden="true" />
-              {labels[item.state] || item.state}
             </span>
           </button>
         );

@@ -35,3 +35,50 @@ test("turtle terminal task and offline states override old tool activity", () =>
   assert.equal(turtleState(task("completed"), true).id, "offline");
   assert.equal(turtleState(undefined, false).id, "idle");
 });
+
+test("turtle maps planner, research, create, tool, wait, error, and offline", () => {
+  assert.equal(turtleState(undefined, false).id, "idle");
+  assert.equal(
+    turtleState(
+      {
+        ...task("queued"),
+        plan: { summary: "", budgetMode: "balanced", steps: [{} as never], fallbacks: [] },
+      } as Task,
+      false,
+    ).id,
+    "planning",
+  );
+  assert.equal(
+    turtleState(
+      {
+        ...task("running"),
+        events: [{ toolName: "galley_research", status: "running" } as TaskEvent],
+      },
+      false,
+    ).id,
+    "researching",
+  );
+  assert.equal(
+    turtleState(
+      {
+        ...task("running"),
+        events: [{ toolName: "canva_create", status: "running" } as TaskEvent],
+      },
+      false,
+    ).id,
+    "creating",
+  );
+  assert.equal(
+    turtleState(
+      {
+        ...task("running"),
+        events: [{ toolName: "workspace_read_material", status: "running" } as TaskEvent],
+      },
+      false,
+    ).id,
+    "tool",
+  );
+  assert.equal(turtleState(task("waiting_user"), false).id, "waiting");
+  assert.equal(turtleState(task("failed"), false).id, "error");
+  assert.equal(turtleState(task("running"), true).id, "offline");
+});
