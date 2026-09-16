@@ -15,7 +15,7 @@ function task(state: Task["state"], toolStatus?: string): Task {
 test("turtle only displays active tool work, not cancelled or uncertain events", () => {
   assert.equal(turtleState(task("running", "running"), false).id, "searching");
   for (const status of ["completed", "failed", "cancelled", "uncertain"])
-    assert.equal(turtleState(task("running", status), false).id, "thinking");
+    assert.equal(turtleState(task("running", status), false).id, "planning");
   assert.equal(
     turtleState(task("running", "waiting_user"), false).id,
     "waiting",
@@ -32,6 +32,7 @@ test("turtle terminal task and offline states override old tool activity", () =>
     "結果待確認",
   );
   assert.equal(turtleState(task("stopping", "running"), false).id, "waiting");
-  assert.equal(turtleState(task("completed"), true).id, "error");
+  assert.equal(turtleState(task("running"), false).id, "planning");
+  assert.equal(turtleState(task("completed"), true).id, "offline");
   assert.equal(turtleState(undefined, false).id, "idle");
 });

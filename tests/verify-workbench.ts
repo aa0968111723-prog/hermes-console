@@ -67,7 +67,7 @@ try {
   assert.match(await exported.text(),/一起看看春日創作/);
   await page.screenshot({path:join(output,"workbench-mobile-390.png"),fullPage:true});
   await page.getByRole("button",{name:"外觀設定"}).click();
-  await page.getByRole("tab",{name:"記憶",exact:true}).click();
+  await page.getByRole("tab",{name:"工作區",exact:true}).click();
   const map = page.getByRole("region",{name:"記憶與學習地圖"});
   await map.getByLabel("學習標題",{exact:true}).fill("社團品牌風格");
   await map.getByLabel("學習分類",{exact:true}).selectOption("brand");

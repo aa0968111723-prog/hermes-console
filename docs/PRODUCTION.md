@@ -60,4 +60,4 @@
 
 ## MCP
 
-Hermes 連 Console `/api/mcp`。外部 MCP 必須是受控 HTTPS，禁止 GitHub 倉庫網址、localhost（除非明確 loopback 測試）、私網與 metadata。狀態：`unconfigured`／`verifying`／`available`／`partial`／`failed`（UI）；registry 另有 `connected`／`verified`。不得把 tools/list 當成完全可用。
+Hermes 連 Console `/api/mcp`。外部 MCP 必須是受控 HTTPS，禁止 GitHub 倉庫網址、localhost（除非明確 loopback 測試）、私網與 metadata。狀態：未設定 `unconfigured`；已填 URL 尚未探測 `awaiting_authorization`；只完成 tools/list `partial`；安全讀取通過才是 `available`／`verified`；連不到是 `failed`。缺 token 不得標成可用。GET `/api/mcp-registry` 不回 endpoint 或 schema。

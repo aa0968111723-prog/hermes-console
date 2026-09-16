@@ -371,16 +371,17 @@ try {
   await settingsButton.click();
   const settings = page.getByRole("dialog", { name: "工作區設定" });
   await expect(settings).toBeVisible();
-  await page.getByRole("tab", { name: "外觀", exact: true }).focus();
+  await page.getByRole("tab", { name: "帳號", exact: true }).focus();
   await page.keyboard.press("End");
   await expect(
-    page.getByRole("tab", { name: "專案", exact: true }),
+    page.getByRole("tab", { name: "進階", exact: true }),
   ).toBeFocused();
-  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("專案");
+  await expect(page.getByRole("tabpanel")).toHaveAccessibleName("進階");
   await page.keyboard.press("Home");
   await expect(
-    page.getByRole("tab", { name: "外觀", exact: true }),
+    page.getByRole("tab", { name: "帳號", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "外觀", exact: true }).click();
   await audit("settings-appearance");
   await page.screenshot({
     path: join(output, "settings-desktop.png"),
