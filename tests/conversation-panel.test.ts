@@ -24,6 +24,10 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.match(topBar, /aria-label="開啟新對話"/);
   assert.match(topBar, /aria-label="帳號設定"/);
   assert.match(topBar, /data-ready=/);
+  assert.match(topBar, /const chatHome = mobile && nav === "chat"/);
+  assert.match(topBar, /data-chat-home=\{chatHome \? "true" : "false"\}/);
+  assert.match(topBar, /!chatHome && \(/);
+  assert.doesNotMatch(topBar, /mobile\s*\?\s*"Hermes"/);
   assert.match(consoleUi, /onNewChat=\{fresh\}/);
   const css = await readFile(
     new URL("../app/globals.css", import.meta.url),

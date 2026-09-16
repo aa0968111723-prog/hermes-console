@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | 手機捲動擁有權 | live（契約／瀏覽器） | Chat：`conversation-scroll`；其他頁：`.secondary-page`／`.page-scroll`。靈感頁不再被 100dvh+overflow:hidden 裁切。 |
 | Android 鍵盤 | live（模擬 visualViewport） | 開啟才寫 `--app-height`；關閉移除，避免殼層永久縮短。`offsetTop` 納入判斷。 |
-| Bottom dock | live | 對話／專案／Hermes／靈感／Agent；設定在頭像／齒輪。手機核心分頁走 Dock，不走漢堡。漢堡只開對話紀錄與開啟新對話；頂欄另有開啟新對話。未連線時頂欄顯示「未設定」，標題溢位會裁切，不再蓋住任務鈕。 |
+| Bottom dock | live | 對話／專案／Hermes／靈感／Agent；設定在頭像／齒輪。手機核心分頁走 Dock，不走漢堡。漢堡只開對話紀錄與開啟新對話；頂欄另有開啟新對話。未連線時頂欄顯示「未設定」。手機對話頁不顯示被裁成「He」的標題，品牌交給龜龜與「今天想做什麼？」。 |
 | AuthGate | live（正式必填） | `/` → Login → Hermes。`CONSOLE_AUTH_MODE=workspace` 僅契約／本機。 |
 | Google OIDC + PKCE | live 路徑／未填 Client 則停用 | Secret 只在 server。 |
 | 淡江 SSO | **partial**（OIDC 路徑 live） | issuer+client+secret 時跳轉校方 IdP（PKCE）。無校方 Client 時「淡江 SSO 尚未完成設定」。SAML／CAS 未接入。 |

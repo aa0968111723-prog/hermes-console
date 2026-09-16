@@ -259,6 +259,15 @@ try {
           ": " +
           JSON.stringify({ title, tasks }),
       );
+      await expect(page.locator(".topbar")).toHaveAttribute(
+        "data-chat-home",
+        "true",
+      );
+      assert.equal(
+        (await page.locator(".topbar-title").innerText()).trim(),
+        "",
+        "mobile chat must not clip a Hermes title at " + width,
+      );
       await expect(page.locator(".connection-label")).toBeVisible();
       await expect(page.locator(".connection-pill")).toContainText("未設定");
     }
