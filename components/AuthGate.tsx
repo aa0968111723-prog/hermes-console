@@ -157,6 +157,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   const google = providers?.google.configured;
   const tamkang = providers?.tamkang.configured;
+  const mail = providers?.email.mail === true;
+  const mailNotice = "尚未設定寄件，無法寄送登入或重設連結";
 
   return (
     <main className="login-screen" data-testid="login-screen">
@@ -190,6 +192,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
               {providers?.tamkang.label || "淡江 SSO 尚未完成設定"}
             </p>
           )}
+          {!mail && <p className="muted">{mailNotice}</p>}
         </div>
         {mode === "register" ? (
           <form
@@ -233,47 +236,51 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             </button>
           </form>
         ) : mode === "magic" ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submit("request_link");
-            }}
-          >
-            <label>
-              電子信箱
-              <input
-                type="email"
-                value={email}
-                autoComplete="email"
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </label>
-            <button className="primary" disabled={busy}>
-              {busy ? "處理中…" : "寄送登入連結"}
-            </button>
-          </form>
+          mail ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit("request_link");
+              }}
+            >
+              <label>
+                電子信箱
+                <input
+                  type="email"
+                  value={email}
+                  autoComplete="email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <button className="primary" disabled={busy}>
+                {busy ? "處理中…" : "寄送登入連結"}
+              </button>
+            </form>
+          ) : null
         ) : mode === "forgot" ? (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submit("forgot");
-            }}
-          >
-            <label>
-              電子信箱
-              <input
-                type="email"
-                value={email}
-                autoComplete="email"
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </label>
-            <button className="primary" disabled={busy}>
-              {busy ? "處理中…" : "寄送重設連結"}
-            </button>
-          </form>
+          mail ? (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit("forgot");
+              }}
+            >
+              <label>
+                電子信箱
+                <input
+                  type="email"
+                  value={email}
+                  autoComplete="email"
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </label>
+              <button className="primary" disabled={busy}>
+                {busy ? "處理中…" : "寄送重設連結"}
+              </button>
+            </form>
+          ) : null
         ) : mode === "reset" ? (
           <form
             onSubmit={(e) => {
@@ -302,7 +309,11 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             disabled={busy}
             onClick={() => void confirmToken(tokenKind === "verify" ? "verify" : "redeem")}
           >
-            {busy ? "處理中…" : "確認登入"}
+            {busy
+              ? "處理中…"
+              : tokenKind === "verify"
+                ? "完成驗證"
+                : "確認登入"}
           </button>
         ) : (
           <form
