@@ -7,6 +7,8 @@ const DESIGN = /海報|網宣|Canva|canva|視覺|設計|稿/;
 const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|可能喜歡|反向|路人會不會/;
 const INSPIRATION = /靈感|參考|IG|Pinterest|instagram/i;
 const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA/;
+const LOCAL_NOTES =
+  /研究筆記|MoE|CUDA|KV.?cache|multimodal encoder|Agent Runtime|knowledge graph/i;
 
 export function interpretGoal(input: string): StructuredGoal {
   const text = input.trim();
@@ -16,6 +18,7 @@ export function interpretGoal(input: string): StructuredGoal {
   const requiresDesign = DESIGN.test(text);
   const requiresAudienceEvaluation = AUDIENCE.test(text);
   const requiresInspiration = INSPIRATION.test(text) || requiresDesign;
+  const requiresLocalNotes = LOCAL_NOTES.test(text) && !requiresTamkang;
   const audience = requiresTamkang
     ? "淡江大一新生（模擬，不是民調）"
     : /受眾|學生/.test(text)
@@ -30,6 +33,8 @@ export function interpretGoal(input: string): StructuredGoal {
   if (requiresResearch)
     constraints.push("沒有外部 evidence 不得宣稱研究已完成。");
   if (requiresDesign) constraints.push("Canva 未授權時不得假裝設計成功。");
+  if (requiresLocalNotes)
+    constraints.push("倉庫研究筆記不是外部驗證，也不是已部署能力。");
   return {
     goal: text.slice(0, 500),
     audience,
@@ -40,6 +45,7 @@ export function interpretGoal(input: string): StructuredGoal {
     requiresAudienceEvaluation,
     requiresTamkang,
     requiresInspiration,
+    requiresLocalNotes,
     intentTier,
   };
 }

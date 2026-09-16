@@ -140,6 +140,17 @@ export function routeTools(
     }
   }
 
+  if (goal.requiresLocalNotes) {
+    routes.push({
+      id: "local_notes",
+      tool: "workspace_search_research",
+      reason:
+        "倉庫研究筆記可檢索；不得把筆記當成外部驗證或已上線能力。",
+      fallback: null,
+      availability: "available",
+    });
+  }
+
   if (goal.requiresInspiration) {
     routes.push({
       id: "inspiration",

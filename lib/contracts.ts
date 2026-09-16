@@ -100,6 +100,7 @@ export interface StructuredGoal {
   requiresAudienceEvaluation: boolean;
   requiresTamkang: boolean;
   requiresInspiration: boolean;
+  requiresLocalNotes: boolean;
   intentTier: IntentTier;
 }
 export interface PlanStep {

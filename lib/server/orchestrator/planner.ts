@@ -95,6 +95,17 @@ export function buildPlan(
       ),
     );
   }
+  if (goal.requiresLocalNotes) {
+    steps.push(
+      step(
+        "讀研究筆記",
+        "只檢索倉庫內研究筆記；confidence 0.4，不是外部已驗證文獻，也不是已部署能力。",
+        routes.find((item) => item.id === "local_notes")?.tool ||
+          "workspace_search_research",
+        null,
+      ),
+    );
+  }
   if (goal.requiresInspiration) {
     steps.push(
       step("找靈感", "先讀已收藏靈感，再搜尋已授權來源。", "project_inspiration_then_web", "ask_user"),

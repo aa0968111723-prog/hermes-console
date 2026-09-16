@@ -40,6 +40,7 @@ import {
   createDraft,
   pollDraft,
 } from "./workflows";
+import { searchResearchNotes } from "./research/nodes";
 import { filePath, listMaterials, material } from "./materials";
 import {
   deleteMemory,
@@ -274,6 +275,13 @@ const schemas = {
       ...context,
     })
     .strict(),
+  workspace_search_research: z
+    .object({
+      q: z.string().trim().min(2).max(200),
+      limit: z.number().int().min(1).max(8).optional(),
+      ...context,
+    })
+    .strict(),
 };
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
@@ -328,6 +336,8 @@ const descriptions: Record<ToolName, string> = {
     "請 GALLEY 依創作任務從已擷取來源推薦 AI 工具或模型。沒有來源證據的項目不列入；未設定金鑰不得標成可使用。",
   workspace_simulate_audience:
     "用十個淡江新生人格模擬看到海報／IG／表單／活動／攤位／場佈／文案的第一眼反應。規則式 SIMULATION，分數只是比較工具，不是轉換率。沒有視覺描述時標 UNKNOWN，不得假裝已看圖。",
+  workspace_search_research:
+    "檢索 Console 倉庫內的 AI Agent／Runtime 研究筆記。回傳 title、finding、source、confidence。不是外部文獻搜尋，也不得宣稱能力已上線。",
 };
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
@@ -673,6 +683,10 @@ async function execute(
         institution: input.institution,
         location: input.location,
       });
+    }
+    case "workspace_search_research": {
+      const input = schemas[name].parse(args);
+      return searchResearchNotes(input.q, input.limit);
     }
   }
 }

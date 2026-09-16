@@ -41,13 +41,15 @@ export function shouldFastPlan(
     | "requiresDesign"
     | "requiresInspiration"
     | "requiresAudienceEvaluation"
+    | "requiresLocalNotes"
   >,
 ) {
   if (
     goal.requiresTamkang ||
     goal.requiresDesign ||
     goal.requiresInspiration ||
-    goal.requiresAudienceEvaluation
+    goal.requiresAudienceEvaluation ||
+    goal.requiresLocalNotes
   ) {
     return false;
   }
