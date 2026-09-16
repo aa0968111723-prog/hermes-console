@@ -833,7 +833,7 @@ export default function ConnectionSettings({
             <ConnectionHelp>
               <p>
                 {data?.zeabur?.notice ||
-                  "在 Zeabur 控制台 Settings → API Keys 建立權杖。"}
+                  "在 Zeabur 控制台建立權杖。"}
               </p>
             </ConnectionHelp>
             <label>

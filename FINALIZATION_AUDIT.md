@@ -17,7 +17,7 @@
 | Email / Argon2id / Magic Link / Reset | live 路徑 | 寄信未設時仍可密碼進出；驗證信 Partial。 |
 | Identity linking | live 契約 | 禁止 Email 相同自動合併。帳號列：已連結＝verified；提供者可用尚未連結＝partial；提供者未設定＝unconfigured。權限顯示擁有者／管理者／成員。 |
 | Membership | live | owner／admin／member；工作區 API 需 session + membership。憑證 POST 限 owner／admin。 |
-| 設定寫入授權 | live 契約 | required 時僅 owner／admin 可改憑證／MCP 測試／Zeabur。 |
+| 設定寫入授權 | live 契約 | required 時僅擁有者／管理者可改憑證／MCP 測試／Zeabur。連線頁警告用中文角色名，不把 owner／admin 或「秘密只存在後端」掛在學生連線格上。 |
 | 淡江 MCP | live 契約 | 只接受 Bearer 權杖。不收集校園帳號或密碼。 |
 | 設定殼層 | live | `SettingsPanel`：帳號／外觀／連線／工作區／進階。 |
 | 資料備份 | live 契約 | `npm run backup` 複製 SQLite／vault／uploads；Postgres 提示 pg_dump，不印連線字串。 |

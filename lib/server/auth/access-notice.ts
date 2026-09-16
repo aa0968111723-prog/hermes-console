@@ -9,7 +9,7 @@ function gatewayConfigured() {
 
 export function settingsAccessWarning() {
   if (isAuthRequired()) {
-    return "僅工作區 owner／admin 可改連線。秘密只存在後端。";
+    return "僅擁有者／管理者可改連線。";
   }
   if (gatewayConfigured()) {
     return "工作區模式。連線變更需通過部署閘道。";
@@ -19,10 +19,10 @@ export function settingsAccessWarning() {
 
 export function zeaburAccessNotice() {
   if (isAuthRequired()) {
-    return "權杖在 Zeabur 控制台 Settings → API Keys 建立。僅 owner／admin 可改部署設定。";
+    return "權杖在 Zeabur 控制台建立。僅擁有者／管理者可改部署設定。";
   }
   if (gatewayConfigured()) {
-    return "權杖在 Zeabur 控制台 Settings → API Keys 建立。變更需通過部署閘道。";
+    return "權杖在 Zeabur 控制台建立。變更需通過部署閘道。";
   }
-  return "權杖在 Zeabur 控制台 Settings → API Keys 建立。能開啟此網站的人都可以覆寫權杖並變更部署環境變數。";
+  return "權杖在 Zeabur 控制台建立。能開啟此網站的人都可以覆寫權杖並變更部署環境變數。";
 }

@@ -26,6 +26,7 @@ test("settings shell is extracted and still hosts Help plus five tabs", async ()
   assert.match(panel, /settingsTab === "進階"/);
   assert.match(panel, /金鑰只存在伺服器/);
   assert.doesNotMatch(panel, /單一工作區 · 秘密只存在後端/);
+  assert.doesNotMatch(panel, /Settings → API Keys/);
   assert.ok(
     panel.indexOf("<ConnectionSettings") < panel.indexOf("健康與驗證"),
     "credential fields must appear before health internals",

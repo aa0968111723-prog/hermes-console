@@ -45,8 +45,10 @@ function request(
 }
 
 test("required mode settings writes need owner or admin", async () => {
-  assert.match(settingsAccessWarning(), /owner／admin/);
-  assert.match(zeaburAccessNotice(), /owner／admin/);
+  assert.match(settingsAccessWarning(), /擁有者／管理者/);
+  assert.doesNotMatch(settingsAccessWarning(), /owner／admin|秘密只存在後端/);
+  assert.match(zeaburAccessNotice(), /擁有者／管理者/);
+  assert.doesNotMatch(zeaburAccessNotice(), /owner／admin|Settings → API Keys/);
 
   await registerEmail("owner@example.test", "correct-horse-battery");
   const owner = await loginEmail("owner@example.test", "correct-horse-battery");
@@ -85,8 +87,8 @@ test("required mode settings writes need owner or admin", async () => {
   );
   assert.equal(allowed.status, 200);
   const body = await allowed.json();
-  assert.match(body.openSettingsWarning, /owner／admin/);
-  assert.match(body.zeabur.notice, /owner／admin/);
+  assert.match(body.openSettingsWarning, /擁有者／管理者/);
+  assert.match(body.zeabur.notice, /擁有者／管理者/);
 
   assert.equal(
     (await workspace.GET(request("workspace", "GET", undefined, ownerCookie)))
