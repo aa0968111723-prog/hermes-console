@@ -311,6 +311,9 @@ try {
   await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
   await expect(page.getByText(/Hermes 尚未連線/)).toBeVisible();
   const chatBrief = page.getByRole("region", { name: "已選方向規格" });
+  await expect(
+    chatBrief.locator(".direction-format-frame").first(),
+  ).toBeInViewport();
   await chatBrief.locator(".direction-format-frame").first().scrollIntoViewIfNeeded();
   await chatBrief.screenshot({
     path: join(output, "chat-direction-brief-mobile.png"),

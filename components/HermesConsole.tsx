@@ -268,6 +268,7 @@ export default function HermesConsole() {
   const input = useRef<HTMLTextAreaElement>(null);
   const uploadInput = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
+  const pinBriefAfterPick = useRef(false);
   const composing = useRef(false);
   const sending = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
@@ -529,11 +530,25 @@ export default function HermesConsole() {
     else mobileNav.current?.close();
   }, [drawer]);
   useEffect(() => {
-    if (nearBottom.current) {
-      const el = scroll.current;
-      if (el) el.scrollTop = el.scrollHeight;
+    const el = scroll.current;
+    if (!el) return;
+    if (pinBriefAfterPick.current && chatDirectionBrief) {
+      const brief = el.querySelector<HTMLElement>(".direction-brief");
+      if (brief) {
+        const top =
+          brief.getBoundingClientRect().top -
+          el.getBoundingClientRect().top +
+          el.scrollTop -
+          8;
+        el.scrollTo({ top: Math.max(0, top) });
+        pinBriefAfterPick.current = false;
+        nearBottom.current = false;
+        setJump(true);
+        return;
+      }
     }
-  }, [activeConv?.messages.length, currentTask?.output]);
+    if (nearBottom.current) el.scrollTop = el.scrollHeight;
+  }, [activeConv?.messages.length, currentTask?.output, chatDirectionBrief]);
   useEffect(() => {
     nearBottom.current = true;
     setJump(false);
@@ -662,14 +677,10 @@ export default function HermesConsole() {
           source === "chat" ? activeId || undefined : undefined,
       });
       setPickedDirection(id);
+      if (source === "chat") pinBriefAfterPick.current = true;
       await refresh();
       if (source === "chat" && activeId) {
         setNav("chat");
-        nearBottom.current = true;
-        requestAnimationFrame(() => {
-          const node = scroll.current;
-          if (node) node.scrollTop = node.scrollHeight;
-        });
       }
       if (hermesCanContinue(health) && source === "chat") {
         try {
