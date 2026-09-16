@@ -52,11 +52,43 @@ export function buildPlan(
   const research = routes.find((item) => item.id === "research");
   const galley = routes.find((item) => item.id === "galley");
   const club = routes.find((item) => item.id === "club_knowledge");
+  const image = routes.find((item) => item.id === "image_read");
+  const lumen = routes.find((item) => item.id === "lumen");
   const sourceRoute = campus || research || galley;
   const steps: PlanStep[] = [
     step("讀取專案上下文", "確認目前專案、素材與近期對話。", "context_engine", null),
     step("讀取共用記憶", "只帶入相關、近期、已確認的記憶，不把整庫塞進提示。", "shared_memory", null),
   ];
+  if (goal.targetRevision) {
+    steps.push(
+      step(
+        "鎖定作品版本",
+        "只修改 " +
+          goal.targetRevision +
+          "，比較與還原走現有 revision，不得重新生成無關作品。",
+        null,
+        null,
+      ),
+    );
+  }
+  if (image || goal.requiresImageRead) {
+    steps.push(
+      step(
+        "讀取上傳素材",
+        "先用 workspace_read_material 讀真實圖片或文字，不能只看檔名。",
+        image?.tool || "workspace_read_material",
+        image?.fallback || null,
+      ),
+    );
+    steps.push(
+      step(
+        "分析畫面",
+        "看圖、視覺層級與修改建議；沒讀到內容不得假裝已分析。",
+        image?.tool || "workspace_read_material",
+        null,
+      ),
+    );
+  }
   if (club) {
     steps.push(
       step(
@@ -133,8 +165,17 @@ export function buildPlan(
         null,
       ),
     );
+    if (lumen) {
+      steps.push(
+        step("開 Lumen 畫板", lumen.reason, lumen.tool, lumen.fallback),
+      );
+    }
     steps.push(
       step("Canva 接續", "有授權才製作；否則只交規格。", routes.find((item) => item.id === "design")?.tool || "canva_spec_only", "canva_spec_only"),
+    );
+  } else if (lumen) {
+    steps.push(
+      step("開 Lumen 畫板", lumen.reason, lumen.tool, lumen.fallback),
     );
   }
   steps.push(step("最終審查", "列出來源、未完成步驟與需要你確認的操作。", null, null));

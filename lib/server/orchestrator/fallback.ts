@@ -22,6 +22,8 @@ export function userVisibleFallback(route: RoutedTool) {
     return "需要的資料來源目前都不可用，會先問你要提供連結或稍後再試。";
   if (route.tool === "canva_spec_only")
     return "Canva 尚未授權，只會整理可製作規格，不會假裝設計已完成。";
+  if (route.id === "lumen")
+    return "Lumen 暫時不可用時，只整理創作方向，不會假裝畫板已開啟。";
   return route.reason;
 }
 

@@ -24,7 +24,7 @@ function capStatus(cert: IntegrationCertification | undefined, id: string) {
 export function routeTools(
   goal: StructuredGoal,
   certifications: IntegrationCertification[],
-  mcp: { galley?: RouterMcpHint } = {},
+  mcp: { galley?: RouterMcpHint; lumen?: RouterMcpHint } = {},
 ): RoutedTool[] {
   const tamkang = certifications.find((item) => item.id === "tamkang");
   const hermes = certifications.find((item) => item.id === "hermes");
@@ -93,12 +93,31 @@ export function routeTools(
     }
   }
 
+  if (goal.requiresImageRead) {
+    routes.push({
+      id: "image_read",
+      tool: "workspace_read_material",
+      reason: "必須先讀已上傳素材的真實內容，不能只看檔名。",
+      fallback: null,
+    });
+  }
+
   if (goal.requiresInspiration) {
     routes.push({
       id: "inspiration",
       tool: "project_inspiration_then_web",
       reason: "先讀專案已收藏靈感，再請 Hermes 使用已授權搜尋；不假裝 IG 全站搜尋。",
       fallback: "ask_user",
+    });
+  }
+
+  if (goal.requiresLumen && mcpUsable(mcp.lumen?.status)) {
+    routes.push({
+      id: "lumen",
+      tool: "lumen_utter",
+      reason:
+        "Lumen 已列出或通過安全讀取，文宣走創作台畫板。沒有工具不得假裝已開畫板。",
+      fallback: goal.requiresDesign ? "canva_spec_only" : "ask_user",
     });
   }
 

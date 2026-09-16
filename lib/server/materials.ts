@@ -17,6 +17,12 @@ export function material(owner: string, id: string) {
   if (!value) throw new ApiError(404, "not_found", "找不到素材。");
   return value;
 }
+
+export function countImageAttachments(owner: string, ids: string[]) {
+  return ids.filter(
+    (id) => get<Material>("material", owner, id)?.kind === "image",
+  ).length;
+}
 export function filePath(owner: string, id: string) {
   if (
     ![WORKSPACE_OWNER, "owner"].includes(owner) ||

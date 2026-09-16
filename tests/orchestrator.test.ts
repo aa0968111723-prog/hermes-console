@@ -78,6 +78,120 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(unconfigured.find((item) => item.id === "galley"), undefined);
   });
 
+  await t.test("Lumen is used for studio intent only when the registry is usable", () => {
+    const goal = interpretGoal("幫我開 Lumen 畫板做招新海報三個方向");
+    assert.equal(goal.requiresLumen, true);
+    const hermes = emptyIntegration("hermes");
+    const without = routeTools(goal, [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")]);
+    assert.equal(without.find((item) => item.id === "lumen"), undefined);
+    const withLumen = routeTools(
+      goal,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { lumen: { status: "partial" } },
+    );
+    assert.equal(withLumen.find((item) => item.id === "lumen")?.tool, "lumen_utter");
+    const plan = buildPlan(goal, withLumen, "balanced");
+    assert.ok(plan.steps.some((step) => step.title.includes("Lumen")));
+    const failed = routeTools(
+      goal,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { lumen: { status: "failed" } },
+    );
+    assert.equal(failed.find((item) => item.id === "lumen"), undefined);
+  });
+
+  await t.test("uploaded image critique leaves the fast path and reads the material", () => {
+    const goal = interpretGoal("這張哪裡可以改？", {
+      attachmentCount: 1,
+      imageAttachmentCount: 1,
+    });
+    assert.equal(goal.requiresImageRead, true);
+    assert.equal(goal.requiresAudienceEvaluation, true);
+    assert.notEqual(goal.intentTier, "continue");
+    assert.ok(goal.constraints.some((item) => /已上傳素材/.test(item)));
+    const routes = routeTools(goal, [emptyIntegration("hermes")]);
+    assert.equal(
+      routes.find((item) => item.id === "image_read")?.tool,
+      "workspace_read_material",
+    );
+    const plan = buildPlan(goal, routes, "balanced");
+    assert.notEqual(plan.budgetMode, "fast");
+    assert.ok(plan.steps.some((step) => step.title.includes("讀取上傳素材")));
+    assert.ok(plan.steps.some((step) => step.title.includes("分析畫面")));
+    assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
+  });
+
+  await t.test("nth-version edits stay on the named revision", () => {
+    const goal = interpretGoal("第二版字放大");
+    assert.equal(goal.targetRevision, "v2");
+    assert.notEqual(goal.intentTier, "continue");
+    assert.ok(goal.constraints.some((item) => /v2/.test(item)));
+    const plan = buildPlan(goal, [], "balanced");
+    assert.ok(plan.steps.some((step) => step.title.includes("鎖定作品版本")));
+    assert.match(plan.steps.find((step) => step.title.includes("鎖定"))!.purpose, /v2/);
+    assert.equal(interpretGoal("第3版標題改短").targetRevision, "v3");
+  });
+
+  await t.test("orchestration counts uploaded images before routing", async () => {
+    const { randomUUID } = await import("node:crypto");
+    const { put } = await import("../lib/server/store");
+    const { prepareOrchestration } = await import(
+      "../lib/server/orchestrator/executor"
+    );
+    const id = randomUUID();
+    put("material", "workspace", {
+      id,
+      projectId: "personal",
+      title: "poster.png",
+      kind: "image",
+      url: null,
+      mime: "image/png",
+      bytes: 12,
+      tags: [],
+      createdAt: new Date().toISOString(),
+      rights: "user_provided",
+      notes: "",
+    });
+    const orch = prepareOrchestration(
+      "workspace",
+      {
+        id: randomUUID(),
+        conversationId: randomUUID(),
+        requestKey: randomUUID(),
+        payloadHash: "h",
+        state: "queued",
+        transport: "chat",
+        remoteId: null,
+        input: "這張哪裡可以改？",
+        attachments: [id],
+        output: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        endedAt: null,
+        error: null,
+        observationError: null,
+        events: [],
+        usage: { ...EMPTY_USAGE },
+        stopSupported: false,
+      },
+      {
+        id: randomUUID(),
+        title: "測",
+        projectId: "personal",
+        messages: [],
+        hermesSessionId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    );
+    assert.equal(orch.goal.requiresImageRead, true);
+    assert.equal(
+      orch.routes.find((item) => item.id === "image_read")?.tool,
+      "workspace_read_material",
+    );
+    assert.notEqual(orch.plan.budgetMode, "fast");
+  });
+
   await t.test("generic freshman wording does not bind Tamkang", () => {
     for (const prompt of [
       "國立臺灣大學新生茶會文宣海報",

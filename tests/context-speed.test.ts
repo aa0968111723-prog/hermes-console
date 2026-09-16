@@ -142,6 +142,16 @@ test("P0 short continue / chitchat is fast: no research Canva Lumen manuals", ()
     assert.equal(orch.plan.budgetMode, "fast");
     assert.equal(/lumen_utter|framelab_list_projects/.test(orch.instructions), false);
   }
+
+  const critique = interpretGoal("這張哪裡可以改？");
+  assert.equal(isFastTier(critique.intentTier), false);
+  assert.equal(critique.requiresImageRead, false);
+  const critiqueWithImage = interpretGoal("這張哪裡可以改？", {
+    attachmentCount: 1,
+    imageAttachmentCount: 1,
+  });
+  assert.equal(critiqueWithImage.requiresImageRead, true);
+  assert.equal(isFastTier(critiqueWithImage.intentTier), false);
 });
 
 test("P0 full create / lookup path still opens packs and research", () => {

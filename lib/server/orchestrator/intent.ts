@@ -16,11 +16,18 @@ const LOOKUP = /研究|查一?下|查詢|搜尋|文獻|資料來源|找資料|�
 const CREATE =
   /海報|網宣|Canva|canva|視覺|設計|稿|文宣|招新|茶會|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/;
 
+/** Poster / screenshot critique must not collapse into the short continue path. */
+export const IMAGE_CRITIQUE =
+  /這張(圖|海報|照片|截圖)?|哪裡可以改|看圖|分析這張|視覺層級|修改建議/;
+
+export const REVISION_CUE = /第([一二三四五六七八九十]+|\d+)版|\b[vV]\d+\b/;
+
 export function classifyIntent(input: string): IntentTier {
   const text = input.trim();
   if (!text) return "chitchat";
   if (LOOKUP.test(text)) return "lookup";
   if (CREATE.test(text)) return "create";
+  if (IMAGE_CRITIQUE.test(text) || REVISION_CUE.test(text)) return "create";
   if (CHITCHAT.test(text)) return "chitchat";
   if (text.length <= FAST_INTENT_CHAR_LIMIT || CONTINUE_CUE.test(text))
     return "continue";

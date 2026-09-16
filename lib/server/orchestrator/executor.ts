@@ -11,6 +11,7 @@ import {
 import { CONTEXT_TOKEN_BUDGET } from "../context/budget";
 import { isFastTier } from "./intent";
 import { getMcp } from "../mcp-registry";
+import { countImageAttachments } from "../materials";
 
 export function prepareOrchestration(
   owner: string,
@@ -18,13 +19,18 @@ export function prepareOrchestration(
   conv: Conversation,
   budgetMode: BudgetMode = task.budgetMode || "balanced",
 ) {
-  const goal = interpretGoal(task.input);
+  const goal = interpretGoal(task.input, {
+    attachmentCount: task.attachments.length,
+    imageAttachmentCount: countImageAttachments(owner, task.attachments),
+  });
   const fast = isFastTier(goal.intentTier);
   const effectiveBudget: BudgetMode = fast ? "fast" : budgetMode;
   const certifications = getCertification(owner).integrations;
   const galley = getMcp("galley");
+  const lumen = getMcp("lumen");
   const routes = routeTools(goal, certifications, {
     galley: { status: galley?.status || "unconfigured" },
+    lumen: { status: lumen?.status || "unconfigured" },
   });
   const plan = buildPlan(goal, routes, effectiveBudget);
   const context = fast

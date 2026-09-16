@@ -103,7 +103,8 @@ export function composeTaskInstructions(input: {
     );
     packs.push("visual", "canva");
   }
-  const includeLumenManual = isLumenIntent(input.text);
+  const includeLumenManual =
+    input.goal.requiresLumen || isLumenIntent(input.text);
   const includeFramelabManual = isFramelabIntent(input.text);
   if (includeLumenManual) {
     parts.push(LUMEN_INSTRUCTION_PACK);
