@@ -17,17 +17,18 @@
 | MCP 狀態 | 可用（契約） | `tools/list` → partial；缺 token → unconfigured；連不上 → failed；available 只在 safe-read。 |
 | 設定分頁 | 可用 | 帳號 / 外觀 / 連線 / 工作區 / 進階。 |
 | Agent 自然語言路由 | 可用（契約） | 「禪學社網宣靈感／這張哪裡可以改／做一張茶會宣傳」會進研究／看圖／Canva 規格計畫。未驗證看圖時不假裝已讀像素。查公告仍走 lookup。 |
+| 對話進度與作品預覽 | 可用（契約） | 計畫步驟收成 理解／研究／看圖／靈感／客群／創作／完成。工具 JSON 只在「原始結果」。創作回覆帶 ArtifactStage 大圖，不是工具計數。 |
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 
 ## 本輪驗證（2026-09-16）
 
-- `npm test`：381 tests, 379 pass, 2 skipped, 0 fail。
-- `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 236 kB（shared 103 kB）。
-- Playwright Chromium：`test:entry` `test:ui` `test:chat` `test:workbench` `test:gateway` `test:runtime` 全過。
+- `npm test`：385 tests, 383 pass, 2 skipped, 0 fail。
+- `npm run lint` / `typecheck` / `build`：通過。`/` First Load JS 238 kB（shared 103 kB）。
+- Playwright Chromium：`test:ui` 本輪重跑通過（過程完成、對話內設計成果預覽、axe 0 violations）。`test:entry` `test:chat` `test:workbench` `test:gateway` `test:runtime` 先前已過。
 - Playwright 尺寸：360×800、375×812、390×844、393×852、412×915、430×932、768×1024、1024、1440。WebKit 同六個手機尺寸。不是實機。
 - axe wcag2a/aa + 2.1：0 violations（`output/playwright/browser-report.json`）。
-- 本機 Chromium LCP 96ms、CLS 0.00008。不是 field 裝置實驗室。
+- 本機 Chromium LCP 136ms、CLS 0.00008。不是 field 裝置實驗室。
 - 登入 bootstrap：Node 註冊後用頁內 `fetch` 登入。`APIRequestContext` / CDP cookie 在 `127.0.0.1` 不會進 document jar。
 
 ## 仍是 Partial（禁止標綠）

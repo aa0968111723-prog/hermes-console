@@ -63,6 +63,7 @@ import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
 import VisualMessage from "./visual/VisualMessage";
 import TaskEventSummary, { EventResult } from "./visual/TaskEventSummary";
+import { progressSteps } from "@/lib/client/activity";
 import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
@@ -1254,8 +1255,8 @@ export default function HermesConsole() {
                             onClick={() => openTask(currentTask)}
                           >
                             <ListTodo size={16} />
-                            {currentTask.events.at(-1)?.summary ||
-                              "查看已保存的任務"}
+                            {progressSteps(currentTask).find((step) => step.active)
+                              ?.label || taskLabels[currentTask.state]}
                             <ChevronDown size={16} />
                           </button>
                           {["failed", "cancelled", "uncertain"].includes(
