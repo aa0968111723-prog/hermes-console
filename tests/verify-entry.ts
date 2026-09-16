@@ -223,6 +223,8 @@ try {
   await expect(page.getByRole("button", { name: /選方向 A/ })).toBeVisible({
     timeout: 15_000,
   });
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).not.toBeFocused();
+  await expect(page.getByRole("button", { name: /選方向 A/ })).toBeInViewport();
   await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
   await expect(page.getByText("不是 Hermes", { exact: true })).toBeVisible();
   await expect(page.getByText("沒有已收藏來源 · 未搜全站")).toBeVisible();

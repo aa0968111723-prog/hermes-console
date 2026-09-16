@@ -5,6 +5,7 @@ import {
   clearComposerKeyboardStyle,
   composerAppHeightPx,
   isComposerKeyboardOpen,
+  shouldFocusComposerAfterSend,
 } from "../lib/client/composer-keyboard";
 
 test("composer keyboard is only open when focus owns a shrunk visual viewport", () => {
@@ -60,4 +61,9 @@ test("app-height inline style is cleared when the keyboard closes", () => {
   clearComposerKeyboardStyle(element);
   assert.equal(root.style.has("--app-height"), false);
   assert.equal("composerKeyboard" in root.dataset, false);
+});
+
+test("spoken send does not refocus the composer over the new cards", () => {
+  assert.equal(shouldFocusComposerAfterSend(true), false);
+  assert.equal(shouldFocusComposerAfterSend(false), true);
 });

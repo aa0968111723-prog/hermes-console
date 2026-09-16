@@ -49,3 +49,8 @@ export function clearComposerKeyboardStyle(root: HTMLElement) {
   root.style.removeProperty("--app-height");
   delete root.dataset.composerKeyboard;
 }
+
+/** Spoken send must not reopen the keyboard over the new cards. Typed send may. */
+export function shouldFocusComposerAfterSend(spoken: boolean) {
+  return !spoken;
+}

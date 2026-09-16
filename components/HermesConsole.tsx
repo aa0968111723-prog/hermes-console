@@ -32,6 +32,7 @@ import {
   applyComposerKeyboardStyle,
   clearComposerKeyboardStyle,
   isComposerKeyboardOpen,
+  shouldFocusComposerAfterSend,
 } from "@/lib/client/composer-keyboard";
 import { materialImageSrc } from "@/lib/client/materials";
 import { studentTaskCaption, progressSteps, safeSource, studentSourceHost, taskEvents } from "@/lib/client/activity";
@@ -749,6 +750,7 @@ export default function HermesConsole() {
   async function sendPrompt(prompt: string, attachmentIds?: string[]) {
     const trimmed = prompt.trim();
     if (sending.current || busy || blocked || !trimmed) return;
+    const spokenSend = voiceReady;
     const files = attachmentIds
       ? []
       : uploads.filter((u) => u.material);
@@ -801,6 +803,9 @@ export default function HermesConsole() {
       });
       replaceDraft("conversation:" + conv.id, emptyDraft());
       requestKey.current = null;
+      sending.current = false;
+      setBusy(false);
+      if (shouldFocusComposerAfterSend(spokenSend)) input.current?.focus();
       try {
         await refresh("user");
       } catch (error) {
@@ -809,7 +814,6 @@ export default function HermesConsole() {
           setError(WORKSPACE_LOAD_NOTICE);
         }
       }
-      input.current?.focus();
     } catch (e) {
       setError(
         studentSafeApiMessage(
