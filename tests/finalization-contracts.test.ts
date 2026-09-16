@@ -191,3 +191,18 @@ test("idle task poll is slower than active poll", async () => {
   assert.match(ui, /POLL_ACTIVE_MS = 3000/);
   assert.match(ui, /POLL_IDLE_MS = 8000/);
 });
+
+test("direction spec stays in the conversation that picked it, not the empty home", async () => {
+  const ui = await readFile(
+    new URL("../components/HermesConsole.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(ui, /chatDirectionBrief/);
+  assert.match(ui, /conversationId === activeId/);
+  const welcome = ui.slice(
+    ui.indexOf('aria-labelledby="welcome-title"'),
+    ui.indexOf(") : ("),
+  );
+  assert.doesNotMatch(welcome, /DirectionBrief/);
+  assert.match(ui, /setNotice\(""\)/);
+});

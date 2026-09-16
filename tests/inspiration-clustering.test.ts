@@ -207,6 +207,50 @@ test("selecting a direction saves a workflow and is visible in project context",
   );
 });
 
+test("selected direction spec binds to the conversation that picked it", async () => {
+  const { randomUUID } = await import("node:crypto");
+  const { put } = await import("../lib/server/store");
+  const { ApiError } = await import("../lib/server/errors");
+  const conversationId = randomUUID();
+  put("conversation", "workspace", {
+    id: conversationId,
+    title: "選方向對話",
+    projectId: "personal",
+    messages: [],
+    hermesSessionId: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+  const picked = selectInspirationDirection({
+    owner: "workspace",
+    prompt: TEA,
+    projectId: "personal",
+    selected: "A",
+    conversationId,
+  });
+  assert.equal(picked.workflow.conversationId, conversationId);
+  const result = await callTool("workspace", "workspace_project_context", {
+    projectId: "personal",
+  });
+  const text = String((result.content as Array<{ text?: string }>)[0].text);
+  assert.match(text, new RegExp(conversationId));
+  assert.throws(
+    () =>
+      selectInspirationDirection({
+        owner: "workspace",
+        prompt: TEA,
+        projectId: "personal",
+        selected: "A",
+        conversationId: randomUUID(),
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof ApiError);
+      assert.equal(error.code, "scope_mismatch");
+      return true;
+    },
+  );
+});
+
 test("picking a direction locks copy and visual without re-searching inspiration", () => {
   const pick = directionPickFollowUp("A", "淡大禪學社茶會・手搖飲場景");
   assert.equal(classifyIntent(pick), "create");

@@ -290,13 +290,19 @@ export default function HermesConsole() {
     .at(-1);
   const rawBrief = directionWorkflow?.directionBrief;
   const directionBrief = isDirectionBriefPack(rawBrief) ? rawBrief : null;
+  const chatDirectionBrief =
+    directionBrief &&
+    directionWorkflow?.conversationId &&
+    directionWorkflow.conversationId === activeId
+      ? directionBrief
+      : null;
   const selectedInspiration =
     pickedDirection ||
-    (directionWorkflow &&
+    (directionWorkflow?.conversationId === activeId &&
     directionWorkflow.selected !== null &&
     DIRECTION_LETTERS[directionWorkflow.selected]
       ? DIRECTION_LETTERS[directionWorkflow.selected]
-      : directionBrief?.selected || null);
+      : chatDirectionBrief?.selected || null);
 
   const loadWorkspace = useCallback(async () => {
     const result = await api<Workspace>("workspace");
@@ -547,6 +553,7 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
     writePreference("hermes.active.v2", conv.id);
   }
   function fresh() {
@@ -556,6 +563,8 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
+    setPickedDirection(null);
     writePreference("hermes.active.v2", null);
     input.current?.focus();
   }
@@ -637,6 +646,7 @@ export default function HermesConsole() {
   async function pickInspirationDirection(
     id: "A" | "B" | "C",
     pack: InspirationSearchPack,
+    source: "chat" | "board" = "chat",
   ) {
     if (busy || pickingInspiration || blocked) return;
     const title = pack.directions.find((item) => item.id === id)?.title || id;
@@ -648,26 +658,28 @@ export default function HermesConsole() {
         selected: id,
         prompt: pack.query.primary,
         projectId: project,
+        conversationId:
+          source === "chat" ? activeId || undefined : undefined,
       });
       setPickedDirection(id);
       await refresh();
-      setNav("chat");
-      nearBottom.current = true;
-      requestAnimationFrame(() => {
-        const node = scroll.current;
-        if (node) node.scrollTop = node.scrollHeight;
-      });
-      if (hermesCanContinue(health)) {
+      if (source === "chat" && activeId) {
+        setNav("chat");
+        nearBottom.current = true;
+        requestAnimationFrame(() => {
+          const node = scroll.current;
+          if (node) node.scrollTop = node.scrollHeight;
+        });
+      }
+      if (hermesCanContinue(health) && source === "chat") {
         try {
           await sendPrompt(directionPickFollowUp(id, title), []);
         } catch (cause) {
-          setNotice(
-            "規格已整理。Hermes 這次沒有接上，沒有假裝已查資料或已出圖。",
-          );
+          setNotice("Hermes 尚未連線，沒有出圖。");
           setError((cause as Error).message);
         }
-      } else {
-        setNotice("規格已整理。Hermes 尚未連線，沒有假裝已查資料或已出圖。");
+      } else if (source === "chat" && activeId) {
+        setNotice("Hermes 尚未連線，沒有出圖。");
       }
     } catch (e) {
       setError((e as Error).message);
@@ -1215,7 +1227,6 @@ export default function HermesConsole() {
                         匯入這個瀏覽器中的舊對話（不覆蓋原資料）
                       </button>
                     )}
-                    {directionBrief && <DirectionBrief brief={directionBrief} />}
                   </section>
                 ) : (
                   <>
@@ -1381,7 +1392,9 @@ export default function HermesConsole() {
                           )}
                         </article>
                       )}
-                    {directionBrief && <DirectionBrief brief={directionBrief} />}
+                    {chatDirectionBrief && (
+                      <DirectionBrief brief={chatDirectionBrief} />
+                    )}
                   </>
                 )}
               </div>
@@ -1749,7 +1762,9 @@ export default function HermesConsole() {
               items={inspiration}
               pack={inspirationPack}
               syncStatus={sheetsSync}
-              onSelectDirection={pickInspirationDirection}
+              onSelectDirection={(id, pack) =>
+                void pickInspirationDirection(id, pack, "board")
+              }
               selectedDirection={selectedInspiration}
               selecting={pickingInspiration}
               brief={directionBrief}

@@ -502,6 +502,7 @@ async function execute(
                 : item.directions[item.selected]?.title || null,
             activityId: item.activityId || null,
             copyId: item.copyId || null,
+            conversationId: item.conversationId || null,
             brief: item.brief.slice(0, 160),
           })),
       };

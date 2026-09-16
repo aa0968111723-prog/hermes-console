@@ -15,9 +15,17 @@ import type {
   InspirationSearchPack,
 } from "../../inspiration-pack";
 import { ApiError } from "../security";
-import { saveDirections, chooseDirection, attachDirectionBrief, type Workflow } from "../workflows";
+import { get } from "../store";
+import {
+  saveDirections,
+  chooseDirection,
+  attachDirectionBrief,
+  bindWorkflowDraft,
+  type Workflow,
+} from "../workflows";
 import { compileDirectionBrief } from "./brief";
 import { persistSelectedDirectionDraft } from "./persist";
+import type { Conversation } from "../../contracts";
 
 export function analyzeReference(input: {
   caption?: string;
@@ -335,7 +343,17 @@ export function selectInspirationDirection(input: {
   prompt: string;
   projectId: string;
   selected: "A" | "B" | "C";
+  conversationId?: string | null;
 }): { workflow: Workflow; pack: ReturnType<typeof searchInspiration> } {
+  if (input.conversationId) {
+    const conv = get<Conversation>(
+      "conversation",
+      input.owner,
+      input.conversationId,
+    );
+    if (!conv || conv.projectId !== input.projectId)
+      throw new ApiError(403, "scope_mismatch", "對話不屬於此專案。");
+  }
   const pack = searchInspiration({
     prompt: input.prompt,
     projectId: input.projectId,
@@ -365,7 +383,7 @@ export function selectInspirationDirection(input: {
     saved.selected === index
       ? saved
       : chooseDirection(input.owner, saved.id, index);
-  const workflow = persistSelectedDirectionDraft(
+  const drafted = persistSelectedDirectionDraft(
     input.owner,
     attachDirectionBrief(
       input.owner,
@@ -376,5 +394,11 @@ export function selectInspirationDirection(input: {
       }),
     ),
   );
+  const workflow =
+    input.conversationId && drafted.conversationId !== input.conversationId
+      ? bindWorkflowDraft(input.owner, drafted.id, {
+          conversationId: input.conversationId,
+        })
+      : drafted;
   return { workflow, pack };
 }

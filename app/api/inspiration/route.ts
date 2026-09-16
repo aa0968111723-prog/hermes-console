@@ -46,6 +46,7 @@ export const POST = route(async (req) => {
       caption: z.string().max(2000).optional(),
       account: z.string().max(120).optional(),
       selected: z.enum(["A", "B", "C"]).optional(),
+      conversationId: z.string().uuid().optional(),
     })
     .strict()
     .parse(await jsonBody(req));
@@ -66,6 +67,7 @@ export const POST = route(async (req) => {
       prompt: body.prompt || "靈感板",
       projectId: body.projectId,
       selected: body.selected,
+      conversationId: body.conversationId,
     });
     return respond({
       workflow: {

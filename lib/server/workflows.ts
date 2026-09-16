@@ -63,6 +63,7 @@ export interface Workflow {
   error: string | null;
   directionBrief?: DirectionBriefPack | null;
   copyId?: string | null;
+  conversationId?: string | null;
 }
 export function saveDirections(
   owner: string,
@@ -143,6 +144,7 @@ export function bindWorkflowDraft(
     activityId?: string;
     copyId?: string | null;
     directionBrief?: DirectionBriefPack | null;
+    conversationId?: string | null;
   },
 ) {
   return transaction(() => {

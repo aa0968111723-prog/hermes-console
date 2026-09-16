@@ -309,6 +309,10 @@ try {
   await expect(conversationDrawer).toBeVisible();
   await conversationDrawer.getByRole("button", { name: "開啟新對話" }).click();
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await expect(
+    page.locator(".conversation-scroll").getByRole("region", { name: "已選方向規格" }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/規格已整理/)).toHaveCount(0);
   const poster = await readFile("public/mascot/turtle.png");
   await page.locator('#composer input[type="file"]').setInputFiles({
     name: "茶會海報.png",
