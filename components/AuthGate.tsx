@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Turtle from "./Turtle";
+import { applyAppViewport } from "@/lib/client/viewport";
 
 type Providers = {
   google: boolean;
@@ -49,27 +50,29 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    if (session?.user && session.membership) return;
     const viewport = window.visualViewport;
     const update = () => {
-      document.documentElement.style.setProperty(
-        "--app-height",
-        (viewport?.height || window.innerHeight) + "px",
-      );
-      document.documentElement.style.setProperty(
-        "--app-top",
-        (viewport?.offsetTop || 0) + "px",
-      );
+      const active = document.activeElement;
+      const ownerFocused =
+        active instanceof HTMLElement &&
+        !!active.closest(".auth-gate, .auth-form");
+      applyAppViewport(ownerFocused);
     };
     update();
     viewport?.addEventListener("resize", update);
     viewport?.addEventListener("scroll", update);
     window.addEventListener("resize", update);
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", update);
     return () => {
       viewport?.removeEventListener("resize", update);
       viewport?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", update);
     };
-  }, []);
+  }, [session?.user, session?.membership]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

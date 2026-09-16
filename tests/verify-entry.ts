@@ -326,6 +326,24 @@ try {
     path: join(output, "composer-keyboard-entry-390x420.png"),
     clip: { x: 0, y: 0, width: 390, height: 420 },
   });
+  await box.evaluate((el) => el.blur());
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
+  await expect(page.locator(".mobile-bottom-dock")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator(".app-shell")
+        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
+    )
+    .toBe(844);
+  await box.click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
   await page.evaluate(() => {
     if (!window.visualViewport) return;
     Reflect.deleteProperty(window.visualViewport, "height");

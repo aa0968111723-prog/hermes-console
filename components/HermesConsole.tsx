@@ -80,6 +80,7 @@ import {
   removeLegacyPreference,
 } from "@/lib/client/storage";
 import { workspacePollDelay } from "@/lib/client/poll";
+import { applyAppViewport } from "@/lib/client/viewport";
 import {
   liveTaskCovered,
   visibleChatMessages,
@@ -483,24 +484,7 @@ export default function HermesConsole() {
         baseline = current;
       }
       previousWidth = current.width;
-      document.documentElement.style.setProperty(
-        "--app-height",
-        current.height + "px",
-      );
-      document.documentElement.style.setProperty(
-        "--app-top",
-        (viewport?.offsetTop || 0) + "px",
-      );
-      const keyboardOpen =
-        composerFocused &&
-        !widthChanged &&
-        Math.max(baseline.height, window.innerHeight) - current.height >= 96 &&
-        (viewport?.scale || 1) <= 1.01;
-      if (keyboardOpen) {
-        document.documentElement.dataset.composerKeyboard = "open";
-      } else {
-        delete document.documentElement.dataset.composerKeyboard;
-      }
+      applyAppViewport(composerFocused, widthChanged);
     };
     const schedule = () => {
       cancelAnimationFrame(frame);
