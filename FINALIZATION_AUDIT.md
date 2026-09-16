@@ -25,7 +25,8 @@
 | 首頁 | 可用（契約） | 龜龜 + 今天想做什麼？ + 六個短標籤。手機與桌面同一組。無 MCP 軌道、無英文 welcome overlay。 |
 | Drive 知識 | 可用（契約） | 靈感頁預設折疊「社團知識」；不顯示 `live=`。 |
 | Memory layers | 部分 | `layer` + research digest；主 UI 不展開知識圖譜。 |
-| 學生接續同一作品 | 可用（契約） | Composer 只放人話（請接續修改這個作品／已選定方向 n）。copyId／workflowId／activityId 只走 `task.focus`。專案「接續創作／寫 A／B／C／三個方向」不再露出 `workspace_*` 或活動 UUID。 |
+| 學生接續同一作品 | 可用（契約） | Composer 只放人話。copyId／workflowId／activityId 只走 `task.focus`。Canva 接續使用專案最新 workflow。 |
+| 回到最新訊息 | 可用（契約） | 右側 44px 圓鈕，不再蓋住作品標題中央。 |
 | 對話內長標題 | 可用（契約） | `.canva-result h3` `overflow-wrap` + `word-break`。手機 390 斷言 heading 不橫向溢出。Jump-to-latest 仍可能蓋住最底一行。 |
 | 文件 | 可用 | README、PRODUCTION、SECURITY、ARCHITECTURE、RELEASE_CHECKLIST。 |
 

@@ -633,6 +633,7 @@
     max-width: 100%;
     overflow-wrap: anywhere;
     word-break: break-word;
+    padding-inline-end: 52px;
   }
   .artifact-rail {
     gap: 12px;
