@@ -1,48 +1,47 @@
 "use client";
 import { memo, useEffect, useState } from "react";
 import type { Task } from "@/lib/contracts";
-import { eventState, workingEvent } from "@/lib/client/activity";
+import { activityKind, eventState, workingEvent } from "@/lib/client/activity";
 export function turtleState(task: Task | undefined, offline: boolean) {
   if (offline) return { id: "offline", label: "離線" };
-  if (!task) return { id: "idle", label: "陪你把想法慢慢完成" };
+  if (!task) return { id: "idle", label: "準備好了" };
   if (task.state === "failed" || task.state === "uncertain")
     return {
       id: "error",
-      label: task.state === "uncertain" ? "結果待確認" : "需要處理錯誤",
+      label: task.state === "uncertain" ? "結果待確認" : "需要你看一下",
     };
   if (task.state === "completed")
-    return { id: "success", label: "成果已回來了" };
+    return { id: "success", label: "完成了" };
   if (task.state === "waiting_user")
-    return { id: "waiting", label: "等待你的確認" };
+    return { id: "waiting", label: "等你確認" };
+  if (task.state === "waiting_authorization")
+    return { id: "waiting", label: "等你授權" };
   if (task.state === "stopping")
-    return { id: "waiting", label: "等待 Hermes 確認停止" };
-  if (task.state === "cancelled") return { id: "idle", label: "任務已停止" };
+    return { id: "waiting", label: "正在停下" };
+  if (task.state === "cancelled") return { id: "idle", label: "準備好了" };
   if (task.state === "queued")
     return { id: "planning", label: "正在規劃" };
   const tool = workingEvent(task) || task.events.filter((e) => !!e.toolName).at(-1);
   if (tool?.status === "waiting_authorization")
-    return { id: "waiting", label: "工具需要重新授權" };
+    return { id: "waiting", label: "等你授權" };
   if (tool?.status === "waiting_user")
-    return { id: "waiting", label: "工具正在等待你的確認" };
+    return { id: "waiting", label: "等你確認" };
   if (tool && ["running", "queued"].includes(eventState(tool))) {
     const name = tool.toolName || "";
-    if (/tku|tamkang|tamsui/i.test(name))
-      return { id: "researching", label: "正在查詢已授權資料" };
-    if (/galley/i.test(name))
-      return { id: "researching", label: "正在請 GALLEY 核對來源" };
     if (
-      /pinterest|instagram|inspiration|search|browse|fetch|extract/i.test(name)
+      /pinterest|instagram|search|browse|fetch|extract|web/i.test(name) &&
+      !/galley|xunhe|tku|tamkang/i.test(name)
     )
-      return { id: "searching", label: "正在搜尋設計參考" };
-    if (/audience|twin/i.test(name))
-      return { id: "thinking", label: "正在建立 Audience Twin" };
-    if (/canva|design|autofill/i.test(name))
-      return { id: "designing", label: "正在呼叫 Canva" };
-    if (/lumen|framelab|create|copy|write/i.test(name))
-      return { id: "creating", label: "正在創作" };
-    return { id: "tool", label: "Hermes 正在操作工具" };
+      return { id: "searching", label: "正在搜尋" };
+    const kind = activityKind(name);
+    if (kind === "research") return { id: "researching", label: "正在研究" };
+    if (kind === "creative") return { id: "creating", label: "正在創作" };
+    if (kind === "audience") return { id: "thinking", label: "正在想想客群" };
+    if (kind === "memory" || kind === "workspace")
+      return { id: "thinking", label: "正在理解" };
+    return { id: "tool", label: "正在整理" };
   }
-  return { id: "thinking", label: "Hermes 正在處理請求" };
+  return { id: "thinking", label: "正在理解" };
 }
 export default memo(function Turtle({
   task,

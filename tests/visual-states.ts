@@ -274,7 +274,7 @@ export async function verifyVisualStates(
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
     const draft = "[介面測試草稿] 等候工具結果";
     await composer.fill(draft);
-    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究 · GALLEY", exact: true });
+    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究", exact: true });
     await expect(status).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const box = await status.boundingBox();
@@ -311,9 +311,10 @@ export async function verifyVisualStates(
     if ((await eventDetails.getAttribute("open")) !== null)
       await eventSummary.click();
     await expect(eventDetails).not.toHaveAttribute("open", "");
-    await expect(eventSummary).toContainText("研究 · GALLEY");
+    await expect(eventSummary).toContainText("研究");
     await expect(eventSummary).toContainText("執行中");
     await expect(eventSummary).toContainText("[介面測試事件] 研究來源");
+    await expect(eventSummary).not.toContainText("GALLEY");
     await expect(eventSummary).not.toContainText("galley_research");
     if ((width === 390 && height === 420) || width === 1440) {
       await eventSummary.scrollIntoViewIfNeeded();

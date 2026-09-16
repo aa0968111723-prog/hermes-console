@@ -19,7 +19,7 @@ export function activityKind(name: string | null): ActivityKind {
   )
     return "research";
   if (
-    /canva|lumen|framelab|atlas|design|render|poster|visual_concepts/i.test(
+    /canva|lumen|framelab|atlas|planform|design|render|poster|visual_concepts/i.test(
       name,
     )
   )
@@ -115,7 +115,7 @@ export function eventPhaseLabel(
   task?: Task | null,
 ): string {
   const name = event.toolName || "";
-  if (/inspiration/i.test(name)) return "靈感";
+  if (/inspiration|pinterest|instagram/i.test(name)) return "靈感";
   if (
     task?.goal?.requiresImageAnalysis &&
     /material|ask_user|image|read_material/i.test(name)

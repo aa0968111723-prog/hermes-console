@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityKind, eventStateLabel, eventUserResult, progressSteps, safeSource, workingEvent, designsFromTask, artifactsForConversation } from "../lib/client/activity";
+import { activityKind, eventPhaseLabel, eventStateLabel, eventUserResult, progressSteps, safeSource, workingEvent, designsFromTask, artifactsForConversation } from "../lib/client/activity";
 import type { Task, TaskEvent } from "../lib/contracts";
 const event = (
   id: string,
@@ -59,7 +59,21 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("galley_research"), "research");
   assert.equal(activityKind("canva_create_design"), "creative");
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
+  assert.equal(activityKind("planform_run_agent"), "creative");
   assert.equal(activityKind("unrecognized_tool"), "tool");
+  assert.equal(eventPhaseLabel(event("g", "running")), "研究");
+  assert.equal(
+    eventPhaseLabel(event("c", "running", "canva_create_design")),
+    "創作",
+  );
+  assert.equal(
+    eventPhaseLabel(event("p", "running", "planform_run_agent")),
+    "創作",
+  );
+  assert.equal(
+    eventPhaseLabel(event("i", "running", "instagram_search")),
+    "靈感",
+  );
 });
 test("source actions never accept script, credentials or relative destinations", () => {
   for (const value of [

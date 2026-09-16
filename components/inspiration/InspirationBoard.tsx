@@ -125,7 +125,7 @@ export default function InspirationBoard({
         <summary>給設計與文案的交接</summary>
         <div className="handoff-grid">
           <article className="handoff-card">
-            <p className="eyebrow">給 Visual Agent</p>
+            <p className="eyebrow">設計方向</p>
             <p>{language.visualAgent.brief}</p>
             <p>
               <strong>做</strong> {language.visualAgent.do.join("、")}
@@ -135,7 +135,7 @@ export default function InspirationBoard({
             </p>
           </article>
           <article className="handoff-card">
-            <p className="eyebrow">給 Copywriting Agent</p>
+            <p className="eyebrow">文案方向</p>
             <p>{language.copywritingAgent.brief}</p>
             <p>
               <strong>做</strong> {language.copywritingAgent.do.join("、")}

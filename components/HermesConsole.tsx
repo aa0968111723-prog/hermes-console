@@ -1700,7 +1700,6 @@ export default function HermesConsole() {
           <section className="secondary-page">
             <div className="page-heading-row">
             <div>
-              <p className="eyebrow">連線</p>
               <h1>能力</h1>
             </div>
               <VisualStatus health={health} offline={offline} />

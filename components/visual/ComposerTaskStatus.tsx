@@ -3,8 +3,8 @@ import { Activity, Check, ChevronRight, CircleHelp, Clock, RefreshCw, TriangleAl
 import type { Task } from "@/lib/contracts";
 import {
   activityKind,
+  eventPhaseLabel,
   taskStateLabel,
-  toolDisplayLabel,
   workingEvent,
 } from "@/lib/client/activity";
 
@@ -50,7 +50,7 @@ export function composerTaskStatus(task: Task, offline: boolean) {
   return {
     label: taskStateLabel[task.state] || "狀態未知",
     tone,
-    tool: toolDisplayLabel(current?.toolName || null),
+    tool: current ? eventPhaseLabel(current, task) : null,
     toolName: current?.toolName || null,
     toolKind: current ? activityKind(current.toolName) : null,
   };
@@ -85,7 +85,6 @@ export default function ComposerTaskStatus({ task, offline, onClick }: {
         <span
           className="composer-task-tool"
           data-activity={status.toolKind}
-          title={status.toolName ? `技術名稱：${status.toolName}` : undefined}
         >
           {status.tool}
         </span>

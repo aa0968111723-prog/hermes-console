@@ -12,10 +12,10 @@ import {
 import type { TaskEvent } from "@/lib/contracts";
 import {
   activityKind,
+  eventPhaseLabel,
   eventState,
   eventStateLabel,
   eventUserResult,
-  toolDisplayLabel,
 } from "@/lib/client/activity";
 import MessageBody from "../MessageBody";
 
@@ -32,14 +32,13 @@ const icons = {
 export default function TaskEventSummary({ event }: { event: TaskEvent }) {
   const kind = activityKind(event.toolName);
   const Icon = icons[kind];
-  const tool = toolDisplayLabel(event.toolName) || "任務";
+  const tool = eventPhaseLabel(event) || "任務";
   return (
     <summary className="event-summary">
       <span className="event-heading">
         <span
           className="event-tool-label"
           data-activity={kind}
-          title={event.toolName ? `技術名稱：${event.toolName}` : undefined}
         >
           <Icon size={15} aria-hidden="true" />
           {tool}

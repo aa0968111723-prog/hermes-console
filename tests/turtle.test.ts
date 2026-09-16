@@ -35,3 +35,27 @@ test("turtle terminal task and offline states override old tool activity", () =>
   assert.equal(turtleState(task("completed"), true).id, "offline");
   assert.equal(turtleState(undefined, false).id, "idle");
 });
+
+test("turtle student labels never name vendors or tools", () => {
+  const galley = {
+    state: "running",
+    events: [{ toolName: "galley_research", status: "running" }],
+  } as Task;
+  const canva = {
+    state: "running",
+    events: [{ toolName: "canva_create_design", status: "running" }],
+  } as Task;
+  const twin = {
+    state: "running",
+    events: [{ toolName: "audience_twin", status: "running" }],
+  } as Task;
+  assert.equal(turtleState(galley, false).id, "researching");
+  assert.equal(turtleState(galley, false).label, "正在研究");
+  assert.equal(turtleState(canva, false).id, "creating");
+  assert.equal(turtleState(canva, false).label, "正在創作");
+  assert.equal(turtleState(twin, false).id, "thinking");
+  for (const row of [galley, canva, twin]) {
+    const label = turtleState(row, false).label;
+    assert.doesNotMatch(label, /GALLEY|Canva|Audience|toolCall|MCP/i);
+  }
+});
