@@ -30,7 +30,7 @@ export default function InspirationResult({
       <p className="eyebrow">
         {pack.itemCount} 筆已收藏 · 未搜全站
       </p>
-      <ul className="inspiration-direction-grid">
+      <ul className="inspiration-direction-grid" aria-label="方向 A 到 C">
         {pack.directions.map((direction) => {
           const chosen = selectedId === direction.id;
           const card = (

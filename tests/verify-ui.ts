@@ -285,6 +285,21 @@ try {
   await expect(page.getByText("未搜全站")).toBeVisible();
   await expect(page.getByRole("region", { name: "靈感方向" })).toBeVisible();
   await expect(page.getByRole("button", { name: /選方向 A/ })).toBeInViewport();
+  await expect(page.getByRole("button", { name: /選方向 B/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /選方向 C/ })).toBeVisible();
+  const directionRail = page.locator(".inspiration-direction-grid").first();
+  assert.ok(
+    (await directionRail.evaluate((el) => el.scrollWidth - el.clientWidth)) > 40,
+    "360px direction rail must overflow so C is reachable",
+  );
+  await directionRail.evaluate((el) => {
+    el.scrollLeft = el.scrollWidth;
+  });
+  await expect(page.getByRole("button", { name: /選方向 C/ })).toBeInViewport();
+  await directionRail.evaluate((el) => {
+    el.scrollLeft = 0;
+  });
+  await expect(page.getByRole("button", { name: /選方向 A/ })).toBeInViewport();
   await expect(
     page.getByRole("button", { name: "查看目前任務：完成", exact: true }),
   ).toHaveCount(0);

@@ -28,7 +28,6 @@ export default function ImageReviewResult({
           <li key={item}>{item}</li>
         ))}
       </ul>
-      <p className="quiet">{pack.notice}</p>
     </section>
   );
 }
