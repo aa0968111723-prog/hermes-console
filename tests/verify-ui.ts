@@ -462,7 +462,7 @@ try {
   const imageReview = page.getByRole("region", { name: "畫面審查" });
   await expect(imageReview).toBeVisible({ timeout: 15_000 });
   await expect(imageReview).toContainText("沒有讀取像素");
-  await expect(imageReview).toContainText("未讀像素");
+  await expect(imageReview).toContainText("還沒讀圖");
   await expect(
     page.getByRole("region", { name: "新生第一眼模擬" }),
   ).toBeVisible();

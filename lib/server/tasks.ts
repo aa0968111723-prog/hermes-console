@@ -431,12 +431,6 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     localImageReview ||
     localSpecRevision ||
     localContinue;
-  if (localImageReview && imageAttachmentIds(owner, input.attachments).length < 1)
-    throw new ApiError(
-      400,
-      "invalid_input",
-      "請先附上海報或圖片。沒有畫面時無法審查，也不會假裝已看圖。",
-    );
   if (
     connection.credential !== "valid" &&
     !localImageReview &&
@@ -829,7 +823,9 @@ function fulfillImageReview(
     pack,
   );
   task.output = [
-    "已附上海報，但沒有讀取像素。",
+    images.length
+      ? "已附上海報，但沒有讀取像素。"
+      : "沒有附圖，也沒有讀取像素。不會假裝已看圖。",
     pack.notice,
     "這不是 Hermes Agent 執行，也沒有分析構圖、字級或對比。",
     "客群反應是模擬，不是民調。",

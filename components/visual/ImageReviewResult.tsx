@@ -13,7 +13,7 @@ export default function ImageReviewResult({
 }) {
   return (
     <section className="image-review" aria-label="畫面審查">
-      <p className="eyebrow">畫面審查 · 未讀像素</p>
+      <p className="eyebrow">畫面審查 · 還沒讀圖</p>
       <ul className="image-review-checks">
         {pack.checklist.map((item) => (
           <li key={item.id} data-status={item.status}>

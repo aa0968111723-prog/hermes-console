@@ -115,21 +115,34 @@ test("unconfigured Hermes reviews a poster without claiming pixel-read", async (
 });
 
 test("image review without an image does not fake looking", async () => {
-  await assert.rejects(
-    () =>
-      submit("workspace", {
-        conversationId: conv(),
-        requestKey: randomUUID(),
-        input: REVIEW,
-        attachments: [],
-      }),
-    (error: unknown) => {
-      assert.ok(error instanceof ApiError);
-      assert.equal(error.code, "invalid_input");
-      assert.match(error.message, /請先附上海報或圖片/);
-      return true;
-    },
+  const conversationId = conv();
+  const task = await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: "請分析這張文宣。",
+    attachments: [],
+  });
+  assert.equal(task.state, "completed");
+  assert.equal(task.goal?.requiresImageReview, true);
+  assert.match(task.output, /沒有附圖/);
+  assert.match(task.output, /沒有讀取像素/);
+  assert.match(task.output, /不會假裝已看圖/);
+  assert.doesNotMatch(task.output, /已附上海報/);
+  assert.doesNotMatch(task.output, /已讀取像素/);
+  const tool = task.events.find(
+    (event) => event.toolName === "workspace_simulate_audience",
   );
+  assert.ok(tool);
+  assert.equal(isImageReviewPack(tool?.result), true);
+  const pack = tool?.result as { pixelRead: boolean; materialIds: string[] };
+  assert.equal(pack.pixelRead, false);
+  assert.deepEqual(pack.materialIds, []);
+  const stored = get<{
+    messages: Array<{ role: string; provenance?: string }>;
+  }>("conversation", "workspace", conversationId);
+  const assistant = stored?.messages.filter((item) => item.role === "assistant");
+  assert.equal(assistant?.length, 1);
+  assert.equal(assistant?.[0].provenance, "workspace");
   assert.equal(get("agent", "workspace", "verified"), null);
 });
 

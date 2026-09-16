@@ -315,6 +315,12 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   );
   assert.match(twin, /模擬 · /);
   assert.doesNotMatch(twin, /SIMULATION ·/);
+  const reviewCard = await readFile(
+    new URL("../components/visual/ImageReviewResult.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(reviewCard, /還沒讀圖/);
+  assert.doesNotMatch(reviewCard, /未讀像素/);
   const ui = await readFile(new URL("./verify-ui.ts", import.meta.url), "utf8");
   assert.match(ui, /幫我查淡大禪學社茶會/);
   assert.match(ui, /社團資料/);
