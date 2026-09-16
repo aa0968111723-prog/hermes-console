@@ -1,6 +1,6 @@
 import { ExternalLink, Search, Check, Circle } from "lucide-react";
 import type { Task } from "@/lib/contracts";
-import { eventState, safeSource } from "@/lib/client/activity";
+import { eventState, safeSource, taskProgressLabel } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
 import { layoutFromTask } from "@/lib/client/planform-layout";
@@ -36,7 +36,7 @@ export default function VisualMessage({
           ) : (
             <Circle size={15} />
           )}
-          {completed} / {calls.size} 個工具完成
+          {taskProgressLabel(task)}
         </button>
       )}
       {!!sources.length && (

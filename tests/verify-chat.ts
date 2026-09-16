@@ -206,7 +206,7 @@ try {
     page.getByRole("button", { name: "回到最新訊息" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "執行紀錄", exact: true }),
+    page.locator(".composer-task-status"),
   ).toBeVisible({ timeout: 15000 });
   assert.ok(
     await page

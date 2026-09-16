@@ -1,12 +1,7 @@
 "use client";
 import { Activity, Check, ChevronRight, CircleHelp, Clock, RefreshCw, TriangleAlert } from "lucide-react";
 import type { Task } from "@/lib/contracts";
-import {
-  activityKind,
-  taskStateLabel,
-  toolDisplayLabel,
-  workingEvent,
-} from "@/lib/client/activity";
+import { taskProgressLabel } from "@/lib/client/activity";
 
 /** Pill + notice share this offline copy (chat-first; never pretend remote stopped). */
 export const OFFLINE_PILL_LABEL = "離線 · 顯示上次資料";
@@ -38,21 +33,33 @@ export function shortTaskError(text: string | null | undefined, max = 240): stri
 }
 
 export function composerTaskStatus(task: Task, offline: boolean) {
-  if (offline) return { label: OFFLINE_PILL_LABEL, tone: "warning", tool: null };
+  if (offline)
+    return {
+      label: OFFLINE_PILL_LABEL,
+      tone: "warning",
+      tool: null,
+      toolName: null,
+      toolKind: null,
+    };
   if (task.observationError)
-    return { label: "連線異常 · 狀態待確認", tone: "warning", tool: null };
+    return {
+      label: "連線異常 · 狀態待確認",
+      tone: "warning",
+      tool: null,
+      toolName: null,
+      toolKind: null,
+    };
   const tone = task.state === "failed" ? "error"
     : task.state === "uncertain" ? "warning"
     : task.state === "completed" ? "success"
-    : ["queued", "waiting_user", "stopping"].includes(task.state) ? "waiting"
+    : ["queued", "waiting_user", "waiting_authorization", "stopping"].includes(task.state) ? "waiting"
     : "neutral";
-  const current = workingEvent(task);
   return {
-    label: taskStateLabel[task.state] || "狀態未知",
+    label: taskProgressLabel(task),
     tone,
-    tool: toolDisplayLabel(current?.toolName || null),
-    toolName: current?.toolName || null,
-    toolKind: current ? activityKind(current.toolName) : null,
+    tool: null,
+    toolName: null,
+    toolKind: null,
   };
 }
 
@@ -73,7 +80,7 @@ export default function ComposerTaskStatus({ task, offline, onClick }: {
   const aria =
     action === "refresh"
       ? `離線：重新整理上次資料（${status.label}）`
-      : `查看目前任務：${status.label}${status.tool ? "，" + status.tool : ""}`;
+      : `查看目前任務：${status.label}`;
   return (
     <button type="button" className="composer-task-status" data-tone={status.tone}
       data-action={action}
@@ -81,15 +88,6 @@ export default function ComposerTaskStatus({ task, offline, onClick }: {
       aria-label={aria}>
       <Icon size={17} aria-hidden="true" />
       <span className="composer-task-label">{status.label}</span>
-      {status.tool && (
-        <span
-          className="composer-task-tool"
-          data-activity={status.toolKind}
-          title={status.toolName ? `技術名稱：${status.toolName}` : undefined}
-        >
-          {status.tool}
-        </span>
-      )}
       <ChevronRight className="composer-task-chevron" size={17} aria-hidden="true" />
     </button>
   );

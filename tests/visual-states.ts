@@ -269,7 +269,7 @@ export async function verifyVisualStates(
     const composer = page.getByRole("textbox", { name: "訊息", exact: true });
     const draft = "[介面測試草稿] 等候工具結果";
     await composer.fill(draft);
-    const status = page.getByRole("button", { name: "查看目前任務：執行中，研究 · GALLEY", exact: true });
+    const status = page.getByRole("button", { name: "查看目前任務：正在研究", exact: true });
     await expect(status).toBeInViewport({ ratio: 1 });
     await expect(composer).toBeInViewport({ ratio: 1 });
     const box = await status.boundingBox();
@@ -278,25 +278,24 @@ export async function verifyVisualStates(
     await page.screenshot({ path: join(output, `task-access-${width}x${height}.png`) });
     await status.focus();
     await page.keyboard.press("Enter");
-    const detail = page.getByRole("dialog", { name: "任務詳情" });
+    const detail = page.getByRole("dialog", { name: "進度" });
     await expect(detail).toBeVisible();
-    await expect(detail).toContainText("ui-fixture-task");
     const technical = detail.locator(".task-technical");
-    const technicalSummary = technical.locator("summary");
+    const technicalSummary = detail.locator(".task-technical > summary");
     if ((await technical.getAttribute("open")) !== null)
       await technicalSummary.click();
     await expect(technical).not.toHaveAttribute("open", "");
-    await expect(technicalSummary).toContainText("技術資訊");
+    await expect(technicalSummary).toContainText("進階 · 紀錄");
     await expect(technical.locator("code").first()).toBeHidden();
+    await expect(detail.locator(".agent-activity")).toContainText("研究");
     if (width === 390 && height === 420) {
       await page.screenshot({
         path: join(output, "task-technical-collapsed-390x420.png"),
       });
-      await technicalSummary.click();
-      await expect(technical.locator("code").first()).toBeVisible();
-      await expect(technical.locator("code").first()).toHaveText(task.id);
-      await technicalSummary.click();
     }
+    await technicalSummary.click();
+    await expect(technical.locator("code").first()).toBeVisible();
+    await expect(technical.locator("code").first()).toHaveText(task.id);
     const taskUsage = detail.getByRole("region", { name: "任務用量" });
     await expect(taskUsage).toContainText("等待 Hermes 回傳");
     await expect(taskUsage).not.toContainText("未知");
@@ -331,9 +330,9 @@ export async function verifyVisualStates(
   await page.setViewportSize({ width: 360, height: 420 });
   await page.reload();
   await expect(page.locator(".conversation")).toContainText("[介面測試段落 24]");
-  await expect(page.locator(".composer-task-tool")).toHaveText("工具");
+  await expect(page.locator(".composer-task-status")).toContainText("進行中");
   await expect(page.locator(".composer-task-status")).not.toContainText(task.events[0].toolName);
-  await expect(page.locator(".composer-task-tool")).toHaveAttribute("title", `技術名稱：${task.events[0].toolName}`);
+  await expect(page.locator(".composer-task-tool")).toHaveCount(0);
   const conversationScroll = page.locator(".conversation-scroll");
   assert.ok(await conversationScroll.evaluate(el => el.scrollHeight > el.clientHeight));
   await conversationScroll.evaluate(el => el.scrollTo(0, el.scrollHeight));
@@ -343,7 +342,7 @@ export async function verifyVisualStates(
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.screenshot({ path: join(output, "task-access-long-conversation.png") });
   await page.locator(".composer-task-status").click();
-  const longTaskDetail = page.getByRole("dialog", { name: "任務詳情" });
+  const longTaskDetail = page.getByRole("dialog", { name: "進度" });
   await expect
     .poll(() =>
       longTaskDetail
@@ -394,7 +393,7 @@ export async function verifyVisualStates(
   await page.setViewportSize({ width: 360, height: 420 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   task.events[0].status = "completed";
-  for (const [state, label] of [["queued", "排隊"], ["waiting_user", "等待確認"], ["stopping", "停止確認中"], ["uncertain", "結果待確認"]]) {
+  for (const [state, label] of [["queued", "正在規劃"], ["waiting_user", "等待確認"], ["stopping", "停止確認中"], ["uncertain", "結果待確認"]]) {
     task.state = state;
     await page.reload();
     const status = page.getByRole("button", { name: `查看目前任務：${label}`, exact: true });
@@ -423,11 +422,13 @@ export async function verifyVisualStates(
     "[介面測試回覆] 已接收一個工具結果。\n\n| 方向 | 用途 |\n| --- | --- |\n| 春日共創 | 活動宣傳 |";
   await page.reload();
   await expect(page.locator(".composer-task-status")).toContainText("完成");
-  await expect(page.locator(".visual-message")).toContainText("1 / 1");
+  await expect(page.locator(".visual-message")).toContainText("完成");
+  await expect(page.locator(".visual-message")).not.toContainText("個工具");
   await page.setViewportSize({ width: 390, height: 420 });
   await page.locator(".composer-task-status").click();
-  let taskUsage = page.getByRole("dialog", { name: "任務詳情" })
-    .getByRole("region", { name: "任務用量" });
+  const usageDialog = page.getByRole("dialog", { name: "進度" });
+  await usageDialog.locator(".task-technical > summary").click();
+  let taskUsage = usageDialog.getByRole("region", { name: "任務用量" });
   await expect(taskUsage).toContainText("未回傳用量資料");
   await expect(taskUsage).not.toContainText("未知");
   await taskUsage.scrollIntoViewIfNeeded();
@@ -445,8 +446,9 @@ export async function verifyVisualStates(
   });
   await page.reload();
   await page.locator(".composer-task-status").click();
-  taskUsage = page.getByRole("dialog", { name: "任務詳情" })
-    .getByRole("region", { name: "任務用量" });
+  const usageDialogPartial = page.getByRole("dialog", { name: "進度" });
+  await usageDialogPartial.locator(".task-technical > summary").click();
+  taskUsage = usageDialogPartial.getByRole("region", { name: "任務用量" });
   await expect(taskUsage).toContainText("已回傳 5 項");
   await expect(taskUsage.locator(".usage-highlights")).toContainText("1,234");
   await expect(taskUsage).not.toContainText("輸出 tokens");
@@ -563,7 +565,7 @@ export async function verifyVisualStates(
   await expect(page.locator(".turtle")).toHaveAttribute("data-state", "error");
   await expect(page.locator(".composer-task-status")).toContainText("失敗");
   await page.locator(".composer-task-status").click();
-  await expect(page.getByRole("dialog", { name: "任務詳情" })).toContainText(task.error);
+  await expect(page.getByRole("dialog", { name: "進度" })).toContainText(task.error);
   await page.keyboard.press("Escape");
   await page.screenshot({ path: join(output, "error-fixture.png") });
   await page.context().setOffline(true);

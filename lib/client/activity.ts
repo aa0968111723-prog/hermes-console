@@ -85,6 +85,25 @@ export const taskStateLabel: Record<string, string> = {
   cancelled: "已取消",
   waiting_user: "等待確認",
 };
+export function taskProgressLabel(task: Task): string {
+  if (task.state === "completed") return "完成";
+  if (task.state === "failed") return "失敗";
+  if (task.state === "uncertain") return "結果待確認";
+  if (task.state === "cancelled") return "已取消";
+  if (task.state === "waiting_user" || task.state === "waiting_authorization")
+    return "等待確認";
+  if (task.state === "stopping") return "停止確認中";
+  if (task.state === "queued") return "正在規劃";
+  if (task.state === "running") {
+    const kind = activityKind(workingEvent(task)?.toolName || null);
+    if (kind === "research") return "正在研究";
+    if (kind === "creative") return "正在創作";
+    if (kind === "audience") return "正在模擬";
+    if (kind === "memory" || kind === "workspace") return "正在整理";
+    return "進行中";
+  }
+  return "狀態未知";
+}
 export function safeSource(value: string): string | null {
   try {
     const url = new URL(value);

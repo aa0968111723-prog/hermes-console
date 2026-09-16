@@ -1240,19 +1240,6 @@ export default function HermesConsole() {
                               <Pencil size={15} />
                             </button>
                           )}
-                          {message.taskId &&
-                            message.role === "assistant" &&
-                            message.provenance !== "workspace" && (
-                            <button
-                              onClick={() =>
-                                openTask(
-                                  tasks.find((t) => t.id === message.taskId),
-                                )
-                              }
-                            >
-                              執行紀錄
-                            </button>
-                          )}
                         </div>
                       </article>
                     ))}
@@ -1985,7 +1972,7 @@ export default function HermesConsole() {
                 ? "設定"
                 : panel === "preview"
                   ? "素材預覽"
-                  : "任務詳情"}
+                  : "進度"}
             </h2>
             <button
               className="icon-button"
@@ -2564,10 +2551,11 @@ export default function HermesConsole() {
                   {shortTaskError(chosenTask.observationError)}
                 </p>
               )}
+              <AgentActivity task={chosenTask} />
               <details className="task-technical">
                 <summary>
                   <Code2 size={15} aria-hidden="true" />
-                  技術資訊
+                  進階 · 紀錄
                 </summary>
                 <dl>
                   <div>
@@ -2585,55 +2573,54 @@ export default function HermesConsole() {
                     </dd>
                   </div>
                 </dl>
-              </details>
-              <TaskUsageSummary task={chosenTask} />
-              {chosenTask.plan?.steps?.length ? (
-                <>
-                  <h3>執行計畫</h3>
-                  <ol className="task-plan">
-                    {chosenTask.plan.steps.map((step) => (
-                      <li key={step.id}>
-                        {step.title}
-                        <small>{step.purpose}</small>
-                      </li>
+                <TaskUsageSummary task={chosenTask} />
+                {chosenTask.plan?.steps?.length ? (
+                  <>
+                    <h3>執行計畫</h3>
+                    <ol className="task-plan">
+                      {chosenTask.plan.steps.map((step) => (
+                        <li key={step.id}>
+                          {step.title}
+                          <small>{step.purpose}</small>
+                        </li>
+                      ))}
+                    </ol>
+                    {chosenTask.plan.fallbacks.map((item) => (
+                      <p key={item.userVisible} className="muted">
+                        {item.userVisible}
+                      </p>
                     ))}
-                  </ol>
-                  {chosenTask.plan.fallbacks.map((item) => (
-                    <p key={item.userVisible} className="muted">
-                      {item.userVisible}
-                    </p>
-                  ))}
-                </>
-              ) : null}
-              <h3>真實事件紀錄</h3>
-              {chosenTask.events.map((e) => (
-                <details className="event" key={e.id}>
-                  <TaskEventSummary event={e} />
-                  <small className="event-meta">
-                    {time(e.startedAt)}
-                    {e.toolName && <code>{e.toolName}</code>}
-                  </small>
-                  {e.result !== null && (
-                    <MessageBody
-                      text={
-                        typeof e.result === "string"
-                          ? e.result
-                          : JSON.stringify(e.result, null, 2)
-                      }
-                    />
-                  )}
-                  {e.sources.map((source) => (
-                    <a
-                      key={source}
-                      href={source}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {source}
-                    </a>
-                  ))}
-                </details>
-              ))}
+                  </>
+                ) : null}
+                {chosenTask.events.map((e) => (
+                  <details className="event" key={e.id}>
+                    <TaskEventSummary event={e} />
+                    <small className="event-meta">
+                      {time(e.startedAt)}
+                      {e.toolName && <code>{e.toolName}</code>}
+                    </small>
+                    {e.result !== null && (
+                      <MessageBody
+                        text={
+                          typeof e.result === "string"
+                            ? e.result
+                            : JSON.stringify(e.result, null, 2)
+                        }
+                      />
+                    )}
+                    {e.sources.map((source) => (
+                      <a
+                        key={source}
+                        href={source}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {source}
+                      </a>
+                    ))}
+                  </details>
+                ))}
+              </details>
             </div>
           ) : panel === "task" ? (
             <div className="empty-state">

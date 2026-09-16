@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityKind, eventStateLabel, safeSource, workingEvent } from "../lib/client/activity";
+import { activityKind, eventStateLabel, safeSource, taskProgressLabel, workingEvent } from "../lib/client/activity";
 import type { Task, TaskEvent } from "../lib/contracts";
 const event = (
   id: string,
@@ -60,6 +60,18 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("canva_create_design"), "creative");
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
   assert.equal(activityKind("unrecognized_tool"), "tool");
+});
+test("task progress labels stay high-level", () => {
+  const running = event("start", "tool.running");
+  assert.equal(taskProgressLabel(task("running", [running])), "正在研究");
+  assert.equal(
+    taskProgressLabel(
+      task("running", [event("draw", "tool.running", "canva_create_design")]),
+    ),
+    "正在創作",
+  );
+  assert.equal(taskProgressLabel(task("queued", [])), "正在規劃");
+  assert.equal(taskProgressLabel(task("completed", [])), "完成");
 });
 test("source actions never accept script, credentials or relative destinations", () => {
   for (const value of [
