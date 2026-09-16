@@ -3,7 +3,6 @@ import {
   ApiError,
   assertSafeServiceUrl,
   isLoopbackHost,
-  limited,
 } from "./security";
 import {
   CREDENTIAL_KEYS,
@@ -418,138 +417,15 @@ export async function testLumenConnection() {
   };
 }
 
-function extractToken(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-  const record = payload as Record<string, unknown>;
-  for (const key of ["access_token", "token", "accessToken"]) {
-    const value = record[key];
-    if (typeof value === "string" && value.trim().length >= 8)
-      return value.trim();
-  }
-  for (const nested of ["data", "result", "auth"]) {
-    const found = extractToken(record[nested]);
-    if (found) return found;
-  }
-  return null;
-}
-
-async function readJsonLimited(response: Response, maxBytes = 64_000) {
-  if (!response.headers.get("content-type")?.includes("json")) {
-    await response.body?.cancel();
-    return null;
-  }
-  const reader = response.body?.getReader();
-  if (!reader) return null;
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    if (total > maxBytes) {
-      await reader.cancel();
-      return null;
-    }
-    chunks.push(value);
-  }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
-  } catch {
-    return null;
-  }
-}
-
 export async function exchangeTamkangLogin(
-  username: string,
-  password: string,
+  _username: string,
+  _password: string,
 ) {
-  limited("tku-login:" + (runtimeEnv("TKU_MCP_URL") || "none"), 10, 15 * 60_000);
-  const endpoint = runtimeEnv("TKU_MCP_URL");
-  if (!endpoint)
-    throw new ApiError(400, "tku_unconfigured", "請先儲存淡江 MCP 網址。");
-  const target = new URL(validateHttpsServiceUrl(endpoint, "mcp"));
-  const candidates = [
-    new URL("/auth/login", target.origin),
-    new URL("/api/auth/login", target.origin),
-    new URL("/login", target.origin),
-  ];
-  const bodies: Array<{ type: string; body: string }> = [
-    {
-      type: "application/json",
-      body: JSON.stringify({ username, password }),
-    },
-    {
-      type: "application/x-www-form-urlencoded",
-      body: new URLSearchParams({
-        grant_type: "password",
-        username,
-        password,
-      }).toString(),
-    },
-  ];
-  for (const url of candidates) {
-    if (url.origin !== target.origin) continue;
-    let reached = false;
-    for (const payload of bodies) {
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          redirect: "error",
-          cache: "no-store",
-          headers: { "Content-Type": payload.type },
-          body: payload.body,
-          signal: AbortSignal.timeout(4_000),
-        });
-        reached = true;
-        const data = await readJsonLimited(response);
-        const token = extractToken(data);
-        if (response.ok && token) {
-          saveVaultCredentials({ TKU_MCP_TOKEN: token });
-          return {
-            exchanged: true as const,
-            ...(await testTamkangConnection()),
-          };
-        }
-        if (response.status === 401 || response.status === 403) break;
-      } catch {
-        /* try next candidate; never echo upstream bodies */
-      }
-    }
-    if (reached) continue;
-  }
-  try {
-    const response = await fetch(target, {
-      method: "POST",
-      redirect: "error",
-      cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "auth/login",
-        params: { username, password },
-      }),
-      signal: AbortSignal.timeout(4_000),
-    });
-    const data = await readJsonLimited(response);
-    const token = extractToken(data) || extractToken(
-      data && typeof data === "object"
-        ? (data as { result?: unknown }).result
-        : null,
-    );
-    if (token) {
-      saveVaultCredentials({ TKU_MCP_TOKEN: token });
-      return {
-        exchanged: true as const,
-        ...(await testTamkangConnection()),
-      };
-    }
-  } catch {
-    /* no known auth method */
-  }
+  void _username;
+  void _password;
   throw new ApiError(
-    502,
-    "tku_login_unsupported",
-    "淡江 MCP 未提供已知的帳密交換端點。請改貼 Bearer 權杖後測試連線。",
+    403,
+    "tku_password_refused",
+    "Hermes 不收集淡江帳號或密碼。請改貼 Bearer 權杖後測試連線。",
   );
 }

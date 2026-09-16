@@ -6,6 +6,7 @@ import { membershipLabel } from "../lib/client/membership";
 test("API errors map onto the nine shared categories", () => {
   assert.equal(errorCategory("google_unconfigured"), "AUTH_ERROR");
   assert.equal(errorCategory("tamkang_unconfigured"), "AUTH_ERROR");
+  assert.equal(errorCategory("tku_password_refused"), "AUTH_ERROR");
   assert.equal(errorCategory("invalid_login"), "AUTH_ERROR");
   assert.equal(errorCategory("workspace_forbidden"), "PERMISSION_ERROR");
   assert.equal(errorCategory("identity_conflict"), "PERMISSION_ERROR");

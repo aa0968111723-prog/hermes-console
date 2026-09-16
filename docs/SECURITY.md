@@ -17,7 +17,7 @@
 ## Auth
 
 - Google：OIDC Authorization Code + PKCE。`client_secret` 只在 token exchange。
-- 淡江：只跳轉校方 IdP。Hermes 不收集、不保存學校密碼。未設定時誠實顯示尚未完成設定。
+- 淡江：只跳轉校方 IdP。Hermes 不收集、不保存、不轉送學校密碼。連線設定只接受 Bearer 權杖。未設定時誠實顯示尚未完成設定。
 - Email：Argon2id（`@noble/hashes`）。至少 12 字元。Rate limit + attempt limit。驗證／重設／Magic Link token 單次使用並有過期。
 - Session：`hermes_session` HttpOnly、SameSite=Lax、有條件 Secure。12 小時。
 - 登入成功 ≠ 進入工作區。API 驗證 session **加上** workspace membership（owner／admin／member）。

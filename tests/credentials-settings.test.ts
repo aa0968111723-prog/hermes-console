@@ -72,6 +72,7 @@ const hermesUrl =
 const hermesKey = randomBytes(24).toString("hex");
 
 const tkuMethods: string[] = [];
+const tkuLoginHits: string[] = [];
 const tku = createServer((req, res) => {
   const chunks: Buffer[] = [];
   req.on("data", (part) => chunks.push(part));
@@ -85,6 +86,7 @@ const tku = createServer((req, res) => {
       parsed = {};
     }
     if (req.url === "/auth/login") {
+      tkuLoginHits.push(req.url);
       const body = parsed as {
         username?: string;
         password?: string;
@@ -313,7 +315,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.ok(!JSON.stringify(result).includes(tkuToken));
   });
 
-  await t.test("Tamkang campus credential exchange stores token when origin exposes /auth/login", async () => {
+  await t.test("Tamkang campus passwords are refused and never forwarded", async () => {
     await credentials.POST(
       request("settings/credentials", "POST", {
         TKU_MCP_URL: tkuUrl,
@@ -327,16 +329,18 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
         password: "campus-secret",
       }),
     );
-    assert.equal(exchanged.status, 200);
+    assert.equal(exchanged.status, 403);
     const body = await exchanged.json();
-    assert.equal(body.exchanged, true);
-    assert.equal(body.fields.TKU_MCP_TOKEN.last4, "9999");
+    assert.equal(body.error.code, "tku_password_refused");
+    assert.equal(body.error.category, "AUTH_ERROR");
+    assert.match(body.error.message, /不收集淡江帳號或密碼/);
     assert.ok(!JSON.stringify(body).includes("campus-secret"));
     assert.ok(!JSON.stringify(body).includes("tku-exchanged-token-9999"));
-    assert.equal(runtimeEnv("TKU_MCP_TOKEN"), "tku-exchanged-token-9999");
+    assert.notEqual(runtimeEnv("TKU_MCP_TOKEN"), "tku-exchanged-token-9999");
+    assert.equal(tkuLoginHits.length, 0);
   });
 
-  await t.test("unknown Tamkang auth is honest, not a fake campus SSO", async () => {
+  await t.test("refusing campus passwords is not a fake Tamkang SSO", async () => {
     const failed = await tamkangRoute.POST(
       request("settings/tamkang", "POST", {
         action: "login",
@@ -344,10 +348,12 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
         password: "wrong-password",
       }),
     );
-    assert.equal(failed.status, 502);
+    assert.equal(failed.status, 403);
     const body = await failed.json();
-    assert.equal(body.error.code, "tku_login_unsupported");
+    assert.equal(body.error.code, "tku_password_refused");
+    assert.equal(body.error.category, "AUTH_ERROR");
     assert.match(body.error.message, /請改貼 Bearer 權杖/);
+    assert.equal(tkuLoginHits.length, 0);
   });
 
   await t.test("research and creative conversation contracts stay intact", async () => {
@@ -390,5 +396,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.doesNotMatch(ui, /tku-exchanged-token/);
     assert.doesNotMatch(ui, />帳號</);
     assert.doesNotMatch(ui, />登入</);
+    assert.doesNotMatch(ui, /以校園憑證交換權杖/);
+    assert.doesNotMatch(ui, /setTkuPassword/);
+    assert.match(ui, /不收集淡江帳號或密碼/);
   });
 });

@@ -21,6 +21,7 @@ const BY_CODE: Record<string, ErrorCategory> = {
   oauth_failed: "AUTH_ERROR",
   google_unconfigured: "AUTH_ERROR",
   tamkang_unconfigured: "AUTH_ERROR",
+  tku_password_refused: "AUTH_ERROR",
   email_unverified: "AUTH_ERROR",
   origin_rejected: "PERMISSION_ERROR",
   workspace_forbidden: "PERMISSION_ERROR",
