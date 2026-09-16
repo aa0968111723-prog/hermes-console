@@ -4,9 +4,9 @@
 
 近期 `main` 幾乎全是 `data/ai-agent-research/` 報告。本輪不回退那些研究檔，也不讓研究 UI 擠掉主產品。
 
-本輪已改：AuthGate、手機 scroll ownership、Dock（對話／專案／靈感／Agent）、誠實 MCP probe（含 safe-read）、health live/ready/agentReady、Canva artifact V1/V2 還原／分叉、GALLEY 依 live MCP 可用性路由、視覺優先首頁與連線點、龜龜狀態光／姿勢、文件。
+本輪已改：AuthGate、手機 scroll ownership、Dock（對話／專案／靈感／Agent）、誠實 MCP probe（含 safe-read）、health live/ready/agentReady、Canva artifact V1/V2 還原／分叉／比較、GALLEY 依 live MCP 可用性路由、倉庫研究筆記檢索（confidence 0.4）、Runtime 工具清單收入 Advanced、視覺優先首頁與連線點、龜龜狀態光／姿勢、文件。
 
-本輪驗證（此環境，非 Zeabur 實機）：`lint` `typecheck` `test` 384 pass / 2 skip。先前同環境 Playwright `test:ui` `test:chat` `test:workbench` `test:gateway` `test:entry` `test:runtime`、`build`、`check:secrets` 曾全過。Playwright Chrome LCP 112ms、CLS 0.00008。不是實體 Android Chrome，也不是正式域名部署。
+本輪驗證（此環境，非 Zeabur 實機）：`lint` `typecheck` `test` 387 pass / 2 skip。
 
 尚未完成（必須標 Partial）：淡江 SSO 校方 Client、Google OAuth 部署密鑰、正式 Zeabur 實機部署、實體 Android Chrome 鍵盤。
 
