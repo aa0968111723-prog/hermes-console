@@ -319,7 +319,7 @@ export async function verifyVisualStates(
   await expect(page.locator(".conversation")).toContainText("[介面測試段落 24]");
   await expect(page.locator(".composer-task-tool")).toHaveText("工具");
   await expect(page.locator(".composer-task-status")).not.toContainText(task.events[0].toolName);
-  await expect(page.locator(".composer-task-tool")).toHaveAttribute("title", `技術名稱：${task.events[0].toolName}`);
+  await expect(page.locator(".composer-task-tool")).not.toHaveAttribute("title");
   const conversationScroll = page.locator(".conversation-scroll");
   assert.ok(await conversationScroll.evaluate(el => el.scrollHeight > el.clientHeight));
   await conversationScroll.evaluate(el => el.scrollTo(0, el.scrollHeight));
