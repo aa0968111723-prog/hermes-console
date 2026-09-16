@@ -263,6 +263,39 @@ try {
     const current = (
       window as unknown as {
         __hermesSpeech?: {
+          onresult: ((event: {
+            resultIndex?: number;
+            results: Array<{ isFinal: boolean; 0: { transcript: string } }>;
+          }) => void) | null;
+        };
+      }
+    ).__hermesSpeech;
+    current?.onresult?.({
+      resultIndex: 0,
+      results: [{ isFinal: true, 0: { transcript: "顏色改暖一點" } }],
+    });
+  });
+  await page.getByRole("button", { name: "停止語音輸入" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toHaveValue(
+    "顏色改暖一點",
+  );
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  const warmed = page.getByRole("region", { name: "已選方向規格" });
+  await expect(warmed).toBeVisible({ timeout: 15_000 });
+  await expect(warmed).toContainText("V2");
+  await expect(warmed).toContainText("配色偏暖");
+  await expect(warmed).toContainText("未出圖");
+  await expect(warmed.locator(".direction-format-copy").first()).toHaveAttribute(
+    "data-palette",
+    "warm",
+  );
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
+  await page.screenshot({ path: join(output, "spoken-warm-revision.png") });
+  await voice.click();
+  await page.evaluate(() => {
+    const current = (
+      window as unknown as {
+        __hermesSpeech?: {
           onerror: ((event?: { error?: string }) => void) | null;
         };
       }

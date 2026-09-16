@@ -445,3 +445,54 @@ test("after a spec, spoken 出圖 stays on the same draft instead of a new poste
     false,
   );
 });
+
+test("after a spec, spoken 顏色改暖 revises the same draft instead of 503", async () => {
+  const conversationId = conv();
+  await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: TEA,
+    attachments: [],
+  });
+  const picked = selectInspirationDirection({
+    owner: "workspace",
+    prompt: TEA,
+    projectId: "personal",
+    selected: "A",
+    conversationId,
+  });
+  const revisionBefore = picked.workflow.directionBrief?.revision || 0;
+  await assert.rejects(
+    () =>
+      submit("workspace", {
+        conversationId: conv(),
+        requestKey: randomUUID(),
+        input: "顏色改暖一點",
+        attachments: [],
+      }),
+    (error: unknown) =>
+      error instanceof ApiError && error.code === "hermes_not_ready",
+  );
+  const revised = await submit("workspace", {
+    conversationId,
+    requestKey: randomUUID(),
+    input: "顏色改暖一點",
+    attachments: [],
+  });
+  assert.equal(revised.state, "completed");
+  assert.match(revised.output, /配色偏暖/);
+  assert.match(revised.output, /不是已出圖/);
+  assert.match(revised.output, /不是 Canva/);
+  assert.equal(
+    revised.events.some(
+      (event) => event.toolName === "workspace_revise_direction_spec",
+    ),
+    true,
+  );
+  const workflow = listWorkflows("workspace").find(
+    (item) => item.conversationId === conversationId,
+  );
+  assert.equal(workflow?.directionBrief?.revision, revisionBefore + 1);
+  assert.match(workflow?.directionBrief?.visualNote || "", /配色偏暖/);
+  assert.equal(workflow?.directionBrief?.rendered, false);
+});

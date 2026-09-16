@@ -421,9 +421,20 @@ try {
   await page.screenshot({
     path: join(output, "chat-direction-revision-mobile.png"),
   });
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill("語氣軟一點");
+  await page.getByRole("button", { name: "送出訊息", exact: true }).click();
+  await expect(revisedBrief).toContainText("V3", { timeout: 15_000 });
+  await expect(revisedBrief).toContainText("語氣偏軟");
+  await expect(revisedBrief).toContainText("想來再填也沒關係");
+  await expect(revisedBrief).toContainText("未出圖");
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "chat-direction-tone-revision-mobile.png"),
+  });
   await page.getByRole("button", { name: "任務與成果" }).click();
-  await expect(specStage).toContainText("V2");
+  await expect(specStage).toContainText("V3");
   await expect(specStage).toContainText("主標加大");
+  await expect(specStage).toContainText("語氣偏軟");
   await expect(specStage.locator(".canva-result")).toHaveCount(0);
   await page.getByRole("button", { name: "對話列表" }).click();
   const conversationDrawer = page.getByRole("dialog", { name: "對話列表" });

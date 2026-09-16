@@ -372,6 +372,8 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   );
   assert.match(revise, /isMakeSelectedPosterRequest/);
   assert.match(revise, /出圖/);
+  assert.match(revise, /specRevisionKind/);
+  assert.match(revise, /顏色\.\{0,8\}暖/);
   const activity = await readFile(
     new URL("../lib/client/activity.ts", import.meta.url),
     "utf8",
@@ -387,6 +389,7 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   assert.match(visualMessage, /showVisualProcessSummary\(task\)/);
   const entry = await readFile(new URL("./verify-entry.ts", import.meta.url), "utf8");
   assert.match(entry, /過程完成/);
+  assert.match(entry, /顏色改暖一點/);
   assert.match(entry, /重設密碼/);
   assert.match(entry, /登入 Hermes/);
   assert.doesNotMatch(

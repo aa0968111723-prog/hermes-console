@@ -69,9 +69,11 @@ import {
 } from "./inspiration/engine";
 import { persistSelectedDirectionDraft } from "./inspiration/persist";
 import {
-  applyTypeEnlarge,
+  applySpecRevision,
   isContinueSameWorkRequest,
   isSpecRevisionRequest,
+  specRevisionKind,
+  specRevisionLabel,
 } from "./inspiration/revise";
 import { isInspirationSearchPack } from "../inspiration-pack";
 import {
@@ -926,7 +928,9 @@ function fulfillSpecRevision(
     event(task, task.error, "failed");
     return save(owner, task);
   }
-  const revised = applyTypeEnlarge(brief);
+  const kind = specRevisionKind(userFacingGoalText(task.input)) || "type_enlarge";
+  const label = specRevisionLabel(kind);
+  const revised = applySpecRevision(brief, kind);
   const saved = persistSelectedDirectionDraft(
     owner,
     attachDirectionBrief(owner, record.id, revised),
@@ -942,7 +946,7 @@ function fulfillSpecRevision(
     return save(owner, task);
   }
   task.goal = interpretGoal(task.input);
-  event(task, "已套用主標加大；不是 Hermes，也沒有出圖。", "plan");
+  event(task, "已套用" + label + "；不是 Hermes，也沒有出圖。", "plan");
   event(
     task,
     pack.visualNote || pack.notice,
@@ -951,7 +955,7 @@ function fulfillSpecRevision(
     pack,
   );
   task.output = [
-    "已在同一件規格上套用主標加大。",
+    "已在同一件規格上套用" + label + "。",
     pack.visualNote || pack.notice,
     "這不是 Hermes Agent 執行，不是已出圖，也不是 Canva。",
     pack.revision ? "目前是 V" + pack.revision + "。" : "",
@@ -1016,7 +1020,7 @@ function fulfillContinueSameWork(
     "這是同一件規格草稿。",
     pack.revision ? "目前是 V" + pack.revision + "。" : "",
     "還沒出圖，也不是 Canva 或 Hermes 生成。",
-    "請說要改什麼，例如「第二版字放大」。",
+    "請說要改什麼，例如「第二版字放大」或「顏色改暖一點」。",
   ]
     .filter(Boolean)
     .join("\n");

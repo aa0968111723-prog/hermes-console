@@ -44,6 +44,13 @@ export default function DirectionBrief({
                   data-emphasis={
                     brief.visualNote?.includes("主標加大") ? "larger" : undefined
                   }
+                  data-palette={
+                    brief.visualNote?.includes("配色偏暖")
+                      ? "warm"
+                      : brief.visualNote?.includes("配色偏冷")
+                        ? "cool"
+                        : undefined
+                  }
                 >
                   {text}
                 </p>
