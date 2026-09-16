@@ -80,6 +80,7 @@ import {
   writePreference,
   removeLegacyPreference,
 } from "@/lib/client/storage";
+import { workspacePollDelay } from "@/lib/client/poll";
 
 type Project = { id: string; name: string };
 type RemoteHistory = Array<{ role: string; content: string; name?: string }>;
@@ -242,6 +243,10 @@ export default function HermesConsole() {
   const composing = useRef(false);
   const requestKey = useRef<{ payload: string; key: string } | null>(null);
   const pendingXHR = useRef(new Map<string, XMLHttpRequest>());
+  const tasksRef = useRef(tasks);
+  const pokePoll = useRef<() => void>(() => {});
+  const hadActiveTask = useRef(false);
+  tasksRef.current = tasks;
   const activeConv = data.conversations.find((c) => c.id === activeId);
   const currentTasks = tasks.filter((t) => t.conversationId === activeId);
   const currentTask = currentTasks[0];
@@ -267,6 +272,7 @@ export default function HermesConsole() {
     setTasks(taskResult.tasks);
     setWorkflows(workflowResult.workflows);
     setOffline(false);
+    tasksRef.current = taskResult.tasks;
   }, []);
   useEffect(() => {
     // Remove compromised legacy connection cache; never remove conversation history.
@@ -326,9 +332,21 @@ export default function HermesConsole() {
       })
       .catch(() => {});
     let stopped = false,
-      loading = false;
-    const poll = async () => {
-      if (loading || document.hidden || stopped) return;
+      loading = false,
+      timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = (ms: number) => {
+      if (stopped) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => void tick(), ms);
+    };
+    const tick = async () => {
+      if (stopped) return;
+      clearTimeout(timer);
+      if (document.hidden) {
+        schedule(workspacePollDelay(true, tasksRef.current.some(isActive)));
+        return;
+      }
+      if (loading) return;
       loading = true;
       try {
         await refresh();
@@ -337,21 +355,41 @@ export default function HermesConsole() {
       } finally {
         loading = false;
       }
+      if (stopped) return;
+      schedule(
+        workspacePollDelay(
+          document.hidden,
+          tasksRef.current.some(isActive),
+        ),
+      );
     };
-    void poll();
-    const timer = setInterval(poll, 3000);
+    const onOnline = () => void tick();
     const disconnected = () => setOffline(true);
-    window.addEventListener("online", poll);
+    const onVisible = () => {
+      if (document.hidden)
+        schedule(workspacePollDelay(true, tasksRef.current.some(isActive)));
+      else void tick();
+    };
+    pokePoll.current = () => void tick();
+    void tick();
+    window.addEventListener("online", onOnline);
     window.addEventListener("offline", disconnected);
-    document.addEventListener("visibilitychange", poll);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       stopped = true;
-      clearInterval(timer);
-      window.removeEventListener("online", poll);
+      pokePoll.current = () => {};
+      clearTimeout(timer);
+      window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", disconnected);
-      document.removeEventListener("visibilitychange", poll);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [auth, refresh]);
+  useEffect(() => {
+    if (auth !== "ready") return;
+    const active = tasks.some(isActive);
+    if (active && !hadActiveTask.current) pokePoll.current();
+    hadActiveTask.current = active;
+  }, [auth, tasks]);
   useEffect(() => {
     const textarea = input.current;
     if (!textarea) return;

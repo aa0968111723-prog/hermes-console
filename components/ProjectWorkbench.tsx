@@ -84,7 +84,7 @@ export default function ProjectWorkbench({
     void refresh().catch((e) => setError(e.message));
     const timer = setInterval(() => {
       if (!document.hidden) void refresh().catch(() => {});
-    }, 5000);
+    }, 12_000);
     return () => {
       alive.current = false;
       clearInterval(timer);
