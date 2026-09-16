@@ -126,6 +126,7 @@ const {
   reconcile,
   taskFor,
   hasCompletedToolEvents,
+  DESIGN_WITHOUT_PREVIEW,
 } = await import("../lib/server/tasks");
 const { saveMemory, memoryDigest } = await import("../lib/server/memory");
 const { assembleContext, formatContextForInstructions } = await import(
@@ -367,6 +368,13 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
   assert.equal(toolsDone.state, "completed");
   assert.equal(hasCompletedToolEvents(toolsDone), true);
   assert.ok(toolsDone.events.some((event) => event.kind === "tool"));
+  assert.ok(
+    toolsDone.events.some((event) => event.summary === DESIGN_WITHOUT_PREVIEW),
+  );
+  assert.equal(
+    toolsDone.events.some((event) => event.summary === "Hermes 已回傳完成結果。"),
+    false,
+  );
 
   mode = "thinking_tool";
   const both = await submit("workspace", {
@@ -378,6 +386,26 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
   const bothDone = await settle(both.id);
   assert.equal(bothDone.state, "completed");
   assert.equal(bothDone.output.includes("內部"), false);
+
+  mode = "ok";
+  const lookup = await submit("workspace", {
+    conversationId: conv(),
+    requestKey: randomUUID(),
+    input: "幫我查淡江新生茶會公告",
+    attachments: [],
+  });
+  const lookupDone = await settle(lookup.id);
+  assert.equal(lookupDone.state, "completed");
+  assert.equal(lookupDone.goal?.requiresDesign, false);
+  assert.equal(
+    lookupDone.events.some((event) => event.summary === DESIGN_WITHOUT_PREVIEW),
+    false,
+  );
+  assert.ok(
+    lookupDone.events.some(
+      (event) => event.summary === "Hermes 已回傳完成結果。",
+    ),
+  );
 });
 
 test("Cycle 19: reconcile fails only when no output and no kind===tool completed events", async () => {
