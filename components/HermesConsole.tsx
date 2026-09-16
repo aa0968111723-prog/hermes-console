@@ -13,9 +13,7 @@ import {
   ListTodo,
   Sparkles,
   Bot,
-  Menu,
   MessageSquare,
-  PanelLeftClose,
   Pencil,
   Plus,
   RefreshCw,
@@ -44,6 +42,8 @@ import AccountSettings from "./settings/AccountSettings";
 import ConnectionSettings from "./settings/ConnectionSettings";
 import SharedMemory from "./settings/SharedMemory";
 import AttachmentCover from "./visual/AttachmentCover";
+import TopBar from "./visual/TopBar";
+import type { ConsoleNav } from "./visual/TopBar";
 import HermesCore from "./visual/HermesCore";
 import QuickActions from "./visual/QuickActions";
 import AgentOrbit from "./visual/AgentOrbit";
@@ -179,9 +179,7 @@ export default function HermesConsole() {
   const [canvaConfigured, setCanvaConfigured] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [project, setProject] = useState("personal");
-  const [nav, setNav] = useState<
-    "chat" | "projects" | "inspiration" | "agents" | "tasks"
-  >("chat");
+  const [nav, setNav] = useState<ConsoleNav>("chat");
   const [agents, setAgents] = useState<AgentProfile[]>([]);
   const [inspiration, setInspiration] = useState<InspirationItem[]>([]);
   const [sheetsSync, setSheetsSync] = useState<SheetSyncResult | null>(null);
@@ -966,85 +964,30 @@ export default function HermesConsole() {
         </div>
       </dialog>
       <main className="workspace-main">
-        <header className="topbar">
-          <button
-            className="icon-button desktop-toggle"
-            aria-label={sidebar ? "收合側欄" : "展開側欄"}
-            aria-expanded={sidebar}
-            onClick={() => setSidebar(!sidebar)}
-          >
-            {sidebar ? <PanelLeftClose size={20} /> : <Menu size={20} />}
-          </button>
-          <button
-            className="icon-button mobile-toggle"
-            aria-label="開啟導覽"
-            hidden
-            onClick={() => setDrawer(true)}
-          >
-            <Menu size={21} />
-          </button>
-          <div className="topbar-title">
-            {nav === "chat"
-              ? spatial.mobile ? "Hermes" : "創作對話"
-              : nav === "projects"
-                ? "專案與素材"
-                : nav === "inspiration"
-                  ? "靈感"
-                  : nav === "tasks"
-                    ? "任務"
-                    : "Agent"}
-            <span>
-              {data.projects.find((p) => p.id === project)?.name ||
-                "個人工作區"}
-            </span>
-          </div>
-          <button
-            className="icon-button"
-            aria-label="任務與成果"
-            title="任務與成果"
-            onClick={() => navigate("tasks")}
-          >
-            <ListTodo size={20} />
-          </button>
-          <button
-            className="connection-pill"
-            aria-label={
-              "連線狀態：" +
-              (offline
-                ? "離線"
-                : health
-                  ? connectionLabels[health.status]
-                  : "確認中")
-            }
-            onClick={() => {
-              setSettingsTab("連線");
-              setPanel("settings");
-            }}
-          >
-            <span
-              className={
-                "status-dot " + (health?.credential === "valid" ? "good" : "")
-              }
-            />
-            <span className="connection-label">
-              {offline
-                ? "離線"
-                : health
-                  ? connectionLabels[health.status]
-                  : "確認連線"}
-            </span>
-          </button>
-          <button
-            className="icon-button"
-            aria-label="外觀設定"
-            onClick={() => {
-              setSettingsTab("外觀");
-              setPanel("settings");
-            }}
-          >
-            <Settings size={19} />
-          </button>
-        </header>
+        <TopBar
+          nav={nav}
+          mobile={spatial.mobile}
+          projectName={
+            data.projects.find((p) => p.id === project)?.name || "個人工作區"
+          }
+          sidebar={sidebar}
+          offline={offline}
+          health={health}
+          connectionLabel={
+            health ? connectionLabels[health.status] : "確認連線"
+          }
+          onToggleSidebar={() => setSidebar(!sidebar)}
+          onOpenDrawer={() => setDrawer(true)}
+          onOpenTasks={() => navigate("tasks")}
+          onOpenConnections={() => {
+            setSettingsTab("連線");
+            setPanel("settings");
+          }}
+          onOpenAppearance={() => {
+            setSettingsTab("外觀");
+            setPanel("settings");
+          }}
+        />
         {(error || notice || offline) && (
           <div
             className={"notice-bar " + (error || offline ? "warning" : "")}
