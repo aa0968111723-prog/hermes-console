@@ -399,6 +399,7 @@ try {
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toHaveValue("");
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
   await page.screenshot({
     path: join(output, "chat-direction-continue-mobile.png"),
   });
@@ -416,6 +417,7 @@ try {
   );
   await expect(page.getByText("Canva 草稿")).toHaveCount(0);
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
   await page.screenshot({
     path: join(output, "chat-direction-revision-mobile.png"),
   });

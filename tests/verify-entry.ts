@@ -253,6 +253,10 @@ try {
   await expect(specAfterRenderAsk).toContainText("未出圖");
   await expect(page.getByRole("region", { name: "靈感方向" })).toHaveCount(1);
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "過程完成" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "查看目前任務：完成了" }),
+  ).toHaveCount(0);
   await page.screenshot({ path: join(output, "spoken-make-poster.png") });
   await voice.click();
   await page.evaluate(() => {
@@ -295,11 +299,16 @@ try {
   await expect(page.getByLabel("新密碼")).toBeVisible();
   await page.screenshot({ path: join(output, "login-reset-hash.png"), fullPage: true });
   await page.getByRole("button", { name: "密碼登入" }).click();
-  await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "重設密碼" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "登入 Hermes" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "已選方向規格" }),
+  ).toBeVisible();
 
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: no-login `/` enters workspace, APIs are not a login wall, reset hash still opens the dormant form. Not live Zeabur.",
+    "PASS: no-login `/` enters workspace, APIs are not a login wall, reset hash still opens the dormant form. Dismissing it returns to the open conversation. Not live Zeabur.",
   );
 } finally {
   await browser?.close();

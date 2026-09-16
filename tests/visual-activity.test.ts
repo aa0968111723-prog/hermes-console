@@ -21,6 +21,8 @@ import {
   taskUnverifiedVision,
   visualProcessCaption,
   workingEvent,
+  showComposerTask,
+  showVisualProcessSummary,
 } from "../lib/client/activity";
 import {
   DESIGN_WITHOUT_PREVIEW,
@@ -352,4 +354,21 @@ test("creative tasks attach Canva designs as conversation artifacts", () => {
     ).length,
     0,
   );
+});
+
+test("workspace continue and revise hide the visual 過程完成 summary", () => {
+  const continueTask = task("completed", [
+    event("spec", "completed", "workspace_continue_direction_spec"),
+  ]);
+  assert.equal(showVisualProcessSummary(continueTask), false);
+  assert.equal(showComposerTask(continueTask), false);
+  const revise = task("completed", [
+    event("spec", "completed", "workspace_revise_direction_spec"),
+  ]);
+  assert.equal(showVisualProcessSummary(revise), false);
+  const hermes = task("completed", [
+    event("research", "completed", "galley_research"),
+  ]);
+  assert.equal(showVisualProcessSummary(hermes), true);
+  assert.equal(showComposerTask(hermes), true);
 });

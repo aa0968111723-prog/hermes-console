@@ -336,6 +336,7 @@ test("student copy hides channel ids, provenance enums, and covers spoken lookup
   const ui = await readFile(new URL("./verify-ui.ts", import.meta.url), "utf8");
   assert.match(ui, /幫我查淡大禪學社茶會/);
   assert.match(ui, /社團資料/);
+  assert.match(ui, /過程完成/);
   const entry = await readFile(new URL("./verify-entry.ts", import.meta.url), "utf8");
   assert.match(entry, /今天社博在哪/);
   assert.match(entry, /社團資料/);
@@ -371,11 +372,25 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   );
   assert.match(revise, /isMakeSelectedPosterRequest/);
   assert.match(revise, /出圖/);
-  const composer = await readFile(
-    new URL("../components/visual/ComposerTaskStatus.tsx", import.meta.url),
+  const activity = await readFile(
+    new URL("../lib/client/activity.ts", import.meta.url),
     "utf8",
   );
-  assert.match(composer, /WORKSPACE_RESULT_TOOLS/);
-  assert.match(composer, /showComposerTask/);
-  assert.match(composer, /isWorkspaceResultTool\(event\.toolName\)/);
+  assert.match(activity, /WORKSPACE_RESULT_TOOLS/);
+  assert.match(activity, /showComposerTask/);
+  assert.match(activity, /showVisualProcessSummary/);
+  assert.match(activity, /taskHasWorkspaceResult/);
+  const visualMessage = await readFile(
+    new URL("../components/visual/VisualMessage.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(visualMessage, /showVisualProcessSummary\(task\)/);
+  const entry = await readFile(new URL("./verify-entry.ts", import.meta.url), "utf8");
+  assert.match(entry, /過程完成/);
+  assert.match(entry, /重設密碼/);
+  assert.match(entry, /登入 Hermes/);
+  assert.doesNotMatch(
+    entry.slice(entry.lastIndexOf("密碼登入")),
+    /今天想做什麼？/,
+  );
 });

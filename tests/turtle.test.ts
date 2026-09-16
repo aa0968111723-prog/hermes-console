@@ -53,6 +53,18 @@ test("turtle does not celebrate a design task that kept only the spec", () => {
   const finished = task("completed");
   assert.equal(turtleState(finished, false).id, "success");
   assert.equal(turtleState(finished, false).label, "完成了");
+  const continued = {
+    state: "completed",
+    events: [
+      {
+        toolName: "workspace_continue_direction_spec",
+        status: "completed",
+      },
+    ],
+  } as Task;
+  assert.equal(turtleState(continued, false).id, "idle");
+  assert.equal(turtleState(continued, false).label, "準備好了");
+  assert.notEqual(turtleState(continued, false).label, "完成了");
 });
 
 test("turtle does not celebrate research that found no sources", () => {

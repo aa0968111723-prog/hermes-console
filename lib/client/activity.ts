@@ -386,6 +386,47 @@ export function visualProcessCaption(
   return taskStateLabel[task.state] || "進行中";
 }
 
+/** Workspace cards already occupy the thread; do not hang a 完成 pill over them. */
+export const WORKSPACE_RESULT_TOOLS = [
+  "workspace_search_inspiration",
+  "workspace_simulate_audience",
+  "workspace_revise_direction_spec",
+  "workspace_continue_direction_spec",
+  "zenclub_drive_index",
+] as const;
+
+export function isWorkspaceResultTool(name: string | null | undefined) {
+  return !!name && (WORKSPACE_RESULT_TOOLS as readonly string[]).includes(name);
+}
+
+export function taskHasWorkspaceResult(task?: Task | null): boolean {
+  return !!task?.events.some((event) => isWorkspaceResultTool(event.toolName));
+}
+
+export function showVisualProcessSummary(task: Task): boolean {
+  return !taskHasWorkspaceResult(task);
+}
+
+export function showComposerTask(
+  task: Task,
+  conv?: {
+    messages: Array<{
+      taskId?: string;
+      role: string;
+      provenance?: string;
+    }>;
+  },
+) {
+  if (task.state !== "completed") return true;
+  if (taskHasWorkspaceResult(task)) return false;
+  return !conv?.messages.some(
+    (message) =>
+      message.taskId === task.id &&
+      message.role === "assistant" &&
+      message.provenance === "workspace",
+  );
+}
+
 export function isCanvaDesign(
   value: unknown,
 ): value is Record<string, unknown> {

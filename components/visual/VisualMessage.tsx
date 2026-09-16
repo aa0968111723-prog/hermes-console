@@ -4,6 +4,7 @@ import {
   artifactsForConversation,
   progressSteps,
   safeSource,
+  showVisualProcessSummary,
   studentHonestyLabel,
   studentProcessDone,
   visualProcessCaption,
@@ -67,12 +68,18 @@ export default function VisualMessage({
     workflows,
     projectId || "",
   );
+  const showProcess =
+    !!steps.length &&
+    !inspiration &&
+    !imageReview &&
+    !knowledge &&
+    showVisualProcessSummary(task);
   if (
     !sources.length &&
     !artifacts.length &&
     !twinPanel &&
     !layout &&
-    !steps.length &&
+    !showProcess &&
     !inspiration &&
     !imageReview &&
     !knowledge
@@ -97,7 +104,7 @@ export default function VisualMessage({
       )}
       {imageReview && <ImageReviewResult pack={imageReview} />}
       {knowledge && <KnowledgeResult pack={knowledge} />}
-      {!!steps.length && !inspiration && !imageReview && !knowledge && (
+      {showProcess && (
         <button className="tool-result-summary" onClick={onInspect}>
           {done ? (
             <Check size={15} />
