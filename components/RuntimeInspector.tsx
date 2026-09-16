@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, CircleAlert, RefreshCw } from "lucide-react";
+import { ChevronDown, CircleAlert, RefreshCw } from "lucide-react";
 import type { HermesRuntimeSnapshot, ToolDescriptor } from "@/lib/runtime";
 import AgentOrbit from "./visual/AgentOrbit";
 import type { Task, Health } from "@/lib/contracts";
@@ -228,7 +228,7 @@ export default function RuntimeInspector({
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>
         <div>
-          <p className="eyebrow">系統狀態</p>
+          <p className="eyebrow">一般</p>
           <h2>能力中心</h2>
         </div>
         <div className="runtime-actions">
@@ -286,9 +286,15 @@ export default function RuntimeInspector({
           />
           記憶 {snapshot ? statusLabel(snapshot.memorySupport) : "未知"}
         </span>
-        {!stale && snapshot?.status === "available" && (
-          <Check size={16} className="runtime-check" aria-label="狀態已同步" />
-        )}
+        <span>
+          <i
+            className={
+              !stale && (snapshot?.mcpServers.length || 0) > 0 ? "good" : "unknown"
+            }
+            aria-hidden="true"
+          />
+          MCP {snapshot ? snapshot.mcpServers.length : "未知"}
+        </span>
       </div>
       <AgentOrbit
         snapshot={snapshot}
@@ -301,6 +307,8 @@ export default function RuntimeInspector({
           <p className="muted">
             探索到工具不代表已授權或已執行。未驗證的工具不會標成可用。
           </p>
+          <details className="runtime-developer" open>
+            <summary>Developer · 工具清單</summary>
           <label>
             搜尋工具用途
             <input
@@ -339,6 +347,7 @@ export default function RuntimeInspector({
           {!groups.length && (
             <p>目前沒有符合的工具；這不代表工具已可用。</p>
           )}
+          </details>
         </>
       )}
       <details className="runtime-advanced">

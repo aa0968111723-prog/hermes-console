@@ -55,7 +55,13 @@ export {
   windowConversationHistory,
 } from "./context/history";
 export const active = (t: Task) =>
-  ["queued", "running", "waiting_user", "stopping"].includes(t.state);
+  [
+    "queued",
+    "running",
+    "waiting_user",
+    "waiting_authorization",
+    "stopping",
+  ].includes(t.state);
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
 export const taskInput = z
   .object({

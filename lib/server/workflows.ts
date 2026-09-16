@@ -240,6 +240,14 @@ export async function pollDraft(owner: string, id: string) {
   if (job?.status === "success" && job.result?.design) {
     record.design = JSON.parse(redact(JSON.stringify(job.result.design)));
     record.state = "draft_ready";
+    const { recordArtifact } = await import("./artifacts");
+    recordArtifact({
+      artifactId: record.id,
+      projectId: record.projectId,
+      source: "canva",
+      workflowId: record.id,
+      title: record.brief.slice(0, 80) || "作品",
+    });
   } else if (job?.status === "failed") {
     record.state = "failed";
     record.error = "Canva 回報製作失敗。";

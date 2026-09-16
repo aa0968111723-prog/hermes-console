@@ -360,8 +360,8 @@ export async function health(owner: string, refresh = false): Promise<Health> {
     }
     if (evidence && evidence.targetHash === serviceIdentity()) {
       state.agent = "verified";
-      state.status = "available";
-      state.message = "連線驗證通過；此設定已有成功執行的 Agent 任務。";
+      state.message =
+        "已有成功任務紀錄；不代表所有工具都可用，狀態維持部分可用。";
     }
   } catch (error) {
     state.status = state.credential === "missing" ? "unconfigured" : "failed";
