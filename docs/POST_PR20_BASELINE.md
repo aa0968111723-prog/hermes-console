@@ -14,9 +14,9 @@
 - PR #21：長任務契約（`docs/POST_PR20_LONG_TASK.md`），不含實作。
 - PR #10：只當能力需求來源，不 merge、不大量 cherry-pick。
 
-## Product invariants（不得改掉）
+## Product invariants（當時紀錄；不得依此回退 AuthGate）
 
-- 免登入單一工作區。`/` 直接進入 `HermesConsole`。
+- 當時：免登入單一工作區，`/` 直接進入 `HermesConsole`。**現行產品是 AuthGate**（未登入 → Login → Hermes）。本文件不能當理由回退登入。
 - 明亮、聊天優先、手機優先。導覽：對話／專案／靈感／Agent／設定。
 - 龜龜由真實 task／tool event 驅動，禁止 timeout 假裝研究。
 - Hermes 是唯一執行器。不得偽造來源、記憶同步、Canva／Zeabur 成功。
@@ -59,7 +59,7 @@ Playwright = `LOCAL_BROWSER`，不得寫 Zeabur Live Verified。
 7. Zeabur `update_env`／`push_console_keys`／`redeploy`／`restart` **沒有** confirmation token。公開站任何人可改部署。
 8. 手機沒有 Task Status Pill；≤380px 連 compact 龜龜都藏起來。
 9. 任務對話裡有事件紀錄，但沒有使用者可讀的 Plan timeline。
-10. 若干文件（`DEPLOYMENT.md` 部分、`PR11_RELIABILITY.md`、`LEARNING_INVITATIONS.md`）仍寫邀請登入或強制閘道；**已被 no-login 取代**。
+10. 若干文件（`DEPLOYMENT.md` 部分、`PR11_RELIABILITY.md`）仍寫邀請登入或強制閘道；當時被 no-login 取代。**現行產品已改為 AuthGate**，不要再把 no-login 當現行 invariant。
 
 ---
 
@@ -71,7 +71,7 @@ Playwright = `LOCAL_BROWSER`，不得寫 Zeabur Live Verified。
 
 | Feature | Class | UI | API | Server | Persist | External | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 免登入 `/` | LIVE | `app/page.tsx` → `HermesConsole` | workspace APIs | `authenticate()` → owner `workspace` | SQLite | none | LOCAL_CONTRACT, LOCAL_BROWSER |
+| 免登入 `/` | SUPERSEDED | 當時 `app/page.tsx` → `HermesConsole`。現行 `AuthGate` | workspace APIs | `authenticate()` + session membership | SQLite | none | LOCAL_CONTRACT, LOCAL_BROWSER |
 | 對話 CRUD／分支 | LIVE | HermesConsole | `/api/conversations` `/api/workspace` | `tasks.ts` store | SQLite `conversation` | none | LOCAL_CONTRACT, LOCAL_BROWSER |
 | 送出聊天 | LIVE / LIVE_UNVERIFIED | POST `/api/tasks` | 同 `/api/chat` | `submit` → `execute` | SQLite `task` | Hermes chat 或 runs | LOCAL_CONTRACT（隔離 Hermes）；LIVE_EXTERNAL = UNVERIFIED |
 | 串流顯示 | PARTIAL | 3s poll `task.output`，UI 不接 Hermes SSE | GET `/api/tasks` | chat SSE 在後端消化 | SQLite | Hermes stream | LOCAL_CONTRACT |
