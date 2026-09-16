@@ -1,6 +1,6 @@
 "use client";
 
-import { GitFork, Layers, MessageSquare, X } from "lucide-react";
+import { Columns2, GitFork, Layers, MessageSquare, X } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import CanvaResult from "../CanvaResult";
 import type { ArtifactRevision } from "@/lib/server/workflows";
@@ -21,12 +21,22 @@ export default function ArtifactStage({
   onFork?: (revision: number) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const compareDialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const [left, setLeft] = useState<number | null>(null);
+  const [right, setRight] = useState<number | null>(null);
   useEffect(() => {
     if (open) dialog.current?.showModal();
     else dialog.current?.close();
   }, [open]);
   const current = activeRevision ?? revisions.at(-1)?.revision ?? null;
+  const leftRev = revisions.find((item) => item.revision === left);
+  const rightRev = revisions.find((item) => item.revision === right);
+  useEffect(() => {
+    if (leftRev && rightRev) compareDialog.current?.showModal();
+    else compareDialog.current?.close();
+  }, [leftRev, rightRev]);
   return (
     <section className="artifact-stage" aria-label="設計成果預覽">
       <header>
@@ -36,6 +46,20 @@ export default function ArtifactStage({
           {current ? <small>V{current}</small> : null}
         </span>
         <div className="artifact-stage-actions">
+          {revisions.length > 1 ? (
+            <button
+              className="icon-button"
+              aria-label="比較版本"
+              aria-pressed={comparing}
+              onClick={() => {
+                setComparing((value) => !value);
+                setLeft(null);
+                setRight(null);
+              }}
+            >
+              <Columns2 size={18} />
+            </button>
+          ) : null}
           {onFork && current ? (
             <button
               className="icon-button"
@@ -67,8 +91,22 @@ export default function ArtifactStage({
               key={item.revisionId}
               type="button"
               aria-label={"第 " + item.revision + " 版"}
-              aria-pressed={item.revision === current}
+              aria-pressed={
+                comparing
+                  ? item.revision === left || item.revision === right
+                  : item.revision === current
+              }
               onClick={() => {
+                if (comparing) {
+                  if (left == null) setLeft(item.revision);
+                  else if (right == null && item.revision !== left)
+                    setRight(item.revision);
+                  else {
+                    setLeft(item.revision);
+                    setRight(null);
+                  }
+                  return;
+                }
                 if (item.revision === current || !onRestore) return;
                 if (
                   window.confirm(
@@ -82,6 +120,9 @@ export default function ArtifactStage({
             </button>
           ))}
         </div>
+      ) : null}
+      {comparing && !right ? (
+        <p className="artifact-caption">選兩個版本比較。還原仍要確認。</p>
       ) : null}
       <dialog
         ref={dialog}
@@ -103,6 +144,39 @@ export default function ArtifactStage({
           </button>
         </header>
         {open && <CanvaResult design={design} />}
+      </dialog>
+      <dialog
+        ref={compareDialog}
+        className="artifact-preview"
+        aria-label="作品版本比較"
+        onCancel={() => {
+          setRight(null);
+          setLeft(null);
+          setComparing(false);
+        }}
+      >
+        <header>
+          <h2>
+            V{left} · V{right}
+          </h2>
+          <button
+            className="icon-button"
+            aria-label="關閉版本比較"
+            onClick={() => {
+              setRight(null);
+              setLeft(null);
+              setComparing(false);
+            }}
+          >
+            <X size={22} />
+          </button>
+        </header>
+        {leftRev && rightRev ? (
+          <div className="artifact-compare">
+            <CanvaResult design={leftRev.design} />
+            <CanvaResult design={rightRev.design} />
+          </div>
+        ) : null}
       </dialog>
     </section>
   );
