@@ -1,5 +1,6 @@
 import { ApiError } from "./errors";
 import {
+  boundLinkActor,
   consumeOAuthState,
   createOAuthState,
   loginWithIdentity,
@@ -88,6 +89,7 @@ export async function finishGoogleOAuth(url: URL, actorId?: string) {
   };
   if (!profile.sub)
     throw new ApiError(401, "oauth_failed", "Google 未回傳使用者識別。");
+  const mode = record.mode === "link" ? "link" : "login";
   return loginWithIdentity({
     provider: "google",
     providerId: profile.sub,
@@ -95,8 +97,8 @@ export async function finishGoogleOAuth(url: URL, actorId?: string) {
     emailVerified: !!profile.email_verified,
     name: profile.name || "Google 使用者",
     avatarUrl: profile.picture || null,
-    mode: record.mode || "login",
-    actorId: actorId || record.userId || undefined,
+    mode,
+    actorId: boundLinkActor(mode, record.userId, actorId),
   });
 }
 

@@ -621,6 +621,8 @@ export function createOAuthState(input: {
   verifier: string;
   userId?: string;
 }) {
+  if (input.mode === "link" && !input.userId)
+    throw new ApiError(401, "sign_in_required", "請先登入再連結帳號。");
   return mintToken({
     purpose: "oauth",
     userId: input.userId || null,
@@ -636,6 +638,22 @@ export function consumeOAuthState(token: string, provider: AuthProvider) {
   if (record.provider !== provider)
     throw new ApiError(401, "oauth_state", "OAuth state 無效。");
   return record;
+}
+
+/** Link mode must keep the Google/Tamkang identity on the user who started OAuth. */
+export function boundLinkActor(
+  mode: "login" | "link" | undefined,
+  stateUserId?: string | null,
+  sessionUserId?: string,
+) {
+  if (mode !== "link") return undefined;
+  if (!stateUserId || !sessionUserId || stateUserId !== sessionUserId)
+    throw new ApiError(
+      401,
+      "oauth_state",
+      "連結帳號時請使用原本的登入工作階段。",
+    );
+  return sessionUserId;
 }
 
 export function pkcePair() {
