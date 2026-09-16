@@ -149,6 +149,18 @@ export default function TaskSheet({
             </dd>
           </div>
           <div>
+            <dt>追蹤</dt>
+            <dd>
+              <code>{task.traceId || "尚未建立"}</code>
+            </dd>
+          </div>
+          <div>
+            <dt>專案</dt>
+            <dd>
+              <code>{task.projectId || "尚未標示"}</code>
+            </dd>
+          </div>
+          <div>
             <dt>Hermes 任務</dt>
             <dd>
               <code>{task.remoteId || "串流模式／尚未取得"}</code>
@@ -181,7 +193,9 @@ export default function TaskSheet({
           <TaskEventSummary event={e} />
           <small className="event-meta">
             {formatWorkspaceTime(e.startedAt)}
+            {e.latencyMs != null ? " · " + e.latencyMs + "ms" : ""}
             {e.toolName && <code>{e.toolName}</code>}
+            {e.errorCategory ? <code>{e.errorCategory}</code> : null}
           </small>
           {e.result !== null && (
             <MessageBody

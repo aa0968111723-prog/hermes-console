@@ -193,6 +193,10 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
       "workspace_read_material",
     );
     assert.notEqual(orch.plan.budgetMode, "fast");
+    assert.match(orch.instructions, /目前工具可用性/);
+    assert.match(orch.instructions, /cost=unknown/);
+    assert.doesNotMatch(orch.instructions, /GALLEY_MCP_TOKEN|LUMEN_MCP_TOKEN|TKU_MCP_TOKEN/);
+    assert.doesNotMatch(orch.instructions, /https:\/\/[a-z0-9.-]+\//i);
   });
 
   await t.test("generic freshman wording does not bind Tamkang", () => {

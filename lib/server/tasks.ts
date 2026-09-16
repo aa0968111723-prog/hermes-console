@@ -40,6 +40,7 @@ import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
+import { eventObservability, taskObservability } from "./observability";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -114,16 +115,26 @@ function event(
   toolName: string | null = null,
   result: unknown = null,
 ) {
+  const startedAt = now();
+  const endedAt = ["completed", "failed", "cancelled"].includes(status)
+    ? now()
+    : null;
+  const observed = eventObservability({
+    startedAt,
+    endedAt,
+    status,
+    error: status === "failed" ? task.error : null,
+  });
   const record: TaskEvent = {
     id: randomUUID(),
     taskId: task.id,
     ...(toolName ? { kind: "tool" as const } : {}),
     toolName,
     status,
-    startedAt: now(),
-    endedAt: ["completed", "failed", "cancelled"].includes(status)
-      ? now()
-      : null,
+    startedAt,
+    endedAt,
+    latencyMs: observed.latencyMs,
+    errorCategory: observed.errorCategory,
     summary: redact(summary).slice(0, 2000),
     result,
     sources: [],
@@ -209,8 +220,17 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     connection.features.run_submission &&
     connection.features.run_status &&
     input.attachments.length === 0;
+  const taskId = randomUUID();
+  const observed = taskObservability({
+    taskId,
+    conversationId: conv.id,
+    projectId: conv.projectId,
+  });
   const task: Task = {
-    id: randomUUID(),
+    id: taskId,
+    traceId: observed.traceId,
+    workspaceId: observed.workspaceId,
+    projectId: observed.projectId,
     conversationId: conv.id,
     requestKey: input.requestKey,
     payloadHash,

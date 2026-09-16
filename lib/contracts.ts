@@ -35,6 +35,8 @@ export interface TaskEvent {
   status: string;
   startedAt: string;
   endedAt: string | null;
+  latencyMs?: number | null;
+  errorCategory?: string | null;
   summary: string;
   result: unknown;
   sources: string[];
@@ -66,6 +68,9 @@ export interface Conversation {
 }
 export interface Task {
   id: string;
+  traceId?: string;
+  workspaceId?: string;
+  projectId?: string;
   conversationId: string;
   requestKey: string;
   payloadHash: string;

@@ -10,8 +10,9 @@ import {
 } from "../context/assembler";
 import { CONTEXT_TOKEN_BUDGET } from "../context/budget";
 import { isFastTier } from "./intent";
-import { getMcp } from "../mcp-registry";
+import { getMcp, seedRegistry } from "../mcp-registry";
 import { countImageAttachments } from "../materials";
+import { formatPlannerCatalog } from "./catalog";
 
 export function prepareOrchestration(
   owner: string,
@@ -34,6 +35,7 @@ export function prepareOrchestration(
     lumen: { status: lumen?.status || "unconfigured" },
   });
   const plan = buildPlan(goal, routes, effectiveBudget);
+  const catalog = fast ? "" : formatPlannerCatalog(seedRegistry());
   const context = fast
     ? {
         items: [],
@@ -55,6 +57,7 @@ export function prepareOrchestration(
         formatContextForInstructions(context),
         formatPlanForInstructions(plan),
         fallbackNotice ? "請向使用者說明：\n" + fallbackNotice : "",
+        catalog,
       ]
         .filter(Boolean)
         .join("\n\n");
