@@ -8,7 +8,7 @@ import type {
 } from "./types";
 
 const NOTICE =
-  "工作區 Drive 快照，不是即時讀檔，也不是 Instagram。缺資料標 UNKNOWN，不補寫。";
+  "工作區 Drive 快照，不是即時讀檔，也不是 Instagram。缺的欄位會留空，不補寫。";
 
 const EVENT_KEYS = [
   "茶會",

@@ -1,6 +1,6 @@
 "use client";
 
-import type { VisualPackView } from "@/lib/client/visual-pack";
+import { studentFormatCaption, type VisualPackView } from "@/lib/client/visual-pack";
 
 const FACT_ROWS: Array<{
   key: "date" | "time" | "location" | "registration";
@@ -175,17 +175,14 @@ export default function VisualConceptCards({
       <header className="visual-concept-meta">
         <p className="visual-concept-title">{pack.title}</p>
         <p className="visual-concept-format">
-          {pack.format.label}{" "}
-          <span>
-            {pack.format.width}×{pack.format.height}
-          </span>
+          {studentFormatCaption(pack.format)}
         </p>
         <p className="visual-concept-status">尚未出圖 · 未發佈</p>
       </header>
       <FactStrip pack={pack} />
       {pack.unknownFields.length > 0 && (
         <p className="visual-concept-unknown">
-          UNKNOWN：{pack.unknownFields.join("、")}，畫面上留空。
+          未提供：{pack.unknownFields.join("、")}，畫面上留空。
         </p>
       )}
       <p className="visual-concept-notice">{pack.notice}</p>

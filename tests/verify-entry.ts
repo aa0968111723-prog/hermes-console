@@ -102,7 +102,9 @@ try {
   );
   await expect(page.locator(".visual-concept-facts")).toContainText("2026-09-30");
   await expect(page.locator(".visual-concept-facts")).toContainText("留空");
-  await expect(page.getByText("UNKNOWN：地點，畫面上留空。")).toBeVisible();
+  await expect(page.getByText("未提供：地點，畫面上留空。")).toBeVisible();
+  await expect(page.locator(".visual-concept-format")).not.toContainText("1080");
+  await expect(page.locator(".visual-concept-format")).not.toContainText("Instagram");
   await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
   await expect(page.getByText("概念 A")).toBeVisible();
   await expect(page.getByRole("button", { name: "選這個" })).toHaveCount(3);

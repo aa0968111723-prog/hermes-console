@@ -70,6 +70,7 @@ try {
   await page.screenshot({path:join(output,"workbench-mobile-390.png"),fullPage:true});
   await page.getByRole("button",{name:"外觀設定"}).click();
   await page.getByRole("tab",{name:"工作區",exact:true}).click();
+  await page.getByText("進階 · 學習紀錄與會話").click();
   const map = page.getByRole("region",{name:"記憶與學習地圖"});
   await map.getByLabel("學習標題",{exact:true}).fill("社團品牌風格");
   await map.getByLabel("學習分類",{exact:true}).selectOption("brand");

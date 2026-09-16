@@ -78,7 +78,7 @@ export function localWorkspaceReply(
   const lines = [HONESTY, knowledge.notice];
   const card = top ? formatEntity(top) : "";
   if (!card) {
-    lines.push("索引沒有命中。缺資料標 UNKNOWN，不得自行補日期或地點。");
+    lines.push("目前沒有對應資料。缺的日期或地點會留空，不會自行補上。");
   } else {
     lines.push(card);
   }

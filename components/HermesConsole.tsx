@@ -2079,54 +2079,9 @@ export default function HermesConsole() {
                   </div>
                 ) : settingsTab === "工作區" ? (
                   <div className="settings-stack">
-                    <h3>記憶與會話</h3>
                     <SharedMemory projectId={project} />
-                    <LearningMap
-                      key={project}
-                      projectId={project}
-                      skills={health?.skills || []}
-                      materials={data.materials}
-                      onTask={(id) => {
-                        setSelectedTask(id);
-                        setPanel("task");
-                      }}
-                    />
-                    <p>{data.memory.scope}</p>
-                    <p className="muted">學習地圖是這次要求的紀錄，不是遠端記憶副本。</p>
-                    <button
-                      disabled={!activeConv?.hermesSessionId}
-                      onClick={async () => {
-                        try {
-                          const result = await api<{
-                            remoteHistory: typeof remoteHistory;
-                          }>("conversations?id=" + activeId);
-                          setRemoteHistory(result.remoteHistory);
-                          if (!result.remoteHistory)
-                            setNotice("部署版本不支援會話歷史查詢。");
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      讀取目前 Hermes 會話歷史
-                    </button>
-                    {remoteHistory?.map((m, i) => (
-                      <details key={i}>
-                        <summary>
-                          {m.role}
-                          {m.name ? " · " + m.name : ""}
-                        </summary>
-                        <MessageBody text={m.content} />
-                      </details>
-                    ))}
-                    {legacy && (
-                      <button onClick={importLegacy}>匯入舊版瀏覽器對話</button>
-                    )}
                     <h3>專案</h3>
-                    <p>
-                      目前有 {data.projects.length}{" "}
-                      個自訂專案；不包含預設個人工作區。
-                    </p>
+                    <p>目前有 {data.projects.length} 個專案</p>
                     <form
                       onSubmit={async (e) => {
                         e.preventDefault();
@@ -2153,6 +2108,54 @@ export default function HermesConsole() {
                         建立專案
                       </button>
                     </form>
+                    <details className="connection-advanced">
+                      <summary>進階 · 學習紀錄與會話</summary>
+                      <LearningMap
+                        key={project}
+                        projectId={project}
+                        skills={health?.skills || []}
+                        materials={data.materials}
+                        onTask={(id) => {
+                          setSelectedTask(id);
+                          setPanel("task");
+                        }}
+                      />
+                      <p>{data.memory.scope}</p>
+                      <p className="muted">
+                        學習地圖是這次要求的紀錄，不是遠端記憶副本。
+                      </p>
+                      <button
+                        disabled={!activeConv?.hermesSessionId}
+                        onClick={async () => {
+                          try {
+                            const result = await api<{
+                              remoteHistory: typeof remoteHistory;
+                            }>("conversations?id=" + activeId);
+                            setRemoteHistory(result.remoteHistory);
+                            if (!result.remoteHistory)
+                              setNotice("部署版本不支援會話歷史查詢。");
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                      >
+                        讀取目前 Hermes 會話歷史
+                      </button>
+                      {remoteHistory?.map((m, i) => (
+                        <details key={i}>
+                          <summary>
+                            {m.role}
+                            {m.name ? " · " + m.name : ""}
+                          </summary>
+                          <MessageBody text={m.content} />
+                        </details>
+                      ))}
+                      {legacy && (
+                        <button onClick={importLegacy}>
+                          匯入舊版瀏覽器對話
+                        </button>
+                      )}
+                    </details>
                   </div>
                 ) : (
                   <div className="settings-stack">

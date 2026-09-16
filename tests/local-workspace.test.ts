@@ -36,6 +36,7 @@ test("club inspiration returns visual cards with overlay date, not a notes wall"
   assert.ok(pack.unknownFields.includes("地點"));
   assert.match(pack.notice, /Hermes Agent 尚未連線/);
   assert.match(pack.notice, /Drive 快照|不是即時/);
+  assert.doesNotMatch(pack.notice, /UNKNOWN/);
   assert.equal(pack.concepts.length, 3);
   assert.equal(pack.captions?.A?.cta, "報名");
   assert.match(pack.captions?.A?.body || "", /2026-09-30/);

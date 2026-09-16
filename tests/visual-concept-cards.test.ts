@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   isVisualConceptPack,
   parseVisualConceptPack,
+  studentFormatCaption,
 } from "../lib/client/visual-pack";
 
 const pack = {
@@ -42,4 +43,19 @@ test("visual pack guard rejects fake renders and incomplete concepts", () => {
   assert.equal(parseVisualConceptPack(JSON.stringify(pack))?.overlayText?.name, "迎新茶會");
   assert.equal(parseVisualConceptPack("請幫我做海報"), null);
   assert.equal(parseVisualConceptPack("{not json"), null);
+});
+
+test("student format caption hides Instagram and pixel size", () => {
+  assert.equal(
+    studentFormatCaption({ id: "ig_feed_4x5", label: "Instagram 貼文 4:5" }),
+    "貼文",
+  );
+  assert.equal(
+    studentFormatCaption({ id: "ig_story", label: "Instagram 限時動態 9:16" }),
+    "限時動態",
+  );
+  assert.equal(
+    studentFormatCaption({ id: "poster_a4", label: "海報 A4" }),
+    "海報 A4",
+  );
 });

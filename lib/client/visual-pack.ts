@@ -70,3 +70,12 @@ export function parseVisualConceptPack(text: string): VisualPackView | null {
     return null;
   }
 }
+
+/** Student caption: medium name only, no Instagram claim and no pixel size. */
+export function studentFormatCaption(format: { label: string; id?: string }) {
+  if (format.id?.startsWith("poster")) return format.label;
+  return format.label
+    .replace(/^Instagram\s+/u, "")
+    .replace(/\s+\d+\s*[:/]\s*\d+\s*$/u, "")
+    .trim();
+}

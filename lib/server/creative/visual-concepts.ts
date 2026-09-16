@@ -460,7 +460,7 @@ export function compileVisualConcepts(
         : null,
     directions,
     notice: missingRequired.length
-      ? `活動資訊不完整（${missingRequired.join("、")}）。已標 UNKNOWN，沒有補造，也沒有出圖。`
+      ? `活動資訊不完整（${missingRequired.join("、")}）。未提供的欄位會留空，沒有補造，也沒有出圖。`
       : "已用公開可上圖欄位編譯三個視覺概念。這不是已出圖，也不是已發佈。",
     rendered: false,
     generatedImage: false,
