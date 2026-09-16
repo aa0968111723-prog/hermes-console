@@ -45,3 +45,15 @@ export function recencyScore(iso?: string | null) {
   if (days < 30) return 0.55;
   return 0.3;
 }
+
+export function decayingConfidence(
+  stored: number | null | undefined,
+  updatedAt?: string | null,
+) {
+  const base =
+    typeof stored === "number" && Number.isFinite(stored) ? stored : 0.7;
+  return Math.min(
+    1,
+    Math.max(0, Math.round(base * recencyScore(updatedAt) * 1000) / 1000),
+  );
+}

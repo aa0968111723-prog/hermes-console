@@ -2,7 +2,12 @@ import type { BudgetMode, Conversation } from "../../contracts";
 import { listMemories } from "../memory";
 import { listInspiration, type InspirationItem } from "../inspiration";
 import { listMaterials } from "../materials";
-import { estimateTokens, recencyScore, type ContextItem } from "./provenance";
+import {
+  decayingConfidence,
+  estimateTokens,
+  recencyScore,
+  type ContextItem,
+} from "./provenance";
 import { relevanceTo } from "./ranking";
 import { fitBudget } from "./budget";
 import { wrapUntrusted } from "../untrusted";
@@ -69,7 +74,7 @@ export function assembleContext(input: {
         recency: recencyScore(memory.updatedAt),
         importance: memory.kind === "preference" ? 0.85 : 0.6,
         relevance: relevanceTo(text, query),
-        confidence: 0.7,
+        confidence: decayingConfidence(memory.confidence, memory.updatedAt),
         truth: "USER_PROVIDED",
       }),
     );

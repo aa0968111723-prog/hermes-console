@@ -34,13 +34,16 @@ const {
 const { DEFAULT_BUDGET, budgetFromEnv } = await import(
   "../lib/server/budgets"
 );
-const { estimateTokens } = await import("../lib/server/context/provenance");
+const { estimateTokens, decayingConfidence, recencyScore } = await import(
+  "../lib/server/context/provenance"
+);
 const { relevanceTo } = await import("../lib/server/context/ranking");
 const {
   assembleContext,
   formatContextForInstructions,
 } = await import("../lib/server/context/assembler");
 const { saveMemory } = await import("../lib/server/memory");
+const { put } = await import("../lib/server/store");
 const { EMPTY_USAGE } = await import("../lib/contracts");
 const { creativeInstructions, FAST_TASK_INSTRUCTIONS } = await import(
   "../lib/server/hermes"
@@ -261,4 +264,64 @@ test("P1 CJK relevance, token weight, and untrusted wrap", () => {
   assert.match(formatted, /BEGIN_UNTRUSTED_DATA/);
   assert.match(formatted, /END_UNTRUSTED_DATA/);
   assert.match(formatted, /明亮風/);
+});
+
+test("stale memory confidence decays instead of staying 0.7 forever", () => {
+  assert.equal(decayingConfidence(0.9, new Date().toISOString()), 0.9);
+  assert.equal(
+    decayingConfidence(
+      0.9,
+      new Date(Date.now() - 90 * 86_400_000).toISOString(),
+    ),
+    0.27,
+  );
+  assert.equal(recencyScore(new Date(Date.now() - 90 * 86_400_000).toISOString()), 0.3);
+
+  const staleId = randomUUID();
+  const freshId = randomUUID();
+  const staleAt = new Date(Date.now() - 90 * 86_400_000).toISOString();
+  const now = new Date().toISOString();
+  put("shared_memory", "workspace", {
+    id: staleId,
+    scope: "personal",
+    kind: "preference",
+    title: "STALE_CONFIDENCE_MEMORY 明亮風新生海報",
+    content: "舊的明亮風新生海報偏好不該永遠當現況。",
+    tags: [],
+    createdAt: staleAt,
+    updatedAt: staleAt,
+    revision: 1,
+    source: "console",
+    createdBy: "workspace",
+    importance: 0.8,
+    lastUsedAt: null,
+    confidence: 0.9,
+  });
+  put("shared_memory", "workspace", {
+    id: freshId,
+    scope: "personal",
+    kind: "preference",
+    title: "FRESH_CONFIDENCE_MEMORY 明亮風新生海報",
+    content: "現在的明亮風新生海報偏好。",
+    tags: [],
+    createdAt: now,
+    updatedAt: now,
+    revision: 1,
+    source: "console",
+    createdBy: "workspace",
+    importance: 0.8,
+    lastUsedAt: null,
+    confidence: 0.9,
+  });
+  const packed = assembleContext({
+    owner: "workspace",
+    projectId: "personal",
+    goalText: "幫我做明亮風新生海報",
+    budgetMode: "balanced",
+  });
+  const stale = packed.items.find((item) => item.id === staleId);
+  const fresh = packed.items.find((item) => item.id === freshId);
+  assert.equal(stale?.confidence, 0.27);
+  assert.equal(fresh?.confidence, 0.9);
+  assert.ok((stale?.confidence || 0) < (fresh?.confidence || 0));
 });
