@@ -13,12 +13,15 @@ process.env.CONSOLE_GATEWAY_SECRET = "";
 process.env.MCP_REQUIRE_TASK_CONTEXT = "false";
 
 const { interpretGoal } = await import("../lib/server/orchestrator/goal");
+const { classifyIntent } = await import("../lib/server/orchestrator/intent");
 const { routeTools } = await import("../lib/server/orchestrator/tool-router");
 const { buildPlan } = await import("../lib/server/orchestrator/planner");
 const { emptyIntegration } = await import("../lib/server/certification/registry");
 const { searchInspiration, resolveInspirationUrl, selectInspirationDirection } =
   await import("../lib/server/inspiration/engine");
-const { isInspirationSearchPack } = await import("../lib/inspiration-pack");
+const { directionPickFollowUp, isInspirationSearchPack } = await import(
+  "../lib/inspiration-pack"
+);
 const { callTool, toolsList } = await import("../lib/server/mcp");
 const { permissionClass, autoAllowed } = await import(
   "../lib/server/permissions"
@@ -160,4 +163,64 @@ test("selecting a direction saves a workflow and is visible in project context",
   };
   assert.ok(context.workflows?.some((item) => item.selected === 1));
   assert.ok(context.workflows?.some((item) => item.selectedTitle));
+});
+
+test("picking a direction locks copy and visual without re-searching inspiration", () => {
+  const pick = directionPickFollowUp("A", "淡大禪學社茶會・手搖飲場景");
+  assert.equal(classifyIntent(pick), "create");
+  const goal = interpretGoal(pick);
+  assert.equal(goal.directionLocked, true);
+  assert.equal(goal.requiresInspiration, false);
+  assert.equal(goal.requiresDesign, true);
+  assert.equal(goal.requiresTamkang, false);
+  assert.equal(goal.requiresResearch, false);
+  assert.equal(goal.requiresAudienceEvaluation, false);
+  const routes = routeTools(goal, [
+    emptyIntegration("tamkang"),
+    emptyIntegration("hermes"),
+    emptyIntegration("canva"),
+  ]);
+  assert.equal(
+    routes.find((item) => item.id === "inspiration"),
+    undefined,
+  );
+  assert.equal(
+    routes.find((item) => item.id === "visual_spec")?.tool,
+    "workspace_get_visual_concepts",
+  );
+  assert.equal(
+    routes.find((item) => item.id === "design")?.tool,
+    "canva_spec_only",
+  );
+  const plan = buildPlan(goal, routes, "balanced");
+  assert.equal(
+    plan.steps.find((step) => step.title === "找靈感"),
+    undefined,
+  );
+  assert.equal(
+    plan.steps.find((step) => step.title === "提出創作方向"),
+    undefined,
+  );
+  assert.ok(plan.steps.some((step) => step.title === "編譯視覺規格"));
+  assert.ok(plan.steps.some((step) => step.title === "文案審核"));
+  assert.ok(plan.steps.some((step) => step.title.includes("Canva")));
+  assert.equal(JSON.stringify(plan).includes("workspace_save_directions"), false);
+  const composed = composeTaskInstructions({
+    mode: "creative",
+    text: pick,
+    goal,
+  });
+  assert.equal(composed.packs.includes("inspiration"), false);
+  assert.equal(composed.packs.includes("galley"), false);
+  assert.ok(composed.packs.includes("locked"));
+  assert.ok(composed.packs.includes("copywriting"));
+  assert.ok(composed.packs.includes("visual"));
+  assert.ok(composed.packs.includes("canva"));
+  assert.equal(composed.packs.includes("lumen"), false);
+  assert.match(composed.instructions, /禁止再呼叫 workspace_search_inspiration/);
+  assert.match(composed.instructions, /禁止再呼叫 workspace_save_directions/);
+  assert.doesNotMatch(
+    composed.instructions,
+    /找靈感時必須呼叫 workspace_search_inspiration/,
+  );
 });

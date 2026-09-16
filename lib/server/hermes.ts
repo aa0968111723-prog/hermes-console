@@ -592,6 +592,9 @@ export const VISUAL_INSTRUCTION_PACK = [
 export const DIRECTION_INSTRUCTION_PACK =
   "提出 3–5 個策略層不同的創作方向（不是只換顏色），等待使用者選擇後再製作草稿。來源上限 30，方向最多 5，受眾角色最多 5，修訂最多 3。";
 
+export const LOCKED_DIRECTION_INSTRUCTION_PACK =
+  "使用者已在 Console 選定創作方向。必須用 workspace_project_context 的 workflows.selectedTitle 依該方向整理文案與視覺規格。禁止再呼叫 workspace_search_inspiration，禁止再呼叫 workspace_save_directions，禁止改選其他方向，禁止假裝已出圖或已發佈。";
+
 export const CANVA_INSTRUCTION_PACK = [
   "Canva 未授權時研究與創意流程仍完成，最後標記 Needs Canva Authorization，不得假裝設計成功。",
   "具備 Canva 工具授權時才製作可預覽、可編輯草稿並回傳實際連結。呼叫 Canva 後必須查回工作結果，不得將工作 ID 當成完成品。整理 IG 文案草稿但不發佈。",

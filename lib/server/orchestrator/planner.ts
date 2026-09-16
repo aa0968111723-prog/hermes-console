@@ -112,20 +112,24 @@ export function buildPlan(
     steps.push(
       step(
         "編譯視覺規格",
-        "依已確認活動事實產出 4:5／9:16／A4 三個概念；缺日期地點標 UNKNOWN，不補造、不出圖。",
+        goal.directionLocked
+          ? "依已選定方向產出 4:5／9:16／A4 規格；缺日期地點標 UNKNOWN，不補造、不出圖。"
+          : "依已確認活動事實產出 4:5／9:16／A4 三個概念；缺日期地點標 UNKNOWN，不補造、不出圖。",
         routes.find((item) => item.id === "visual_spec")?.tool ||
           "workspace_get_visual_concepts",
         null,
       ),
     );
-    steps.push(
-      step(
-        "提出創作方向",
-        "給出策略層不同的方向並排序，等待使用者選擇。",
-        "workspace_save_directions",
-        null,
-      ),
-    );
+    if (!goal.directionLocked) {
+      steps.push(
+        step(
+          "提出創作方向",
+          "給出策略層不同的方向並排序，等待使用者選擇。",
+          "workspace_save_directions",
+          null,
+        ),
+      );
+    }
     steps.push(
       step(
         "文案審核",

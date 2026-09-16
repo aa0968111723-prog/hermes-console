@@ -1,4 +1,5 @@
 import type { StructuredGoal } from "../../contracts";
+import { isDirectionPick } from "../../inspiration-pack";
 import { classifyIntent } from "./intent";
 
 const TAMKANG = /淡江|淡大|淡水|克難坡|TKU|tku|教心所/;
@@ -12,12 +13,17 @@ const IMAGE_REVIEW = /這張(圖|海報|稿|設計)?|哪裡可以改|視覺層�
 export function interpretGoal(input: string): StructuredGoal {
   const text = input.trim();
   const intentTier = classifyIntent(text);
-  const imageReview = IMAGE_REVIEW.test(text);
-  const requiresTamkang = TAMKANG.test(text);
-  const requiresResearch = RESEARCH.test(text) || requiresTamkang;
-  const requiresDesign = DESIGN.test(text) || imageReview;
-  const requiresAudienceEvaluation = AUDIENCE.test(text) || imageReview;
-  const requiresInspiration = INSPIRATION.test(text) || requiresDesign;
+  const directionLocked = isDirectionPick(text);
+  const imageReview = !directionLocked && IMAGE_REVIEW.test(text);
+  const requiresTamkang = !directionLocked && TAMKANG.test(text);
+  const requiresResearch =
+    !directionLocked && (RESEARCH.test(text) || requiresTamkang);
+  const requiresDesign = DESIGN.test(text) || imageReview || directionLocked;
+  const requiresAudienceEvaluation =
+    !directionLocked && (AUDIENCE.test(text) || imageReview);
+  const requiresInspiration = directionLocked
+    ? false
+    : INSPIRATION.test(text) || requiresDesign;
   const audience = requiresTamkang
     ? "淡江大一新生（模擬，不是民調）"
     : /受眾|學生/.test(text)
@@ -42,6 +48,7 @@ export function interpretGoal(input: string): StructuredGoal {
     requiresAudienceEvaluation,
     requiresTamkang,
     requiresInspiration,
+    directionLocked,
     intentTier,
   };
 }

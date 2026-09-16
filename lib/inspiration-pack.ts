@@ -53,6 +53,22 @@ export type InspirationSearchPack = {
   providers: Array<{ id: string; state: string }>;
 };
 
+export const DIRECTION_PICK_RE = /我選方向\s*[ABC]|已選定方向/;
+
+export function isDirectionPick(text: string) {
+  return DIRECTION_PICK_RE.test(text.trim());
+}
+
+export function directionPickFollowUp(id: "A" | "B" | "C", title: string) {
+  return (
+    "我選方向 " +
+    id +
+    "：" +
+    title +
+    "。請依這個已選定方向整理文案與視覺規格，不要改選其他方向，也不要假裝已出圖或已發佈。"
+  );
+}
+
 export function isInspirationSearchPack(
   value: unknown,
 ): value is InspirationSearchPack {

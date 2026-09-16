@@ -8,6 +8,7 @@ import {
   CANVA_INSTRUCTION_PACK,
   COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,
+  LOCKED_DIRECTION_INSTRUCTION_PACK,
   IMAGE_REVIEW_PACK,
   VISUAL_INSTRUCTION_PACK,
   FAST_TASK_INSTRUCTIONS,
@@ -32,6 +33,7 @@ export type InstructionPackId =
   | "zenclub"
   | "galley"
   | "inspiration"
+  | "locked"
   | "audience"
   | "image"
   | "visual"
@@ -80,7 +82,10 @@ export function composeTaskInstructions(input: {
     parts.push(TAMKANG_INSTRUCTION_PACK);
     packs.push("tamkang");
   }
-  if (input.goal.requiresInspiration || input.goal.requiresDesign) {
+  if (
+    input.goal.requiresInspiration ||
+    (input.goal.requiresDesign && !input.goal.directionLocked)
+  ) {
     parts.push(GALLEY_INSTRUCTION_PACK, INSPIRATION_INSTRUCTION_PACK);
     packs.push("galley", "inspiration");
   }
@@ -114,15 +119,20 @@ export function composeTaskInstructions(input: {
     packs.push("copywriting");
   }
   if (input.goal.requiresDesign || input.goal.output) {
-    parts.push(
-      VISUAL_INSTRUCTION_PACK,
-      DIRECTION_INSTRUCTION_PACK,
-      CANVA_INSTRUCTION_PACK,
-    );
+    parts.push(VISUAL_INSTRUCTION_PACK);
+    if (input.goal.directionLocked) {
+      parts.push(LOCKED_DIRECTION_INSTRUCTION_PACK);
+      packs.push("locked");
+    } else {
+      parts.push(DIRECTION_INSTRUCTION_PACK);
+    }
+    parts.push(CANVA_INSTRUCTION_PACK);
     packs.push("visual", "canva");
   }
-  const includeLumenManual = isLumenIntent(input.text);
-  const includeFramelabManual = isFramelabIntent(input.text);
+  const includeLumenManual =
+    !input.goal.directionLocked && isLumenIntent(input.text);
+  const includeFramelabManual =
+    !input.goal.directionLocked && isFramelabIntent(input.text);
   if (includeLumenManual) {
     parts.push(LUMEN_INSTRUCTION_PACK);
     packs.push("lumen");

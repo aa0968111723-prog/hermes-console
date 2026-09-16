@@ -1,4 +1,5 @@
 import type { IntentTier } from "../../contracts";
+import { isDirectionPick } from "../../inspiration-pack";
 
 export type { IntentTier };
 
@@ -20,7 +21,7 @@ export function classifyIntent(input: string): IntentTier {
   const text = input.trim();
   if (!text) return "chitchat";
   if (LOOKUP.test(text)) return "lookup";
-  if (CREATE.test(text)) return "create";
+  if (isDirectionPick(text) || CREATE.test(text)) return "create";
   if (CHITCHAT.test(text)) return "chitchat";
   if (text.length <= FAST_INTENT_CHAR_LIMIT || CONTINUE_CUE.test(text))
     return "continue";

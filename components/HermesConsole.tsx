@@ -75,7 +75,10 @@ import TaskUsageSummary from "./visual/TaskUsageSummary";
 import TaskRequestSummary from "./visual/TaskRequestSummary";
 import type { AgentProfile } from "@/lib/server/agents";
 import type { InspirationItem } from "@/lib/server/inspiration";
-import type { InspirationSearchPack } from "@/lib/inspiration-pack";
+import {
+  directionPickFollowUp,
+  type InspirationSearchPack,
+} from "@/lib/inspiration-pack";
 import type { SheetSyncResult } from "@/lib/server/inspiration/sheets-sync";
 import {
   emptyDraft,
@@ -640,14 +643,7 @@ export default function HermesConsole() {
       setPickedDirection(id);
       await refresh();
       setNav("chat");
-      await sendPrompt(
-        "我選方向 " +
-          id +
-          "：" +
-          title +
-          "。請依這個已選定方向整理文案與視覺規格，不要改選其他方向，也不要假裝已出圖或已發佈。",
-        [],
-      );
+      await sendPrompt(directionPickFollowUp(id, title), []);
     } catch (e) {
       setError((e as Error).message);
     } finally {
