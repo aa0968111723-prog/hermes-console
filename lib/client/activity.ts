@@ -49,6 +49,23 @@ export function toolDisplayLabel(name: string | null): string | null {
   if (/search|browse|fetch|extract|web/i.test(name)) return "搜尋 · 網路";
   return activityLabels[activityKind(name)];
 }
+export function highLevelProgress(task: {
+  events: Array<{ toolName: string | null }>;
+}) {
+  const kinds = new Set(
+    task.events
+      .map((event) => event.toolName)
+      .filter((name): name is string => Boolean(name))
+      .map(activityKind),
+  );
+  if (kinds.has("research") && kinds.has("creative")) return "研究與創作";
+  if (kinds.has("research")) return "已整理資料";
+  if (kinds.has("creative")) return "已整理創作";
+  if (kinds.has("audience")) return "已整理客群";
+  if (kinds.has("workspace")) return "已整理";
+  if (kinds.size) return "已完成";
+  return null;
+}
 export function eventState(event: TaskEvent): string {
   return event.status.replace(/^tool\./, "");
 }

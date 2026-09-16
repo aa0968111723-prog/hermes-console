@@ -1,6 +1,6 @@
 import { ExternalLink, Search, Check, Circle } from "lucide-react";
 import type { Task } from "@/lib/contracts";
-import { eventState, safeSource } from "@/lib/client/activity";
+import { eventState, highLevelProgress, safeSource } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
 import { isInspirationSearchPack, type InspirationSearchPack } from "@/lib/inspiration-pack";
@@ -39,6 +39,7 @@ export default function VisualMessage({
   const inspiration = task.events
     .map((event) => event.result)
     .find(isInspirationSearchPack);
+  const progress = highLevelProgress(task);
   if (!sources.length && !calls.size && !twinPanel && !layout && !inspiration)
     return null;
   return (
@@ -56,14 +57,14 @@ export default function VisualMessage({
           busy={pickingInspiration}
         />
       )}
-      {!!calls.size && (
+      {!!calls.size && !inspiration && progress && (
         <button className="tool-result-summary" onClick={onInspect}>
           {completed === calls.size ? (
             <Check size={15} />
           ) : (
             <Circle size={15} />
           )}
-          {completed} / {calls.size} 個工具完成
+          {completed === calls.size ? progress : "進行中"}
         </button>
       )}
       {!!sources.length && (

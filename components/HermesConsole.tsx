@@ -667,6 +667,11 @@ export default function HermesConsole() {
       setPickedDirection(id);
       await refresh();
       setNav("chat");
+      nearBottom.current = true;
+      requestAnimationFrame(() => {
+        const node = scroll.current;
+        if (node) node.scrollTop = node.scrollHeight;
+      });
       if (hermesCanContinue(health)) {
         try {
           await sendPrompt(directionPickFollowUp(id, title), []);
@@ -1324,13 +1329,15 @@ export default function HermesConsole() {
                           )}
                           {message.taskId && message.role === "assistant" && (
                             <button
+                              aria-label="執行紀錄"
+                              title="執行紀錄"
                               onClick={() =>
                                 openTask(
                                   tasks.find((t) => t.id === message.taskId),
                                 )
                               }
                             >
-                              執行紀錄
+                              <ListTodo size={15} />
                             </button>
                           )}
                         </div>

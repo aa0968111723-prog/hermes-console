@@ -286,9 +286,22 @@ try {
     page.locator(".conversation-scroll .message.assistant").first(),
   ).toContainText("不是 Hermes Agent 執行");
   await expect(page.getByRole("button", { name: /選方向 A/ })).toHaveCount(1);
+  await expect(page.getByText(/個工具完成/)).toHaveCount(0);
   await expect(page.getByText(/已搜尋整個 Instagram/)).toHaveCount(0);
   await page.screenshot({
     path: join(output, "chat-inspiration-mobile.png"),
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: /選方向 A/ }).click();
+  await expect(page.getByRole("region", { name: "已選方向規格" })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText("最自然")).toBeVisible();
+  await expect(page.getByText(/不是已出圖/)).toBeVisible();
+  await expect(page.getByText(/不是 Hermes 生成/)).toBeVisible();
+  await expect(page.getByText(/Hermes 尚未連線/)).toBeVisible();
+  await page.screenshot({
+    path: join(output, "chat-direction-brief-mobile.png"),
     fullPage: true,
   });
   await expect(page.getByRole("button", { name: "對話列表" })).toBeVisible();

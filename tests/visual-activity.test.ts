@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityKind, eventStateLabel, safeSource, workingEvent } from "../lib/client/activity";
+import { activityKind, eventStateLabel, highLevelProgress, safeSource, workingEvent } from "../lib/client/activity";
 import type { Task, TaskEvent } from "../lib/contracts";
 const event = (
   id: string,
@@ -60,6 +60,24 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("canva_create_design"), "creative");
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
   assert.equal(activityKind("unrecognized_tool"), "tool");
+  assert.equal(
+    highLevelProgress({ events: [{ toolName: "galley_research" }] }),
+    "已整理資料",
+  );
+  assert.equal(
+    highLevelProgress({ events: [{ toolName: "canva_create_design" }] }),
+    "已整理創作",
+  );
+  assert.equal(
+    highLevelProgress({
+      events: [
+        { toolName: "galley_research" },
+        { toolName: "canva_create_design" },
+      ],
+    }),
+    "研究與創作",
+  );
+  assert.equal(highLevelProgress({ events: [{ toolName: null }] }), null);
 });
 test("source actions never accept script, credentials or relative destinations", () => {
   for (const value of [
