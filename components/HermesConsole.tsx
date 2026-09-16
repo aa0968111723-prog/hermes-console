@@ -929,18 +929,32 @@ export default function HermesConsole() {
               {error ||
                 (offline ? OFFLINE_NOTICE : notice)}
             </span>
-            {!offline && (
-              <button
-                className="icon-button"
-                aria-label="關閉提示"
-                onClick={() => {
-                  setError("");
-                  setNotice("");
-                }}
-              >
-                <X size={16} />
-              </button>
-            )}
+            <div className="notice-bar-actions">
+              {error?.includes("還沒連上") && (
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => {
+                    setSettingsTab("連線");
+                    setPanel("settings");
+                  }}
+                >
+                  前往連線
+                </button>
+              )}
+              {!offline && (
+                <button
+                  className="icon-button"
+                  aria-label="關閉提示"
+                  onClick={() => {
+                    setError("");
+                    setNotice("");
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
           </div>
         )}
         {nav === "chat" ? (

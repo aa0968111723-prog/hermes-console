@@ -1316,6 +1316,17 @@ nav button[aria-current="page"] {
   background: #fff5e6;
   color: #7a481a;
 }
+.notice-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.notice-bar-actions .text-button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+}
 .error {
   color: #9a362a;
   background: #fff1ed;

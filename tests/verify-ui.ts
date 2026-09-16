@@ -465,6 +465,16 @@ try {
     page.getByRole("textbox", { name: "訊息", exact: true }),
   ).toHaveValue("茶會宣傳");
   await expect(page.locator(".composer-task-status")).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "unconfigured-send-notice-mobile.png"),
+  });
+  await sendNotice.getByRole("button", { name: "前往連線", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "工作區設定" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "連線", exact: true })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.getByRole("button", { name: "關閉面板" }).click();
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByLabel("顯示龜龜", { exact: true }).uncheck();

@@ -21,6 +21,8 @@ test("unconfigured Hermes send is student-facing and does not fake a task", asyn
   assert.match(consoleUi, /ready=\{\!\!health\}/);
   assert.match(consoleUi, /!health \|\| health\.credential !== "valid"/);
   assert.match(consoleUi, /HERMES_UNCONFIGURED_MESSAGE/);
+  assert.match(consoleUi, /前往連線/);
+  assert.match(consoleUi, /setSettingsTab\("連線"\)/);
   assert.ok(
     consoleUi.indexOf("health.credential !== \"valid\"") <
       consoleUi.indexOf("createConversation(text.trim())"),
