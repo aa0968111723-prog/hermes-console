@@ -117,6 +117,7 @@ try {
   await expect(
     page.getByRole("button", { name: "執行紀錄", exact: true }),
   ).toHaveCount(0);
+  await expect(page.locator(".composer-task-status")).toHaveCount(0);
   const workflows = await page.request.get(base + "/api/workflows");
   const body = (await workflows.json()) as {
     workflows: Array<{ selected: number | null; design: unknown; state: string }>;
@@ -250,8 +251,58 @@ try {
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "對話", exact: true }).click();
+  await expect(page.getByText("素材已保存", { exact: true })).toHaveCount(0);
   const box = page.getByRole("textbox", { name: "訊息", exact: true });
   await box.click();
+  await page.evaluate(() => {
+    if (!window.visualViewport) throw new Error("visualViewport unavailable");
+    Object.defineProperty(window.visualViewport, "height", {
+      configurable: true,
+      value: 420,
+    });
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
+  await expect(page.locator(".mobile-bottom-dock")).toBeHidden();
+  await expect
+    .poll(() =>
+      page
+        .locator(".app-shell")
+        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
+    )
+    .toBe(420);
+  const keyboardSend = await page
+    .getByRole("button", { name: "送出訊息", exact: true })
+    .boundingBox();
+  assert.ok(
+    keyboardSend && keyboardSend.y + keyboardSend.height <= 420,
+    "software keyboard must not cover the send button",
+  );
+  await expect(box).toBeVisible();
+  await page.screenshot({
+    path: join(output, "composer-keyboard-entry-390x420.png"),
+    clip: { x: 0, y: 0, width: 390, height: 420 },
+  });
+  await page.evaluate(() => {
+    if (!window.visualViewport) return;
+    Reflect.deleteProperty(window.visualViewport, "height");
+    window.visualViewport.dispatchEvent(new Event("resize"));
+  });
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-composer-keyboard",
+    "open",
+  );
+  await expect(page.locator(".mobile-bottom-dock")).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator(".app-shell")
+        .evaluate((el) => Math.round(el.getBoundingClientRect().height)),
+    )
+    .toBe(844);
   await box.fill("這張哪裡可以改？");
   await page.getByRole("button", { name: "送出訊息" }).click();
   await expect(page.getByText("請先上傳海報")).toBeVisible();
@@ -259,6 +310,36 @@ try {
   await page.screenshot({
     path: join(output, "chat-poster-critique-honest.png"),
   });
+  await page.getByRole("button", { name: "專案", exact: true }).click();
+  await page.getByRole("button", { name: "加入對話" }).click();
+  await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
+  await expect(page.locator(".context-card")).toContainText("龜龜參考.png");
+  await page.getByRole("textbox", { name: "訊息", exact: true }).fill(
+    "這張哪裡可以改？",
+  );
+  await page.getByRole("button", { name: "送出訊息" }).click();
+  await expect(page.getByText("圖片已保存")).toBeVisible();
+  await expect(page.getByText(/不能讀取像素/)).toBeVisible();
+  await expect(page.getByText(/視覺層級：/)).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "執行紀錄", exact: true }),
+  ).toHaveCount(0);
+  await page.screenshot({
+    path: join(output, "chat-poster-attached-honest.png"),
+  });
+  await page.context().setOffline(true);
+  await expect(page.getByText("離線 · 顯示上次資料")).toBeVisible();
+  await expect(page.locator(".turtle").first()).toHaveAttribute(
+    "data-state",
+    "offline",
+  );
+  await expect(page.getByText("圖片已保存")).toBeVisible();
+  await page.screenshot({
+    path: join(output, "chat-offline-reconnect.png"),
+  });
+  await page.context().setOffline(false);
+  await expect(page.getByText("離線 · 顯示上次資料")).toHaveCount(0);
+  await expect(page.getByText("圖片已保存")).toBeVisible();
   await page.getByRole("button", { name: "外觀設定" }).click();
   await page.getByRole("tab", { name: "帳號", exact: true }).click();
   await expect(page.getByRole("heading", { name: "登入方式" })).toBeVisible();
@@ -284,7 +365,7 @@ try {
   await page.keyboard.press("Escape");
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, honest Google/Tamkang hints, local club index without fake MCP or 執行紀錄 chrome, project upload/preview/close scroll, 768, account identities. Not live Zeabur.",
+    "PASS: login gate then workspace, local club index without fake MCP or task chrome, project upload/preview/close, 768, simulated keyboard, poster honesty with and without file, offline reconnect, account identities. Not live Zeabur or physical Android.",
   );
 } finally {
   await browser?.close();

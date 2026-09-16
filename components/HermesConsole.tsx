@@ -141,6 +141,17 @@ const connectionLabels: Record<string, string> = {
   partial: "部分可用",
   failed: "失敗",
 };
+function isLocalIndexTask(
+  task?: Task | null,
+  messages?: Conversation["messages"],
+) {
+  return !!task && !!messages?.some(
+    (message) =>
+      message.taskId === task.id &&
+      message.role === "assistant" &&
+      message.provenance === "workspace",
+  );
+}
 const isActive = (task: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
 const time = (value: string) =>
@@ -577,6 +588,7 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
     writePreference("hermes.active.v2", conv.id);
   }
   function fresh() {
@@ -586,6 +598,7 @@ export default function HermesConsole() {
     setNav("chat");
     setDrawer(false);
     setError("");
+    setNotice("");
     writePreference("hermes.active.v2", null);
     input.current?.focus();
   }
@@ -868,6 +881,7 @@ export default function HermesConsole() {
   const navigate = (next: typeof nav) => {
     setNav(next);
     setDrawer(false);
+    setNotice("");
     if (next === "agents")
       api<{ agents: AgentProfile[] }>("agents")
         .then((result) => setAgents(result.agents))
@@ -1354,7 +1368,8 @@ export default function HermesConsole() {
                   回到最新訊息
                 </button>
               )}
-              {currentTask && (
+              {currentTask &&
+                !isLocalIndexTask(currentTask, activeConv?.messages) && (
                 <ComposerTaskStatus
                   task={currentTask}
                   offline={offline}
@@ -1394,7 +1409,8 @@ export default function HermesConsole() {
                     size={Math.min(prefs.turtleSize, 72)}
                     compact
                     onClick={() =>
-                      currentTask
+                      currentTask &&
+                      !isLocalIndexTask(currentTask, activeConv?.messages)
                         ? onComposerTaskPillClick(currentTask)
                         : undefined
                     }
@@ -1688,7 +1704,7 @@ export default function HermesConsole() {
                         setReferences((old) =>
                           old.includes(m.id) ? old : [...old, m.id],
                         );
-                        setNav("chat");
+                        navigate("chat");
                       }}
                     >
                       加入對話 <Plus size={16} />
