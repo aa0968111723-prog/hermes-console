@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { activityKind, eventStateLabel, highLevelProgress, safeSource, workingEvent } from "../lib/client/activity";
+import { activityKind, eventStateLabel, highLevelProgress, safeSource, toolDisplayLabel, workingEvent } from "../lib/client/activity";
 import type { Task, TaskEvent } from "../lib/contracts";
 const event = (
   id: string,
@@ -59,6 +59,8 @@ test("sequential and concurrent calls track IDs, not just tool names", () => {
   assert.equal(activityKind("galley_research"), "research");
   assert.equal(activityKind("canva_create_design"), "creative");
   assert.equal(activityKind("workspace_get_visual_concepts"), "creative");
+  assert.equal(activityKind("workspace_search_inspiration"), "research");
+  assert.equal(toolDisplayLabel("workspace_search_inspiration"), "靈感 · 參考");
   assert.equal(activityKind("unrecognized_tool"), "tool");
 });
 test("chat progress is high-level stages, not tool counts", () => {

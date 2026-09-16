@@ -3,14 +3,18 @@ import type { Task } from "@/lib/contracts";
 import { eventState, highLevelProgress, safeSource } from "@/lib/client/activity";
 import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
+import InspirationResult from "./InspirationResult";
+import { isInspirationBrief } from "@/lib/client/inspiration-result";
 import { layoutFromTask } from "@/lib/client/planform-layout";
 import PlanformStage from "./PlanformStage";
 export default function VisualMessage({
   task,
   onInspect,
+  onUseDirection,
 }: {
   task?: Task;
   onInspect: () => void;
+  onUseDirection?: (prompt: string) => void;
 }) {
   if (!task) return null;
   const layout = layoutFromTask(task);
@@ -23,7 +27,11 @@ export default function VisualMessage({
       calls.set(event.toolCallId || event.toolName, eventState(event));
   const progress = highLevelProgress(task);
   const twinPanel = task.events.map((event) => event.result).find(isTwinPanel);
-  if (!sources.length && !calls.size && !twinPanel && !layout) return null;
+  const inspiration = task.events
+    .map((event) => event.result)
+    .find(isInspirationBrief);
+  if (!sources.length && !calls.size && !twinPanel && !layout && !inspiration)
+    return null;
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
@@ -77,6 +85,9 @@ export default function VisualMessage({
         </details>
       )}
       {twinPanel && <FirstReactionBoard panel={twinPanel} />}
+      {inspiration && (
+        <InspirationResult brief={inspiration} onUseDirection={onUseDirection} />
+      )}
     </div>
   );
 }

@@ -2718,6 +2718,17 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .connection-storage > summary { font-size: var(--type-caption); color: var(--color-muted); }
 .visual-message { margin-top: 14px; }
 .visual-message > button { background: var(--color-primary-soft); font-size: var(--type-caption); border: 0; }
+.inspiration-result { margin-top: 12px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: #fff; box-shadow: var(--depth-card, 0 8px 20px rgba(40,70,40,.08)); }
+.inspiration-result h2 { margin: 4px 0 12px; font-size: 1.05rem; }
+.pattern-rail { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.pattern-card { display: grid; gap: 6px; min-height: 44px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-canvas, #f7faf5); }
+.pattern-card h3 { margin: 0; font-size: 0.95rem; }
+.pattern-card p { margin: 0; color: var(--color-muted); font-size: var(--type-caption); }
+.pattern-card button { min-height: 44px; border: 0; border-radius: 999px; background: var(--color-primary); color: #fff; font-weight: 650; }
+.pattern-card[data-suitability="avoid"] { background: #fff8f4; }
+.pattern-card[data-suitability="avoid"] button { display: none; }
+.inspiration-hosts { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.inspiration-hosts li { min-height: 32px; padding: 6px 10px; border-radius: 999px; background: var(--color-primary-soft); font-size: var(--type-caption); }
 .tool-result-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 44px; }
 .progress-trail { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; width: 100%; }
 .progress-trail li { color: inherit; font-size: 12px; font-weight: 650; }

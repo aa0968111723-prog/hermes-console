@@ -1087,6 +1087,11 @@ export default function HermesConsole() {
                                   tasks.find((t) => t.id === message.taskId),
                                 )
                               }
+                              onUseDirection={(prompt) => {
+                                setText(prompt);
+                                setNav("chat");
+                                input.current?.focus();
+                              }}
                             />
                           )}
                           {!!message.attachments?.length && (
