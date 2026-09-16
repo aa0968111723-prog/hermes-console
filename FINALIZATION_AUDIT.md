@@ -38,6 +38,9 @@
 | Email 找回 | live 契約 | 登入頁一律顯示 Magic Link／忘記密碼；寄信未設標「寄信尚未完成設定」。 |
 | 圖片縮圖 | live 契約 | 列表／附件用 `variant=thumb` WebP 480px；預覽仍用原檔。PDF 為標示封面 SVG，不是頁面擷取。連結只顯示 hostname，不代抓 OG。 |
 | 安全重試 | live 契約 | 僅 `read` 工具對 429／短暫 503／504 做 backoff+jitter。發佈／刪除／空結果／未設定不重試。 |
+| 任務輪詢 | live 契約 | 進行中 3s；閒置 20s。隱藏分頁不打。重連只 refresh，不重送。 |
+| 一般進度 | live 契約 | 聊天顯示 理解／研究／創作／完成，不顯示工具計數。技術名稱只在任務詳情。 |
+| 完成自檢 | live 契約 | 缺讀圖／缺研究資料／缺作品／Lumen 無結果時寫入誠實 notice，不拿空成功當完成。 |
 | 記憶時效 | live 契約 | `confidence * recencyScore(updatedAt)`；超過 30 天降至 0.3 倍，不永遠沿用舊偏好。 |
 | 工作階段清單 | live 契約 | 帳號頁列出到期時間，不含 session digest。 |
 
