@@ -122,6 +122,10 @@ try {
   await expect(page.getByText("1 / 1 個工具完成")).toHaveCount(0);
   const chat = await page.locator("body").innerText();
   assert.equal(chat.includes("已搜尋整個 Instagram"), false);
+  await page.locator(".visual-concept-chosen").scrollIntoViewIfNeeded();
+  await page.screenshot({
+    path: join(output, "chat-visual-direction-selected.png"),
+  });
   await page.locator(".visual-concept-facts").scrollIntoViewIfNeeded();
   await page.screenshot({
     path: join(output, "chat-visual-concepts-mobile.png"),
