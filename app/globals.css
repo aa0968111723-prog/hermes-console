@@ -343,7 +343,16 @@
 .canva-result h3,
 .copy-result h3 {
   min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.visual-message,
+.artifact-stage,
+.canva-result,
+.copy-result {
+  min-width: 0;
+  max-width: 100%;
 }
 * {
   box-sizing: border-box;

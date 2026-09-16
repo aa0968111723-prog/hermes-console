@@ -630,7 +630,9 @@
   .artifact-stage .copy-result h3 {
     font-size: 17px;
     min-width: 0;
+    max-width: 100%;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .artifact-rail {
     gap: 12px;

@@ -121,7 +121,7 @@ try {
   await expect(inspector.locator(".runtime-human-summary")).toBeVisible();
   await expect(
     inspector.getByText("fixture_tool_000", { exact: true }),
-  ).toHaveCount(0);
+  ).not.toBeVisible();
   await inspector.locator(".runtime-advanced > summary").click();
   await expect(
     inspector.getByText("fixture_tool_000", { exact: true }),
