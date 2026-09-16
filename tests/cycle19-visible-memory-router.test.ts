@@ -356,6 +356,17 @@ test("Cycle 19: empty output fails without tools; completed tools do not fail", 
   assert.equal(bothDone.output.includes("內部"), false);
 });
 
+test("Cycle 19: restart cannot confirm a missing remote run", async () => {
+  const id = seedRun([], "");
+  const stored = taskFor("workspace", id);
+  stored.remoteId = "missing_run";
+  put("task", "workspace", stored);
+  const done = await reconcile("workspace", id);
+  assert.equal(done.state, "uncertain");
+  assert.notEqual(done.state, "running");
+  assert.match(done.error || "", /不會假裝仍在執行|無法確認/);
+});
+
 test("Cycle 19: reconcile fails only when no output and no kind===tool completed events", async () => {
   runOutput = "";
   const planId = seedRun([

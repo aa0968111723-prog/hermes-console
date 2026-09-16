@@ -44,11 +44,13 @@ import { lumenTaskInstructions } from "./lumen";
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
   hermesObservers?: Set<string>;
+  hermesLiveRuns?: Set<string>;
 };
 const workers = (runtimeTasks.hermesWorkers ??= new Map<
   string,
   AbortController
 >());
+const liveRuns = (runtimeTasks.hermesLiveRuns ??= new Set<string>());
 const now = () => new Date().toISOString();
 export {
   DEFAULT_HISTORY_WINDOW,
@@ -56,7 +58,13 @@ export {
   windowConversationHistory,
 } from "./context/history";
 export const active = (t: Task) =>
-  ["queued", "running", "waiting_user", "stopping"].includes(t.state);
+  [
+    "queued",
+    "running",
+    "waiting_user",
+    "waiting_authorization",
+    "stopping",
+  ].includes(t.state);
 const idSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,200}$/);
 export const taskInput = z
   .object({
@@ -133,6 +141,7 @@ function finish(
   state: Task["state"],
   error: string | null = null,
 ) {
+  liveRuns.delete(task.id);
   task.state = state;
   task.error = error;
   task.endedAt = now();
@@ -220,7 +229,11 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
-    budgetMode: shouldFastPlan(interpretGoal(input.input))
+    budgetMode: shouldFastPlan(
+      interpretGoal(input.input, {
+        hasAttachments: input.attachments.length > 0,
+      }),
+    )
       ? "fast"
       : input.budgetMode || "balanced",
   };
@@ -471,6 +484,7 @@ async function execute(
         if (!runsResponse.ok) throw httpError(runsResponse.status);
         const created = await readJSON(runsResponse);
         task.remoteId = idSchema.parse(created.run_id ?? created.id);
+        liveRuns.add(task.id);
         event(task, "Hermes 已接受任務，可在重新整理後查回。");
         save(owner, task);
         if (connection.features.run_events_sse) void observe(owner, task.id);
@@ -770,6 +784,12 @@ export async function reconcile(owner: string, id: string) {
       )
     )
       task.state = "waiting_user";
+    else if (
+      ["waiting_authorization", "awaiting_authorization"].includes(
+        String(remote.status),
+      )
+    )
+      task.state = "waiting_authorization";
     else if (["running", "started", "queued"].includes(String(remote.status))) {
       if (task.state !== "stopping") task.state = "running";
     } else
@@ -778,6 +798,7 @@ export async function reconcile(owner: string, id: string) {
         "unknown_run_status",
         "Hermes 回傳未知任務狀態，尚不能判定完成。",
       );
+    liveRuns.add(id);
     if (
       Date.now() - Date.parse(task.createdAt) >
         deadline("HERMES_TASK_TIMEOUT_MS", 900000) &&
@@ -789,6 +810,13 @@ export async function reconcile(owner: string, id: string) {
     }
     void observe(owner, id);
   } catch (error) {
+    if (!liveRuns.has(id) && !workers.has(id) && !observers.has(id))
+      return finish(
+        owner,
+        task,
+        "uncertain",
+        "重啟後無法確認遠端任務；不會假裝仍在執行，也不會自動重送。",
+      );
     task.observationError =
       error instanceof ApiError
         ? error.message
