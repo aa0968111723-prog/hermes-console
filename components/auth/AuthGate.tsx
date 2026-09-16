@@ -5,6 +5,13 @@ import { AuthProvider } from "./AuthProvider";
 import LoginScreen from "./LoginScreen";
 import type { PublicSession } from "@/lib/contracts";
 
+const OPEN_SESSION: PublicSession = {
+  required: false,
+  user: null,
+  membership: null,
+  providers: [],
+};
+
 function subscribeHash(onStoreChange: () => void) {
   window.addEventListener("hashchange", onStoreChange);
   return () => window.removeEventListener("hashchange", onStoreChange);
@@ -34,24 +41,31 @@ function clearResetLocation() {
   }
   if (window.location.hash)
     window.history.replaceState(null, "", window.location.pathname);
+  window.dispatchEvent(new Event("hashchange"));
 }
 
 export default function AuthGate() {
-  const [session, setSession] = useState<PublicSession | null>(null);
+  const [session, setSession] = useState<PublicSession>(OPEN_SESSION);
   const [notice, setNotice] = useState("");
-  const [failed, setFailed] = useState("");
   const resetToken = useSyncExternalStore(
     subscribeHash,
     resetTokenFromLocation,
     noResetToken,
   );
   async function load() {
-    const response = await fetch("/api/auth/session", {
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) throw new Error("無法確認登入狀態。");
-    setSession(await response.json());
+    try {
+      const response = await fetch("/api/auth/session", {
+        cache: "no-store",
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) {
+        setSession(OPEN_SESSION);
+        return;
+      }
+      setSession(await response.json());
+    } catch {
+      setSession(OPEN_SESSION);
+    }
   }
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -99,22 +113,10 @@ export default function AuthGate() {
         }
         await load();
       } catch {
-        setFailed("無法確認登入狀態。");
+        setSession(OPEN_SESSION);
       }
     })();
   }, []);
-  if (failed)
-    return (
-      <main className="workspace-loading">
-        <p role="alert">{failed}</p>
-      </main>
-    );
-  if (!session)
-    return (
-      <main className="workspace-loading">
-        <p role="status">正在確認身分…</p>
-      </main>
-    );
   if (resetToken)
     return (
       <LoginScreen

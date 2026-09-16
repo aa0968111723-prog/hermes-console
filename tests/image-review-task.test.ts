@@ -22,7 +22,7 @@ const { put, get } = await import("../lib/server/store");
 const { ApiError } = await import("../lib/server/errors");
 const { saveUpload } = await import("../lib/server/materials");
 const { health } = await import("../lib/server/hermes");
-const { isImageReviewPack } = await import("../lib/image-review");
+const { isImageReviewPack, twinPanelFromResults } = await import("../lib/image-review");
 const { isTwinPanel } = await import("../lib/server/audience/personas");
 
 const REVIEW = "這張哪裡可以改？";
@@ -88,6 +88,7 @@ test("unconfigured Hermes reviews a poster without claiming pixel-read", async (
   );
   assert.ok(tool);
   assert.equal(isImageReviewPack(tool?.result), true);
+  assert.equal(twinPanelFromResults([tool?.result]), (tool?.result as { twinPanel: unknown }).twinPanel);
   const pack = tool?.result as { pixelRead: boolean; twinPanel: unknown };
   assert.equal(pack.pixelRead, false);
   assert.equal(isTwinPanel(pack.twinPanel), true);

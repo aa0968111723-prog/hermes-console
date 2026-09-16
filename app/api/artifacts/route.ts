@@ -6,7 +6,7 @@ import {
   respond,
   route,
 } from "@/lib/server/security";
-import { readSessionUser } from "@/lib/server/auth/session";
+import { isAuthEnforced, readSessionUser } from "@/lib/server/auth/session";
 import { ApiError } from "@/lib/server/errors";
 import {
   forkArtifact,
@@ -18,6 +18,7 @@ import { projectKey } from "@/lib/creative";
 export const runtime = "nodejs";
 
 function requireWorkspaceSession(req: Request) {
+  if (!isAuthEnforced()) return;
   if (readWorkspaceRole(req) || readSessionUser(req)) return;
   throw new ApiError(401, "sign_in_required", "請先登入後再使用工作區。");
 }

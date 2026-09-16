@@ -6,7 +6,7 @@
 
 | 區域 | 判斷 | 說明 |
 | --- | --- | --- |
-| AuthGate / User / Identity | 部分可用 | Google OIDC + Email Argon2id + 淡江 SSO 抽象已接入。未設 IdP metadata 時顯示「尚未完成設定」。本機 `CONSOLE_ALLOW_LOCAL_ACCESS` 可略過閘，禁止用於公開部署 |
+| AuthGate / User / Identity | 可選／dormant | 預設免登入。session 讀取失敗仍進入工作區。`CONSOLE_AUTH_REQUIRED=true` 才開 Google／Email／淡江閘。InvitationGate 不得擋 `/` |
 | 手機捲動 | 部分可用 | App shell 鎖定；主捲動在 `.conversation-scroll`／`.secondary-page`；dock `fixed`。契約測試有 nested scrollport，非正式真機 |
 | Runtime Inspector | 部分可用 | 一般檢視只顯示 Hermes／記憶／工具／MCP。開發者檢視才露出 schema 與工具清單 |
 | MCP Registry | 部分可用 | GET 不回 endpoint／憑證名／schema。未探測的已設定 MCP 是 `awaiting_authorization`，不是 partial。tools/list 成功才是 partial；缺 token 是 unconfigured |
@@ -83,3 +83,4 @@
 41. 專案「活動與文案」接續不再把 `workspace_*` 或活動／文案 id 塞進輸入框。有綁定對話時跳回該對話，與任務頁接續同一件作品
 42. Hermes 未連線時，工作臺「寫 A／B／C」「整理三個方向」與 Composer／Dock 的 Canva 查回改為停用並標「尚未連線」，不把學生送進 503。規格框只顯示語氣與「海報 A4」，不再露出紙張比例 `210:297`。同一作品接續仍可用
 43. Agent 分頁給學生看 Hermes／記憶／工具／MCP 狀態點，不在一般檢視顯示 0/300 工具數或 Agent OS 設定檔。任務頁選方向只保存選擇；沒有綁定對話且 Hermes 未連線時不把「缺授權／阻塞點」塞進輸入框。首頁快捷不再寫 Canva 授權失敗稿
+44. `/` 免登入：session 讀取失敗不再停在「無法確認登入狀態」。畫面審查從 `image_review.twinPanel` 畫出「新生第一眼模擬」。未支援 Web Speech 時不顯示語音鈕；支援時為 44px、zh-TW、不打斷 IME

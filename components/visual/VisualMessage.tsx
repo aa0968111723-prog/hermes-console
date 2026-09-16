@@ -8,13 +8,12 @@ import {
   studentProcessDone,
   visualProcessCaption,
 } from "@/lib/client/activity";
-import { isTwinPanel } from "@/lib/server/audience/personas";
 import FirstReactionBoard from "../audience/FirstReactionBoard";
 import {
   isInspirationSearchPack,
   type InspirationSearchPack,
 } from "@/lib/inspiration-pack";
-import { isImageReviewPack } from "@/lib/image-review";
+import { isImageReviewPack, twinPanelFromResults } from "@/lib/image-review";
 import InspirationResult from "./InspirationResult";
 import ImageReviewResult from "./ImageReviewResult";
 import { layoutFromTask } from "@/lib/client/planform-layout";
@@ -54,11 +53,9 @@ export default function VisualMessage({
     .map(safeSource)
     .filter((value): value is string => !!value);
   const steps = progressSteps(task);
-  const twinPanel =
-    task.events.map((event) => event.result).find(isTwinPanel);
-  const imageReview = task.events
-    .map((event) => event.result)
-    .find(isImageReviewPack);
+  const results = task.events.map((event) => event.result);
+  const twinPanel = twinPanelFromResults(results);
+  const imageReview = results.find(isImageReviewPack);
   const inspiration = task.events
     .map((event) => event.result)
     .find(isInspirationSearchPack);

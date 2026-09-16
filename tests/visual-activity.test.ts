@@ -313,4 +313,23 @@ test("creative tasks attach Canva designs as conversation artifacts", () => {
     ).length,
     0,
   );
+  assert.equal(
+    artifactsForConversation(
+      {
+        ...task("completed", [
+          event("review", "completed", "workspace_simulate_audience"),
+        ]),
+        goal: { requiresDesign: true, requiresImageReview: true },
+      } as Task,
+      [
+        {
+          id: "wf-spec",
+          projectId: "personal",
+          design: { title: "舊規格" },
+        },
+      ],
+      "personal",
+    ).length,
+    0,
+  );
 });

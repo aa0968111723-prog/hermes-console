@@ -1,6 +1,6 @@
 # Hermes Creative Intelligence
 
-明亮的單一工作區。公開部署需先經 AuthGate 登入（Google／淡江 SSO／Email），通過工作區 membership 後進入 Hermes Console。InvitationGate 仍休眠，不是產品登入。本機測試可設 `CONSOLE_ALLOW_LOCAL_ACCESS=true` 略過登入閘，此開關不得用於公開正式環境。Hermes 執行工具；Console 保存會話、任務、活動、文案版本與學習請求，不另建模板大腦。
+明亮的免登入單一工作區。開啟 `/` 即進入 Hermes Console，不必先登入。InvitationGate 與 AuthGate 登入模組仍休眠，不得擋工作區。`CONSOLE_AUTH_REQUIRED=true` 才開啟登入閘。Hermes 執行工具；Console 保存會話、任務、活動、文案版本與學習請求，不另建模板大腦。
 
 ## 啟動
 
@@ -9,7 +9,7 @@
 1. `npm ci`
 2. 複製 `.env.example` 到 `.env.local`，依註解設定。本機可不設邀請／寄信變數。
 3. 設定經確認的 `HERMES_API_URL` 與全新 `HERMES_API_KEY`。禁止使用曾公開的舊金鑰。未設定時 Console 仍應開啟，並顯示尚未連線。找靈感可先用工作區已收藏來源與社團視覺語言整理方向，不會假裝 Hermes 已執行。
-4. `npm run dev` 後開啟 http://localhost:3000。未設定 `CONSOLE_ALLOW_LOCAL_ACCESS=true` 時會先看到登入頁。正式環境使用 `npm run build` 與 `npm start`。
+4. `npm run dev` 後開啟 http://localhost:3000。預設免登入。只有設 `CONSOLE_AUTH_REQUIRED=true` 才會先看到登入頁。正式環境使用 `npm run build` 與 `npm start`。
 5. 未設或空白 `DATABASE_URL` 時使用 `CONSOLE_DATA_DIR` SQLite（容器預設 `/app/data`）。設定後改用 Hermes 自有 Postgres 表（`console_records`／`console_sessions`／`console_limits`）；若 Postgres 為空且 SQLite 有列，啟動時一次性搬移。不要指向 ai_os 或 `cutos_memory_items`。`GET /api/ready` 回傳目前 `backend` 與 `dataDir`（200／503）；`GET /api/health` 附相同欄位，都不回傳連線字串。契約測試在沒有 `DATABASE_URL` 時略過 Postgres，只跑 SQLite。
 
 ## 登入

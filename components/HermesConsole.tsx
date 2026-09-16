@@ -61,6 +61,7 @@ import SpatialPanel from "./visual/SpatialPanel";
 import { useSpatialMode } from "./visual/useSpatialMode";
 import ArtifactDeck from "./visual/ArtifactDeck";
 import ComposerMenu from "./visual/ComposerMenu";
+import ComposerVoiceButton from "./visual/ComposerVoiceButton";
 import ComposerTaskStatus, {
   OFFLINE_NOTICE,
   OFFLINE_PILL_LABEL,
@@ -1648,6 +1649,12 @@ export default function HermesConsole() {
                         }
                         files.forEach((file) => uploadFile(file));
                       }}
+                    />
+                    <ComposerVoiceButton
+                      disabled={busy || blocked}
+                      isComposing={() => composing.current}
+                      value={text}
+                      onChange={(next) => setText(next)}
                     />
                     <ComposerMenu
                       disabled={busy}

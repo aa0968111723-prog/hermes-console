@@ -30,9 +30,7 @@ export function isLoopbackOrigin(origin: string) {
 
 export function isAuthEnforced() {
   if (process.env.CONSOLE_ALLOW_LOCAL_ACCESS === "true") return false;
-  if (process.env.NODE_TEST_CONTEXT && process.env.CONSOLE_AUTH_REQUIRED !== "true")
-    return false;
-  return process.env.CONSOLE_AUTH_REQUIRED !== "false";
+  return process.env.CONSOLE_AUTH_REQUIRED === "true";
 }
 
 export function authCookie(token: string, logout = false) {

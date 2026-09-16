@@ -18,12 +18,12 @@
 - `HERMES_API_URL`／`HERMES_API_KEY` | 未設時聊天顯示尚未連線，不假裝 Hermes 可用 |
 - `HERMES_IMAGE_INPUT=true` | 只有部署端確認 Hermes 真的收圖後才開。未開時附圖顯示「尚未驗證讀圖」。畫面審查（「這張哪裡可以改」）可走工作區模擬並標明沒有讀像素；其餘附圖送 Hermes 仍拒絕。 |
 
-正式登入（AuthGate）至少擇一：
+登入閘（AuthGate）預設關閉。只有 `CONSOLE_AUTH_REQUIRED=true` 才需要至少擇一：
 
 - Google：`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`（可選 `GOOGLE_REDIRECT_URI`，預設 `${CONSOLE_ORIGIN}/api/auth/google/callback`）
 - Email：`RESEND_API_KEY`、`CONSOLE_EMAIL_FROM`
 
-`CONSOLE_ALLOW_LOCAL_ACCESS=true` 只允許 loopback 測試略過登入閘與部分環境檢查。公開部署必須為 `false`。
+`CONSOLE_ALLOW_LOCAL_ACCESS=true` 只允許 loopback 測試略過閘道與部分環境檢查。公開部署必須為 `false`。這不是帳號登入開關。
 
 ## 建議環境
 

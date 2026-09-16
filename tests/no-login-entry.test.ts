@@ -23,6 +23,7 @@ const conversations = await import("../app/api/conversations/route");
 const confirm = await import("../app/api/confirm/route");
 const credentials = await import("../app/api/settings/credentials/route");
 const memory = await import("../app/api/memory/route");
+const artifacts = await import("../app/api/artifacts/route");
 
 function request(
   path: string,
@@ -43,8 +44,10 @@ function request(
 test("no-login entry contracts", async (t) => {
   await t.test("root page uses AuthGate and does not import InvitationGate", async () => {
     const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+    const agents = await readFile(new URL("../AGENTS.md", import.meta.url), "utf8");
     assert.ok(!page.includes("InvitationGate"));
     assert.ok(page.includes("AuthGate"));
+    assert.match(agents, /No-Login Single Workspace/);
   });
 
   await t.test("FEATURE_AUDIT matches no-login workspace and stub research", async () => {
@@ -60,6 +63,7 @@ test("no-login entry contracts", async (t) => {
     assert.match(audit, /API only/);
     assert.match(audit, /dormant/);
     assert.match(audit, /可選/);
+    assert.match(audit, /No-Login|免登入/);
     assert.doesNotMatch(audit, /正式必填/);
     assert.doesNotMatch(audit, /公開部署沒有閘道會 fail closed/);
   });
@@ -79,6 +83,55 @@ test("no-login entry contracts", async (t) => {
     );
   });
 
+  await t.test("login gate is opt-in", async () => {
+    const { isAuthEnforced } = await import("../lib/server/auth/session");
+    const allow = process.env.CONSOLE_ALLOW_LOCAL_ACCESS;
+    const required = process.env.CONSOLE_AUTH_REQUIRED;
+    try {
+      delete process.env.CONSOLE_ALLOW_LOCAL_ACCESS;
+      delete process.env.CONSOLE_AUTH_REQUIRED;
+      assert.equal(isAuthEnforced(), false);
+      process.env.CONSOLE_AUTH_REQUIRED = "true";
+      assert.equal(isAuthEnforced(), true);
+      process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
+      assert.equal(isAuthEnforced(), false);
+    } finally {
+      process.env.CONSOLE_ALLOW_LOCAL_ACCESS = allow;
+      if (required === undefined) delete process.env.CONSOLE_AUTH_REQUIRED;
+      else process.env.CONSOLE_AUTH_REQUIRED = required;
+    }
+  });
+
+  await t.test("AuthGate fails open into the workspace", async () => {
+    const gate = await readFile(
+      new URL("../components/auth/AuthGate.tsx", import.meta.url),
+      "utf8",
+    );
+    assert.match(gate, /OPEN_SESSION/);
+    assert.match(gate, /required: false/);
+    assert.doesNotMatch(gate, /無法確認登入狀態/);
+    assert.doesNotMatch(gate, /正在確認身分/);
+    const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+    assert.match(page, /AuthGate/);
+    assert.doesNotMatch(page, /InvitationGate/);
+  });
+
+  await t.test("composer voice is hidden when SpeechRecognition is missing", async () => {
+    const button = await readFile(
+      new URL("../components/visual/ComposerVoiceButton.tsx", import.meta.url),
+      "utf8",
+    );
+    const speech = await readFile(
+      new URL("../lib/client/speech-input.ts", import.meta.url),
+      "utf8",
+    );
+    assert.match(button, /speechRecognitionCtor/);
+    assert.match(button, /if \(!supported\) return null/);
+    assert.match(button, /zh-TW|createSpeechSession/);
+    assert.match(speech, /zh-TW/);
+    assert.match(speech, /webkitSpeechRecognition/);
+  });
+
   await t.test("workspace, health and tasks GET do not require a member session", async () => {
     assert.equal((await workspace.GET(request("workspace"))).status, 200);
     assert.equal((await health.GET(request("health"))).status, 200);
@@ -89,6 +142,7 @@ test("no-login entry contracts", async (t) => {
       200,
     );
     assert.equal((await memory.GET(request("memory"))).status, 200);
+    assert.equal((await artifacts.GET(request("artifacts"))).status, 200);
     const runtimeResponse = await runtime.GET(request("runtime"));
     assert.notEqual(runtimeResponse.status, 401);
     assert.ok(runtimeResponse.status === 200 || runtimeResponse.status >= 500);

@@ -20,6 +20,14 @@ export type ImageReviewPack = {
   notice: string;
 };
 
+export function twinPanelFromResults(results: unknown[]) {
+  for (const result of results) {
+    if (isTwinPanel(result)) return result;
+    if (isImageReviewPack(result)) return result.twinPanel;
+  }
+  return undefined;
+}
+
 export function isImageReviewPack(value: unknown): value is ImageReviewPack {
   if (!value || typeof value !== "object") return false;
   const pack = value as Record<string, unknown>;

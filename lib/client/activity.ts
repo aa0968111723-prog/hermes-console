@@ -429,7 +429,7 @@ export function artifactsForConversation(
     seen.add(key);
     items.push({ id, design });
   };
-  if (isCreativeTask(task)) {
+  if (task && isCreativeTask(task) && !task.goal?.requiresImageReview) {
     for (const workflow of workflows) {
       if (workflow.projectId === projectId && workflow.design)
         push(workflow.id, workflow.design);

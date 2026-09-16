@@ -10,7 +10,7 @@
 
 | 表面 | 狀態 | 說明 |
 | --- | --- | --- |
-| `/` Hermes 控制台 | **live** | 現有聊天、專案、靈感、Agent、龜龜助手。公開部署走 AuthGate（Google／淡江 SSO／Email），通過 session 與 membership 後才載入工作區。InvitationGate 仍 dormant，不是產品登入。`CONSOLE_ALLOW_LOCAL_ACCESS=true` 僅 loopback 測試可略過登入閘。 |
+| `/` Hermes 控制台 | **live** | 現有聊天、專案、靈感、Agent、龜龜助手。**免登入**進入工作區。AuthGate 與 InvitationGate 仍 dormant，不得擋工作區。`CONSOLE_AUTH_REQUIRED=true` 才開啟登入閘。 |
 | `/create` SillyWorld（水光火森） | **REGRESSED on tip／prod** | `c250bdb`／`fcc8895`（9/4）曾在 tip 與 https://344.zeabur.app/create。之後合併把檔案沖掉；`main` tip `21a590f` 與正式站現為 **HTTP 404**。沒有「刪除 SillyWorld」的提交。依產品回饋「不要用 UI，現在的就好」，**本 PR 不恢復該舞台**。 |
 | 文件標題「倢的」vs h1「傻的」 | 屬已流失的 `/create` 待辦 | 不在本 PR 範圍。 |
 | 窄螢幕「專案」與森林球重疊 | 屬已流失的 `/create` 待辦 | 不在本 PR 範圍。 |
@@ -19,7 +19,7 @@
 
 | 路徑 | 評等 | 教心所用途 |
 | --- | --- | --- |
-| `/` | live | AuthGate 後進入現有創作控制台。研究／行政不由此切換。InvitationGate 不得擋工作區。 |
+| `/` | live | 免登入進入現有創作控制台。研究／行政不由此切換。InvitationGate／AuthGate 不得擋工作區。 |
 | `/create` | **REGRESSED（tip／prod 404）** | 本 PR 不恢復。 |
 | 其他頁面路由 | missing | 沒有獨立研究案、IRB、參與者或所務後台頁。InvitationGate 元件仍在倉庫，但未掛在 `/`，不得擋工作區。 |
 
@@ -27,7 +27,7 @@
 
 | API | 評等 | 說明 |
 | --- | --- | --- |
-| `GET/POST /api/workspace` | live | 對話、專案、素材清單；固定 owner `workspace`。公開部署要求登入 session 與 membership；loopback 測試可略過。 |
+| `GET/POST /api/workspace` | live | 對話、專案、素材清單；固定 owner `workspace`。免登入；Origin 驗證仍擋跨站寫入。`CONSOLE_AUTH_REQUIRED=true` 才要 session。 |
 | `GET/POST/PUT /api/conversations` | live | 建立／讀取／匯入舊對話。可選 `assistantMode`: `creative` \| `research` \| `admin`。省略則 `creative`。`research` 會附上尚未執行的 `researchBundle`。 |
 | `GET/POST/PATCH /api/tasks` | live | 真實 Hermes 任務。`POST /api/chat` 同一條。可選 `mode`；省略則用對話已存模式，再否則創作提示。`mode=research` 時任務與對話會帶 `researchBundle`（`executed: false`）。 |
 | `GET/POST /api/materials` | live | 圖／文字／PDF 附件，綁專案。 |
@@ -44,7 +44,7 @@
 
 | 項目 | 評等 | 說明 |
 | --- | --- | --- |
-| Console 帳號登入 | live（Partial 若未設 provider） | 正式環境需要 Google 或 Email 寄信。淡江 SSO 無 metadata 時顯示尚未完成設定。 |
+| Console 帳號登入 | **dormant（可選）** | 預設免登入。`CONSOLE_AUTH_REQUIRED=true` 才需要 Google 或 Email 寄信。淡江 SSO 無 metadata 時顯示尚未完成設定。 |
 | `CONSOLE_GATEWAY_SECRET` | live（**可選**部署閘道） | 瀏覽器拿不到。只有設定了 secret，或 `CONSOLE_REQUIRE_GATEWAY=true` 時才驗閘道。 |
 | `CONSOLE_ALLOW_LOCAL_ACCESS` | live | 僅本機 loopback，且只在閘道檢查路徑上放行。 |
 | `CONSOLE_ORIGIN` | live | 變更請求驗 Origin。正式環境未設定必須 fail closed。 |
