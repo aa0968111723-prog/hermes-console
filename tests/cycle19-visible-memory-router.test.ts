@@ -259,6 +259,19 @@ test("Cycle 19: completed tools are kind===tool; plan completed does not count",
     ],
   };
   assert.equal(hasCompletedToolEvents(toolRunning), false);
+  const emptyPayload = {
+    ...toolDone,
+    events: [
+      fakeEvent({
+        kind: "tool",
+        toolName: "galley_research",
+        status: "completed",
+        summary: "工具已回傳結果；非同步工作需再查回，不等於製作已完成。",
+        result: {},
+      }),
+    ],
+  };
+  assert.equal(hasCompletedToolEvents(emptyPayload), false);
 });
 
 test("Cycle 19: 社團 does not hijack Lumen; FrameLab note wins over Lumen", () => {
@@ -376,6 +389,19 @@ test("Cycle 19: reconcile fails only when no output and no kind===tool completed
   const toolDone = await reconcile("workspace", toolId);
   assert.equal(toolDone.state, "completed");
   assert.equal(toolDone.error, null);
+
+  const emptyId = seedRun([
+    fakeEvent({
+      kind: "tool",
+      toolName: "galley_research",
+      status: "completed",
+      summary: "工具已回傳結果；非同步工作需再查回，不等於製作已完成。",
+      result: {},
+    }),
+  ]);
+  const emptyDone = await reconcile("workspace", emptyId);
+  assert.equal(emptyDone.state, "failed");
+  assert.match(emptyDone.error || "", /沒有可讀取的成果/);
 });
 
 test("Cycle 19: task instructions include assembled memory once, not memoryDigest", async () => {

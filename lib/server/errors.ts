@@ -70,6 +70,9 @@ const UPSTREAM = new Set([
   "upstream_401",
   "upstream_403",
   "upstream_error",
+  "empty_tool_result",
+  "empty_output",
+  "empty_stream",
 ]);
 
 export function errorCategory(code: string): ErrorCategory {

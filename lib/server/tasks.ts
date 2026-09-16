@@ -39,6 +39,8 @@ import { runtimeEnv } from "./credentials";
 import { prepareOrchestration } from "./orchestrator/executor";
 import { framelabTaskInstructions } from "./framelab";
 import { lumenTaskInstructions } from "./lumen";
+import { classifyResume, resumeNotice } from "./orchestrator/recovery";
+import { toolEventHasUsableOutput } from "./tool-result";
 
 const runtimeTasks = globalThis as typeof globalThis & {
   hermesWorkers?: Map<string, AbortController>;
@@ -97,7 +99,7 @@ export function hasCompletedToolEvents(task: Task) {
     const isTool = event.kind === "tool" || Boolean(event.toolName);
     const done =
       event.status === "completed" || event.status === "tool.completed";
-    return isTool && done;
+    return isTool && done && toolEventHasUsableOutput(event);
   });
 }
 function event(
@@ -710,23 +712,16 @@ async function observe(owner: string, id: string) {
 export async function reconcile(owner: string, id: string) {
   let task = taskFor(owner, id);
   if (!active(task)) return task;
-  if (task.transport === "chat") {
-    if (!workers.has(id))
+  const resume = classifyResume(task, workers.has(id));
+  if (task.transport === "chat" || !task.remoteId) {
+    if (resume === "unknown")
       return finish(
         owner,
         task,
         "uncertain",
-        "Console 程序曾中斷，無法確認串流上游結果；不會自動重送。",
-      );
-    return task;
-  }
-  if (!task.remoteId) {
-    if (!workers.has(id))
-      return finish(
-        owner,
-        task,
-        "uncertain",
-        "任務提交時程序中斷，需確認 Hermes 是否接受；不會重複送出。",
+        task.transport === "chat"
+          ? resumeNotice("unknown")
+          : "任務提交時程序中斷，需確認 Hermes 是否接受；不會重複送出。",
       );
     return task;
   }

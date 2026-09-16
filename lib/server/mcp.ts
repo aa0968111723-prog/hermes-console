@@ -43,6 +43,7 @@ import {
 import { filePath, listMaterials, material } from "./materials";
 import { searchResearchNotes } from "./research-notes";
 import { wrapUntrusted } from "./untrusted";
+import { assertMeaningfulToolResult } from "./tool-result";
 import {
   deleteMemory,
   getMemory,
@@ -882,6 +883,7 @@ async function finishToolCall(
         ? object.imageData
         : null;
     delete object.imageData;
+    assertMeaningfulToolResult(object, imageData);
     const text = redact(JSON.stringify(object));
     if (Buffer.byteLength(text, "utf8") > 1_000_000)
       throw new ApiError(

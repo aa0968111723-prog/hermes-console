@@ -129,6 +129,10 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
       stopSupported: false,
     } as Task;
     assert.equal(classifyResume(task, false), "unknown");
+    assert.equal(classifyResume(task, true), "running");
     assert.match(resumeNotice("unknown"), /尚未確認/);
+    const submitting = { ...task, transport: "runs" as const, remoteId: null };
+    assert.equal(classifyResume(submitting, true), "running");
+    assert.equal(classifyResume(submitting, false), "unknown");
   });
 });

@@ -24,7 +24,7 @@ Console 是使用者與 Hermes Agent Runtime 的主介面。它不是工具清�
 
 1. `/` → `AuthGate`。未登入顯示登入（未設定的 provider 誠實標示）。無 membership 不進工作區。
 2. `HermesConsole`：對話為主。Planner 依意圖選工具，使用者不必先選 GALLEY／Canva／淡江。
-3. `/api/chat`、`/api/tasks` 建立任務；狀態 `queued`／`running`／`waiting_user`／`waiting_authorization`／`stopping`／`completed`／`failed`／`cancelled`／`uncertain`。
+3. `/api/chat`、`/api/tasks` 建立任務；狀態 `queued`／`running`／`waiting_user`／`waiting_authorization`／`stopping`／`completed`／`failed`／`cancelled`／`uncertain`。程序重啟時 monitor 立刻 reconcile：沒有 worker 的 chat 任務標 `uncertain`，不會假裝 still running。工具 HTTP 200 但內容為空不算成功。
 4. Workspace MCP `/api/mcp` 給 Hermes 呼叫 Console 工具（含本地研究筆記搜尋）。外部 MCP 由 registry 探測，狀態不得假裝成功。
 5. `GET /api/health` 是存活（不等待 Hermes）。`GET /api/ready` 是 store 就緒。`agentReady` 才表示 Agent 真的可用。
 

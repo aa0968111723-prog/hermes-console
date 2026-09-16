@@ -5,21 +5,28 @@ import { WORKSPACE_OWNER } from "./security";
 const globalMonitor = globalThis as typeof globalThis & {
   hermesMonitor?: ReturnType<typeof setInterval>;
 };
+
+export async function reconcileActiveTasks() {
+  for (const owner of [WORKSPACE_OWNER, "owner"])
+    for (const task of list<Task>("task", owner).filter(active))
+      await reconcile(owner, task.id);
+}
+
 export function startMonitor() {
   if (globalMonitor.hermesMonitor) return;
   let busy = false;
-  globalMonitor.hermesMonitor = setInterval(async () => {
+  const tick = async () => {
     if (busy) return;
     busy = true;
     try {
-      for (const owner of [WORKSPACE_OWNER, "owner"])
-        for (const task of list<Task>("task", owner).filter(active))
-          await reconcile(owner, task.id);
+      await reconcileActiveTasks();
     } catch {
       /* Keep stored tasks; never replay a submission on recovery. */
     } finally {
       busy = false;
     }
-  }, 5000);
+  };
+  void tick();
+  globalMonitor.hermesMonitor = setInterval(tick, 5000);
   globalMonitor.hermesMonitor.unref();
 }

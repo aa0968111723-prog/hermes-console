@@ -23,8 +23,9 @@
 
 - [ ] 使用者只說目標，不必選工具
 - [ ] 工具失敗顯示不可用或明確 fallback，不假裝有資料
+- [ ] 工具 HTTP 200 但內容為空記為失敗，不是完成
 - [ ] 取消會打後端 cancel
-- [ ] 長任務重啟後不是假 running
+- [ ] 長任務重啟後不是假 running（立刻 reconcile 為 uncertain）
 
 ## MCP
 
