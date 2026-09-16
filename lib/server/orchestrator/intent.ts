@@ -14,7 +14,7 @@ const CONTINUE_CUE =
 const LOOKUP = /研究|幫我查|查一?下|查詢|搜尋|文獻|資料來源|找資料|查資料|來源|議題/;
 
 const CREATE =
-  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|宣傳|招新|茶會|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題|做一張|哪裡可以改|構圖|配色|視覺層級|分析這/;
+  /海報|網宣|Canva|canva|視覺|設計|稿|文宣|宣傳|招新|茶會|三個方向|靈感|Lumen|lumen|FrameLab|framelab|畫板|創作|文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題|做一張|哪裡可以改|構圖|配色|視覺層級|分析這|場佈|攤位|Planform|planform|門口淨空|教室排座/;
 
 export function classifyIntent(
   input: string,

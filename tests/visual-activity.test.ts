@@ -86,8 +86,10 @@ test("plan phases collapse engineering steps into student-facing progress", () =
       { id: "a", title: "讀取專案上下文", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "pending" },
       { id: "b", title: "讀取共用記憶", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "pending" },
       { id: "c", title: "查資料", purpose: "", dependencies: [], agent: "general", tool: "galley_research", fallback: null, status: "pending" },
+      { id: "g", title: "研究情報", purpose: "", dependencies: [], agent: "general", tool: "galley_research", fallback: null, status: "pending" },
       { id: "d", title: "找靈感", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "pending" },
       { id: "e", title: "Canva 接續", purpose: "", dependencies: [], agent: "general", tool: "canva_create_design", fallback: null, status: "pending" },
+      { id: "studio", title: "創作台", purpose: "", dependencies: [], agent: "general", tool: "lumen_utter", fallback: null, status: "pending" },
       { id: "f", title: "最終審查", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "pending" },
     ],
   };

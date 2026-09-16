@@ -102,6 +102,8 @@ export function stepPhaseLabel(title: string): string {
   if (/看圖/.test(title)) return "看圖";
   if (/靈感/.test(title)) return "靈感";
   if (/受眾|客群/.test(title)) return "客群";
+  if (/動畫/.test(title)) return "創作";
+  if (/場佈/.test(title)) return "創作";
   if (/視覺|創作|文案|Canva/.test(title)) return "創作";
   if (/最終審查/.test(title)) return "完成";
   if (/查資料|來源|禪學社|Drive|研究/.test(title)) return "研究";

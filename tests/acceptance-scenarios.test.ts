@@ -44,6 +44,10 @@ test("acceptance prompts route without the user picking tools", async (t) => {
     assert.ok(plan.steps.some((step) => step.title.includes("靈感")));
     assert.ok(plan.steps.some((step) => step.title.includes("最終審查")));
     assert.equal(plan.steps.some((step) => step.title === "直接回覆"), false);
+    assert.equal(
+      routes.find((item) => item.id === "galley" || item.id === "lumen"),
+      undefined,
+    );
   });
 
   await t.test("B: uploaded poster asks for edits, not chitchat", () => {

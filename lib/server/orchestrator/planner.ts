@@ -51,6 +51,7 @@ export function buildPlan(
   const campus = routes.find((item) => item.id === "campus");
   const research = routes.find((item) => item.id === "research");
   const club = routes.find((item) => item.id === "club_knowledge");
+  const galley = routes.find((item) => item.id === "galley");
   const sourceRoute = campus || research;
   const steps: PlanStep[] = [
     step("讀取專案上下文", "確認目前專案、素材與近期對話。", "context_engine", null),
@@ -95,6 +96,16 @@ export function buildPlan(
       ),
     );
   }
+  if (galley) {
+    steps.push(
+      step(
+        "研究情報",
+        "來源優先查已連線的研究情報；沒有外部 evidence 不得用記憶填空，也不得假裝已搜完整社群。",
+        galley.tool,
+        galley.fallback,
+      ),
+    );
+  }
   if (goal.requiresInspiration) {
     steps.push(
       step("找靈感", "先讀已收藏靈感，再搜尋已授權來源。", "project_inspiration_then_web", "ask_user"),
@@ -135,6 +146,39 @@ export function buildPlan(
     );
     steps.push(
       step("Canva 接續", "有授權才製作；否則只交規格。", routes.find((item) => item.id === "design")?.tool || "canva_spec_only", "canva_spec_only"),
+    );
+    const lumen = routes.find((item) => item.id === "lumen");
+    if (lumen) {
+      steps.push(
+        step(
+          "創作台",
+          "已連線時由 Hermes 呼叫創作台整理方向與畫板；未連線不得假裝已開畫板。",
+          lumen.tool,
+          lumen.fallback,
+        ),
+      );
+    }
+  }
+  const framelab = routes.find((item) => item.id === "framelab");
+  if (framelab) {
+    steps.push(
+      step(
+        "動畫",
+        "已連線時由 Hermes 讀時間軸／中間張；寫入需確認。未連線不得假裝已改像素。",
+        framelab.tool,
+        framelab.fallback,
+      ),
+    );
+  }
+  const planform = routes.find((item) => item.id === "planform");
+  if (planform) {
+    steps.push(
+      step(
+        "場佈",
+        "已連線時由 Hermes 跑場佈草稿；需確認後才套用。找不到物件就標 unresolved。",
+        planform.tool,
+        planform.fallback,
+      ),
     );
   }
   steps.push(

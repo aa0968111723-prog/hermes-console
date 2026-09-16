@@ -59,6 +59,56 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(fallbacksFromRoutes(routes).length, 0);
   });
 
+  await t.test("Hermes picks GALLEY, Lumen, FrameLab when they are actually usable", () => {
+    const hermes = emptyIntegration("hermes");
+    hermes.capabilities.find((item) => item.id === "hermes.api")!.status =
+      "reachable";
+    const inspiration = interpretGoal("幫我找淡江大學禪學社最近適合的網宣靈感");
+    const galleyRoutes = routeTools(
+      inspiration,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { galley: "partial" },
+    );
+    assert.equal(galleyRoutes.find((item) => item.id === "galley")?.tool, "galley_research");
+    const galleyPlan = buildPlan(inspiration, galleyRoutes, "balanced");
+    assert.ok(galleyPlan.steps.some((step) => step.title === "研究情報"));
+    assert.equal(
+      galleyPlan.steps.find((step) => step.title === "研究情報")?.tool,
+      "galley_research",
+    );
+    assert.equal(
+      JSON.stringify(galleyPlan.steps.map((step) => step.title)).includes("galley_research"),
+      false,
+    );
+
+    const poster = interpretGoal("幫我做一張淡江新生茶會宣傳");
+    const lumenRoutes = routeTools(
+      poster,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { lumen: "partial" },
+    );
+    assert.equal(lumenRoutes.find((item) => item.id === "lumen")?.tool, "lumen_utter");
+    const lumenPlan = buildPlan(poster, lumenRoutes, "balanced");
+    assert.ok(lumenPlan.steps.some((step) => step.title === "創作台"));
+    assert.equal(lumenPlan.steps.find((step) => step.title === "創作台")?.tool, "lumen_utter");
+
+    const animation = interpretGoal("幫我修 FrameLab 中間張");
+    const framed = routeTools(animation, [hermes], { framelab: "partial" });
+    assert.equal(framed.find((item) => item.id === "framelab")?.tool, "framelab_list_projects");
+
+    const booth = interpretGoal("幫我排迎新攤位場佈");
+    const layout = routeTools(booth, [hermes], { planform: "partial" });
+    assert.equal(layout.find((item) => item.id === "planform")?.tool, "planform_run_agent");
+
+    const unconfigured = routeTools(poster, [
+      emptyIntegration("tamkang"),
+      hermes,
+      emptyIntegration("canva"),
+    ]);
+    assert.equal(unconfigured.find((item) => item.id === "lumen"), undefined);
+    assert.equal(unconfigured.find((item) => item.id === "galley"), undefined);
+  });
+
   await t.test("generic freshman wording does not bind Tamkang", () => {
     for (const prompt of [
       "國立臺灣大學新生茶會文宣海報",
