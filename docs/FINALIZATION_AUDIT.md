@@ -35,7 +35,7 @@
 - Origin 檢查、限流、確認 token、秘密遮罩、MCP／Hermes SSRF。
 - Workspace MCP 工具在 Hermes + bridge 設定後可呼叫。
 - SQLite／可選 Postgres `console_records`／`console_sessions`／`console_limits`。
-- Email Argon2id、驗證、Magic Link、重設密碼。
+- Email Argon2id、驗證、Magic Link、重設密碼。已登入的 Google／淡江帳號可用設定頁連結電子信箱；地址相同不會自動合併。
 
 ## 部分可用
 
