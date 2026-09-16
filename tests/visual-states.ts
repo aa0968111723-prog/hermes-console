@@ -2,6 +2,7 @@ import { expect, type Page, type Request } from "@playwright/test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { continueArtifactPrompt } from "../lib/client/continue-prompts";
 
 /** Real uploads/settings first; explicitly labelled UI response fixtures second.
  * The fixtures never configure credentials, publish, or contact external providers. */
@@ -560,9 +561,9 @@ export async function verifyVisualStates(
   await page.getByRole("button", { name: "重設外觀", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "在對話修改這個作品" }).click();
-  await expect(
-    page.getByRole("textbox", { name: "訊息", exact: true }),
-  ).toContainText("ui-fixture-artifact-B");
+  const continueBox = page.getByRole("textbox", { name: "訊息", exact: true });
+  await expect(continueBox).toHaveValue(continueArtifactPrompt());
+  await expect(continueBox).not.toContainText("ui-fixture-artifact-B");
   task.state = "failed";
   task.error = "[介面測試錯誤] 來源服務暫時不可用";
   await page.reload();
