@@ -6,7 +6,6 @@ import {
   RUNTIME_STALE_MS,
 } from "./sync-manager";
 import { presentRuntimeSnapshot } from "./runtime-view";
-import { isWorkspaceOperator } from "../security";
 
 // Every connection subscribes to the same publisher, not its own discovery loop.
 export function runtimeStream(
@@ -14,9 +13,9 @@ export function runtimeStream(
   owner: string,
   authorize: () => void,
   heartbeatMs = 15_000,
+  operator = true,
 ) {
   const encoder = new TextEncoder();
-  const operator = isWorkspaceOperator(request);
   let closed = false;
   let unsubscribe = () => {};
   let heartbeat: ReturnType<typeof setInterval> | undefined;
