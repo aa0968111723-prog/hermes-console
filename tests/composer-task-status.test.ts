@@ -8,6 +8,7 @@ import {
   composerTaskStatus,
   recoveryOnReconnectAction,
   shortTaskError,
+  showComposerTask,
 } from "../components/visual/ComposerTaskStatus";
 
 const task = (state: Task["state"], observationError: string | null = null) => ({
@@ -161,4 +162,40 @@ test("shortTaskError hides long stacks", () => {
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
   assert.equal(shortTaskError(""), null);
   assert.equal(shortTaskError(null), null);
+});
+
+test("workspace visual results hide the completed composer pill", () => {
+  const continueTask = task("completed");
+  continueTask.id = "continue-1";
+  continueTask.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "workspace_continue_direction_spec",
+      status: "completed",
+    } as TaskEvent,
+  ];
+  assert.equal(showComposerTask(continueTask), false);
+  const hermes = task("completed");
+  hermes.id = "hermes-1";
+  hermes.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "galley_research",
+      status: "completed",
+    } as TaskEvent,
+  ];
+  assert.equal(showComposerTask(hermes), true);
+  assert.equal(
+    showComposerTask(hermes, {
+      messages: [
+        {
+          taskId: "hermes-1",
+          role: "assistant",
+          provenance: "workspace",
+        },
+      ],
+    }),
+    false,
+  );
+  assert.equal(showComposerTask(task("running"), undefined), true);
 });

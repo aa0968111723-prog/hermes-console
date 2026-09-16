@@ -252,6 +252,7 @@ try {
   await expect(specAfterRenderAsk).toContainText("V1");
   await expect(specAfterRenderAsk).toContainText("未出圖");
   await expect(page.getByRole("region", { name: "靈感方向" })).toHaveCount(1);
+  await expect(page.locator(".composer-task-status")).toHaveCount(0);
   await page.screenshot({ path: join(output, "spoken-make-poster.png") });
   await voice.click();
   await page.evaluate(() => {

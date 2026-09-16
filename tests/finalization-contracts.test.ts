@@ -371,4 +371,11 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   );
   assert.match(revise, /isMakeSelectedPosterRequest/);
   assert.match(revise, /出圖/);
+  const composer = await readFile(
+    new URL("../components/visual/ComposerTaskStatus.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(composer, /WORKSPACE_RESULT_TOOLS/);
+  assert.match(composer, /showComposerTask/);
+  assert.match(composer, /isWorkspaceResultTool\(event\.toolName\)/);
 });

@@ -67,7 +67,9 @@ import ComposerTaskStatus, {
   OFFLINE_NOTICE,
   OFFLINE_PILL_LABEL,
   composerTaskPillAction,
+  isWorkspaceResultTool,
   shortTaskError,
+  showComposerTask,
 } from "./visual/ComposerTaskStatus";
 import ContextTray from "./visual/ContextTray";
 import ProjectShelf from "./visual/ProjectShelf";
@@ -159,15 +161,6 @@ const connectionLabels: Record<string, string> = {
 };
 const isActive = (task: Task) =>
   ["queued", "running", "waiting_user", "waiting_authorization", "stopping"].includes(task.state);
-function showComposerTask(task: Task, conv?: Conversation) {
-  if (task.state !== "completed") return true;
-  return !conv?.messages.some(
-    (message) =>
-      message.taskId === task.id &&
-      message.role === "assistant" &&
-      message.provenance === "workspace",
-  );
-}
 const POLL_ACTIVE_MS = 3000;
 const POLL_IDLE_MS = 8000;
 const DIRECTION_LETTERS = ["A", "B", "C"] as const;
@@ -552,14 +545,7 @@ export default function HermesConsole() {
   const visualPinKey =
     currentTask?.events
       .map((event) => event.toolName)
-      .filter(
-        (name) =>
-          name === "workspace_search_inspiration" ||
-          name === "workspace_simulate_audience" ||
-          name === "workspace_revise_direction_spec" ||
-          name === "workspace_continue_direction_spec" ||
-          name === "zenclub_drive_index",
-      )
+      .filter(isWorkspaceResultTool)
       .join(",") || "";
   useEffect(() => {
     const el = scroll.current;
@@ -1509,7 +1495,7 @@ export default function HermesConsole() {
                 aria-live="polite"
                 aria-atomic="true"
               >
-                {currentTask
+                {currentTask && showComposerTask(currentTask, activeConv)
                   ? "Hermes 任務：" + taskLabels[currentTask.state]
                   : ""}
               </span>
