@@ -18,6 +18,10 @@ test("production startup rejects workspace auth and missing origin", () => {
     assert.throws(() => validateProductionEnv(), /CONSOLE_ORIGIN is required/);
     env.CONSOLE_ORIGIN = "not-a-url";
     assert.throws(() => validateProductionEnv(), /absolute URL/);
+    env.CONSOLE_ORIGIN = "http://public.example";
+    assert.throws(() => validateProductionEnv(), /must be https/);
+    env.CONSOLE_ORIGIN = "http://127.0.0.1";
+    assert.doesNotThrow(() => validateProductionEnv());
     env.CONSOLE_ORIGIN = "https://hermes.example.test";
     env.CONSOLE_AUTH_MODE = "workspace";
     assert.throws(

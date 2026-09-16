@@ -210,6 +210,11 @@ function sessionTokenFromRequest(request: Request) {
   return /^[a-f0-9]{64}$/.test(token) ? token : "";
 }
 
+export function hasValidSession(request: Request) {
+  const token = sessionTokenFromRequest(request);
+  return Boolean(token && readSession(hash(token)));
+}
+
 export function authenticate(
   request: Request,
   mutation = false,
