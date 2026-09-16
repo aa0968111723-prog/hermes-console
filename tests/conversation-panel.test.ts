@@ -26,6 +26,15 @@ test("chat shell is extracted from HermesConsole into TopBar and Conversation", 
   assert.match(conversation, /今天想做什麼？/);
   assert.match(conversation, /onPickDirection/);
   assert.match(conversation, /VisualMessage/);
+  assert.match(conversation, /ResizeObserver/);
   assert.match(consoleUi, /onOpenMaterial=\{openMaterial\}/);
   assert.match(consoleUi, /directionFollowUp/);
+  assert.match(consoleUi, /function pinConversation/);
+  const css = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+  assert.match(css, /\.jump-button \{[\s\S]*?position: relative/);
+  assert.match(css, /\.jump-button \{[\s\S]*?min-height: 44px/);
+  assert.doesNotMatch(css, /\.jump-button \{[\s\S]*?bottom: 100%/);
 });

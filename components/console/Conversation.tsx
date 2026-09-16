@@ -1,6 +1,6 @@
 "use client";
 
-import type { RefObject } from "react";
+import { useEffect, type RefObject } from "react";
 import {
   ChevronDown,
   Copy,
@@ -79,6 +79,32 @@ export default function Conversation({
   onRetryBranch: (task: Task) => void;
   onAcknowledge: (task: Task) => void;
 }) {
+  useEffect(() => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const sync = () => {
+      if (nearBottomRef.current) {
+        scroller.scrollTop = scroller.scrollHeight;
+        onJumpChange(false);
+        return;
+      }
+      onJumpChange(
+        scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight >=
+          100,
+      );
+    };
+    const observer = new ResizeObserver(sync);
+    observer.observe(scroller);
+    const inner = scroller.firstElementChild;
+    if (inner) observer.observe(inner);
+    return () => observer.disconnect();
+  }, [
+    activeId,
+    conversation?.messages.length,
+    nearBottomRef,
+    onJumpChange,
+    scrollRef,
+  ]);
   return (
     <div
       className="conversation-scroll"

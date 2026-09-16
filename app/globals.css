@@ -1265,12 +1265,16 @@ nav button[aria-current="page"] {
   margin-left: 18px;
 }
 .jump-button {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  position: relative;
+  min-height: 44px;
+  min-width: 44px;
+  margin: 0 auto 8px;
   border-radius: 24px;
-  font-size: 11px;
+  font-size: 12px;
   box-shadow: 0 2px 12px #26332b0a;
 }
 .upload-list {

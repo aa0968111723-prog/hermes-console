@@ -183,11 +183,12 @@ try {
     page.getByRole("heading", { name: "任務", exact: true }),
   ).toBeVisible();
   await page
-    .locator(".direction")
+    .getByRole("region", { name: "創作方向" })
+    .locator("article")
     .filter({
       has: page.getByRole("heading", { name: "測試方向 2", exact: true }),
     })
-    .getByRole("button", { name: "選擇這個方向" })
+    .getByRole("button", { name: "用這個方向" })
     .click();
   await expect(
     page.getByRole("textbox", { name: "訊息", exact: true }),

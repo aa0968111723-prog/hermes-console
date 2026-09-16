@@ -642,7 +642,21 @@ export async function verifyVisualStates(
   await expect(page.locator(".conversation .artifact-stage")).toHaveCount(0);
   await expect(picks).not.toContainText("已發佈");
   await expect(picks).not.toContainText("toolCallId");
+  await expect(
+    page.getByRole("button", { name: "回到最新訊息" }),
+  ).toHaveCount(0);
   await picks.scrollIntoViewIfNeeded();
+  const jump = page.getByRole("button", { name: "回到最新訊息" });
+  if ((await jump.count()) > 0) {
+    const pickBox = await picks.boundingBox();
+    const jumpBox = await jump.boundingBox();
+    assert.ok(
+      pickBox &&
+        jumpBox &&
+        jumpBox.y >= pickBox.y + pickBox.height - 4,
+      "jump control must sit below direction cards, not overlay them",
+    );
+  }
   await page.screenshot({ path: join(output, "chat-direction-pick-mobile.png") });
   await audit("chat-direction-pick");
   task.output = "[介面測試] 草稿已回來。";

@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
-  Check,
   Folder,
   Images,
   Leaf,
@@ -12,7 +11,6 @@ import {
   MessageSquare,
   Pencil,
   Plus,
-  RefreshCw,
   Settings,
   X,
   Link as LinkIcon,
@@ -22,7 +20,6 @@ import type { Integration } from "@/lib/server/integrations";
 import type { Workflow } from "@/lib/server/workflows";
 import VisualStatus from "./visual/VisualStatus";
 import AppDock from "./visual/AppDock";
-import ArtifactDeck from "./visual/ArtifactDeck";
 import {
   OFFLINE_NOTICE,
   composerTaskPillAction,
@@ -30,7 +27,7 @@ import {
 import Composer from "./console/Composer";
 import ConversationView from "./console/Conversation";
 import TopBar from "./console/TopBar";
-import MessageBody from "./MessageBody";
+import TasksPage from "./console/TasksPage";
 import MaterialThumb from "./visual/MaterialThumb";
 import { directionFollowUp } from "@/lib/client/direction-result";
 import ProjectShelf from "./visual/ProjectShelf";
@@ -59,11 +56,7 @@ import {
 } from "@/lib/client/viewport";
 import { consoleApi as api } from "@/lib/client/console-api";
 import { taskPollDelayMs } from "@/lib/client/task-poll";
-import {
-  formatWorkspaceTime,
-  isActiveTask,
-  taskLabels,
-} from "@/lib/client/workspace-ui";
+import { isActiveTask } from "@/lib/client/workspace-ui";
 import { useAuthOptional } from "./auth/AuthProvider";
 import { useSpatialMode } from "./visual/useSpatialMode";
 
@@ -116,7 +109,6 @@ const EMPTY: Workspace = {
   },
 };
 const isActive = isActiveTask;
-const time = formatWorkspaceTime;
 export default function HermesConsole() {
   const account = useAuthOptional();
   const [auth, setAuth] = useState<"loading" | "ready">("loading");
@@ -587,10 +579,17 @@ export default function HermesConsole() {
     setSelectedTask(task?.id || null);
     setPanel("task");
   }
+  function pinConversation() {
+    nearBottom.current = true;
+    setJump(false);
+    const scroller = scroll.current;
+    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  }
   function useDirection(prompt: string) {
     setText(prompt);
     setNav("chat");
     input.current?.focus();
+    pinConversation();
   }
   function continueDesign(id: string) {
     setNav("chat");
@@ -1240,139 +1239,25 @@ export default function HermesConsole() {
             </details>
           </section>
         ) : (
-          <section className="secondary-page page-scroll">
-            <h1>任務</h1>
-            <ArtifactDeck items={workflows.filter(w=>w.projectId===project)} onContinue={id=>{setNav("chat");setText("請查回創作流程 "+id+" 的現有設計，接續修改同一作品。");}} onChanged={()=>{void refresh();}} />
-            {workflows
-              .filter((w) => w.projectId === project)
-              .map((w) => (
-                <section className="workflow" key={w.id}>
-                  <h2>
-                    創作方向 ·{" "}
-                    {w.selected === null
-                      ? "等待你的選擇"
-                      : "已選定方向 " + (w.selected + 1)}
-                  </h2>
-                  <p className="muted">{w.brief}</p>
-                  <div className="direction-grid">
-                    {w.directions.map((d, index) => (
-                      <article
-                        key={index}
-                        className={
-                          "direction " +
-                          (w.selected === index ? "selected" : "")
-                        }
-                      >
-                        <span className="eyebrow">方向 0{index + 1}</span>
-                        <h3>{d.title}</h3>
-                        <p>{d.claim}</p>
-                        <details>
-                          <summary>視覺、文案與來源</summary>
-                          <p>{d.visual}</p>
-                          <MessageBody text={d.copy} />
-                          <p>{d.cta}</p>
-                          {d.sources.map((source) => (
-                            <a
-                              key={source}
-                              href={source}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {source}
-                            </a>
-                          ))}
-                        </details>
-                        <button
-                          disabled={[
-                            "creating",
-                            "draft_ready",
-                            "uncertain",
-                          ].includes(w.state)}
-                          onClick={async () => {
-                            try {
-                              await api("workflows", "PATCH", {
-                                id: w.id,
-                                selected: index,
-                              });
-                              await refresh();
-                              setText(
-                                "已在 Console 選定創作流程 " +
-                                  w.id +
-                                  " 的第 " +
-                                  (index + 1) +
-                                  " 個方向。請查詢可用 Canva 範本欄位，依此方向製作草稿；如缺授權請保留阻塞點。",
-                              );
-                              setNav("chat");
-                            } catch (e) {
-                              setError((e as Error).message);
-                            }
-                          }}
-                        >
-                          {w.selected === index ? (
-                            <>
-                              <Check size={16} />
-                              已選定
-                            </>
-                          ) : (
-                            "選擇這個方向"
-                          )}
-                        </button>
-                      </article>
-                    ))}
-                  </div>
-                  {w.error && <p className="error">{w.error}</p>}
-                  {w.canvaJobId && (
-                    <button
-                      onClick={async () => {
-                        try {
-                          await api("workflows", "POST", { id: w.id });
-                          await refresh();
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                    >
-                      <RefreshCw size={16} />
-                      查回 Canva 製作結果
-                    </button>
-                  )}
-
-                </section>
-              ))}
-            {!tasks.some(
-              (t) =>
-                data.conversations.find((c) => c.id === t.conversationId)
-                  ?.projectId === project,
-            ) &&
-              !workflows.some((w) => w.projectId === project) && (
-                <div className="empty-state">
-                  <ListTodo size={30} />
-                  <h2>目前沒有任務</h2>
-                  <p>送出第一則訊息後，便能在這裡查回執行結果。</p>
-                </div>
-              )}
-            {tasks
-              .filter(
-                (t) =>
-                  data.conversations.find((c) => c.id === t.conversationId)
-                    ?.projectId === project,
-              )
-              .map((t) => (
-                <button
-                  className="task-row"
-                  key={t.id}
-                  onClick={() => openTask(t)}
-                >
-                  <span>
-                    <strong>{t.input.slice(0, 70)}</strong>
-                    <small>{time(t.createdAt)}</small>
-                  </span>
-                  <span className={"badge " + t.state}>
-                    {taskLabels[t.state]}
-                  </span>
-                </button>
-              ))}
-          </section>
+          <TasksPage
+            project={project}
+            workflows={workflows}
+            tasks={tasks}
+            conversations={data.conversations}
+            onPickDirection={(id, index, title) => {
+              void pickDirection(id, index, title);
+            }}
+            onContinueDesign={continueDesign}
+            onPollDraft={(id) => {
+              void api("workflows", "POST", { id })
+                .then(() => refresh())
+                .catch((error) => setError((error as Error).message));
+            }}
+            onOpenTask={openTask}
+            onRefresh={() => {
+              void refresh();
+            }}
+          />
         )}
       </main>
       <AppDock nav={nav} onNavigate={navigate} busy={busy} onOpenChange={setRadialOpen}
