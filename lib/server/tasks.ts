@@ -27,6 +27,7 @@ import {
   dropOptionalPacks,
 } from "./orchestrator/instructions";
 import { recordTaskUsage } from "./usage";
+import { completionNotice } from "./orchestrator/review";
 import { attachmentParts, material } from "./materials";
 import { frames } from "./sse";
 import { parseAssistantMode } from "../assistant-modes";
@@ -152,6 +153,8 @@ function finish(
           : "任務已結束。"),
   );
   if (state === "completed") {
+    const notice = completionNotice(task);
+    if (notice) task.output = task.output.trimEnd() + "\n\n" + notice;
     const conv = conversation(owner, task.conversationId);
     if (
       !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")

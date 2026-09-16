@@ -43,8 +43,21 @@ const CODE_CATEGORY: Record<string, ErrorCategory> = {
   NETWORK_ERROR: "NETWORK_ERROR",
   store_unavailable: "UPSTREAM_ERROR",
   UPSTREAM_ERROR: "UPSTREAM_ERROR",
+  empty_output: "UPSTREAM_ERROR",
+  empty_stream: "UPSTREAM_ERROR",
+  tool_failed: "UPSTREAM_ERROR",
+  tool_budget_exceeded: "RATE_LIMIT",
+  hermes_not_ready: "TOOL_UNAVAILABLE",
+  unknown_tool: "TOOL_UNAVAILABLE",
 };
 
 export function errorCategory(code: string): ErrorCategory {
-  return CODE_CATEGORY[code] || "UNKNOWN";
+  if (CODE_CATEGORY[code]) return CODE_CATEGORY[code];
+  if (/_unconfigured$|unknown_tool|hermes_not_ready|tool_unavailable/.test(code))
+    return "TOOL_UNAVAILABLE";
+  if (/timeout/.test(code)) return "TOOL_TIMEOUT";
+  if (/budget|concurrency_limit/.test(code)) return "RATE_LIMIT";
+  if (/empty_|_empty$|_failed$|invalid_stream|invalid_response|probe_failed/.test(code))
+    return "UPSTREAM_ERROR";
+  return "UNKNOWN";
 }
