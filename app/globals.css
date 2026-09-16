@@ -2741,7 +2741,8 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .critique-layers { display: grid; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
 .critique-layers li { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; border-radius: var(--radius-control); background: var(--color-primary-soft); }
 .critique-layers small { margin-left: auto; color: var(--color-muted); font-size: var(--type-caption); }
-.critique-layers li[data-state="UNKNOWN"] small { color: var(--color-warning, #9a6b00); }
+.critique-layers li[data-state="UNKNOWN"] { background: #fff6e8; }
+.critique-layers li[data-state="UNKNOWN"] small { color: #5c3d00; font-weight: 650; }
 .critique-directions { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .critique-directions li { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-canvas, #f7faf5); }
 .critique-directions p { margin: 0; }
