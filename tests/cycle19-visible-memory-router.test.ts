@@ -127,9 +127,11 @@ const {
   taskFor,
   hasCompletedToolEvents,
   DESIGN_WITHOUT_PREVIEW,
+  IMAGE_WITHOUT_VISION,
   RESEARCH_WITHOUT_SOURCES,
 } = await import("../lib/server/tasks");
 const { saveMemory, memoryDigest } = await import("../lib/server/memory");
+const { saveUpload } = await import("../lib/server/materials");
 const { assembleContext, formatContextForInstructions } = await import(
   "../lib/server/context/assembler"
 );
@@ -460,6 +462,53 @@ test("Cycle 19: research with https sources may complete as found", async () => 
     done.events.some((event) => event.summary === "Hermes 已回傳完成結果。"),
   );
   assert.equal(done.output.includes(RESEARCH_WITHOUT_SOURCES), false);
+});
+
+test("Cycle 19: unverified vision does not claim the image was analyzed", async () => {
+  const previous = process.env.HERMES_IMAGE_INPUT;
+  delete process.env.HERMES_IMAGE_INPUT;
+  const sharp = (await import("sharp")).default;
+  const bytes = await sharp({
+    create: { width: 2, height: 2, channels: 3, background: "#90c070" },
+  })
+    .png()
+    .toBuffer();
+  const asset = await saveUpload(
+    "workspace",
+    "personal",
+    "poster.png",
+    "image/png",
+    bytes,
+  );
+  try {
+    mode = "ok";
+    const seen = await submit("workspace", {
+      conversationId: conv(),
+      requestKey: randomUUID(),
+      input: "這張哪裡可以改？",
+      attachments: [asset.id],
+    });
+    const done = await settle(seen.id);
+    assert.equal(done.state, "completed");
+    assert.equal(done.goal?.requiresImageAnalysis, true);
+    assert.ok(
+      done.events.some((event) => event.summary === IMAGE_WITHOUT_VISION),
+    );
+    assert.equal(
+      done.events.some((event) => event.summary === DESIGN_WITHOUT_PREVIEW),
+      false,
+    );
+    assert.equal(
+      done.events.some(
+        (event) => event.summary === "Hermes 已回傳完成結果。",
+      ),
+      false,
+    );
+    assert.match(done.output, /沒有假裝已分析畫面/);
+  } finally {
+    if (previous === undefined) delete process.env.HERMES_IMAGE_INPUT;
+    else process.env.HERMES_IMAGE_INPUT = previous;
+  }
 });
 
 test("Cycle 19: reconcile fails only when no output and no kind===tool completed events", async () => {

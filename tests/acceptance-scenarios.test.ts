@@ -12,7 +12,7 @@ process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
 delete process.env.HERMES_IMAGE_INPUT;
 
-const { interpretGoal } = await import("../lib/server/orchestrator/goal");
+const { interpretGoal, wantsNewVisual } = await import("../lib/server/orchestrator/goal");
 const { classifyIntent, isFastTier } = await import(
   "../lib/server/orchestrator/intent"
 );
@@ -56,6 +56,7 @@ test("acceptance prompts route without the user picking tools", async (t) => {
     assert.equal(classifyIntent(prompt, { hasImage: true }), "create");
     const goal = interpretGoal(prompt, { hasImage: true });
     assert.equal(goal.requiresImageAnalysis, true);
+    assert.equal(wantsNewVisual(prompt), false);
     assert.equal(goal.requiresDesign, true);
     assert.equal(goal.requiresAudienceEvaluation, true);
     assert.match(goal.constraints.join("\n"), /未讀圖/);

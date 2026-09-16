@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { turtleState } from "../components/Turtle";
-import { DESIGN_WITHOUT_PREVIEW, RESEARCH_WITHOUT_SOURCES, type Task, type TaskEvent } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES, type Task, type TaskEvent } from "../lib/contracts";
 
 function task(state: Task["state"], toolStatus?: string): Task {
   return {
@@ -68,6 +68,21 @@ test("turtle does not celebrate research that found no sources", () => {
   } as Task;
   assert.equal(turtleState(missing, false).id, "waiting");
   assert.equal(turtleState(missing, false).label, "還沒找到來源");
+});
+
+test("turtle does not celebrate unverified vision as seen", () => {
+  const unseen = {
+    state: "completed",
+    events: [
+      {
+        toolName: "ask_user",
+        status: "completed",
+        summary: IMAGE_WITHOUT_VISION,
+      },
+    ],
+  } as Task;
+  assert.equal(turtleState(unseen, false).id, "waiting");
+  assert.equal(turtleState(unseen, false).label, "還沒看圖");
 });
 
 test("turtle student labels never name vendors or tools", () => {

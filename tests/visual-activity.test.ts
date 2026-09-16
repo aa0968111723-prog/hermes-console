@@ -9,16 +9,19 @@ import {
   eventUserResult,
   progressSteps,
   safeSource,
+  IMAGE_WITHOUT_VISION_LABEL,
   SPEC_ONLY_DESIGN_LABEL,
   studentProcessDone,
   studentTaskLabel,
   taskKeptSpecOnly,
   taskMissingSources,
+  taskUnverifiedVision,
   visualProcessCaption,
   workingEvent,
 } from "../lib/client/activity";
 import {
   DESIGN_WITHOUT_PREVIEW,
+  IMAGE_WITHOUT_VISION,
   RESEARCH_WITHOUT_SOURCES,
   type Task,
   type TaskEvent,
@@ -233,6 +236,32 @@ test("research without https sources is not painted as found", () => {
   assert.equal(taskMissingSources(sourced), false);
   assert.equal(studentTaskLabel(sourced), "完成");
   assert.equal(visualProcessCaption(sourced), "過程完成");
+});
+
+test("unverified vision is not painted as seen", () => {
+  const unseen = task("completed", [
+    {
+      ...event("image", "completed", "ask_user", "call-image"),
+      summary: IMAGE_WITHOUT_VISION,
+    },
+  ]);
+  unseen.goal = { requiresImageAnalysis: true } as Task["goal"];
+  unseen.plan = {
+    summary: "看圖",
+    budgetMode: "balanced",
+    fallbacks: [],
+    steps: [
+      { id: "a", title: "讀取專案上下文", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "completed" },
+      { id: "img", title: "看圖", purpose: "", dependencies: [], agent: "general", tool: "ask_user", fallback: null, status: "pending" },
+      { id: "f", title: "最終審查", purpose: "", dependencies: [], agent: "general", tool: null, fallback: null, status: "pending" },
+    ],
+  };
+  assert.equal(taskUnverifiedVision(unseen), true);
+  assert.equal(studentTaskLabel(unseen), IMAGE_WITHOUT_VISION_LABEL);
+  const steps = progressSteps(unseen);
+  assert.equal(steps.find((step) => step.label === "看圖")?.state, "uncertain");
+  assert.equal(studentProcessDone(unseen, steps), false);
+  assert.equal(visualProcessCaption(unseen, steps), IMAGE_WITHOUT_VISION_LABEL);
 });
 
 test("creative tasks attach Canva designs as conversation artifacts", () => {

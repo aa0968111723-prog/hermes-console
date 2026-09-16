@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DESIGN_WITHOUT_PREVIEW, RESEARCH_WITHOUT_SOURCES, type Task, type TaskEvent } from "../lib/contracts";
+import { DESIGN_WITHOUT_PREVIEW, IMAGE_WITHOUT_VISION, RESEARCH_WITHOUT_SOURCES, type Task, type TaskEvent } from "../lib/contracts";
 import {
   OFFLINE_NOTICE,
   OFFLINE_PILL_LABEL,
@@ -111,6 +111,26 @@ test("research without sources is a warning, not a green check", () => {
   missing.goal = { requiresResearch: true } as Task["goal"];
   assert.deepEqual(composerTaskStatus(missing, false), {
     label: "還沒找到來源",
+    tone: "warning",
+    tool: null,
+    toolName: null,
+    toolKind: null,
+  });
+});
+
+test("unverified vision is a warning, not a green check", () => {
+  const unseen = task("completed");
+  unseen.events = [
+    {
+      toolCallId: "tool-1",
+      toolName: "ask_user",
+      status: "completed",
+      summary: IMAGE_WITHOUT_VISION,
+    } as TaskEvent,
+  ];
+  unseen.goal = { requiresImageAnalysis: true } as Task["goal"];
+  assert.deepEqual(composerTaskStatus(unseen, false), {
+    label: "還沒看圖",
     tone: "warning",
     tool: null,
     toolName: null,
