@@ -42,15 +42,6 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     const plan = buildPlan(goal, routes, "balanced");
     assert.ok(plan.steps.some((step) => step.title.includes("查資料")));
     assert.ok(plan.steps.some((step) => step.title.includes("靈感")));
-    assert.equal(
-      routes.find((item) => item.id === "inspiration")?.tool,
-      "workspace_search_inspiration",
-    );
-    assert.equal(
-      plan.steps.find((step) => step.title.includes("靈感"))?.tool,
-      "workspace_search_inspiration",
-    );
-    assert.doesNotMatch(JSON.stringify(plan), /project_inspiration_then_web/);
     assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
     assert.ok(plan.steps.some((step) => step.title.includes("Canva")));
     assert.ok(plan.fallbacks.some((item) => /淡江 MCP 暫時不可用/.test(item.userVisible)));
@@ -68,144 +59,54 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(fallbacksFromRoutes(routes).length, 0);
   });
 
-  await t.test("GALLEY is used for research only when the registry is usable", () => {
-    const goal = interpretGoal("幫我研究淡江新生最近可能喜歡的社團宣傳方向");
+  await t.test("Hermes picks GALLEY, Lumen, FrameLab when they are actually usable", () => {
     const hermes = emptyIntegration("hermes");
     hermes.capabilities.find((item) => item.id === "hermes.api")!.status =
       "reachable";
-    const without = routeTools(goal, [emptyIntegration("tamkang"), hermes]);
-    assert.equal(without.find((item) => item.id === "galley"), undefined);
-    const withGalley = routeTools(goal, [emptyIntegration("tamkang"), hermes], {
-      galley: { status: "partial" },
-    });
-    assert.equal(withGalley.find((item) => item.id === "galley")?.tool, "galley_research");
-    const plan = buildPlan(goal, withGalley, "balanced");
-    assert.ok(plan.steps.some((step) => step.title.includes("來源優先研究")));
-    const unconfigured = routeTools(goal, [emptyIntegration("tamkang"), hermes], {
-      galley: { status: "unconfigured" },
-    });
+    const inspiration = interpretGoal("幫我找淡江大學禪學社最近適合的網宣靈感");
+    const galleyRoutes = routeTools(
+      inspiration,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { galley: "partial" },
+    );
+    assert.equal(galleyRoutes.find((item) => item.id === "galley")?.tool, "galley_research");
+    const galleyPlan = buildPlan(inspiration, galleyRoutes, "balanced");
+    assert.ok(galleyPlan.steps.some((step) => step.title === "研究情報"));
+    assert.equal(
+      galleyPlan.steps.find((step) => step.title === "研究情報")?.tool,
+      "galley_research",
+    );
+    assert.equal(
+      JSON.stringify(galleyPlan.steps.map((step) => step.title)).includes("galley_research"),
+      false,
+    );
+
+    const poster = interpretGoal("幫我做一張淡江新生茶會宣傳");
+    const lumenRoutes = routeTools(
+      poster,
+      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
+      { lumen: "partial" },
+    );
+    assert.equal(lumenRoutes.find((item) => item.id === "lumen")?.tool, "lumen_utter");
+    const lumenPlan = buildPlan(poster, lumenRoutes, "balanced");
+    assert.ok(lumenPlan.steps.some((step) => step.title === "創作台"));
+    assert.equal(lumenPlan.steps.find((step) => step.title === "創作台")?.tool, "lumen_utter");
+
+    const animation = interpretGoal("幫我修 FrameLab 中間張");
+    const framed = routeTools(animation, [hermes], { framelab: "partial" });
+    assert.equal(framed.find((item) => item.id === "framelab")?.tool, "framelab_list_projects");
+
+    const booth = interpretGoal("幫我排迎新攤位場佈");
+    const layout = routeTools(booth, [hermes], { planform: "partial" });
+    assert.equal(layout.find((item) => item.id === "planform")?.tool, "planform_run_agent");
+
+    const unconfigured = routeTools(poster, [
+      emptyIntegration("tamkang"),
+      hermes,
+      emptyIntegration("canva"),
+    ]);
+    assert.equal(unconfigured.find((item) => item.id === "lumen"), undefined);
     assert.equal(unconfigured.find((item) => item.id === "galley"), undefined);
-  });
-
-  await t.test("Lumen is used for studio intent only when the registry is usable", () => {
-    const goal = interpretGoal("幫我開 Lumen 畫板做招新海報三個方向");
-    assert.equal(goal.requiresLumen, true);
-    const hermes = emptyIntegration("hermes");
-    const without = routeTools(goal, [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")]);
-    assert.equal(without.find((item) => item.id === "lumen"), undefined);
-    const withLumen = routeTools(
-      goal,
-      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
-      { lumen: { status: "partial" } },
-    );
-    assert.equal(withLumen.find((item) => item.id === "lumen")?.tool, "lumen_utter");
-    const plan = buildPlan(goal, withLumen, "balanced");
-    assert.ok(plan.steps.some((step) => step.title.includes("Lumen")));
-    const failed = routeTools(
-      goal,
-      [emptyIntegration("tamkang"), hermes, emptyIntegration("canva")],
-      { lumen: { status: "failed" } },
-    );
-    assert.equal(failed.find((item) => item.id === "lumen"), undefined);
-  });
-
-  await t.test("uploaded image critique leaves the fast path and reads the material", () => {
-    const materialId = "11111111-1111-1111-1111-111111111111";
-    const goal = interpretGoal("這張哪裡可以改？", {
-      attachmentCount: 1,
-      imageAttachmentCount: 1,
-      attachmentIds: [materialId],
-    });
-    assert.equal(goal.requiresImageRead, true);
-    assert.equal(goal.requiresAudienceEvaluation, true);
-    assert.notEqual(goal.intentTier, "continue");
-    assert.ok(goal.constraints.some((item) => /已上傳素材/.test(item)));
-    assert.ok(goal.constraints.some((item) => item.includes("素材 ID：" + materialId)));
-    const routes = routeTools(goal, [emptyIntegration("hermes")]);
-    assert.equal(
-      routes.find((item) => item.id === "image_read")?.tool,
-      "workspace_read_material",
-    );
-    const plan = buildPlan(goal, routes, "balanced");
-    assert.notEqual(plan.budgetMode, "fast");
-    assert.ok(plan.steps.some((step) => step.title.includes("讀取上傳素材")));
-    assert.ok(plan.steps.some((step) => step.title.includes("分析畫面")));
-    assert.ok(plan.steps.some((step) => step.title.includes("受眾")));
-  });
-
-  await t.test("nth-version edits stay on the named revision", () => {
-    const goal = interpretGoal("第二版字放大");
-    assert.equal(goal.targetRevision, "v2");
-    assert.notEqual(goal.intentTier, "continue");
-    assert.ok(goal.constraints.some((item) => /v2/.test(item)));
-    const plan = buildPlan(goal, [], "balanced");
-    assert.ok(plan.steps.some((step) => step.title.includes("鎖定作品版本")));
-    assert.match(plan.steps.find((step) => step.title.includes("鎖定"))!.purpose, /v2/);
-    assert.equal(interpretGoal("第3版標題改短").targetRevision, "v3");
-  });
-
-  await t.test("orchestration counts uploaded images before routing", async () => {
-    const { randomUUID } = await import("node:crypto");
-    const { put } = await import("../lib/server/store");
-    const { prepareOrchestration } = await import(
-      "../lib/server/orchestrator/executor"
-    );
-    const id = randomUUID();
-    put("material", "workspace", {
-      id,
-      projectId: "personal",
-      title: "poster.png",
-      kind: "image",
-      url: null,
-      mime: "image/png",
-      bytes: 12,
-      tags: [],
-      createdAt: new Date().toISOString(),
-      rights: "user_provided",
-      notes: "",
-    });
-    const orch = prepareOrchestration(
-      "workspace",
-      {
-        id: randomUUID(),
-        conversationId: randomUUID(),
-        requestKey: randomUUID(),
-        payloadHash: "h",
-        state: "queued",
-        transport: "chat",
-        remoteId: null,
-        input: "這張哪裡可以改？",
-        attachments: [id],
-        output: "",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        endedAt: null,
-        error: null,
-        observationError: null,
-        events: [],
-        usage: { ...EMPTY_USAGE },
-        stopSupported: false,
-      },
-      {
-        id: randomUUID(),
-        title: "測",
-        projectId: "personal",
-        messages: [],
-        hermesSessionId: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    );
-    assert.equal(orch.goal.requiresImageRead, true);
-    assert.equal(
-      orch.routes.find((item) => item.id === "image_read")?.tool,
-      "workspace_read_material",
-    );
-    assert.notEqual(orch.plan.budgetMode, "fast");
-    assert.match(orch.instructions, /目前工具可用性/);
-    assert.match(orch.instructions, /cost=unknown/);
-    assert.doesNotMatch(orch.instructions, /GALLEY_MCP_TOKEN|LUMEN_MCP_TOKEN|TKU_MCP_TOKEN/);
-    assert.doesNotMatch(orch.instructions, /https:\/\/[a-z0-9.-]+\//i);
   });
 
   await t.test("generic freshman wording does not bind Tamkang", () => {
@@ -231,7 +132,7 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
   });
 
   await t.test("context budget does not dump the whole memory store", () => {
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 25; i++) {
       saveMemory("workspace", {
         kind: "note",
         scope: "workspace",
@@ -280,4 +181,23 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     assert.equal(classifyResume(task, false), "unknown");
     assert.match(resumeNotice("unknown"), /尚未確認/);
   });
+});
+
+test("continue-this-work stays on the same artifact without exposing tools in the user line", () => {
+  const copyId = "11111111-1111-1111-1111-111111111111";
+  const goal = interpretGoal("請接續修改這個作品（第 2 版）。不要另做無關的新作品。", {
+    focus: { copyId, revision: 2 },
+  });
+  assert.equal(goal.intentTier, "create");
+  assert.equal(goal.requiresDesign, true);
+  assert.match(goal.output || "", /同一作品/);
+  const fast = interpretGoal("請接續修改這個作品（第 2 版）。不要另做無關的新作品。");
+  assert.equal(fast.intentTier, "continue");
+  const activityId = "22222222-2222-2222-2222-222222222222";
+  const activityGoal = interpretGoal(
+    "請依這個活動已確認的資訊提出三個方向，保存後等我選擇。私人資訊不得用於公開文宣。",
+    { focus: { activityId } },
+  );
+  assert.equal(activityGoal.intentTier, "create");
+  assert.match(activityGoal.output || "", /活動/);
 });

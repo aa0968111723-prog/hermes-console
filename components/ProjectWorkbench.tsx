@@ -8,7 +8,14 @@ import {
   type CopyRevision,
 } from "@/lib/creative";
 import { fieldLabels } from "@/lib/activity-labels";
-import type { Material } from "@/lib/contracts";
+import type { Material, TaskFocus } from "@/lib/contracts";
+import {
+  continueActivity,
+  continueCaptionSet,
+  continueCopy,
+  continueDesign,
+  continueProjectDraft,
+} from "@/lib/client/artifacts";
 import type { Workflow } from "@/lib/server/workflows";
 import type { CopyReview } from "@/lib/server/copywriting";
 import CopyReviewCard from "@/components/copywriting/CopyReviewCard";
@@ -45,7 +52,7 @@ export default function ProjectWorkbench({
   projectId: string;
   materials: Material[];
   workflows: Workflow[];
-  onCompose: (text: string) => void;
+  onCompose: (text: string, focus?: TaskFocus) => void;
 }) {
   const [data, setData] = useState<Data>({ activities: [], copies: [] });
   const [editing, setEditing] = useState<Activity | null>(null);
@@ -164,20 +171,18 @@ export default function ProjectWorkbench({
           新增文案草稿
         </button>
         <button
-          onClick={() =>
-            onCompose(
-              "請先用 workspace_project_context 查回這個專案的活動、來源及已有文案；核對必要資訊後，接續網宣草稿。缺少日期或地點先詢問我，不要捏造。",
-            )
-          }
+          onClick={() => {
+            const next = continueProjectDraft();
+            onCompose(next.text);
+          }}
         >
           請 Hermes 接續創作
         </button>
         <button
-          onClick={() =>
-            onCompose(
-              "請先查回活動日期與地點；未確認標 UNKNOWN，不要捏造。產出 IG caption A 最自然、B 最有梗、C 最溫暖三版，順序 HOOK→生活場景→活動→為什麼來→時間地點→CTA。不要宗教宣傳。寫完用 workspace_review_copy 做新生視角審核，不要發佈。",
-            )
-          }
+          onClick={() => {
+            const next = continueCaptionSet();
+            onCompose(next.text);
+          }}
         >
           請 Hermes 寫 A／B／C
         </button>
@@ -356,11 +361,10 @@ export default function ProjectWorkbench({
           ))}
           <button onClick={() => editActivity(a)}>修改活動</button>
           <button
-            onClick={() =>
-              onCompose(
-                `請讀取活動 ${a.id}（專案 ${projectId}），依已確認資訊提出三個方向，保存後等待我選擇；私人資訊不得用於公開文宣。`,
-              )
-            }
+            onClick={() => {
+              const next = continueActivity(a.id);
+              onCompose(next.text, next.focus);
+            }}
           >
             請 Hermes 整理三個方向
           </button>
@@ -676,18 +680,22 @@ export default function ProjectWorkbench({
                   下載 v{r.revision} 文案
                 </a>
                 <button
-                  onClick={() =>
-                    onCompose(
-                      `請用 workspace_get_copy 讀取文案 ${d.id}，以 v${r.revision} 為修改基礎。先問我要改哪一頁或語氣，再沿用相同 id 保存新版本；不要重新搜尋或重建無關作品。`,
-                    )
-                  }
+                  onClick={() => {
+                    const next = continueCopy(d.id, r.revision);
+                    onCompose(next.text, next.focus);
+                  }}
                 >
                   在對話接續修改
                 </button>
                 {d.selectedRevision === r.revision && r.workflowId && <button
-                  onClick={() => onCompose(
-                    `請用 workspace_get_copy 查回文案 ${d.id} 已選版本 v${r.revision}，並查回方向流程 ${r.workflowId}。確認日期地點與素材後，依真實 Canva 範本欄位製作；若未授權請保留進度，不要宣稱完成。已有設計時先查回，不要重複建立。`
-                  )}>交給 Hermes 接續製作</button>}
+                  onClick={() => {
+                    const next = continueDesign(r.workflowId!);
+                    onCompose(next.text, {
+                      ...next.focus,
+                      copyId: d.id,
+                      revision: r.revision,
+                    });
+                  }}>交給 Hermes 接續製作</button>}
               </div>
             </details>
           ))}

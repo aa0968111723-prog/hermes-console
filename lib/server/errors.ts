@@ -1,3 +1,13 @@
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 export const ERROR_CATEGORIES = [
   "AUTH_ERROR",
   "PERMISSION_ERROR",
@@ -41,14 +51,18 @@ const CODE_CATEGORY: Record<string, ErrorCategory> = {
   TOOL_TIMEOUT: "TOOL_TIMEOUT",
   ssrf_rejected: "NETWORK_ERROR",
   NETWORK_ERROR: "NETWORK_ERROR",
-  store_unavailable: "UPSTREAM_ERROR",
+  store_unavailable: "NETWORK_ERROR",
   UPSTREAM_ERROR: "UPSTREAM_ERROR",
   empty_output: "UPSTREAM_ERROR",
   empty_stream: "UPSTREAM_ERROR",
   tool_failed: "UPSTREAM_ERROR",
   tool_budget_exceeded: "RATE_LIMIT",
   hermes_not_ready: "TOOL_UNAVAILABLE",
+  hermes_unconfigured: "TOOL_UNAVAILABLE",
   unknown_tool: "TOOL_UNAVAILABLE",
+  empty_tool_result: "TOOL_UNAVAILABLE",
+  permission_denied: "PERMISSION_ERROR",
+  membership_required: "PERMISSION_ERROR",
 };
 
 export function errorCategory(code: string): ErrorCategory {
@@ -61,3 +75,38 @@ export function errorCategory(code: string): ErrorCategory {
     return "UPSTREAM_ERROR";
   return "UNKNOWN";
 }
+
+export type ErrorTaxonomy = ErrorCategory;
+
+export function taxonomyFor(code: string): ErrorCategory {
+  if (code === "empty_tool_result") return "TOOL_UNAVAILABLE";
+  if (code === "hermes_not_ready") return "UPSTREAM_ERROR";
+  if (code === "hermes_unconfigured") return "TOOL_UNAVAILABLE";
+  if (code === "store_unavailable") return "NETWORK_ERROR";
+  return errorCategory(code);
+}
+
+export const STUDENT_HERMES_UNCONFIGURED =
+  "Hermes 還沒連上。請到設定的連線頁。";
+export const STUDENT_HERMES_UNAVAILABLE = "現在沒辦法連到 Hermes。";
+
+const HERMES_ENGINEERING =
+  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization/i;
+
+export function studentHermesError(message: string, code?: string): string {
+  if (
+    code === "hermes_unconfigured" ||
+    code === "hermes_not_ready" ||
+    code === "invalid_credential_ref"
+  )
+    return STUDENT_HERMES_UNCONFIGURED;
+  if (
+    code &&
+    /^(connect_timeout|network_error|interrupted|upstream_)/.test(code)
+  )
+    return STUDENT_HERMES_UNAVAILABLE;
+  if (HERMES_ENGINEERING.test(message)) return STUDENT_HERMES_UNAVAILABLE;
+  return message;
+}
+
+export { isEmptyToolResult } from "./tool-result";

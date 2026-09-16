@@ -259,6 +259,7 @@ test("VisualMessage mounts PlanformStage and never treats GitHub as MCP", async 
   );
   assert.match(ui, /PlanformStage/);
   assert.match(ui, /layoutFromTask/);
+  assert.match(ui, /ArtifactStage/);
   const css = await readFile(
     new URL("../components/visual/PlanformStage.module.css", import.meta.url),
     "utf8",

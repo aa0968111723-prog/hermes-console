@@ -1,5 +1,9 @@
 # 部署與接續整合
 
+正式產品部署步驟見 [PRODUCTION.md](PRODUCTION.md)。身份、秘密與 SSRF 見 [SECURITY.md](SECURITY.md)。
+
+**2026-09 起產品需要登入。** `/` 先經過 AuthGate（Google / 淡江 SSO / Email），工作區 API 驗證 `hermes_session` 與 membership。下文若仍提到「免登入」，視為歷史部署備註，以 PRODUCTION.md 為準。
+
 ## Console
 
 使用 Dockerfile 建立長駐 Node.js 服務；正式部署由擁有者明確授權後執行。不能直接沿用無狀態 serverless 部署。
@@ -8,15 +12,16 @@
 - 可選 `DATABASE_URL` 指向 **Console 專用** Postgres（不是 ai_os）。SRE 另行掛上；此變更不修改正式環境變數。未設定或空白時仍用 SQLite 開機。
 - `GET /api/ready` 探測 `CONSOLE_DATA_DIR` 與目前 backend（SQLite 或 Postgres）。成功 200、儲存庫不可用 503。不回傳連線字串或秘密，也不需閘道標頭。`GET /api/health` 另附 `backend`／`dataDir`／`storeReady`。
 - 外部使用 HTTPS；設定 `CONSOLE_ORIGIN` 為精確外部 origin。
-- 正式產品：未登入 → Login（Google／淡江 SSO／Email）→ Hermes。契約測試可用 `CONSOLE_AUTH_MODE=workspace`。邀請模組休眠，不得擋住 AuthGate。
+- 產品需要登入。`/` 先經過 AuthGate，工作區 API 驗證 `hermes_session` 與 membership。邀請模組仍休眠，不得取代正式身份。
 - 寫入請求驗證 Origin；本機未設定 `CONSOLE_ORIGIN` 時，僅允許與實際 loopback origin 相符的來源。正式環境未設定 `CONSOLE_ORIGIN` 必須 fail closed。
-- 正式環境應設定 `CONSOLE_REQUIRE_GATEWAY=true` 及至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`（部署閘道，不是帳號登入）。未設定閘道時，required 模式仍需 session；workspace 模式則工作區 API 可被開啟網站的人使用。
-- 閘道本身必須驗證存取權；一個公開且無條件注入標頭的 reverse proxy 不算保護。
+- 不要將邀請模組測試通過誤當作正式環境存取保護。
+- 正式環境應設定 `CONSOLE_REQUIRE_GATEWAY=true` 及至少 32 字元的全新 `CONSOLE_GATEWAY_SECRET`。閘道是部署層保護，仍需帳號 session。閘道需先驗證身份或私人網路，再覆寫 `X-Console-Gateway`。不要把秘密放前端。
+- 閘道本身必須驗證存取權；一個公開且無條件注入標頭的 reverse proxy 不算保護。建議限制 Console upstream 僅由 gateway 的私人網路可達。不要相信未驗證的 X-Forwarded-User 或僅靠 Origin。
 - `CONSOLE_ALLOW_LOCAL_ACCESS` 僅供明確的 loopback 開發／測試環境使用；公開部署不要啟用。
 - 複製 .env.example 的空白設定名稱到部署秘密儲存，填入全新憑證。撤銷所有曾公開的 Hermes API Key 並重新產生。
-- **日常金鑰也可在 Console「設定 → 連線」填寫**。GET 只回傳是否已設定與末四碼。正式環境僅 owner／admin 可寫入。Hermes 不收集校園帳號或密碼。
-- 環境變數仍是後備。未設 `CONSOLE_VAULT_KEY` 時，程序會在資料目錄寫入一次性 `vault.key`。
-- **workspace 模式且無閘道時**，能開啟網站的人都可以覆寫工作區憑證與 Zeabur 部署權杖。正式 required 模式不是這個情況。
+- **日常金鑰也可在 Console「設定 → 連線」填寫**：Hermes 網址／金鑰、MCP 橋接權杖、核准 MCP JSON、場圖 Atlas 網址／權杖、訊核 MCP 網址／權杖、Lumen 創作台網址／權杖、FrameLab 網址／權杖、淡江 MCP 網址／權杖。前端只收集後 POST 到 `/api/settings/credentials`，後端加密寫入 `CONSOLE_DATA_DIR`，執行期覆寫同名環境變數。GET 只回傳是否已設定與末四碼，不回傳完整秘密。
+- 環境變數仍是後備。未設 `CONSOLE_VAULT_KEY` 時，程序會在資料目錄寫入一次性 `vault.key`（64 hex）並沿用；請備份該檔與 SQLite，遺失就無法解密已存憑證。正式部署仍建議把 vault key 放進受控秘密儲存。
+- **公開設定頁沒有邀請登入或 `CONSOLE_GATEWAY_SECRET` 額外保護。** 能開啟網站的人都可以覆寫工作區憑證與 Zeabur 部署權杖。這是產品選擇，不是疏漏；公開 Internet 部署請用網路層限制。
 - Zeabur：在 [Dashboard → Settings → API Keys](https://zeabur.com/docs/en-US/developer/public-api) 建立 Bearer 權杖。公開 API 沒有另外的細分 scope 核取方塊；權杖繼承該使用者／團隊對專案的既有權限（讀專案、改環境變數、重新部署）。GraphQL 端點為 `https://api.zeabur.com/graphql`。設定頁可測試連線、列出專案、寫入環境變數、把 Console 已存 Hermes／MCP 金鑰推上該服務，以及 `redeployService`／`restartService`。失敗時不回傳權杖。
 
 ## 共用記憶
@@ -47,7 +52,7 @@ Console 支援 Streamable HTTP 的 2025-03-26／2025-06-18 協定；GET 回應 4
 
 Runtime 探索與限制詳見 [RUNTIME_SYNC.md](RUNTIME_SYNC.md)。後端長駐排程探索，SSE 共用變更發布；離線來源的舊工具會過期且排除候選。綁定目前只在 Console workspace 工具的實際呼叫強制執行，不能限制 Hermes 原生工具或外部 MCP。未支援的綁定與權限覆寫會拒絕，不假裝套用。
 
-工作區 MCP 也列出專案上下文、活動讀寫與逐頁文案讀寫。資料確認、方向和版本選定只開放 Console 使用者操作，不給模型自我確認工具；`required` 模式這些操作需 session 與 membership。完成 Canva 授權及設計清單驗證後，刷新 Hermes 工具清單才會看到 Canva 操作工具。
+工作區 MCP 也列出專案上下文、活動讀寫與逐頁文案讀寫。資料確認、方向和版本選定只開放 Console 使用者操作，不給模型自我確認工具；免登入模式需由閘道保護這些操作。完成 Canva 授權及設計清單驗證後，刷新 Hermes 工具清單才會看到 Canva 操作工具。
 
 新增 `workspace_read_material` 讀取真實 PNG／TXT；PDF 僅保存原檔，尚未文字抽取，不向 Hermes 傳送假內容。`MCP_REQUIRE_TASK_CONTEXT=true` 是預設：工具需帶 Console 提供的 taskId；已停止或跨專案請求會拒絕。僅隔離管理者測試可設 false。`CONSOLE_MAX_TOOL_CALLS=40` 計算每任務 Console MCP 嘗試，不是全 Hermes 預算／供應商費用；達上限保留資料，需由使用者檢視後建立接續任務。
 
@@ -61,7 +66,7 @@ Runtime 探索與限制詳見 [RUNTIME_SYNC.md](RUNTIME_SYNC.md)。後端長駐�
 
 僅放環境變數名稱，不放 token 值；可在受控秘密儲存或「設定 → 連線」另外設定該變數。清單 JSON 本身仍不應內嵌 token。此例是未啟用的設定範本，不是真實服務。TKU_MCP_URL／TOKEN（環境或 UI）可建立 tku 定義。XUNHE_MCP_URL／TOKEN 可建立訊核即時情報定義。ATLAS_MCP_URL／TOKEN 可建立場圖 Atlas 定義（端點必須是 `https://公開網域/api/mcp`）；Hermes 會以 `mcp.atlas.*` 呼叫公開導覽、機構規則、專案流程與任務建議，且 Atlas 拒絕把專案標為已交付。LUMEN_MCP_URL／TOKEN 可建立 Lumen 創作台定義；工作區 MCP 會在設定後列出 lumen_*，讓 Hermes 經 Console `/api/mcp` 呼叫 lumen_utter，不必另開第二條 MCP。FRAMELAB_MCP_URL／TOKEN 可建立 FrameLab 動畫定義（端點必須是 `https://公開網域/api/mcp`）；Hermes 會以 `mcp.framelab.*` 與工作區 `framelab_*` 呼叫時間軸、一致性分析、修復建議與中間張工具。GitHub 倉庫網址不是 MCP。驗證只 initialize／tools-list，不自动挑選名稱看似讀取的工具執行；部分可用代表有真實工具清單，不代表安全／寫入授權。
 
-淡江 MCP 只接受 Bearer 權杖。設定頁可貼權杖並「測試連線」。禁止收集校園帳號或密碼，也不會用學校密碼向 MCP 換權杖。沒有權杖時狀態為未設定。淡江 SSO 登入與 MCP 權杖是兩件事。
+淡江 MCP 在本倉庫是 Bearer 權杖連線。設定頁可貼權杖並「測試連線」。若已存網址的同一來源提供 `/auth/login`、`/api/auth/login`、`/login` 或 JSON-RPC `auth/login`，後端可代為用校園使用者名稱／密碼交換權杖；沒有這些端點時不會假裝成學校 SSO，請改貼權杖。
 
 GALLEY 研究情報 MCP 同樣用 `GALLEY_MCP_URL`／`GALLEY_MCP_TOKEN`（環境或設定 → 連線）。端點必須是 GALLEY 部署後的 HTTPS Streamable HTTP `/mcp`，**不能**填 GitHub 倉庫網址。權杖至少 32 字元，且須與 GALLEY 後端同一把。Hermes 只連 Console `/api/mcp`；工作區工具 `galley_capability`／`galley_research`／`galley_intel` 由 Console 代為呼叫 GALLEY。未設定時狀態為 Unconfigured，不得假裝已完成研究。
 

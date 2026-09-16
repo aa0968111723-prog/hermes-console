@@ -1,62 +1,63 @@
 # Release checklist
 
-每次 release 勾選。未完成標 Partial，不要打綠勾。
+Do not merge until each line is actually true, or explicitly marked **Partial**.
 
 ## Mobile
 
-- [ ] 360×800、390×844、412×915、430×932、768×1024 可完整捲動
-- [ ] Chat：只有 conversation-scroll 主捲動；Composer 可見
-- [ ] 專案／靈感／Agent／設定可滑到最底
-- [ ] Android 鍵盤：Composer 上移、送出可見、關閉後不留白
-- [ ] Safe area：Dock／Composer／Modal 不被系統列擋住
-- [ ] Bottom dock：對話／專案／靈感／Agent；設定在頭像／齒輪
+- [ ] Chat: only conversation pane scrolls; composer stays visible
+- [ ] Projects / Inspiration / Agent / Settings scroll to the bottom
+- [ ] Android Chrome keyboard: composer visible, send visible, close restores height
+- [ ] Safe area: composer, dock, dialogs
+- [ ] Viewports: 360×800, 390×844, 412×915, 430×932, 768×1024
 
 ## Auth
 
-- [ ] 未登入先 Login，不先載工作區
-- [ ] Google：有 Client 才可按；無 Client 顯示尚未完成設定
-- [ ] 淡江：未設 Client 時停用；有 OIDC 設定才跳轉校方 IdP
-- [ ] Email 註冊／登入／登出
-- [ ] Magic Link／重設：僅在寄信已設定時可用
-- [ ] 連結身分不會因 Email 相同自動合併
-- [ ] 未授權 API 回 401／403，不是只藏按鈕
+- [ ] AuthGate before workspace
+- [ ] Google Authorization Code + PKCE, or honest unconfigured
+- [ ] Tamkang SSO real IdP, or 「淡江 SSO 尚未完成設定」
+- [ ] Email register / login / verify / magic link / reset
+- [ ] No auto-merge by email
+- [ ] OAuth `mode=link` requires the original signed-in session
+- [ ] Logout clears session
+- [ ] Anonymous `/api/workspace` is 401
+- [ ] Members cannot GET/POST `/api/settings/credentials`; owners and admins can
 
 ## Chat / Agent
 
-- [ ] 首頁龜龜 +「今天想做什麼？」+ 輸入
-- [ ] 自然語言任務會規劃並呼叫工具（需 Hermes 連線）
-- [ ] 一般 UI 不顯示 toolCallId／JSON schema
-- [ ] 停止會打後端 cancel
-- [ ] 離線顯示離線；重連不同步假裝任務已停
+- [ ] Natural-language request does not require picking GALLEY / Canva / Tamkang
+- [ ] Unconfigured submit 503 is student copy, not env-var names
+- [ ] Invalid Hermes key / hanging Hermes submit copy stays student-safe
+- [ ] Cancel hits backend
+- [ ] Restart leaves running chat tasks `uncertain` (no auto-resend)
+- [ ] Unverified vision: image asks continue without pixel pretence
+- [ ] Design completion without copy/Canva/thumbnail does not claim a finished result
+- [ ] Student chrome for that case is 「規格已保留」, not green 「完成」/「過程完成」
+- [ ] Research/campus completion without https sources is 「還沒找到來源」, not 「已回傳完成結果」
+- [ ] Missing-design assistant output includes the honesty sentence, not only a green chip
+- [ ] Unverified vision analysis is 「還沒看圖」, not green 「完成」/「過程完成」
+- [ ] Honesty-incomplete completions (規格已保留／還沒找到來源／還沒看圖) must not stamp `health.agent` `verified` or 「已有成功任務」
+- [ ] Composer image chips wrap on 390×844; local thumbnail while uploading
+- [ ] Empty tool output is not success, including `{}` behind `tool.completed`
+- [ ] Offline banner; reconnect does not drop the thread
 
 ## MCP
 
-- [ ] 未設定 = unconfigured
-- [ ] 不可達 = failed
-- [ ] 只有 listTools = partial；安全讀取有內容才 verified
-- [ ] 無 token = unconfigured
-- [ ] 不假裝搜尋了整個 Instagram
+- [ ] Registry statuses: unconfigured / verifying / available / partial / failed
+- [ ] Unreachable = failed; missing token = unconfigured; listTools only = partial
 
 ## Artifacts / Memory
 
-- [ ] 作品有 artifactId／revisionId；改「第二版」不另起無關作品
-- [ ] 專案上下文含名稱與最近作品版本（不含 preview JSON）
-- [ ] 專案卡片有縮圖；PDF 顯示標示封面，不是假裝已擷取頁面
-- [ ] 記憶 scope 標示清楚；舊記憶 confidence 會隨時間下降
-- [ ] 讀取工具 429 可重試；發佈／刪除不會自動重送
+- [ ] Stable artifact + revision ids
+- [ ] Memory layers not dumped into one blob
 
-## DB / Security
+## DB / Security / Tests / Deploy
 
-- [ ] 備份 SQLite 或 Postgres（`npm run backup`；Postgres 另需 pg_dump）
-- [ ] 無 secret 進 git／log／health
-- [ ] Origin、SSRF、session cookie 仍在
+- [ ] Backup taken (`npm run backup` or volume snapshot)
+- [ ] `npm run rehearse` reports required env; optional Google / Tamkang / Hermes stay honest
+- [ ] No secrets in client, logs, or git
+- [ ] `npm run lint` `typecheck` `test` `test:ui` `test:entry` `test:chat` `test:workbench` `test:gateway` `test:runtime` `build`
+- [ ] `/api/health` returns 200 while the process is up even if Hermes is down
+- [ ] `/api/ready` on the target host
+- [ ] Rollback snapshot identified
 
-## Tests / Deploy
-
-- [ ] `npm run lint`
-- [ ] `npm run typecheck`
-- [ ] `npm test`
-- [ ] `npm run build`
-- [ ] Playwright：entry／ui／chat／workbench／gateway／runtime
-- [ ] `/api/live` 200、`/api/ready` 反映儲存、未登入 `/api/health` 無密鑰且無技能目錄
-- [ ] Rollback 路徑已寫在 PRODUCTION.md
+Known gaps must be listed as Partial in the PR. Do not paint them green.

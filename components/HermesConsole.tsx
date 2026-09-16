@@ -571,6 +571,7 @@ export default function HermesConsole() {
           references:
             source.messages.find((m) => m.id === messageId)?.attachments ||
             [],
+          focus: null,
         },
       );
       setNav("chat");

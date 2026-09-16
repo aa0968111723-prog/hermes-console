@@ -1,12 +1,12 @@
 import { z } from "zod";
 import {
+  authenticateOperator,
   consumeConfirmation,
   jsonBody,
   mintConfirmation,
   respond,
   route,
 } from "@/lib/server/security";
-import { requireSettingsWrite } from "@/lib/server/auth/settings-write";
 import {
   listZeaburProjects,
   listZeaburVariables,
@@ -69,7 +69,7 @@ function requireMutationConfirmation(body: {
 }
 
 export const POST = route(async (req) => {
-  requireSettingsWrite(req);
+  authenticateOperator(req, true);
   const body = z
     .discriminatedUnion("action", [
       z.object({ action: z.literal("test"), ...target }).strict(),

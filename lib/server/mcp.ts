@@ -28,7 +28,7 @@ import { VISUAL_FORMAT_IDS } from "./creative/formats";
 import { auditEventCopy } from "./qa";
 import { z } from "zod";
 import { ApiError, hash, limited, redact, WORKSPACE_OWNER } from "./security";
-import { withSafeRetry, isTransientToolError, safeToRetry } from "./retry";
+import { isEmptyToolResult } from "./errors";
 import { runtimeEnv } from "./credentials";
 import { get, list, put, transaction } from "./store";
 import { canvaRequest, canvaStatus } from "./canva";
@@ -92,6 +92,14 @@ import {
   duigaoWriteTool,
   type DuigaoToolName,
 } from "./duigao";
+
+export function usableToolPayload(value: unknown) {
+  if (isEmptyToolResult(value)) return false;
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (typeof value !== "object") return true;
+  return Object.keys(value as object).length > 0;
+}
 
 export function bridgeAuth(request: Request) {
   const configured = runtimeEnv("MCP_BRIDGE_TOKEN");
@@ -216,19 +224,6 @@ const schemas = {
   workspace_delete_memory: z
     .object({ memoryId: z.string().uuid(), ...context })
     .strict(),
-  workspace_search_research: z
-    .object({
-      query: z.string().trim().min(2).max(200),
-      ...context,
-    })
-    .strict(),
-  workspace_search_inspiration: z
-    .object({
-      query: z.string().trim().min(2).max(200),
-      projectId: id.optional(),
-      ...context,
-    })
-    .strict(),
   canva_search_designs: z
     .object({ query: z.string().max(150).default(""), ...context })
     .strict(),
@@ -292,7 +287,7 @@ const schemas = {
 type ToolName = keyof typeof schemas;
 const descriptions: Record<ToolName, string> = {
   workspace_project_context:
-    "查回目前專案名稱、活動、文案版本、素材、作品版本（artifactId／revisionId）與任務索引；不是長期記憶。先查回再接續同一作品，不要重建無關作品。",
+    "查回目前專案活動、文案版本、素材與任務索引；不是長期記憶。先查回再接續，不要重建無關作品。",
   workspace_get_activity:
     "讀取公開活動資訊、來源與核對狀態；私人資料與歷史不提供給網宣工具。",
   workspace_get_visual_concepts:
@@ -319,10 +314,6 @@ const descriptions: Record<ToolName, string> = {
   workspace_save_memory:
     "寫入或更新共用記憶，與 Console 設定 → 記憶使用同一資料表。禁止寫入金鑰。",
   workspace_delete_memory: "刪除一筆共用記憶。只刪指定識別，不得批次清空。",
-  workspace_search_research:
-    "檢索工作區已保存的 AI Agent／Runtime 研究筆記快照。命中不是即時文獻，也不是網宣靈感；沒有命中就回空，不得編造。一般招新／茶會任務不要呼叫。",
-  workspace_search_inspiration:
-    "查回已保存參考、來源健康狀態，以及禪學社視覺模式（keep／adapt／avoid）。不是 Instagram／Pinterest 全站搜尋；沒有參考就回空清單，不得編造貼文。",
   canva_search_designs:
     "使用已授權 Canva Connect API 查找設計；權限不足時回傳錯誤，不模擬結果。",
   canva_get_design: "讀取 Canva 設計中繼資料、預览與編輯連結。",
@@ -347,12 +338,6 @@ const descriptions: Record<ToolName, string> = {
   workspace_simulate_audience:
     "用十個淡江新生人格模擬看到海報／IG／表單／活動／攤位／場佈／文案的第一眼反應。規則式 SIMULATION，分數只是比較工具，不是轉換率。沒有視覺描述時標 UNKNOWN，不得假裝已看圖。",
 };
-export function usableToolPayload(value: unknown) {
-  if (value == null) return false;
-  if (typeof value === "string") return value.trim().length > 0;
-  if (typeof value !== "object") return true;
-  return Object.keys(value as object).length > 0;
-}
 export function toolsList(owner: string) {
   const available = canvaStatus(owner).state === "partial";
   const local = Object.entries(schemas)
@@ -569,24 +554,13 @@ async function execute(
           "PDF 原檔已保存，但尚未接入文字抽取；請提供 UTF-8 TXT 或頁面截圖。",
         );
       const bytes = await readFile(filePath(owner, asset.id));
-      const imageRead = asset.kind === "image";
-      const nativeImageInput = process.env.HERMES_IMAGE_INPUT === "true";
       return {
         materialId: asset.id,
         projectId: asset.projectId,
         mime: asset.mime,
         bytes: bytes.length,
         readAt: new Date().toISOString(),
-        title: asset.title,
-        kind: asset.kind,
-        imageRead,
-        nativeImageInput,
-        notice: imageRead
-          ? nativeImageInput
-            ? "已讀取上傳畫面，對話也可看圖。"
-            : "已讀取上傳畫面並交給工具。原生對話插圖尚未開啟，不把檔名當成已看過。"
-          : "已讀取文字內容，不是圖片分析。",
-        ...(imageRead
+        ...(asset.kind === "image"
           ? { imageData: bytes.toString("base64") }
           : { text: redact(bytes.toString("utf8")) }),
       };
@@ -625,18 +599,6 @@ async function execute(
     }
     case "workspace_delete_memory":
       return deleteMemory(owner, schemas[name].parse(args).memoryId);
-    case "workspace_search_research": {
-      const { searchResearch } = await import("./research/notes");
-      return searchResearch(schemas[name].parse(args).query);
-    }
-    case "workspace_search_inspiration": {
-      const input = schemas[name].parse(args);
-      const { inspirationBriefForAgent } = await import("./inspiration/engine");
-      return inspirationBriefForAgent({
-        prompt: input.query,
-        projectId: input.projectId || "personal",
-      });
-    }
     case "canva_search_designs":
       return canvaRequest(
         owner,
@@ -899,22 +861,18 @@ async function finishToolCall(
         "canva_authorization_required",
         "Canva 尚未通過授權驗證。請先保存進度並等待使用者授權；沒有執行設計操作。",
       );
-    const result = await withSafeRetry(run, { toolName: name });
-    if (
-      !usableToolPayload(result) ||
-      typeof result !== "object" ||
-      Array.isArray(result)
-    )
-      throw new ApiError(
-        502,
-        "empty_output",
-        "工具沒有回傳可使用的內容。",
-      );
+    const result = await run();
     const object = z.record(z.string(), z.unknown()).parse(result);
     const imageData =
       name === "workspace_read_material" && typeof object.imageData === "string"
         ? object.imageData
         : null;
+    if (isEmptyToolResult(object) && !imageData)
+      throw new ApiError(
+        502,
+        "empty_tool_result",
+        "工具沒有回傳可讀內容，不能算成功。",
+      );
     delete object.imageData;
     const text = redact(JSON.stringify(object));
     if (Buffer.byteLength(text, "utf8") > 1_000_000)
@@ -949,7 +907,10 @@ async function finishToolCall(
       error instanceof ApiError
         ? redact(error.message)
         : "工具執行失敗，沒有產生替代成果。";
-    receipt.retryable = safeToRetry(name) && isTransientToolError(error);
+    receipt.retryable =
+      error instanceof ApiError &&
+      [429, 503].includes(error.status) &&
+      error.code !== "tool_budget_exceeded";
     if (
       /authorization_required|token_expired|canva_unauthorized/.test(
         receipt.errorCode,

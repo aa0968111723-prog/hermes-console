@@ -17,12 +17,6 @@ export function material(owner: string, id: string) {
   if (!value) throw new ApiError(404, "not_found", "找不到素材。");
   return value;
 }
-
-export function countImageAttachments(owner: string, ids: string[]) {
-  return ids.filter(
-    (id) => get<Material>("material", owner, id)?.kind === "image",
-  ).length;
-}
 export function filePath(owner: string, id: string) {
   if (
     ![WORKSPACE_OWNER, "owner"].includes(owner) ||
@@ -32,72 +26,59 @@ export function filePath(owner: string, id: string) {
   return join(dataDir(), "uploads", owner, id);
 }
 
-export function thumbPath(owner: string, id: string) {
+export function thumbnailPath(owner: string, id: string) {
   return filePath(owner, id) + ".thumb.webp";
 }
 
-export function labeledCoverSvg(label: "PDF" | "TXT") {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320" role="img"><rect width="240" height="320" fill="#f4f7f0"/><rect x="28" y="36" width="184" height="248" rx="12" fill="#fff" stroke="#c5d6bb"/><text x="120" y="168" text-anchor="middle" font-size="32" font-family="system-ui,sans-serif" fill="#356b45">${label}</text></svg>`;
+async function ensureImageThumbnail(
+  owner: string,
+  id: string,
+  source?: Buffer,
+) {
+  const path = thumbnailPath(owner, id);
+  try {
+    return { bytes: await readFile(path), mime: "image/webp" as const };
+  } catch {
+    const input = source || (await readFile(filePath(owner, id)));
+    const bytes = await sharp(input, {
+      limitInputPixels: 25_000_000,
+      animated: false,
+    })
+      .rotate()
+      .resize({
+        width: 480,
+        height: 480,
+        fit: "inside",
+        withoutEnlargement: true,
+      })
+      .webp({ quality: 72 })
+      .toBuffer();
+    try {
+      await writeFile(path, bytes, { flag: "wx", mode: 0o600 });
+    } catch {
+      try {
+        return { bytes: await readFile(path), mime: "image/webp" as const };
+      } catch {
+        /* serve the in-memory thumbnail if two writers raced */
+      }
+    }
+    return { bytes, mime: "image/webp" as const };
+  }
 }
 
 export async function materialBytes(
   owner: string,
-  asset: Material,
+  id: string,
   variant: "full" | "thumb" = "full",
-): Promise<{ body: Buffer; mime: string; cache: string }> {
+) {
+  const asset = material(owner, id);
   if (asset.kind === "reference")
-    throw new ApiError(400, "invalid_input", "參考連結沒有可下載的檔案。");
-  if (variant === "thumb") {
-    if (asset.kind === "image") {
-      const cached = thumbPath(owner, asset.id);
-      try {
-        return {
-          body: await readFile(cached),
-          mime: "image/webp",
-          cache: "private, max-age=86400",
-        };
-      } catch {
-        const original = await readFile(filePath(owner, asset.id));
-        try {
-          const body = await sharp(original, {
-            limitInputPixels: 25_000_000,
-            animated: false,
-          })
-            .rotate()
-            .resize({
-              width: 480,
-              height: 480,
-              fit: "inside",
-              withoutEnlargement: true,
-            })
-            .webp({ quality: 72 })
-            .toBuffer();
-          await writeFile(cached, body, { mode: 0o600 });
-          return {
-            body,
-            mime: "image/webp",
-            cache: "private, max-age=86400",
-          };
-        } catch {
-          return {
-            body: original,
-            mime: asset.mime || "image/png",
-            cache: "private, max-age=3600",
-          };
-        }
-      }
-    }
-    const label = asset.mime === "application/pdf" ? "PDF" : "TXT";
-    return {
-      body: Buffer.from(labeledCoverSvg(label)),
-      mime: "image/svg+xml",
-      cache: "private, max-age=86400",
-    };
-  }
+    throw new ApiError(400, "not_a_file", "連結沒有可下載檔案。");
+  if (variant === "thumb" && asset.kind === "image")
+    return ensureImageThumbnail(owner, id);
   return {
-    body: await readFile(filePath(owner, asset.id)),
+    bytes: await readFile(filePath(owner, id)),
     mime: asset.mime || "application/octet-stream",
-    cache: "private, no-store",
   };
 }
 
@@ -415,6 +396,7 @@ export async function saveUpload(
     mode: 0o700,
   });
   await writeFile(filePath(owner, id), content, { flag: "wx", mode: 0o600 });
+  if (kind === "image") await ensureImageThumbnail(owner, id, content);
   const fingerprint = fingerprintBytes(content);
   return put(
     "material",
@@ -452,23 +434,23 @@ export async function attachmentParts(owner: string, ids: string[]) {
       continue;
     }
     if (asset.kind === "image") {
-      if (process.env.HERMES_IMAGE_INPUT === "true") {
-        const content = await readFile(filePath(owner, id));
-        parts.push({
-          type: "image_url",
-          image_url: {
-            url: "data:image/png;base64," + content.toString("base64"),
-          },
-        });
-      } else {
+      if (process.env.HERMES_IMAGE_INPUT !== "true") {
         parts.push({
           type: "text",
           text: wrapUntrusted(
-            "attachment",
-            `圖片「${asset.title}」已保存（materialId=${asset.id}）。此部署尚未驗證 Hermes 原生圖片輸入。必須呼叫 workspace_read_material 讀取真實畫面；檔名不是已讀圖。`,
+            "image",
+            `圖片附件「${asset.title}」已保存。尚未驗證看圖，沒有像素資料。不得描述圖中細節或假裝已看圖。`,
           ),
         });
+        continue;
       }
+      const content = await readFile(filePath(owner, id));
+      parts.push({
+        type: "image_url",
+        image_url: {
+          url: "data:image/png;base64," + content.toString("base64"),
+        },
+      });
       continue;
     }
     const content = await readFile(filePath(owner, id));

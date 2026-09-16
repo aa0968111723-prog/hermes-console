@@ -1,4 +1,4 @@
-import type { StructuredGoal } from "../../contracts";
+import type { StructuredGoal, TaskFocus } from "../../contracts";
 import type { AssistantMode } from "../../assistant-modes";
 import { specialistInstructions } from "../../assistant-modes";
 import { isFramelabIntent, isLumenIntent } from "../projects/router";
@@ -87,6 +87,7 @@ export function composeTaskInstructions(input: {
   }
   if (
     input.goal.requiresDesign ||
+    input.goal.requiresImageAnalysis ||
     input.goal.output ||
     /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
       input.text,
@@ -95,7 +96,7 @@ export function composeTaskInstructions(input: {
     parts.push(COPYWRITING_INSTRUCTION_PACK);
     packs.push("copywriting");
   }
-  if (input.goal.requiresDesign || input.goal.output) {
+  if (input.goal.requiresDesign || input.goal.requiresImageAnalysis || input.goal.output) {
     parts.push(
       VISUAL_INSTRUCTION_PACK,
       DIRECTION_INSTRUCTION_PACK,
@@ -145,4 +146,39 @@ export function dropOptionalPacks(composed: ReturnType<typeof composeTaskInstruc
     includeLumenManual: false,
     includeFramelabManual: false,
   };
+}
+
+export function focusInstructions(focus?: TaskFocus | null) {
+  if (
+    !focus ||
+    (!focus.copyId && !focus.workflowId && !focus.activityId)
+  )
+    return "";
+  const parts = ["使用者要接續同一作品或活動，禁止重建無關輸出。"];
+  if (focus.copyId)
+    parts.push(
+      "呼叫 workspace_get_copy，copyId=" +
+        focus.copyId +
+        (focus.revision ? "，以 v" + focus.revision + " 為修改基礎" : "") +
+        "。沿用相同 id 與最新 expectedRevision 保存新版本。",
+    );
+  if (focus.workflowId)
+    parts.push(
+      "查回創作流程 " +
+        focus.workflowId +
+        " 的現有設計與選定方向。已有設計時先查回，不要重複建立。",
+    );
+  if (focus.activityId)
+    parts.push(
+      "呼叫 workspace_project_context 讀取活動 activityId=" +
+        focus.activityId +
+        "。依已確認資訊提出三個方向並保存，等待使用者選擇。私人資訊不得用於公開文宣。",
+    );
+  if (focus.direction)
+    parts.push(
+      "使用者已選定方向 " +
+        focus.direction +
+        "。依此方向查詢可用 Canva 範本欄位製作；缺授權請保留阻塞點，不要宣稱完成。",
+    );
+  return parts.join("");
 }

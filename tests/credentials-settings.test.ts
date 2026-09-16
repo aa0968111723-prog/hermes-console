@@ -8,6 +8,8 @@ import { randomBytes } from "node:crypto";
 import { constants } from "node:fs";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-cred-"));
+import { seedSession } from "./session-fixture";
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3233";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
@@ -180,7 +182,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     tku.close();
   });
 
-  await t.test("GET credentials is open like the no-login workspace", async () => {
+  await t.test("GET credentials requires the workspace session and hides secrets", async () => {
     const response = await credentials.GET(request("settings/credentials"));
     assert.equal(response.status, 200);
     const body = await response.json();
@@ -188,7 +190,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.equal(body.fields.HERMES_API_KEY.configured, false);
     assert.equal(body.tamkang.state, "unconfigured");
     assert.equal(body.galley.state, "unconfigured");
-    assert.match(body.openSettingsWarning, /沒有邀請登入或閘道保護/);
+    assert.match(body.openSettingsWarning, /擁有者或管理者/);
     assert.equal(body.zeabur.token.configured, false);
     assert.match(body.zeabur.notice, /覆寫權杖/);
   });
@@ -304,12 +306,18 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     );
     assert.equal(probed.status, 200);
     const result = await probed.json();
-    assert.ok(["partial", "connected", "verified", "failed"].includes(result.tamkang.state));
-    assert.ok(["partial", "connected", "verified", "failed"].includes(result.probe.status));
+    assert.ok(["unconfigured", "verifying", "available", "partial", "failed"].includes(result.tamkang.state));
+    assert.ok(["unconfigured", "verifying", "available", "partial", "failed"].includes(result.probe.status));
     assert.ok(!JSON.stringify(result).includes(tkuToken));
   });
 
-  await t.test("Tamkang campus password login is rejected", async () => {
+  await t.test("Tamkang campus credential exchange stores token when origin exposes /auth/login", async () => {
+    await credentials.POST(
+      request("settings/credentials", "POST", {
+        TKU_MCP_URL: tkuUrl,
+        clear: ["TKU_MCP_TOKEN"],
+      }),
+    );
     const exchanged = await tamkangRoute.POST(
       request("settings/tamkang", "POST", {
         action: "login",
@@ -317,22 +325,27 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
         password: "campus-secret",
       }),
     );
-    assert.equal(exchanged.status, 400);
+    assert.equal(exchanged.status, 200);
     const body = await exchanged.json();
+    assert.equal(body.exchanged, true);
+    assert.equal(body.fields.TKU_MCP_TOKEN.last4, "9999");
     assert.ok(!JSON.stringify(body).includes("campus-secret"));
+    assert.ok(!JSON.stringify(body).includes("tku-exchanged-token-9999"));
+    assert.equal(runtimeEnv("TKU_MCP_TOKEN"), "tku-exchanged-token-9999");
   });
 
-  await t.test("Tamkang probe still uses a stored bearer token", async () => {
-    await credentials.POST(
-      request("settings/credentials", "POST", {
-        TKU_MCP_URL: tkuUrl,
-        TKU_MCP_TOKEN: tkuToken,
+  await t.test("unknown Tamkang auth is honest, not a fake campus SSO", async () => {
+    const failed = await tamkangRoute.POST(
+      request("settings/tamkang", "POST", {
+        action: "login",
+        username: "nobody",
+        password: "wrong-password",
       }),
     );
-    const probed = await tamkangRoute.POST(
-      request("settings/tamkang", "POST", { action: "test" }),
-    );
-    assert.equal(probed.status, 200);
+    assert.equal(failed.status, 502);
+    const body = await failed.json();
+    assert.equal(body.error.code, "tku_login_unsupported");
+    assert.match(body.error.message, /請改貼 Bearer 權杖/);
   });
 
   await t.test("research and creative conversation contracts stay intact", async () => {
@@ -375,8 +388,8 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.doesNotMatch(ui, /tku-exchanged-token/);
     assert.doesNotMatch(ui, />帳號</);
     assert.doesNotMatch(ui, />登入</);
-    assert.match(ui, /不收集校園帳號或密碼/);
-    assert.doesNotMatch(ui, /以校園憑證|tkuUser|tkuPassword|setTkuPassword/);
-    assert.doesNotMatch(ui, /action:\s*["']login["']/);
+    assert.doesNotMatch(ui, /galley_research|lumen_utter|planform_run_agent/);
+    assert.doesNotMatch(ui, /淡江密碼/);
+    assert.match(ui, /不是淡江 SSO/);
   });
 });

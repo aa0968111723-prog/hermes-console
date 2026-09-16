@@ -15,6 +15,12 @@ export type TaskState =
   | "failed"
   | "cancelled"
   | "uncertain";
+export const DESIGN_WITHOUT_PREVIEW =
+  "還沒有可預覽的作品。規格已保留，沒有假裝設計完成。";
+export const RESEARCH_WITHOUT_SOURCES =
+  "還沒找到可核對的來源。沒有假裝已經搜到資料。";
+export const IMAGE_WITHOUT_VISION =
+  "還沒驗證看圖。只根據你的文字，沒有假裝已分析畫面。";
 export interface Usage {
   model: string | null;
   inputTokens: number | null;
@@ -92,7 +98,15 @@ export interface Task {
   goal?: StructuredGoal;
   plan?: ExecutionPlan;
   budgetMode?: BudgetMode;
+  focus?: TaskFocus | null;
 }
+export type TaskFocus = {
+  copyId?: string;
+  revision?: number;
+  workflowId?: string;
+  direction?: number;
+  activityId?: string;
+};
 export type BudgetMode = "fast" | "balanced" | "deep";
 export type IntentTier = "chitchat" | "continue" | "lookup" | "create";
 export interface StructuredGoal {
@@ -105,9 +119,11 @@ export interface StructuredGoal {
   requiresAudienceEvaluation: boolean;
   requiresTamkang: boolean;
   requiresInspiration: boolean;
-  requiresImageRead: boolean;
-  requiresLumen: boolean;
-  targetRevision: string | null;
+  requiresImageRead?: boolean;
+  requiresLumen?: boolean;
+  targetRevision?: string | null;
+  requiresImageAnalysis?: boolean;
+  requiresImageReview?: boolean;
   intentTier: IntentTier;
 }
 export interface PlanStep {

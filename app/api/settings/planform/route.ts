@@ -1,13 +1,12 @@
 import { z } from "zod";
-import { jsonBody, respond, route } from "@/lib/server/security";
+import { authenticateOperator, jsonBody, respond, route } from "@/lib/server/security";
 import { testPlanformConnection } from "@/lib/server/planform";
 import { publicSettings } from "@/lib/server/settings";
-import { requireSettingsWrite } from "@/lib/server/auth/settings-write";
 
 export const runtime = "nodejs";
 
 export const POST = route(async (request) => {
-  requireSettingsWrite(request);
+  authenticateOperator(request, true);
   z.object({ action: z.literal("test") }).strict().parse(await jsonBody(request, 4_000));
   const probe = await testPlanformConnection();
   return respond({ ...publicSettings(), ...probe });

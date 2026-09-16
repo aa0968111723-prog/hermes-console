@@ -4,10 +4,12 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes, randomUUID } from "node:crypto";
+import { seedSession } from "./session-fixture";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-cycle16-failclosed-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "https://console.example";
 process.env.MCP_BRIDGE_TOKEN = randomBytes(32).toString("hex");
 process.env.MCP_REQUIRE_TASK_CONTEXT = "true";

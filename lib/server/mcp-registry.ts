@@ -14,10 +14,19 @@ import { runtimeEnv } from "./credentials";
 export type McpStatus =
   | "unconfigured"
   | "verifying"
-  | "connected"
+  | "available"
   | "partial"
-  | "verified"
-  | "failed";
+  | "failed"
+  | "connected"
+  | "verified";
+
+export function publicMcpStatus(
+  status: McpStatus,
+): "unconfigured" | "verifying" | "available" | "partial" | "failed" {
+  if (status === "connected") return "verifying";
+  if (status === "verified") return "available";
+  return status;
+}
 export interface McpEntry {
   id: string;
   name: string;
@@ -45,6 +54,41 @@ export interface McpEntry {
   serverInfo?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
 }
+
+export type PublicMcpEntry = {
+  id: string;
+  name: string;
+  status: ReturnType<typeof publicMcpStatus>;
+  enabled: boolean;
+  readonly: boolean;
+  trustedLevel: McpEntry["trustedLevel"];
+  toolsCount: number;
+  lastError: string | null;
+};
+
+/** Student/member view: status only. No endpoint, env names, or tool schemas. */
+export function presentMcpEntry(entry: McpEntry, operator: boolean) {
+  const status = publicMcpStatus(entry.status);
+  const lastError = entry.lastError ? redact(entry.lastError) : null;
+  if (!operator) {
+    return {
+      id: entry.id,
+      name: entry.name,
+      status,
+      enabled: entry.enabled,
+      readonly: entry.readonly,
+      trustedLevel: entry.trustedLevel,
+      toolsCount: entry.tools.length,
+      lastError: null,
+    } satisfies PublicMcpEntry;
+  }
+  return {
+    ...entry,
+    status,
+    lastError,
+  };
+}
+
 const definition = z
   .object({
     id: z.string().regex(/^[a-zA-Z0-9_-]{2,40}$/),
@@ -235,7 +279,9 @@ export function seedRegistry(): McpEntry[] {
           : matches
             ? old.status === "verified"
               ? "partial"
-              : old.status
+              : old.status === "connected"
+                ? "verifying"
+                : old.status
             : "unconfigured",
       verifiedAt: matches ? old.verifiedAt : null,
       lastError:
@@ -255,7 +301,7 @@ export function seedRegistry(): McpEntry[] {
         endpoint: "",
         credentialReference: null,
         tools: [],
-        status: "unconfigured" as const,
+        status: "unconfigured",
         verifiedAt: null,
         lastError: "舊連接未在後端核准清單中，已停用。",
         enabled: false,
@@ -304,104 +350,15 @@ export function interpretVerification(steps: {
   initialize: boolean;
   toolsList: boolean;
   safeRead: boolean;
-}): McpStatus {
+}): Exclude<McpStatus, "connected" | "verified"> {
   if (!steps.initialize) return "failed";
-  if (!steps.toolsList) return "connected";
-  return steps.safeRead ? "verified" : "partial";
-}
-
-type ListedTool = {
-  name: string;
-  inputSchema?: Record<string, unknown>;
-  annotations?: {
-    readOnlyHint?: boolean;
-    destructiveHint?: boolean;
-  };
-};
-
-export function isSafeReadTool(tool: ListedTool) {
-  if (tool.annotations?.readOnlyHint !== true) return false;
-  if (tool.annotations?.destructiveHint === true) return false;
-  const required = tool.inputSchema?.required;
-  return !Array.isArray(required) || required.length === 0;
-}
-
-export function toolCallHasReadableContent(result: {
-  isError?: boolean;
-  content?: Array<{ type?: string; text?: string }>;
-}) {
-  if (result.isError) return false;
-  const content = result.content;
-  if (!Array.isArray(content) || content.length === 0) return false;
-  return content.some((part) => {
-    if (!part) return false;
-    if (part.type === "text") return Boolean(part.text?.trim());
-    return true;
-  });
-}
-
-async function probeSafeRead(client: Client, tools: ListedTool[]) {
-  const caps = client.getServerCapabilities() as
-    | { resources?: unknown }
-    | undefined;
-  if (caps?.resources) {
-    try {
-      const listed = await client.listResources({}, { timeout: 8_000 });
-      if (Array.isArray(listed.resources) && listed.resources.length > 0)
-        return true;
-    } catch {
-      /* Fall through to a read-only tool. */
-    }
-  }
-  const safe = tools.find(isSafeReadTool);
-  if (!safe) return false;
-  try {
-    const result = await client.callTool(
-      { name: safe.name, arguments: {} },
-      undefined,
-      { timeout: 8_000 },
-    );
-    return toolCallHasReadableContent(
-      result as {
-        isError?: boolean;
-        content?: Array<{ type?: string; text?: string }>;
-      },
-    );
-  } catch {
-    return false;
-  }
+  if (!steps.toolsList) return "failed";
+  return steps.safeRead ? "available" : "partial";
 }
 export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
   if (!entry.enabled) return entry;
   const config = controlled(entry.id); // Recheck stored records before every outgoing request.
-  if (!config.endpoint) {
-    return put("mcp_registry", WORKSPACE_OWNER, {
-      ...entry,
-      ...config,
-      tools: [],
-      status: "unconfigured" as const,
-      verifiedAt: null,
-      lastError: "尚未設定端點。",
-    });
-  }
-  if (config.credentialReference && !runtimeEnv(config.credentialReference)) {
-    return put("mcp_registry", WORKSPACE_OWNER, {
-      ...entry,
-      ...config,
-      tools: [],
-      status: "unconfigured" as const,
-      verifiedAt: null,
-      lastError: "尚未設定權杖。",
-    });
-  }
-  put("mcp_registry", WORKSPACE_OWNER, {
-    ...entry,
-    ...config,
-    status: "verifying" as const,
-    lastError: null,
-  });
   const client = new Client({ name: "hermes-console-discovery", version: "2" });
-  let connected = false;
   const deadline = AbortSignal.timeout(20_000);
   const credential = config.credentialReference
     ? runtimeEnv(config.credentialReference)
@@ -441,11 +398,14 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     if (config.credentialReference) {
       const token = runtimeEnv(config.credentialReference);
       if (!token)
-        throw new ApiError(
-          503,
-          "mcp_credential_missing",
-          "此 MCP 缺少後端服务憑證。",
-        );
+        return put("mcp_registry", WORKSPACE_OWNER, {
+          ...entry,
+          ...config,
+          tools: [],
+          status: "unconfigured" as const,
+          verifiedAt: null,
+          lastError: "尚未設定權杖。",
+        });
       headers.Authorization = "Bearer " + token;
     }
     const target = new URL(config.endpoint);
@@ -485,24 +445,14 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       },
     });
     await client.connect(transport, { timeout: 10_000 });
-    connected = true;
     let cursor: string | undefined;
-    const discovered: ListedTool[] = [];
     const tools: McpEntry["tools"] = [];
     for (let page = 0; page < 10; page++) {
       const result = await client.listTools(cursor ? { cursor } : {}, {
         timeout: 10_000,
       });
-      for (const t of result.tools) {
-        discovered.push({
-          name: t.name,
-          inputSchema: t.inputSchema as Record<string, unknown> | undefined,
-          annotations: t.annotations && {
-            readOnlyHint: t.annotations.readOnlyHint,
-            destructiveHint: t.annotations.destructiveHint,
-          },
-        });
-        tools.push({
+      tools.push(
+        ...result.tools.map((t) => ({
           name: redact(t.name),
           description: redact(t.description || ""),
           inputSchema: JSON.parse(
@@ -519,8 +469,8 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
             destructiveHint: t.annotations.destructiveHint,
             idempotentHint: t.annotations.idempotentHint,
           },
-        });
-      }
+        })),
+      );
       if (tools.length > 1000) throw new Error("MCP tool limit");
       cursor = result.nextCursor;
       if (!cursor) break;
@@ -528,21 +478,11 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
     if (cursor) throw new Error("MCP pagination limit");
     const changed = currentEntry();
     if (changed) return changed;
-    let safeRead = false;
-    try {
-      safeRead = await probeSafeRead(client, discovered);
-    } catch {
-      safeRead = false;
-    }
     return put("mcp_registry", WORKSPACE_OWNER, {
       ...entry,
       ...config,
       tools,
-      status: interpretVerification({
-        initialize: true,
-        toolsList: tools.length > 0,
-        safeRead,
-      }),
+      status: "partial" as const,
       verifiedAt: new Date().toISOString(),
       lastError: null,
       serverInfo: JSON.parse(
@@ -560,7 +500,7 @@ export async function probeMcp(entry: McpEntry, signal?: AbortSignal) {
       ...entry,
       ...config,
       tools: [],
-      status: connected ? ("connected" as const) : ("failed" as const),
+      status: "failed" as const,
       verifiedAt: null,
       lastError:
         error instanceof ApiError
@@ -588,4 +528,35 @@ export function setMcpEnabled(id: string, enabled: boolean) {
 }
 export function getMcp(id: string) {
   return seedRegistry().find((item) => item.id === id) || null;
+}
+
+
+type ListedTool = {
+  name: string;
+  inputSchema?: Record<string, unknown>;
+  annotations?: {
+    readOnlyHint?: boolean;
+    destructiveHint?: boolean;
+  };
+};
+
+export function isSafeReadTool(tool: ListedTool) {
+  if (tool.annotations?.readOnlyHint !== true) return false;
+  if (tool.annotations?.destructiveHint === true) return false;
+  const required = tool.inputSchema?.required;
+  return !Array.isArray(required) || required.length === 0;
+}
+
+export function toolCallHasReadableContent(result: {
+  isError?: boolean;
+  content?: Array<{ type?: string; text?: string }>;
+}) {
+  if (result.isError) return false;
+  const content = result.content;
+  if (!Array.isArray(content) || content.length === 0) return false;
+  return content.some((part) => {
+    if (!part) return false;
+    if (part.type === "text") return Boolean(part.text?.trim());
+    return true;
+  });
 }

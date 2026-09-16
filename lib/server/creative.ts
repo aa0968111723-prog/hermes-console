@@ -12,10 +12,9 @@ import {
   type Fact,
 } from "../creative";
 import { get, list, put, transaction } from "./store";
-import { listMemories } from "./memory";
+import { isStaleMemory, memoriesForContext } from "./memory";
 import { ApiError, hash, redact } from "./security";
 import { listMaterials, material } from "./materials";
-import { listLatestArtifacts } from "./artifacts";
 import { compileVisualConcepts } from "./creative/visual-concepts";
 import type { VisualFormatId } from "./creative/formats";
 import { auditEventCopy } from "./qa";
@@ -372,22 +371,59 @@ export function selectCopy(
 }
 export function projectContext(owner: string, projectId: string) {
   assertProject(owner, projectId);
-  const named = get<{ name?: string }>("project", owner, projectId);
-  const name =
-    named?.name || (projectId === "personal" ? "個人" : projectId);
+  const project = get<{ id: string; name?: string }>("project", owner, projectId);
+  const artifacts = list<{
+    artifactId: string;
+    revisionId: string;
+    title: string;
+    projectId: string;
+    preview?: unknown;
+  }>("artifact", owner)
+    .filter((item) => item.projectId === projectId)
+    .map((item) => ({
+      artifactId: item.artifactId,
+      revisionId: item.revisionId,
+      title: item.title,
+    }));
   return {
+    name: project?.name || (projectId === "personal" ? "個人" : projectId),
+    artifacts,
     projectId,
-    name,
     queriedAt: new Date().toISOString(),
     memorySynced: false,
-    sharedMemories: listMemories(owner, projectId).slice(0, 20).map((item) => ({
-      id: item.id,
-      kind: item.kind,
-      title: item.title,
-      content: item.content,
-      scope: item.scope,
-      updatedAt: item.updatedAt,
-    })),
+    sharedMemories: memoriesForContext(owner, projectId)
+      .slice(0, 20)
+      .map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        title: item.title,
+        content: item.content,
+        scope: item.scope,
+        layer: item.layer,
+        source: item.source,
+        confidence: item.confidence,
+        updatedAt: item.updatedAt,
+        stale: isStaleMemory(item),
+      })),
+    workflows: list<{
+      id: string;
+      projectId: string;
+      state: string;
+      selected: number | null;
+      design: unknown;
+      updatedAt: string;
+      brief: string;
+    }>("workflow", owner)
+      .filter((row) => row.projectId === projectId)
+      .slice(0, 20)
+      .map((row) => ({
+        id: row.id,
+        state: row.state,
+        selected: row.selected,
+        hasDesign: !!row.design,
+        updatedAt: row.updatedAt,
+        brief: (row.brief || "").slice(0, 120),
+      })),
     activities: list<Activity>("activity", owner)
       .filter((a) => a.projectId === projectId)
       .slice(0, 50)
@@ -415,15 +451,6 @@ export function projectContext(owner: string, projectId: string) {
         check: checkCopy(owner, d),
       })),
     materials: listMaterials(owner, { projectId }).slice(0, 100),
-    artifacts: listLatestArtifacts(owner, projectId, 20).map((item) => ({
-      artifactId: item.artifactId,
-      revisionId: item.revisionId,
-      revision: item.revision,
-      title: item.title,
-      source: item.source,
-      createdAt: item.createdAt,
-      parentArtifactId: item.parentArtifactId,
-    })),
     tasks: list<Task>("task", owner)
       .filter(
         (t) =>
@@ -437,7 +464,7 @@ export function projectContext(owner: string, projectId: string) {
         error: t.error,
       })),
     notice:
-      "這是 Console 專案索引，不是 Hermes 長期記憶；最多列出最近 50 項活動／文案、20 項作品版本、100 項素材。使用 get 工具查回指定作品，並沿用 artifactId／revisionId。若多個成果符合需求，先詢問使用者，勿覆寫其他作品。",
+      "這是 Console 專案索引，不是 Hermes 長期記憶；最多列出最近 50 項活動／文案、20 項創作方向、100 項素材。過期記憶標 stale，不得當成最新事實。使用 get 工具查回指定作品。若多個成果符合需求，先詢問使用者，勿覆寫其他作品。",
   };
 }
 export function exportCopy(owner: string, id: string, number: number) {

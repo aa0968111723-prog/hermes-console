@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-intel-"));
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3211";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 delete process.env.CONSOLE_USERNAME;
@@ -83,11 +84,17 @@ function request(path: string, method = "GET", body?: unknown, origin = true) {
 }
 
 test("invited workspace, confirmation, discovery and creative intelligence", async (t) => {
-  await t.test("workspace APIs work without a member session", async () => {
-    const anonymous = new Request("http://localhost:3211/api/workspace");
-    assert.equal((await workspace.GET(anonymous)).status, 200);
-    assert.equal((await workspace.GET(request("workspace"))).status, 200);
-    assert.equal((await healthRoute.GET(request("health"))).status, 200);
+  await t.test("workspace APIs require a signed-in member", async () => {
+    const previous = process.env.CONSOLE_TEST_SESSION;
+    delete process.env.CONSOLE_TEST_SESSION;
+    try {
+      const anonymous = new Request("http://localhost:3211/api/workspace");
+      assert.equal((await workspace.GET(anonymous)).status, 401);
+      assert.equal((await workspace.GET(request("workspace"))).status, 200);
+      assert.equal((await healthRoute.GET(request("health"))).status, 200);
+    } finally {
+      process.env.CONSOLE_TEST_SESSION = previous;
+    }
     assert.equal(
       (
         await authRoute.POST(
@@ -246,7 +253,7 @@ test("invited workspace, confirmation, discovery and creative intelligence", asy
         toolsList: false,
         safeRead: false,
       }),
-      "connected",
+      "failed",
     );
     assert.equal(
       registry.interpretVerification({
@@ -262,7 +269,7 @@ test("invited workspace, confirmation, discovery and creative intelligence", asy
         toolsList: true,
         safeRead: true,
       }),
-      "verified",
+      "available",
     );
     assert.throws(
       () =>

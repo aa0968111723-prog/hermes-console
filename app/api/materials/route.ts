@@ -34,21 +34,20 @@ export const GET = route(async (req) => {
   const id = z.string().uuid().parse(rawId);
   const asset = material(owner, id);
   if (asset.kind === "reference") return respond({ material: asset });
-  const rawVariant = url.searchParams.get("variant");
-  if (rawVariant && rawVariant !== "thumb")
-    throw new ApiError(400, "invalid_input", "只支援 variant=thumb。");
-  const variant = rawVariant === "thumb" ? "thumb" : "full";
-  const file = await materialBytes(owner, asset, variant);
-  const filename =
-    variant === "thumb" && file.mime.startsWith("image/webp")
-      ? asset.title.replace(/\.[^.]+$/, "") + ".webp"
-      : asset.title;
-  return new Response(new Uint8Array(file.body), {
+  const variant = url.searchParams.get("variant");
+  if (variant && variant !== "thumb")
+    throw new ApiError(400, "invalid_variant", "只支援縮圖或原檔。");
+  const file = await materialBytes(
+    owner,
+    id,
+    variant === "thumb" ? "thumb" : "full",
+  );
+  return new Response(new Uint8Array(file.bytes), {
     headers: {
       "Content-Type": file.mime,
-      "Cache-Control": file.cache,
+      "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
-      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(filename)}`,
+      "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(asset.title)}`,
     },
   });
 });

@@ -11,6 +11,7 @@ import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-contract-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3210";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_USERNAME = "fixture-owner";
@@ -156,7 +157,7 @@ async function settle(id: string) {
   throw new Error("Fixture task did not settle");
 }
 test("security, honest health, durable tasks, uploads and ownership", async (t) => {
-  await t.test("workspace APIs are no-login single workspace", async () => {
+  await t.test("workspace APIs require a signed-in member", async () => {
     assert.equal(
       (await healthRoute.GET(request("health", "GET", undefined, false)))
         .status,
@@ -168,6 +169,19 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       ),
       "workspace",
     );
+    const previous = process.env.CONSOLE_TEST_SESSION;
+    delete process.env.CONSOLE_TEST_SESSION;
+    try {
+      assert.throws(
+        () =>
+          security.authenticate(
+            new Request("http://localhost:3210/api/workspace"),
+          ),
+        /請先登入/,
+      );
+    } finally {
+      process.env.CONSOLE_TEST_SESSION = previous;
+    }
     assert.equal(
       (
         await taskRoute.POST(
@@ -203,13 +217,14 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         ),
       /來源/,
     );
-    assert.equal(
-      security.authenticate(
-        new Request("http://localhost:3210/api/tasks", {
-          headers: { Cookie: "hermes_session=forged" },
-        }),
-      ),
-      "workspace",
+    assert.throws(
+      () =>
+        security.authenticate(
+          new Request("http://localhost:3210/api/tasks", {
+            headers: { Cookie: "hermes_session=forged" },
+          }),
+        ),
+      /請先登入|過期/,
     );
   });
   await t.test("client destinations and credentials rejected", async () => {
@@ -370,6 +385,8 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
   await t.test(
     "actual image bytes become image input, not filenames",
     async () => {
+      const previous = process.env.HERMES_IMAGE_INPUT;
+      delete process.env.HERMES_IMAGE_INPUT;
       const sharp = (await import("sharp")).default;
       const bytes = await sharp({
         create: { width: 2, height: 2, channels: 3, background: "#90c070" },
@@ -383,28 +400,30 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
         "image/png",
         bytes,
       );
-      await assert.rejects(
-        () =>
-          saveUpload(
-            "owner",
-            "personal",
-            "fake.png",
-            "image/png",
-            Buffer.from("not image"),
-          ),
-        /圖片無法/,
-      );
-      delete process.env.HERMES_IMAGE_INPUT;
-      const honest = await attachmentParts("owner", [asset.id]);
-      assert.equal(honest[0].type, "text");
-      assert.match(String(honest[0].text), /workspace_read_material/);
-      assert.match(String(honest[0].text), /materialId=/);
-      assert.doesNotMatch(JSON.stringify(honest), /data:image\/png;base64,/);
-      process.env.HERMES_IMAGE_INPUT = "true";
-      const parts = await attachmentParts("owner", [asset.id]);
-      assert.equal(parts[0].type, "image_url");
-      assert.match(JSON.stringify(parts), /data:image\/png;base64,/);
-      delete process.env.HERMES_IMAGE_INPUT;
+      try {
+        const honest = await attachmentParts("owner", [asset.id]);
+        assert.equal(honest[0].type, "text");
+        assert.match(String(honest[0].text), /尚未驗證看圖|不得假裝已看圖/);
+        assert.doesNotMatch(JSON.stringify(honest), /base64/);
+        process.env.HERMES_IMAGE_INPUT = "true";
+        const parts = await attachmentParts("owner", [asset.id]);
+        assert.equal(parts[0].type, "image_url");
+        assert.match(JSON.stringify(parts), /data:image\/png;base64,/);
+        await assert.rejects(
+          () =>
+            saveUpload(
+              "owner",
+              "personal",
+              "fake.png",
+              "image/png",
+              Buffer.from("not image"),
+            ),
+          /圖片無法/,
+        );
+      } finally {
+        if (previous === undefined) delete process.env.HERMES_IMAGE_INPUT;
+        else process.env.HERMES_IMAGE_INPUT = previous;
+      }
     },
   );
   await t.test("short continue windows history and skips Lumen manuals", async () => {
@@ -453,11 +472,17 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
     const systemText = String(system?.content || "");
     assert.equal(/lumen_utter|framelab_list_projects/.test(systemText), false);
     assert.match(systemText, /直接回覆|短回覆|接續修改/);
-    assert.ok(
-      done.events.some((event) => /意圖 continue/.test(event.summary)),
+    assert.equal(done.goal?.intentTier, "continue");
+    assert.equal(
+      done.events.some((event) =>
+        /意圖 continue|budgetMode=|\btokens\b/.test(event.summary),
+      ),
+      false,
     );
     assert.ok(
-      done.events.some((event) => /tokens/.test(event.summary)),
+      done.events.some((event) =>
+        /已整理成這次能送出的範圍|已整理目標/.test(event.summary),
+      ),
     );
   });
   await t.test("over-budget task fails visibly after trim", async () => {

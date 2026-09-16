@@ -22,9 +22,13 @@ export const IMAGE_CRITIQUE =
 
 export const REVISION_CUE = /第([一二三四五六七八九十]+|\d+)版|\b[vV]\d+\b/;
 
-export function classifyIntent(input: string): IntentTier {
+export function classifyIntent(
+  input: string,
+  options?: { hasImage?: boolean },
+): IntentTier {
   const text = input.trim();
-  if (!text) return "chitchat";
+  if (!text && !options?.hasImage) return "chitchat";
+  if (options?.hasImage) return "create";
   if (LOOKUP.test(text)) return "lookup";
   if (CREATE.test(text)) return "create";
   if (IMAGE_CRITIQUE.test(text) || REVISION_CUE.test(text)) return "create";

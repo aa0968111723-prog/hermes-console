@@ -50,48 +50,13 @@ export function buildPlan(
   }
   const campus = routes.find((item) => item.id === "campus");
   const research = routes.find((item) => item.id === "research");
-  const galley = routes.find((item) => item.id === "galley");
   const club = routes.find((item) => item.id === "club_knowledge");
-  const image = routes.find((item) => item.id === "image_read");
-  const lumen = routes.find((item) => item.id === "lumen");
-  const sourceRoute = campus || research || galley;
+  const galley = routes.find((item) => item.id === "galley");
+  const sourceRoute = campus || research;
   const steps: PlanStep[] = [
     step("讀取專案上下文", "確認目前專案、素材與近期對話。", "context_engine", null),
     step("讀取共用記憶", "只帶入相關、近期、已確認的記憶，不把整庫塞進提示。", "shared_memory", null),
   ];
-  if (goal.targetRevision) {
-    steps.push(
-      step(
-        "鎖定作品版本",
-        "只修改 " +
-          goal.targetRevision +
-          "，比較與還原走現有 revision，不得重新生成無關作品。",
-        null,
-        null,
-      ),
-    );
-  }
-  if (image || goal.requiresImageRead) {
-    steps.push(
-      step(
-        "讀取上傳素材",
-        "先用 workspace_read_material 讀真實圖片或文字，不能只看檔名。" +
-          (goal.constraints.find((item) => item.startsWith("素材 ID："))
-            ? " " + goal.constraints.find((item) => item.startsWith("素材 ID："))
-            : ""),
-        image?.tool || "workspace_read_material",
-        image?.fallback || null,
-      ),
-    );
-    steps.push(
-      step(
-        "分析畫面",
-        "看圖、視覺層級與修改建議；沒讀到內容不得假裝已分析。",
-        image?.tool || "workspace_read_material",
-        null,
-      ),
-    );
-  }
   if (club) {
     steps.push(
       step(
@@ -99,6 +64,17 @@ export function buildPlan(
         "先讀已索引的活動、文案與來源；缺資料標 UNKNOWN，不讀通訊錄。",
         club.tool,
         club.fallback,
+      ),
+    );
+  }
+  if (goal.requiresImageAnalysis) {
+    const image = routes.find((item) => item.id === "image");
+    steps.push(
+      step(
+        "看圖",
+        "先讀附件畫面：構圖、層級、對比、文字可讀性。沒讀到像素就標未讀圖。",
+        image?.tool || "ask_user",
+        image?.fallback || null,
       ),
     );
   }
@@ -120,26 +96,19 @@ export function buildPlan(
       ),
     );
   }
-  if (galley && sourceRoute?.id !== "galley") {
+  if (galley) {
     steps.push(
       step(
-        "來源優先研究",
-        galley.reason,
+        "研究情報",
+        "來源優先查已連線的研究情報；沒有外部 evidence 不得用記憶填空，也不得假裝已搜完整社群。",
         galley.tool,
         galley.fallback,
       ),
     );
   }
   if (goal.requiresInspiration) {
-    const inspiration = routes.find((item) => item.id === "inspiration");
     steps.push(
-      step(
-        "找靈感",
-        inspiration?.reason ||
-          "先讀已收藏靈感與視覺模式，不假裝 Instagram 全站搜尋。",
-        inspiration?.tool || "workspace_search_inspiration",
-        inspiration?.fallback || "ask_user",
-      ),
+      step("找靈感", "先讀已收藏靈感，再搜尋已授權來源。", "project_inspiration_then_web", "ask_user"),
     );
   }
   if (goal.requiresAudienceEvaluation) {
@@ -175,20 +144,51 @@ export function buildPlan(
         null,
       ),
     );
-    if (lumen) {
-      steps.push(
-        step("開 Lumen 畫板", lumen.reason, lumen.tool, lumen.fallback),
-      );
-    }
     steps.push(
       step("Canva 接續", "有授權才製作；否則只交規格。", routes.find((item) => item.id === "design")?.tool || "canva_spec_only", "canva_spec_only"),
     );
-  } else if (lumen) {
+    const lumen = routes.find((item) => item.id === "lumen");
+    if (lumen) {
+      steps.push(
+        step(
+          "創作台",
+          "已連線時由 Hermes 呼叫創作台整理方向與畫板；未連線不得假裝已開畫板。",
+          lumen.tool,
+          lumen.fallback,
+        ),
+      );
+    }
+  }
+  const framelab = routes.find((item) => item.id === "framelab");
+  if (framelab) {
     steps.push(
-      step("開 Lumen 畫板", lumen.reason, lumen.tool, lumen.fallback),
+      step(
+        "動畫",
+        "已連線時由 Hermes 讀時間軸／中間張；寫入需確認。未連線不得假裝已改像素。",
+        framelab.tool,
+        framelab.fallback,
+      ),
     );
   }
-  steps.push(step("最終審查", "列出來源、未完成步驟與需要你確認的操作。", null, null));
+  const planform = routes.find((item) => item.id === "planform");
+  if (planform) {
+    steps.push(
+      step(
+        "場佈",
+        "已連線時由 Hermes 跑場佈草稿；需確認後才套用。找不到物件就標 unresolved。",
+        planform.tool,
+        planform.fallback,
+      ),
+    );
+  }
+  steps.push(
+    step(
+      "最終審查",
+      "確認是否回答請求、工具是否失敗、重要主張是否有來源、作品是否存在。只報告結論，不展示思考鏈。",
+      null,
+      null,
+    ),
+  );
   return {
     summary: goal.goal.slice(0, 180),
     budgetMode,

@@ -1,14 +1,23 @@
 import { z } from "zod";
-import { jsonBody, respond, route } from "@/lib/server/security";
-import { testTamkangConnection } from "@/lib/server/settings";
-import { requireSettingsWrite } from "@/lib/server/auth/settings-write";
+import { authenticateOperator, jsonBody, respond, route } from "@/lib/server/security";
+import { exchangeTamkangLogin, testTamkangConnection } from "@/lib/server/settings";
 
 export const runtime = "nodejs";
 
 export const POST = route(async (request) => {
-  requireSettingsWrite(request);
-  z.object({ action: z.literal("test") })
-    .strict()
+  authenticateOperator(request, true);
+  const body = z
+    .discriminatedUnion("action", [
+      z.object({ action: z.literal("test") }).strict(),
+      z
+        .object({
+          action: z.literal("login"),
+          username: z.string().min(1).max(120),
+          password: z.string().min(1).max(200),
+        })
+        .strict(),
+    ])
     .parse(await jsonBody(request, 8_000));
-  return respond(await testTamkangConnection());
+  if (body.action === "test") return respond(await testTamkangConnection());
+  return respond(await exchangeTamkangLogin(body.username, body.password));
 });

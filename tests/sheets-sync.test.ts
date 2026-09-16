@@ -7,6 +7,7 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-sheets-"));
+seedSession();
 process.env.CONSOLE_ORIGIN = "https://console.example";
 process.env.CONSOLE_GATEWAY_SECRET = randomBytes(32).toString("hex");
 const { GET, POST } = await import("../app/api/inspiration/route");

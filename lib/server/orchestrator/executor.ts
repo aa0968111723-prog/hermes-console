@@ -10,9 +10,6 @@ import {
 } from "../context/assembler";
 import { CONTEXT_TOKEN_BUDGET } from "../context/budget";
 import { isFastTier } from "./intent";
-import { getMcp, seedRegistry } from "../mcp-registry";
-import { countImageAttachments } from "../materials";
-import { formatPlannerCatalog } from "./catalog";
 
 export function prepareOrchestration(
   owner: string,
@@ -21,21 +18,14 @@ export function prepareOrchestration(
   budgetMode: BudgetMode = task.budgetMode || "balanced",
 ) {
   const goal = interpretGoal(task.input, {
-    attachmentCount: task.attachments.length,
-    imageAttachmentCount: countImageAttachments(owner, task.attachments),
-    attachmentIds: task.attachments,
+    hasImage: task.attachments.length > 0,
+    focus: task.focus,
   });
   const fast = isFastTier(goal.intentTier);
   const effectiveBudget: BudgetMode = fast ? "fast" : budgetMode;
   const certifications = getCertification(owner).integrations;
-  const galley = getMcp("galley");
-  const lumen = getMcp("lumen");
-  const routes = routeTools(goal, certifications, {
-    galley: { status: galley?.status || "unconfigured" },
-    lumen: { status: lumen?.status || "unconfigured" },
-  });
+  const routes = routeTools(goal, certifications);
   const plan = buildPlan(goal, routes, effectiveBudget);
-  const catalog = fast ? "" : formatPlannerCatalog(seedRegistry());
   const context = fast
     ? {
         items: [],
@@ -57,7 +47,6 @@ export function prepareOrchestration(
         formatContextForInstructions(context),
         formatPlanForInstructions(plan),
         fallbackNotice ? "請向使用者說明：\n" + fallbackNotice : "",
-        catalog,
       ]
         .filter(Boolean)
         .join("\n\n");

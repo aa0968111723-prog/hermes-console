@@ -1,54 +1,42 @@
 # Architecture
 
-Hermes Console 是 Hermes Agent 的視覺化工作空間，不是獨立 Dashboard 或第二個 App。
-
 ```
 Human
-  → Hermes Console（AuthGate · Visual workspace）
+  → Hermes Console (AuthGate + visual workspace)
     → Hermes Agent
-      → Planner / Reasoning
-      → Memory（conversation / project / workspace / preference / system）
-      → Tools
-      → MCP Registry
-        → Tamkang / GALLEY / 訊核 / Atlas / Lumen / FrameLab / Canva / Workspace / External
-      → Artifacts / Results
+      → Planner / reasoning
+        → Memory (conversation / project / workspace / preference / runtime)
+        → Tools
+          → MCP registry
+            → External services
+              → Artifacts / results
 ```
 
-## Console
+Hermes Console is the human interface to that runtime. It is not a tool directory, MCP dashboard, Canva clone, or ChatGPT clone.
 
-- Next.js App Router。`/` → `AuthProvider` → `AuthGate` → `LoginScreen`；登入（或契約 `workspace` 模式）後才 `next/dynamic` 載入 `HermesConsole`。未登入不把工作區 JS 打進 First Load。
-- 正式環境 `CONSOLE_AUTH_MODE=required`（`NODE_ENV=production` 預設）。契約測試可用 `workspace` 單一 owner。
-- 前端只渲染結構化事件與結果。不展示內部推理、tool JSON、credentialReference。
-- 對話殼層逐步拆出 `PreviewPanel`／`TaskSheet`／`SettingsPanel`／`Composer`／`TopBar`／`Conversation`／`TasksPage`。
-- 靈感：主畫面是值得學／先避開視覺卡。`workspace_search_inspiration` 回已保存參考與社團視覺模式；禁止宣稱 Instagram 全站搜尋。招生漏斗與 Drive 知識在進階。
-- `GET /api/health` 在 required 且未登入時只回公開摘要，不含技能／模型目錄。
-- 手機：App Shell 鎖文件捲動；Chat 的唯一主捲動是 `.conversation-scroll`；其他頁用 `.secondary-page`／`.page-scroll`。鍵盤開啟時用 `visualViewport` 寫 `--app-height`，關閉時移除，避免殼層永久縮短。
+## Console responsibilities
 
-## Agent runtime
+- Authenticate the user (Google / Tamkang SSO / Email) and authorize workspace membership (`owner` / `admin` / `member`). Connection secrets require owner or admin.
+- Render conversations, projects, inspiration, artifacts, and turtle state.
+- Persist workspace data (SQLite or Console Postgres).
+- Expose Workspace MCP to Hermes. Probe external MCP. Never fake `available`.
+- Show high-level progress in the normal UI. Schema, endpoints, receipts, env-var requirements, and tool names stay in 進階 / Developer. Member GET `/api/integrations` and `/api/agents` return `view: normal` without those fields. Public `/api/health` is a liveness probe (`live` / `ready` / `agentReady`) that never waits on Hermes discovery. Task submit (`ensureHermesReady`) reuses a valid/unconfigured/failed cache, otherwise probes `/v1/models` only — not skills/toolsets. Student/member connection errors never name keys or env vars; owner/admin discovery keeps the probe wording. App live ≠ Agent ready (`GET /api/ready` is the store probe). Developer dumps (`/api/runtime/tools`, `/mcp`, `/agents`, `/bindings`, `/api/certification`, `/api/usage`) and `POST /api/health` require owner or admin. Planner picks Tamkang / GALLEY / Lumen / FrameLab / Planform from live availability; the student progress strip stays 理解／研究／靈感／客群／創作／完成.
 
-- 任務狀態：`queued`／`running`／`waiting_user`／`waiting_authorization`／`stopping`／`completed`／`failed`／`cancelled`／`uncertain`。
-- 取消會打後端 stop，不是只藏 UI。
-- 長任務中斷標 `uncertain`，不假裝仍在跑。程序啟動會立刻把沒有活 worker 的 chat／未取得 remoteId 任務改成 uncertain；有 remoteId 的 runs 才向 Hermes 查回。
-- Runtime Inspector：一般只看 Hermes／Memory／Tools／MCP 狀態點；進階才看工具清單、schema、latency。
-- 只對 `read` 工具自動重試 429／短暫 503／504（exponential backoff + jitter）。發佈、刪除、寫入、空結果、未設定端點不重試。
-- 每次 Tool：`toolCallId`／tool／start／end／status／latency／error category。latency 來自實際起訖，不是估算成功。
-- 一般 UI 任務進度是 理解／研究／創作／完成。靈感是 keep／avoid 卡片；讀圖是海報預覽與模擬修改方向；創作方向在對話內挑選；Canva 成果用 ArtifactStage 大預覽。不是 tool JSON。工具名稱、計數、schema、traceId 只在 Developer／任務詳情「技術資訊」。
-- 閒置工作區 20s 輪詢；有進行中任務才 3s。隱藏分頁不打。重連只拉狀態。
+## Hermes responsibilities
 
-## MCP
-
-- 後端 Registry 探測 Streamable HTTP。
-- `interpretVerification`：initialize 失敗 → failed；有連線無 tools/list → connected；有清單無安全讀取 → partial；read-only 工具回傳內容或 resources 清單非空 → verified。
-- 沒有端點或權杖 → unconfigured。探測中 → verifying。
-- 禁止把一次成功任務當成整個 Hermes `available`。
+- Plan, call tools, write memory through Workspace MCP, create artifacts.
+- Respect confirmation, cancel, budget, and max-step limits.
+- After Console restart, orphaned chat tasks become `uncertain` and are never auto-resent.
+- Do not expose chain-of-thought.
 
 ## Data
 
-- SQLite（`CONSOLE_DATA_DIR`）或 Postgres（`DATABASE_URL`，僅 `console_*` 表）。
-- 作品：`artifactId` + `revisionId`（restore／fork）。Planner 組裝上下文與 workspace MCP 會帶專案名稱與最近作品版本，不含 preview JSON。
-- 素材列表用 `/api/materials?id=&variant=thumb`（WebP）。PDF 回傳標示封面 SVG，不是頁面擷取。參考連結不代抓網站預覽。
-- 記憶列有 `source`／`createdAt`／`updatedAt`／`scope`／`confidence`。組裝上下文時 confidence 乘上 `recencyScore(updatedAt)`，舊列不會永遠當現況。專案 digest 可附加 workspace 列，但標明 scope，不把兩層混成同一列。
+Records live in one store (`kind` + `owner` + `id`):
 
-## AuthZ
+User / Identity / Session / Membership / Project / Conversation / Message / Task / Tool receipt / Material / Artifact (copy revisions) / Memory.
 
-登入 ≠ 進私人 Workspace。API 驗證 session + membership。憑證寫入限 owner／admin。Secret 只在 server。
+Memory rows have `scope`, `layer`, `source`, `confidence`, `updatedAt`. They are not a remote Hermes mirror unless separately verified.
+
+## Trust
+
+Unconfigured integrations stay unconfigured. `tools/list` is `partial`. Empty HTTP 200 is not success. Interrupted tasks are `uncertain`, not still running.

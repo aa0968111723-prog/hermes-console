@@ -27,6 +27,30 @@ export type IntegrationsSnapshot = {
   degraded: boolean;
   error?: { code: "store_unavailable"; message: string };
 };
+
+/** Student/member view: name + status. Env-var requirements and tool names stay operator-only. */
+export function presentIntegration(
+  item: Integration,
+  operator: boolean,
+): Integration {
+  if (!operator) {
+    return {
+      id: item.id,
+      name: item.name,
+      state: item.state,
+      verifiedAt: item.verifiedAt,
+      detail: "",
+      evidence: null,
+      tools: [],
+      requirements: [],
+    };
+  }
+  return {
+    ...item,
+    detail: redact(item.detail),
+    evidence: item.evidence ? redact(item.evidence) : null,
+  };
+}
 const STORE_UNAVAILABLE = {
   code: "store_unavailable" as const,
   message: "儲存庫無法使用。",

@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { seedSession } from "./session-fixture";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(
   join(tmpdir(), "hermes-funnel-ro-"),
 );
+seedSession();
 process.env.CONSOLE_ORIGIN = "http://localhost:3261";
 process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";

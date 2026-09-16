@@ -10,6 +10,7 @@ import type { Task } from "../lib/contracts";
 import sharp from "sharp";
 
 process.env.CONSOLE_DATA_DIR = await mkdtemp(join(tmpdir(), "hermes-pr11-"));
+seedSession();
 process.env.CONSOLE_ORIGIN = "https://console.example";
 process.env.CONSOLE_GATEWAY_SECRET = randomBytes(32).toString("hex");
 const secret = process.env.CONSOLE_GATEWAY_SECRET;
