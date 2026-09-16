@@ -17,6 +17,7 @@ Do not merge until each line is actually true, or explicitly marked **Partial**.
 - [ ] Tamkang SSO real IdP, or 「淡江 SSO 尚未完成設定」
 - [ ] Email register / login / verify / magic link / reset
 - [ ] No auto-merge by email
+- [ ] OAuth `mode=link` requires the original signed-in session
 - [ ] Logout clears session
 - [ ] Anonymous `/api/workspace` is 401
 - [ ] Members cannot GET/POST `/api/settings/credentials`; owners and admins can
