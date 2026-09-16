@@ -49,7 +49,7 @@
 | `CONSOLE_ALLOW_LOCAL_ACCESS` | live | 僅本機 loopback，且只在閘道檢查路徑上放行。 |
 | `CONSOLE_ORIGIN` | live | 變更請求驗 Origin。正式環境未設定必須 fail closed。 |
 | `HERMES_API_URL` / `HERMES_API_KEY` | live（環境或連線設定 UI） | 未設定則聊天不能送出。UI 寫入優先於環境變數。 |
-| `TKU_MCP_URL` / `TKU_MCP_TOKEN` | live 路徑／正式站常未設定 | 可從設定頁保存或交換權杖；未驗證前狀態為 Unconfigured／待驗證，不假裝 Connected。 |
+| `TKU_MCP_URL` / `TKU_MCP_TOKEN` | live 路徑／正式站常未設定 | 可從設定頁保存權杖；未驗證前狀態為 Unconfigured／待驗證，不假裝 Connected。不收集學校密碼。 |
 | Canva / IG / Pinterest / Vault | stub／未設定 | 創作管線用；教心所研究非必要。 |
 | 多使用者／研究者帳號 | **Partial** | 有 User／Identity／Membership。未獲 membership 的登入者不能進工作區。紀錄仍寫入同一 `workspace`。 |
 
@@ -121,7 +121,7 @@ POST /api/tasks
 
 1. 開啟 `/` → 「設定與連線」→「連線」。
 2. 填 Hermes 網址與金鑰，按「儲存連線設定」。`GET /api/health` 應看到 `configSource.hermesKey=vault`（有有效金鑰時再驗證模型清單）。
-3. 淡江：填 MCP 網址與權杖後「測試連線」；若來源有已知帳密交換端點，可用「以校園憑證交換權杖」。
+3. 淡江：填 MCP 網址與權杖後「測試連線」。學校登入走 SSO，不在設定頁收集校園密碼。
 4. **公開站任何人都可以覆寫這些欄位。** 這是明確的「不用保護」產品選擇。環境變數仍可當後備。
 5. 設定 → 連線也可保存 Zeabur API 權杖，並測試／寫入變數／推送 Console 金鑰／重新部署。公開站等同可改後端。
 

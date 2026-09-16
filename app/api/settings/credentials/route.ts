@@ -9,7 +9,7 @@ export const GET = route(async (request) => {
 });
 
 export const POST = route(async (request) => {
-  authenticate(request, true);
+  authenticate(request, true, true);
   const body = credentialsInput.parse(await jsonBody(request));
   return respond(saveCredentials(body));
 });

@@ -8,6 +8,7 @@ import {
   CANVA_INSTRUCTION_PACK,
   COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,
+  IMAGE_REVIEW_PACK,
   VISUAL_INSTRUCTION_PACK,
   FAST_TASK_INSTRUCTIONS,
   FRAMELAB_INSTRUCTION_PACK,
@@ -32,6 +33,7 @@ export type InstructionPackId =
   | "galley"
   | "inspiration"
   | "audience"
+  | "image"
   | "visual"
   | "copywriting"
   | "canva"
@@ -47,10 +49,11 @@ export function composeTaskInstructions(input: {
   text: string;
   goal: StructuredGoal;
   intentTier?: IntentTier;
+  hasImageAttachments?: boolean;
 }) {
   const tier = input.intentTier || input.goal.intentTier;
   const specialist = specialistInstructions(input.mode);
-  if (isFastTier(tier)) {
+  if (isFastTier(tier) && !input.hasImageAttachments) {
     return {
       instructions: specialist || FAST_TASK_INSTRUCTIONS,
       packs: ["fast"] as InstructionPackId[],
@@ -84,6 +87,21 @@ export function composeTaskInstructions(input: {
   if (input.goal.requiresAudienceEvaluation) {
     parts.push(AUDIENCE_INSTRUCTION_PACK);
     packs.push("audience");
+  }
+  const imageReview =
+    Boolean(input.hasImageAttachments) ||
+    /這張(圖|海報|稿|設計)?|哪裡可以改|視覺層級|分析這[張個]/.test(input.text);
+  if (imageReview) {
+    parts.push(IMAGE_REVIEW_PACK);
+    packs.push("image");
+    if (!packs.includes("audience")) {
+      parts.push(AUDIENCE_INSTRUCTION_PACK);
+      packs.push("audience");
+    }
+    if (!packs.includes("visual")) {
+      parts.push(VISUAL_INSTRUCTION_PACK);
+      packs.push("visual");
+    }
   }
   if (
     input.goal.requiresDesign ||

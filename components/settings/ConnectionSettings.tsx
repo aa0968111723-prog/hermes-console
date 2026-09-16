@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { RefreshCw } from "lucide-react";
 import IntegrationGrid from "../visual/IntegrationGrid";
+import { useAuth } from "../auth/AuthProvider";
 
 type FieldStatus = {
   configured: boolean;
@@ -135,6 +136,11 @@ export default function ConnectionSettings({
   canva?: ReactNode;
   canvaState?: string;
 }) {
+  const auth = useAuth();
+  const canEditConnections =
+    !auth?.required ||
+    auth.membership?.role === "owner" ||
+    auth.membership?.role === "admin";
   const [data, setData] = useState<SettingsPayload | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -159,8 +165,6 @@ export default function ConnectionSettings({
   const [framelabToken, setFramelabToken] = useState("");
   const [duigaoUrl, setDuigaoUrl] = useState("");
   const [duigaoToken, setDuigaoToken] = useState("");
-  const [tkuUser, setTkuUser] = useState("");
-  const [tkuPassword, setTkuPassword] = useState("");
   const [galleyUrl, setGalleyUrl] = useState("");
   const [galleyToken, setGalleyToken] = useState("");
   const [zeaburToken, setZeaburToken] = useState("");
@@ -209,7 +213,6 @@ export default function ConnectionSettings({
     setLumenToken("");
     setFramelabToken("");
     setDuigaoToken("");
-    setTkuPassword("");
     setGalleyToken("");
     setZeaburToken("");
     setZeaburValue("");
@@ -436,9 +439,12 @@ export default function ConnectionSettings({
         ]}
       />
       {selected === "canva" && canva}
+      {!canEditConnections && (
+        <p className="muted">連線與權杖由工作區管理員設定。一般成員看不到也改不了密鑰。</p>
+      )}
       <div
         className="connection-editor"
-        hidden={!selected || selected === "canva"}
+        hidden={!canEditConnections || !selected || selected === "canva"}
       >
         <form
           onSubmit={async (event) => {
@@ -905,27 +911,8 @@ export default function ConnectionSettings({
               />
               清除已存淡江權杖
             </label>
-            <label>
-              淡江使用者名稱（選用）
-              <input
-                value={tkuUser}
-                onChange={(e) => setTkuUser(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
-            <label>
-              淡江密碼（選用）
-              <input
-                type="password"
-                value={tkuPassword}
-                onChange={(e) => setTkuPassword(e.target.value)}
-                autoComplete="off"
-              />
-            </label>
             <p className="muted">
-              既有實作以網址加 Bearer 權杖為準。若伺服器在同一來源提供
-              /auth/login、/api/auth/login、/login 或 JSON-RPC
-              auth/login，後端會代為交換權杖；沒有這些端點時請直接貼權杖。
+              淡江 MCP 只用網址與 Bearer 權杖。學校登入請走帳號頁的淡江 SSO，會跳轉校方身分服務。Console 不收集學校密碼。
             </p>
           </section>
           <section hidden={selected !== "zeabur"} aria-label="Zeabur 部署">
@@ -1328,31 +1315,6 @@ export default function ConnectionSettings({
             >
               <RefreshCw size={16} />
               測試對稿連線
-            </button>
-            <button
-              hidden={selected !== "tamkang"}
-              type="button"
-              disabled={busy || !tkuUser || !tkuPassword}
-              onClick={async () => {
-                setBusy(true);
-                setError("");
-                setNotice("");
-                try {
-                  const result = (await postJson("settings/tamkang", {
-                    action: "login",
-                    username: tkuUser,
-                    password: tkuPassword,
-                  })) as SettingsPayload;
-                  setTkuUser("");
-                  await afterSave(result, "已用校園憑證交換權杖並探測連線。");
-                } catch (e) {
-                  setError((e as Error).message);
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              以校園憑證交換權杖
             </button>
           </div>
         </form>

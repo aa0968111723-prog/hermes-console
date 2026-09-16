@@ -11,7 +11,7 @@ export const GET = route(async (req) => {
   return respond(instagramPublishStatus());
 });
 export const POST = route(async (req) => {
-  authenticate(req, true);
+  authenticate(req, true, true);
   const body = z
     .object({
       caption: z.string().min(1).max(2200),

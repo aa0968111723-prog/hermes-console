@@ -69,7 +69,7 @@ function requireMutationConfirmation(body: {
 }
 
 export const POST = route(async (req) => {
-  authenticate(req, true);
+  authenticate(req, true, true);
   const body = z
     .discriminatedUnion("action", [
       z.object({ action: z.literal("test"), ...target }).strict(),

@@ -5,7 +5,7 @@ import { testDuigaoConnection } from "@/lib/server/settings";
 export const runtime = "nodejs";
 
 export const POST = route(async (request) => {
-  authenticate(request, true);
+  authenticate(request, true, true);
   z.object({ action: z.literal("test") }).strict().parse(await jsonBody(request, 4_000));
   return respond(await testDuigaoConnection());
 });

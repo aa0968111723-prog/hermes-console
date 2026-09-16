@@ -188,7 +188,11 @@ export function checkOrigin(request: Request) {
     "後端尚未設定 CONSOLE_ORIGIN。",
   );
 }
-export function authenticate(request: Request, mutation = false): string {
+export function authenticate(
+  request: Request,
+  mutation = false,
+  operator = false,
+): string {
   if (process.env.CONSOLE_GATEWAY_SECRET || process.env.CONSOLE_REQUIRE_GATEWAY === "true")
     verifyGateway(request);
   if (mutation) checkOrigin(request);
@@ -196,7 +200,17 @@ export function authenticate(request: Request, mutation = false): string {
     const user = readSessionUser(request);
     if (!user)
       throw new ApiError(401, "sign_in_required", "請先登入後再使用工作區。");
-    requireMembership(user.id);
+    const membership = requireMembership(user.id);
+    if (
+      operator &&
+      membership.role !== "owner" &&
+      membership.role !== "admin"
+    )
+      throw new ApiError(
+        403,
+        "admin_required",
+        "只有工作區擁有者或管理員可以變更這項設定。",
+      );
     limited("api:" + user.id, 240, 60_000);
     return WORKSPACE_OWNER;
   }

@@ -148,6 +148,15 @@ function finish(
           : "任務已結束。"),
   );
   if (state === "completed") {
+    const failedTools = task.events.filter(
+      (item) =>
+        (item.kind === "tool" || Boolean(item.toolName)) &&
+        (item.status === "failed" || item.status === "tool.failed"),
+    );
+    if (failedTools.length)
+      event(task, "有工具沒有成功。沒有用假資料補上。");
+  }
+  if (state === "completed") {
     const conv = conversation(owner, task.conversationId);
     if (
       !conv.messages.some((m) => m.taskId === task.id && m.role === "assistant")
@@ -384,6 +393,13 @@ async function execute(
       mode,
       text: task.input,
       goal: orchestration.goal,
+      hasImageAttachments: task.attachments.some((id) => {
+        try {
+          return material(owner, id).kind === "image";
+        } catch {
+          return false;
+        }
+      }),
     });
     const suffix =
       "\n目前專案識別：" +

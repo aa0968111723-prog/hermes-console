@@ -13,7 +13,7 @@ export const GET = route(async (req) => {
   return respond({ servers: seedPublicRegistry() });
 });
 export const POST = route(async (req) => {
-  authenticate(req, true);
+  authenticate(req, true, true);
   const body = z
     .object({
       id: z.string().regex(/^[a-zA-Z0-9_-]{2,40}$/),
@@ -34,7 +34,7 @@ export const POST = route(async (req) => {
   return respond({ server: await probeMcp(entry) }, 201);
 });
 export const PATCH = route(async req => {
-  authenticate(req, true);
+  authenticate(req, true, true);
   const body = z.object({ action: z.enum(["refresh", "test", "enable", "disable"]), id: z.string().regex(/^[a-zA-Z0-9_-]{2,40}$/), confirmationToken: z.string().optional() }).strict().parse(await jsonBody(req, 4000));
   if (body.action === "disable") consumeConfirmation({ token: body.confirmationToken, action: "destructive", target: "mcp:" + body.id, payload: { enabled: false } });
   if (body.action === "enable") return respond({ server: await probeMcp(setMcpEnabled(body.id, true)) });

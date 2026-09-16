@@ -10,6 +10,9 @@ process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
 process.env.CONSOLE_GATEWAY_SECRET = "";
 
 const { interpretGoal } = await import("../lib/server/orchestrator/goal");
+const { composeTaskInstructions } = await import(
+  "../lib/server/orchestrator/instructions"
+);
 const { routeTools } = await import("../lib/server/orchestrator/tool-router");
 const { buildPlan } = await import("../lib/server/orchestrator/planner");
 const { fallbacksFromRoutes } = await import("../lib/server/orchestrator/fallback");
@@ -134,5 +137,23 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
     const submitting = { ...task, transport: "runs" as const, remoteId: null };
     assert.equal(classifyResume(submitting, true), "running");
     assert.equal(classifyResume(submitting, false), "unknown");
+  });
+
+  await t.test("poster image review routes visual and audience simulation", () => {
+    const goal = interpretGoal("這張哪裡可以改？");
+    assert.equal(goal.requiresDesign, true);
+    assert.equal(goal.requiresAudienceEvaluation, true);
+    const composed = composeTaskInstructions({
+      mode: "creative",
+      text: "這張哪裡可以改？",
+      goal,
+      hasImageAttachments: true,
+    });
+    assert.ok(composed.packs.includes("image"));
+    assert.ok(composed.packs.includes("audience"));
+    assert.ok(composed.packs.includes("visual"));
+    assert.match(composed.instructions, /workspace_read_material/);
+    assert.match(composed.instructions, /SIMULATION/);
+    assert.equal(composed.instructions.includes("chain-of-thought"), false);
   });
 });

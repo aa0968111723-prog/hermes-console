@@ -123,6 +123,39 @@ test("unified authentication is honest and session-backed", async (t) => {
     process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
   });
 
+  await t.test("members cannot change connection secrets", async () => {
+    const loggedIn = await emailRoute.POST(
+      request("auth/email", "POST", {
+        action: "login",
+        email: "member@example.test",
+        password: "correct-horse",
+      }),
+    );
+    const cookie = loggedIn.headers.get("set-cookie") || "";
+    process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "false";
+    assert.throws(
+      () =>
+        security.authenticate(
+          request("settings/credentials", "POST", {}, cookie),
+          true,
+          true,
+        ),
+      /擁有者或管理員/,
+    );
+    const member = identity.findUserByEmail("member@example.test");
+    identity.grantMembership(member!.id, "admin");
+    assert.equal(
+      security.authenticate(
+        request("settings/credentials", "POST", {}, cookie),
+        true,
+        true,
+      ),
+      "workspace",
+    );
+    identity.grantMembership(member!.id, "member");
+    process.env.CONSOLE_ALLOW_LOCAL_ACCESS = "true";
+  });
+
   await t.test("same email does not auto-merge identities", () => {
     const googleUser = identity.resolveLoginIdentity({
       provider: "google",

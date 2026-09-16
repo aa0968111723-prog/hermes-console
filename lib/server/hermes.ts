@@ -578,6 +578,9 @@ export const COPYWRITING_INSTRUCTION_PACK = [
   "日期地點未確認就標 UNKNOWN，不要捏造教室。寫完呼叫 workspace_review_copy 做新生視角審核。不得發佈 Instagram。",
 ].join("\n");
 
+export const IMAGE_REVIEW_PACK =
+  "使用者已附圖片或要改現有畫面時，必須先 workspace_read_material 讀取真實像素，才能評論構圖、層級、字級、對比。沒讀到圖就標 UNKNOWN，不得假裝已看圖。接著用 workspace_simulate_audience 做 SIMULATION（不是全體學生民調），只給可執行的修改建議。不要自動發佈或覆蓋原檔。";
+
 export const VISUAL_INSTRUCTION_PACK = [
   "網宣視覺先 workspace_get_activity，再 workspace_get_visual_concepts。",
   "格式：IG 貼文／輪播 1080×1350（4:5）、限動與 Reels 封面 1080×1920（9:16）、海報 A4／A3。",
@@ -624,6 +627,7 @@ export const creativeInstructions = [
   GALLEY_INSTRUCTION_PACK,
   INSPIRATION_INSTRUCTION_PACK,
   AUDIENCE_INSTRUCTION_PACK,
+  IMAGE_REVIEW_PACK,
   VISUAL_INSTRUCTION_PACK,
   COPYWRITING_INSTRUCTION_PACK,
   DIRECTION_INSTRUCTION_PACK,

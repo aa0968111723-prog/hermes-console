@@ -57,3 +57,4 @@
 15. `GET /api/health` 存活不等待 Hermes；`agentReady` 與 store ready 分開
 16. Hermes 可搜尋本地 `data/ai-agent-research` 筆記（標明 local_notes，不是即時論文庫）
 17. 工具空結果（`{}`／空白字串）記為 `empty_tool_result`，不得當完成；啟動 monitor 立刻 reconcile 中斷任務為 `uncertain`
+18. 設定頁不再收集淡江學校密碼；連線密鑰變更限 owner／admin；附圖／「這張哪裡可以改」走讀圖 + 受眾模擬

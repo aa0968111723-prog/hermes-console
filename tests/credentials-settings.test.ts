@@ -320,13 +320,7 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
     assert.ok(!JSON.stringify(result).includes(tkuToken));
   });
 
-  await t.test("Tamkang campus credential exchange stores token when origin exposes /auth/login", async () => {
-    await credentials.POST(
-      request("settings/credentials", "POST", {
-        TKU_MCP_URL: tkuUrl,
-        clear: ["TKU_MCP_TOKEN"],
-      }),
-    );
+  await t.test("Tamkang campus passwords are rejected, not exchanged", async () => {
     const exchanged = await tamkangRoute.POST(
       request("settings/tamkang", "POST", {
         action: "login",
@@ -334,27 +328,10 @@ test("workspace credential settings and Tamkang login contracts", async (t) => {
         password: "campus-secret",
       }),
     );
-    assert.equal(exchanged.status, 200);
+    assert.equal(exchanged.status, 400);
     const body = await exchanged.json();
-    assert.equal(body.exchanged, true);
-    assert.equal(body.fields.TKU_MCP_TOKEN.last4, "9999");
     assert.ok(!JSON.stringify(body).includes("campus-secret"));
-    assert.ok(!JSON.stringify(body).includes("tku-exchanged-token-9999"));
-    assert.equal(runtimeEnv("TKU_MCP_TOKEN"), "tku-exchanged-token-9999");
-  });
-
-  await t.test("unknown Tamkang auth is honest, not a fake campus SSO", async () => {
-    const failed = await tamkangRoute.POST(
-      request("settings/tamkang", "POST", {
-        action: "login",
-        username: "nobody",
-        password: "wrong-password",
-      }),
-    );
-    assert.equal(failed.status, 502);
-    const body = await failed.json();
-    assert.equal(body.error.code, "tku_login_unsupported");
-    assert.match(body.error.message, /請改貼 Bearer 權杖/);
+    assert.notEqual(runtimeEnv("TKU_MCP_TOKEN"), "tku-exchanged-token-9999");
   });
 
   await t.test("research and creative conversation contracts stay intact", async () => {

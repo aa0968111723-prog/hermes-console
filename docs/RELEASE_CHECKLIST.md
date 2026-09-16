@@ -13,7 +13,9 @@
 
 - [ ] 未登入看到登入，不先載工作區
 - [ ] Google Authorization Code 真的跳轉 Google
-- [ ] 淡江：有 metadata 才跳校方 IdP；否則「尚未完成設定」
+- [ ] 淡江：有 metadata 才跳校方 IdP；否則「尚未完成設定」；Console 不收集學校密碼
+- [ ] Email 註冊／驗證／magic link／重設／登出
+- [ ] 連線密鑰變更限 owner／admin
 - [ ] Email 註冊／驗證／magic link／重設／登出
 - [ ] 連結身份不會因 email 相同而自動合併
 - [ ] 帳號頁可看到工作階段；結束其他裝置要確認

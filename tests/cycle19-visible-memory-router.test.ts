@@ -402,6 +402,23 @@ test("Cycle 19: reconcile fails only when no output and no kind===tool completed
   const emptyDone = await reconcile("workspace", emptyId);
   assert.equal(emptyDone.state, "failed");
   assert.match(emptyDone.error || "", /沒有可讀取的成果/);
+
+  runOutput = "可見建議";
+  const mixedId = seedRun([
+    fakeEvent({
+      kind: "tool",
+      toolName: "galley_research",
+      status: "failed",
+      summary: "逾時",
+    }),
+  ]);
+  const mixed = await reconcile("workspace", mixedId);
+  assert.equal(mixed.state, "completed");
+  assert.match(
+    mixed.events.map((event) => event.summary).join("\n"),
+    /有工具沒有成功/,
+  );
+  runOutput = "";
 });
 
 test("Cycle 19: task instructions include assembled memory once, not memoryDigest", async () => {

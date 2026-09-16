@@ -7,14 +7,16 @@ const DESIGN = /海報|網宣|Canva|canva|視覺|設計|稿/;
 const AUDIENCE = /受眾|新生角度|模擬|Twin|會喜歡|反向|路人會不會/;
 const INSPIRATION = /靈感|參考|IG|Pinterest|instagram/i;
 const OUTPUT = /海報|網宣|三個方向|Canva|文案|貼文|caption|限動|CTA/;
+const IMAGE_REVIEW = /這張(圖|海報|稿|設計)?|哪裡可以改|視覺層級|分析這[張個]/;
 
 export function interpretGoal(input: string): StructuredGoal {
   const text = input.trim();
   const intentTier = classifyIntent(text);
+  const imageReview = IMAGE_REVIEW.test(text);
   const requiresTamkang = TAMKANG.test(text);
   const requiresResearch = RESEARCH.test(text) || requiresTamkang;
-  const requiresDesign = DESIGN.test(text);
-  const requiresAudienceEvaluation = AUDIENCE.test(text);
+  const requiresDesign = DESIGN.test(text) || imageReview;
+  const requiresAudienceEvaluation = AUDIENCE.test(text) || imageReview;
   const requiresInspiration = INSPIRATION.test(text) || requiresDesign;
   const audience = requiresTamkang
     ? "淡江大一新生（模擬，不是民調）"
