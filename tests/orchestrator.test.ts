@@ -132,7 +132,7 @@ test("goal interpreter and planner stay structured, not chain-of-thought", async
   });
 
   await t.test("context budget does not dump the whole memory store", () => {
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 25; i++) {
       saveMemory("workspace", {
         kind: "note",
         scope: "workspace",

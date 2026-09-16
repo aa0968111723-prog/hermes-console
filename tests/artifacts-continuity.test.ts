@@ -34,6 +34,10 @@ const {
 const { focusInstructions } = await import(
   "../lib/server/orchestrator/instructions"
 );
+const {
+  assembleContext,
+  formatContextForInstructions,
+} = await import("../lib/server/context/assembler");
 
 function revision(
   number: number,
@@ -99,6 +103,22 @@ test("copy artifacts keep stable ids, versions, restore and fork", () => {
   assert.match(focusInstructions(continued.focus), /workspace_get_copy/);
   assert.match(focusInstructions(continued.focus), new RegExp(artifactId));
   assert.equal(revisionLabel(3), "V3");
+  const packed = assembleContext({
+    owner: "workspace",
+    projectId: "personal",
+    goalText: "第二版字放大",
+    budgetMode: "balanced",
+  });
+  assert.ok(packed.items.some((item) => item.source === "artifact"));
+  assert.ok(
+    packed.items.some(
+      (item) =>
+        item.source === "artifact" && item.content.includes(artifactId),
+    ),
+  );
+  const framed = formatContextForInstructions(packed);
+  assert.match(framed, /artifact/);
+  assert.match(framed, /沿用同一作品修改/);
 });
 
 test("student continue lines keep ids and tools off the composer", () => {
