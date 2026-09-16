@@ -174,7 +174,11 @@ export default function AccountSettings() {
       <ul className="session-list">
         {account.sessions.map((row) => (
           <li key={row.id}>
-            {row.id} · {new Date(row.createdAt).toLocaleString("zh-TW")}
+            {new Date(row.createdAt).toLocaleString("zh-TW")}
+            <span className="muted">
+              {" "}
+              · 至 {new Date(row.expiresAt).toLocaleString("zh-TW")}
+            </span>
           </li>
         ))}
       </ul>

@@ -73,6 +73,18 @@ export function routeTools(
     });
   }
 
+  if (goal.requiresImageAnalysis) {
+    const imageReady = process.env.HERMES_IMAGE_INPUT === "true";
+    routes.push({
+      id: "image",
+      tool: imageReady ? "workspace_read_material" : "ask_user",
+      reason: imageReady
+        ? "先讀附件圖片再分析構圖與層級。"
+        : "圖片已保存，但此部署尚未驗證圖片輸入，不能假裝已看圖。",
+      fallback: imageReady ? null : "describe_without_pixels",
+    });
+  }
+
   if (goal.requiresInspiration) {
     routes.push({
       id: "inspiration",

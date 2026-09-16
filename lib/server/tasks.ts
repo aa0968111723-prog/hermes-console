@@ -219,7 +219,9 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
     events: [],
     usage: { ...EMPTY_USAGE },
     stopSupported: !!(native && connection.features.run_stop),
-    budgetMode: isFastTier(classifyIntent(input.input))
+    budgetMode: isFastTier(
+      classifyIntent(input.input, { hasImage: input.attachments.length > 0 }),
+    )
       ? "fast"
       : input.budgetMode || "balanced",
   };

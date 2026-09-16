@@ -66,6 +66,17 @@ export function buildPlan(
       ),
     );
   }
+  if (goal.requiresImageAnalysis) {
+    const image = routes.find((item) => item.id === "image");
+    steps.push(
+      step(
+        "看圖",
+        "先讀附件畫面：構圖、層級、對比、文字可讀性。沒讀到像素就標未讀圖。",
+        image?.tool || "ask_user",
+        image?.fallback || null,
+      ),
+    );
+  }
   if (goal.requiresTamkang || goal.requiresResearch) {
     steps.push(
       step(
@@ -126,7 +137,14 @@ export function buildPlan(
       step("Canva 接續", "有授權才製作；否則只交規格。", routes.find((item) => item.id === "design")?.tool || "canva_spec_only", "canva_spec_only"),
     );
   }
-  steps.push(step("最終審查", "列出來源、未完成步驟與需要你確認的操作。", null, null));
+  steps.push(
+    step(
+      "最終審查",
+      "確認是否回答請求、工具是否失敗、重要主張是否有來源、作品是否存在。只報告結論，不展示思考鏈。",
+      null,
+      null,
+    ),
+  );
   return {
     summary: goal.goal.slice(0, 180),
     budgetMode,

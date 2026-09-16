@@ -87,6 +87,7 @@ export function composeTaskInstructions(input: {
   }
   if (
     input.goal.requiresDesign ||
+    input.goal.requiresImageAnalysis ||
     input.goal.output ||
     /文案|caption|限動|Reels|reel|CTA|私訊|表單說明|hook|招生文案|海報標題/.test(
       input.text,
@@ -95,7 +96,7 @@ export function composeTaskInstructions(input: {
     parts.push(COPYWRITING_INSTRUCTION_PACK);
     packs.push("copywriting");
   }
-  if (input.goal.requiresDesign || input.goal.output) {
+  if (input.goal.requiresDesign || input.goal.requiresImageAnalysis || input.goal.output) {
     parts.push(
       VISUAL_INSTRUCTION_PACK,
       DIRECTION_INSTRUCTION_PACK,

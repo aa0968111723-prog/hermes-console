@@ -1307,6 +1307,16 @@ export default function HermesConsole() {
                   onClick={() => onComposerTaskPillClick(currentTask)}
                 />
               )}
+              {uploads.some(
+                (row) =>
+                  row.file.type.startsWith("image/") ||
+                  row.material?.kind === "image",
+              ) &&
+                !data.imageInput && (
+                  <p className="composer-image-notice" role="status">
+                    圖片已保存。此部署尚未驗證看圖，送出後不會假裝已讀像素。
+                  </p>
+                )}
               {uncertain && (
                 <div className="composer-uncertain-hint" role="status">
                   <p>

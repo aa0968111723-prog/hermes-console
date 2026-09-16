@@ -174,8 +174,10 @@ export default function InspirationBoard({
         {items.map((item) => (
           <li key={item.id} className="inspiration-card">
             <a href={item.sourceUrl} target="_blank" rel="noreferrer">
-              <span className="inspiration-thumb" aria-hidden="true">
-                {item.platform.toLowerCase().includes("pinterest") ? (
+              <span className={"inspiration-thumb" + (item.image ? " has-photo" : "")} aria-hidden="true">
+                {item.image ? (
+                  <img src={item.image} alt="" loading="lazy" />
+                ) : item.platform.toLowerCase().includes("pinterest") ? (
                   <Image size={21} />
                 ) : (
                   <Link2 size={21} />

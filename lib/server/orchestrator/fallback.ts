@@ -14,6 +14,8 @@ export function fallbacksFromRoutes(routes: RoutedTool[]): FallbackRecord[] {
 
 export function userVisibleFallback(route: RoutedTool) {
   if (route.id === "research") return route.reason;
+  if (route.id === "image")
+    return "圖片已保存，但此部署尚未驗證看圖，不會假裝已讀像素。";
   if (route.tool === "hermes_authorized_web")
     return "淡江 MCP 暫時不可用，已改用 Hermes 已授權網頁來源。";
   if (route.tool === "official_web_directory")
