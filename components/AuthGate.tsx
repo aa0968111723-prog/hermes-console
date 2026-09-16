@@ -207,6 +207,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
       >
         使用 Google 登入
       </a>
+      {!providers.google && (
+        <p className="auth-hint">Google 登入尚未完成設定</p>
+      )}
       <a
         className="auth-provider"
         href={providers.tamkang.configured ? "/api/auth/tamkang/start" : undefined}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { membershipLabel } from "@/lib/client/membership";
 
 type Account = {
   user: {
@@ -61,7 +62,7 @@ export default function AccountSettings() {
           <strong>{account.name}</strong>
           <p>{account.email || "尚未連結電子信箱"}</p>
           <p className="muted">
-            工作區角色：{account.membership || "尚未加入"}
+            工作區角色：{membershipLabel(account.membership)}
           </p>
         </div>
       </div>

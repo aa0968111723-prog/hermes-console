@@ -73,7 +73,15 @@ try {
   const page = await browser.newPage();
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(base);
+  await expect(page.getByRole("heading", { name: "Hermes", exact: true })).toBeVisible();
+  await expect(page.getByText("Google 登入尚未完成設定", { exact: true })).toBeVisible();
+  await expect(page.getByText("淡江 SSO 尚未完成設定", { exact: true })).toBeVisible();
+  await page.screenshot({
+    path: join(output, "login-mobile.png"),
+    fullPage: true,
+  });
   await signInConsole(page);
   await expect(page.getByRole("heading", { name: "今天想做什麼？" })).toBeVisible();
   await expect(page.getByRole("textbox", { name: "訊息", exact: true })).toBeVisible();
@@ -96,6 +104,7 @@ try {
   await page.getByRole("tab", { name: "帳號", exact: true }).click();
   await expect(page.getByRole("heading", { name: "登入方式" })).toBeVisible();
   await expect(page.getByText("電子信箱 ✓", { exact: true })).toBeVisible();
+  await expect(page.getByText("工作區角色：擁有者")).toBeVisible();
   const linkButtons = page.getByRole("link", { name: "連結", exact: true });
   await expect(linkButtons).toHaveCount(2);
   await expect(linkButtons.nth(0)).toHaveAttribute(
@@ -116,7 +125,7 @@ try {
   await page.keyboard.press("Escape");
   assert.deepEqual(errors, []);
   console.log(
-    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, account identities. Not live Zeabur.",
+    "PASS: login gate then workspace, session-required APIs, origin-bound mutation, Hermes unconfigured UI, honest Google/Tamkang hints, account identities. Not live Zeabur.",
   );
 } finally {
   await browser?.close();

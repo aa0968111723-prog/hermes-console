@@ -96,4 +96,5 @@
 8. 重啟後無法確認的 runs 標 `uncertain`，不維持假 running。
 9. 工作區輪詢：忙碌 3s、閒置 12s、背景分頁 30s；專案頁 12s。
 10. `npm run rehearse` 驗證 production `next start`：`/`、`/api/health`、`/api/ready`、workspace 401、禁止秘密 JSON。
-11. Playwright 帳號頁：電子信箱 ✓、Google／淡江「連結」、不自動合併聲明。
+12. 登入頁未設定的 Google／淡江都顯示「尚未完成設定」，不假裝可登入。
+13. API 錯誤帶上九類 taxonomy；帳號角色顯示擁有者／管理員／成員。

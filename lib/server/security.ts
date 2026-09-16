@@ -454,6 +454,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
             error: {
               code: "invalid_input",
               message: "輸入格式不正確，請確認欄位與長度。",
+              category: errorCategory("invalid_input"),
             },
           },
           400,
@@ -464,6 +465,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
             error: {
               code: "store_unavailable",
               message: "儲存庫無法使用。",
+              category: errorCategory("store_unavailable"),
             },
           },
           503,
@@ -473,6 +475,7 @@ export function route(fn: (req: Request) => Promise<Response>) {
           error: {
             code: "internal_error",
             message: "操作未完成，請查看設定或重試。",
+            category: errorCategory("internal_error"),
           },
         },
         500,
