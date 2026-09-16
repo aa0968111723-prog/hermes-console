@@ -2412,8 +2412,7 @@ body::before {
 .quick-action-leaf .quick-action-icon { background: #e3f0d8; }
 .quick-action-lime .quick-action-icon { background: #eef5d1; }
 .quick-action-label { position: relative; z-index: 1; font-weight: 650; font-size: 14px; color: var(--ink); }
-.quick-action-detail { position: absolute; left: 8px; right: 8px; bottom: 7px; opacity: 0; color: var(--muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: opacity var(--motion-fast) ease; }
-.quick-action:hover .quick-action-detail, .quick-action:focus-visible .quick-action-detail { opacity: 1; }
+.quick-action-detail { display: none; }
 .mobile-bottom-dock { display: none; }
 .composer-area { padding: 10px 22px max(15px, env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent, rgba(250,252,248,.95) 22%); }
 .composer { border-radius: 20px; box-shadow: var(--depth-floating); border-color: rgba(205,222,199,.95); background: rgba(255,255,255,.92); }

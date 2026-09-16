@@ -217,6 +217,12 @@ try {
         dock && send && send.y + send.height <= dock.y,
         "bottom dock overlaps send at "+width+": "+JSON.stringify({send,dock}),
       );
+      const menu = await page.getByRole("button", { name: "開啟導覽" }).boundingBox();
+      const actions = await page.getByRole("button", { name: "Hermes 操作", exact: true }).boundingBox();
+      assert.ok(
+        menu && actions && actions.x + 1 >= menu.x + menu.width,
+        "Hermes 操作 must not cover the menu at "+width,
+      );
     }
     const composer = await page.locator(".composer").boundingBox();
     assert.ok(

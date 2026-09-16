@@ -56,15 +56,13 @@ export default function QuickActions({
         <button
           className={`quick-action quick-action-${tone}`}
           key={label}
+          title={prompt}
           onClick={() => onSelect(prompt)}
         >
           <span className="quick-action-icon" aria-hidden="true">
             <Icon size={23} strokeWidth={1.8} />
           </span>
           <span className="quick-action-label">{label}</span>
-          <span className="quick-action-detail">
-            {prompt.replace(/[。；].*$/, "")}
-          </span>
         </button>
       ))}
     </div>
