@@ -301,6 +301,10 @@ try {
   await expect(page.locator(".runtime-human-summary")).toContainText("Tools");
   await expect(page.locator(".runtime-human-summary")).toContainText("MCP");
   await expect(page.locator(".runtime-developer")).not.toHaveAttribute("open");
+  await expect(page.locator(".runtime-advanced")).not.toHaveAttribute("open");
+  await expect(
+    page.getByRole("group", { name: "能力連線圖" }),
+  ).toBeHidden();
   await expect(
     page.getByRole("searchbox", { name: "搜尋工具用途" }),
   ).toBeHidden();

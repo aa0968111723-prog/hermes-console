@@ -155,8 +155,13 @@ export default memo(function AgentOrbit({
               aria-label={
                 node.name + "：" + (statusNames[node.status] || node.status)
               }
-              aria-pressed={selected === node.id}
-              onClick={() => setSelected(selected === node.id ? null : node.id)}
+              aria-pressed={!compact && selected === node.id}
+              tabIndex={compact ? -1 : 0}
+              onClick={() =>
+                compact
+                  ? undefined
+                  : setSelected(selected === node.id ? null : node.id)
+              }
             >
               <Icon size={19} aria-hidden="true" />
               <span className="orbit-tooltip">{node.name}</span>
@@ -165,7 +170,7 @@ export default memo(function AgentOrbit({
         })}
         {!nodes.length && <span className="orbit-empty">尚未取得工具清單</span>}
       </div>
-      {chosen && (
+      {chosen && !compact && (
         <section
           className="orbit-detail"
           aria-label={chosen.name + " 連線詳情"}

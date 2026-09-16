@@ -310,12 +310,6 @@ export default function RuntimeInspector({
           {error}
         </p>
       )}
-      <AgentOrbit
-        snapshot={snapshot}
-        task={task}
-        stale={stale}
-        animation={animation}
-      />
       {snapshot && (
         <details className="runtime-developer">
           <summary>進階 · 工具</summary>
@@ -376,7 +370,12 @@ export default function RuntimeInspector({
       )}
       <details className="runtime-advanced">
         <summary>進階 · Runtime</summary>
-
+        <AgentOrbit
+          snapshot={snapshot}
+          task={task}
+          stale={stale}
+          animation={animation}
+        />
         {snapshot && (
           <>
             <p className="muted">
