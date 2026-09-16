@@ -80,6 +80,16 @@ test("unconfigured Hermes still answers club questions from local index", async 
   assert.equal(pack.overlayText?.date, "2026-09-30");
   assert.equal(pack.overlayText?.location, null);
   assert.match(pack.notice, /尚未連線/);
+  assert.match(pack.workflowId || "", /^[a-f0-9]{64}$/);
+  const { workflow, chooseDirection, listWorkflows } = await import(
+    "../lib/server/workflows"
+  );
+  const saved = workflow("workspace", pack.workflowId!);
+  assert.equal(saved.selected, null);
+  assert.equal(saved.state, "awaiting_selection");
+  assert.equal(saved.design, null);
+  assert.equal(chooseDirection("workspace", saved.id, 0).selected, 0);
+  assert.equal(listWorkflows("workspace").some((item) => item.id === saved.id), true);
   assert.equal(task.stopSupported, false);
   assert.ok(task.events.some((event) => event.toolName === "zenclub_drive_index"));
   const stored = get<Conversation>("conversation", "workspace", conv.id);

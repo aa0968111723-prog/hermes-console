@@ -128,12 +128,28 @@ function FactStrip({ pack }: { pack: VisualPackView }) {
   );
 }
 
-export default function VisualConceptCards({ pack }: { pack: VisualPackView }) {
+export default function VisualConceptCards({
+  pack,
+  selectedDirection = null,
+  canvaReady = false,
+  onChooseDirection,
+}: {
+  pack: VisualPackView;
+  selectedDirection?: number | null;
+  canvaReady?: boolean;
+  onChooseDirection?: (workflowId: string, index: number) => void;
+}) {
+  const choosable = Boolean(pack.workflowId && onChooseDirection);
+  const selected =
+    selectedDirection != null && selectedDirection >= 0
+      ? pack.concepts[selectedDirection]
+      : null;
   return (
     <section
       className="visual-concept-deck"
       aria-label="視覺概念"
       data-overlay-date={pack.overlayText?.date || undefined}
+      data-workflow-id={pack.workflowId || undefined}
     >
       <header className="visual-concept-meta">
         <p className="visual-concept-title">{pack.title}</p>
@@ -153,8 +169,14 @@ export default function VisualConceptCards({ pack }: { pack: VisualPackView }) {
       )}
       <p className="visual-concept-notice">{pack.notice}</p>
       <div className="visual-concept-grid">
-        {pack.concepts.map((concept) => (
-          <article key={concept.id} className="visual-concept-card">
+        {pack.concepts.map((concept, index) => (
+          <article
+            key={concept.id}
+            className={
+              "visual-concept-card" +
+              (selectedDirection === index ? " selected" : "")
+            }
+          >
             <h3>
               概念 {concept.id}
               <small>{concept.name}</small>
@@ -167,9 +189,27 @@ export default function VisualConceptCards({ pack }: { pack: VisualPackView }) {
               includeQr={concept.qrPlacement?.include}
             />
             <p className="visual-concept-direction">{concept.creativeDirection}</p>
+            {choosable && (
+              <button
+                type="button"
+                className="visual-concept-choose"
+                aria-pressed={selectedDirection === index}
+                onClick={() => onChooseDirection?.(pack.workflowId!, index)}
+              >
+                {selectedDirection === index ? "已選定" : "選這個"}
+              </button>
+            )}
           </article>
         ))}
       </div>
+      {selected && (
+        <p className="visual-concept-chosen" role="status">
+          已選定概念 {selected.id}
+          {" · "}
+          尚未出圖
+          {canvaReady ? "" : " · Canva 未授權"}
+        </p>
+      )}
     </section>
   );
 }

@@ -17,9 +17,31 @@ function safeURL(value: string) {
     return "";
   }
 }
-export default memo(function MessageBody({ text }: { text: string }) {
+export default memo(function MessageBody({
+  text,
+  workflows,
+  canvaReady,
+  onChooseDirection,
+}: {
+  text: string;
+  workflows?: Array<{ id: string; selected: number | null }>;
+  canvaReady?: boolean;
+  onChooseDirection?: (workflowId: string, index: number) => void;
+}) {
   const pack = parseVisualConceptPack(text);
-  if (pack) return <VisualConceptCards pack={pack} />;
+  if (pack) {
+    const workflow = pack.workflowId
+      ? workflows?.find((item) => item.id === pack.workflowId)
+      : undefined;
+    return (
+      <VisualConceptCards
+        pack={pack}
+        selectedDirection={workflow?.selected ?? null}
+        canvaReady={canvaReady}
+        onChooseDirection={pack.workflowId ? onChooseDirection : undefined}
+      />
+    );
+  }
   return (
     <div className="markdown">
       <ReactMarkdown

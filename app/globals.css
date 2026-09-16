@@ -2641,7 +2641,9 @@ summary { cursor: pointer; min-height: 44px; padding: 12px 0; }
 .visual-concept-facts dd[data-empty] { font-weight: 500; color: var(--color-muted); }
 .visual-concept-facts a { display: inline-flex; align-items: center; min-height: 44px; }
 .visual-concept-grid { display: grid; gap: 12px; }
-.visual-concept-card { min-height: 44px; padding: 14px; border: 1px solid var(--color-border); border-radius: var(--radius-card); background: #fff; box-shadow: var(--depth-floating, 0 8px 24px rgba(40,70,40,.08)), inset 0 1px 0 rgba(255,255,255,.85); transform: translateZ(0); }
+.visual-concept-card.selected { border-color: var(--color-primary); box-shadow: var(--depth-3, 0 12px 28px rgba(40,70,40,.12)), inset 0 1px 0 rgba(255,255,255,.85); }
+.visual-concept-choose { width: 100%; min-height: 44px; margin-top: 10px; }
+.visual-concept-chosen { margin: 0; font-size: var(--type-caption); font-weight: 600; }
 .visual-concept-card h3 { display: flex; flex-direction: column; gap: 2px; margin: 0 0 10px; font-size: 1rem; }
 .visual-concept-card h3 small { color: var(--color-muted); font-weight: 500; }
 .visual-concept-direction { margin: 8px 0 0; color: var(--color-muted); font-size: var(--type-caption); }

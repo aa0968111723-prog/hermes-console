@@ -30,6 +30,7 @@ export type VisualPackView = {
   };
   unknownFields: string[];
   overlayText?: Record<string, string | null>;
+  workflowId?: string;
   concepts: VisualPackConcept[];
 };
 

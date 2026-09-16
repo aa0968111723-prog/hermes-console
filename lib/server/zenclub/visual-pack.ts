@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import type { Fact } from "../../creative";
 import type { VisualPackView } from "../../client/visual-pack";
 import { compileVisualConcepts } from "../creative/visual-concepts";
+import { ApiError } from "../security";
+import { saveDirections } from "../workflows";
 import type { KnowledgeClaim, KnowledgeEntity } from "./types";
 
 const CLAIM_TO_FACT: Record<string, Fact["field"]> = {
@@ -19,7 +21,7 @@ function sourceTime(claim: KnowledgeClaim) {
   return new Date().toISOString();
 }
 
-function factsFromEntity(entity: KnowledgeEntity): Fact[] {
+export function factsFromEntity(entity: KnowledgeEntity): Fact[] {
   const facts: Fact[] = [
     {
       id: randomUUID(),
@@ -53,15 +55,11 @@ function factsFromEntity(entity: KnowledgeEntity): Fact[] {
   return facts;
 }
 
-export function knowledgeVisualPack(
-  entity: KnowledgeEntity,
+function viewFromCompiled(
+  compiled: ReturnType<typeof compileVisualConcepts>,
   honesty: string,
+  workflowId?: string,
 ): VisualPackView {
-  const compiled = compileVisualConcepts({
-    id: randomUUID(),
-    title: entity.title,
-    facts: factsFromEntity(entity),
-  });
   return {
     title: compiled.title,
     notice: `${honesty} ${compiled.notice}`,
@@ -77,6 +75,7 @@ export function knowledgeVisualPack(
     },
     unknownFields: compiled.unknownFields,
     overlayText: compiled.overlayText,
+    workflowId,
     concepts: compiled.concepts.map((concept) => ({
       id: concept.id,
       name: concept.name,
@@ -107,4 +106,58 @@ export function knowledgeVisualPack(
       },
     })),
   };
+}
+
+export function knowledgeVisualPack(
+  entity: KnowledgeEntity,
+  honesty: string,
+): VisualPackView {
+  return viewFromCompiled(
+    compileVisualConcepts({
+      id: randomUUID(),
+      title: entity.title,
+      facts: factsFromEntity(entity),
+    }),
+    honesty,
+  );
+}
+
+export function persistKnowledgeVisualPack(
+  owner: string,
+  projectId: string,
+  brief: string,
+  entity: KnowledgeEntity,
+  honesty: string,
+): VisualPackView {
+  const compiled = compileVisualConcepts({
+    id: randomUUID(),
+    title: entity.title,
+    facts: factsFromEntity(entity),
+  });
+  const pack = viewFromCompiled(compiled, honesty);
+  try {
+    const workflow = saveDirections(owner, {
+      projectId: projectId || "personal",
+      brief: brief.slice(0, 10_000),
+      directions: compiled.directions.map((item) => ({
+        title: item.title.slice(0, 120),
+        claim: item.claim.slice(0, 2000),
+        visual: item.visual.slice(0, 4000),
+        composition: item.composition.slice(0, 2000),
+        color: item.color.slice(0, 1000),
+        typography: item.typography.slice(0, 1000),
+        copy: (item.copy || compiled.title).slice(0, 5000),
+        cta: item.cta.slice(0, 1000),
+        platform: item.platform.slice(0, 100),
+        sources: item.sources
+          .filter((source) => source.startsWith("https://"))
+          .slice(0, 20),
+        risks: item.risks.slice(0, 10).map((risk) => risk.slice(0, 500)),
+      })),
+    });
+    pack.workflowId = workflow.id;
+  } catch (error) {
+    if (!(error instanceof ApiError)) throw error;
+  }
+  return pack;
 }

@@ -105,6 +105,20 @@ try {
   await expect(page.getByText("UNKNOWN：地點，畫面上留空。")).toBeVisible();
   await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
   await expect(page.getByText("概念 A")).toBeVisible();
+  await expect(page.getByRole("button", { name: "選這個" })).toHaveCount(3);
+  await page.getByRole("button", { name: "選這個" }).first().click();
+  await expect(page.getByRole("button", { name: "已選定" })).toHaveCount(1);
+  await expect(page.getByText("已選定概念 A")).toBeVisible();
+  await expect(page.getByText(/Canva 未授權/)).toBeVisible();
+  await expect(page.getByText("尚未出圖 · 未發佈")).toBeVisible();
+  const workflows = await page.request.get(base + "/api/workflows");
+  const body = (await workflows.json()) as {
+    workflows: Array<{ selected: number | null; design: unknown; state: string }>;
+  };
+  const chosen = body.workflows.find((item) => item.selected === 0);
+  assert.ok(chosen);
+  assert.equal(chosen.design, null);
+  assert.notEqual(chosen.state, "draft_ready");
   await expect(page.getByText("1 / 1 個工具完成")).toHaveCount(0);
   const chat = await page.locator("body").innerText();
   assert.equal(chat.includes("已搜尋整個 Instagram"), false);

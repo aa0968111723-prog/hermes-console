@@ -282,6 +282,17 @@ export default function HermesConsole() {
     setOffline(false);
     tasksRef.current = taskResult.tasks;
   }, []);
+  const chooseVisualDirection = useCallback(
+    async (workflowId: string, index: number) => {
+      try {
+        await api("workflows", "PATCH", { id: workflowId, selected: index });
+        await refresh();
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    },
+    [refresh],
+  );
   useEffect(() => {
     // Remove compromised legacy connection cache; never remove conversation history.
     for (const key of [
@@ -1145,7 +1156,12 @@ export default function HermesConsole() {
                           )}
                         </div>
                         <div className="message-content">
-                          <MessageBody text={message.content} />
+                          <MessageBody
+                            text={message.content}
+                            workflows={workflows}
+                            canvaReady={canvaConfigured}
+                            onChooseDirection={chooseVisualDirection}
+                          />
                           {message.role === "assistant" &&
                             message.taskId &&
                             message.provenance !== "workspace" && (
@@ -1225,7 +1241,12 @@ export default function HermesConsole() {
                             </span>
                           </div>
                           {currentTask.output && (
-                            <MessageBody text={currentTask.output} />
+                            <MessageBody
+                              text={currentTask.output}
+                              workflows={workflows}
+                              canvaReady={canvaConfigured}
+                              onChooseDirection={chooseVisualDirection}
+                            />
                           )}
                           {currentTask.error && (
                             <p className="error">{currentTask.error}</p>

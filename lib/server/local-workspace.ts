@@ -1,6 +1,9 @@
 import { interpretGoal } from "./orchestrator/goal";
 import { searchZenclubKnowledge, needsZenclubKnowledge } from "./zenclub";
-import { knowledgeVisualPack } from "./zenclub/visual-pack";
+import {
+  knowledgeVisualPack,
+  persistKnowledgeVisualPack,
+} from "./zenclub/visual-pack";
 import type { KnowledgeClaim, KnowledgeEntity } from "./zenclub/types";
 
 const HONESTY =
@@ -35,14 +38,27 @@ function formatEntity(entity: KnowledgeEntity) {
   return ["### " + heading, ...claims].join("\n");
 }
 
-export function localWorkspaceReply(input: string): string | null {
+export function localWorkspaceReply(
+  input: string,
+  ctx?: { owner: string; projectId: string },
+): string | null {
   const text = input.trim();
   if (!needsZenclubKnowledge(text)) return null;
   const knowledge = searchZenclubKnowledge(text);
   const goal = interpretGoal(text);
   const top = knowledge.hits[0]?.entity;
   if (top && (goal.requiresInspiration || goal.requiresDesign)) {
-    return JSON.stringify(knowledgeVisualPack(top, HONESTY));
+    const pack =
+      ctx?.owner
+        ? persistKnowledgeVisualPack(
+            ctx.owner,
+            ctx.projectId || "personal",
+            text,
+            top,
+            HONESTY,
+          )
+        : knowledgeVisualPack(top, HONESTY);
+    return JSON.stringify(pack);
   }
   const lines = [HONESTY, knowledge.notice];
   const card = top ? formatEntity(top) : "";

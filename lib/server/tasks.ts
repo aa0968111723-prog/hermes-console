@@ -285,7 +285,10 @@ export async function submit(owner: string, input: z.infer<typeof taskInput>) {
   limited("tasks:" + owner, 20, 60_000);
   const connection = await health(owner);
   if (connection.credential !== "valid") {
-    const local = localWorkspaceReply(input.input);
+    const local = localWorkspaceReply(input.input, {
+      owner,
+      projectId: conv.projectId,
+    });
     if (!local)
       throw new ApiError(503, "hermes_not_ready", connection.message);
     return submitLocalWorkspace(owner, conv, input, payloadHash, local);
