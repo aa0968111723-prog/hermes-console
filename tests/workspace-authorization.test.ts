@@ -411,4 +411,16 @@ test("public health probe strips tool names and credential sources", () => {
   assert.ok(
     operatorView.toolsets.some((item) => item.tools?.includes("getToDo")),
   );
+
+  const leaked = presentHealth(
+    {
+      ...sample,
+      credential: "invalid",
+      status: "failed",
+      message: "Hermes 金鑰無效或已撤銷，請在後端更換。",
+    },
+    false,
+  );
+  assert.equal(leaked.message, "Hermes 還沒連上。請到設定的連線頁。");
+  assert.doesNotMatch(leaked.message, /金鑰|後端|環境變數/);
 });

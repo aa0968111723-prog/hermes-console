@@ -75,6 +75,10 @@ test("uncertain and offline never auto-resend or auto-acknowledge via pill actio
 test("shortTaskError hides long stacks", () => {
   const stacked = "upstream timeout\n    at runTask (/app/lib/server/tasks.ts:1:1)\n    at processTicks";
   assert.equal(shortTaskError(stacked), "upstream timeout");
+  assert.equal(
+    shortTaskError("Hermes 金鑰無效或已撤銷，請在後端更換。"),
+    "現在沒辦法連到 Hermes。",
+  );
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
   assert.equal(shortTaskError(""), null);
   assert.equal(shortTaskError(null), null);
