@@ -29,6 +29,17 @@ function workflowStamp(item: Workflow): number {
   return Number.isFinite(value) ? value : 0;
 }
 
+function withPreferredSpec(
+  workflow: Workflow,
+  pack: DirectionBriefPack,
+): Workflow {
+  const next: Workflow = { ...workflow, directionBrief: pack };
+  if (!workflow.design || isDirectionBriefPack(workflow.design)) {
+    next.design = { ...pack };
+  }
+  return next;
+}
+
 /** Keep the newer spec when GET and local POST disagree. */
 export function preferDirectionWorkflow(
   prior: Workflow,
@@ -40,14 +51,39 @@ export function preferDirectionWorkflow(
   const nextPack = isDirectionBriefPack(incoming.directionBrief)
     ? incoming.directionBrief
     : null;
-  if (priorPack && !nextPack) return prior;
+  if (priorPack && !nextPack) return withPreferredSpec(prior, priorPack);
   if (!priorPack) return incoming;
   if (!nextPack) return prior;
   const priorRev = briefRevision(priorPack);
   const nextRev = briefRevision(nextPack);
-  if (priorRev > nextRev) return prior;
-  if (nextRev > priorRev) return incoming;
-  return workflowStamp(prior) > workflowStamp(incoming) ? prior : incoming;
+  if (priorRev > nextRev) return withPreferredSpec(prior, priorPack);
+  if (nextRev > priorRev) return withPreferredSpec(incoming, nextPack);
+  const winner =
+    workflowStamp(prior) > workflowStamp(incoming) ? prior : incoming;
+  const pack = isDirectionBriefPack(winner.directionBrief)
+    ? winner.directionBrief
+    : nextPack;
+  return withPreferredSpec(winner, pack);
+}
+
+/** Deck preview must follow the same spec the chat card shows. */
+export function workflowPreviewDesign(
+  workflow: Workflow,
+): Record<string, unknown> | null {
+  const brief = isDirectionBriefPack(workflow.directionBrief)
+    ? workflow.directionBrief
+    : null;
+  const designPack = isDirectionBriefPack(workflow.design)
+    ? workflow.design
+    : null;
+  if (brief && designPack) {
+    return briefRevision(brief) >= briefRevision(designPack)
+      ? { ...brief }
+      : { ...designPack };
+  }
+  if (workflow.design && !designPack) return workflow.design;
+  if (brief) return { ...brief };
+  return workflow.design;
 }
 
 /** Turn a select POST body into a chat-ready workflow. */
@@ -155,15 +191,20 @@ export function applyDirectionBriefFromTask(
     (typeof task.updatedAt === "string" && task.updatedAt) ||
     (typeof task.endedAt === "string" && task.endedAt) ||
     new Date().toISOString();
-  return upsertWorkflow(workflows, {
-    ...match,
-    brief: pack.summary,
-    selected: selectedIndex(pack.selected),
-    directionBrief: pack,
-    copyId: typeof pack.copyId === "string" ? pack.copyId : match.copyId,
-    updatedAt: stamp,
-    conversationId: match.conversationId || task.conversationId,
-  });
+  return upsertWorkflow(
+    workflows,
+    withPreferredSpec(
+      {
+        ...match,
+        brief: pack.summary,
+        selected: selectedIndex(pack.selected),
+        copyId: typeof pack.copyId === "string" ? pack.copyId : match.copyId,
+        updatedAt: stamp,
+        conversationId: match.conversationId || task.conversationId,
+      },
+      pack,
+    ),
+  );
 }
 
 /**

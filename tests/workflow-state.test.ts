@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { DirectionBriefPack } from "../lib/direction-brief";
 import type { Workflow } from "../lib/server/workflows";
+import { isDirectionBriefPack } from "../lib/direction-brief";
 import {
   applyDirectionBriefFromTask,
   hasDirectionSpec,
@@ -9,6 +10,7 @@ import {
   readDirectionBriefFromTask,
   readSelectedDirectionWorkflow,
   upsertWorkflow,
+  workflowPreviewDesign,
 } from "../lib/client/workflow-state";
 
 const pack = (): DirectionBriefPack => ({
@@ -142,9 +144,33 @@ test("task POST events update the trailing spec without waiting on GET", () => {
     ],
   };
   assert.equal(readDirectionBriefFromTask(task)?.revision, 2);
-  const applied = applyDirectionBriefFromTask([local], task);
+  const applied = applyDirectionBriefFromTask(
+    [{ ...local, design: { ...pack(), revision: 1 } }],
+    task,
+  );
   assert.equal(applied[0].directionBrief?.revision, 2);
+  assert.equal(
+    isDirectionBriefPack(applied[0].design) ? applied[0].design.revision : 0,
+    2,
+  );
   assert.match(applied[0].directionBrief?.visualNote || "", /配色偏暖/);
+  const preview = workflowPreviewDesign(applied[0]);
+  assert.equal(isDirectionBriefPack(preview) ? preview.revision : 0, 2);
+  const staleDesign = mergeWorkflows(applied, [
+    {
+      ...local,
+      design: { ...pack(), revision: 1 },
+      directionBrief: { ...pack(), revision: 1 },
+      updatedAt: "2026-01-01T00:00:09.000Z",
+    },
+  ]);
+  assert.equal(staleDesign[0].directionBrief?.revision, 2);
+  assert.equal(
+    isDirectionBriefPack(workflowPreviewDesign(staleDesign[0]))
+      ? workflowPreviewDesign(staleDesign[0])!.revision
+      : 0,
+    2,
+  );
   const continueTask = {
     ...task,
     events: [

@@ -233,6 +233,11 @@ test("direction spec stays in the conversation that picked it, not the empty hom
   );
   assert.doesNotMatch(welcome, /DirectionBrief/);
   assert.match(ui, /setNotice\(""\)/);
+  const deck = await readFile(
+    new URL("../components/visual/ArtifactDeck.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(deck, /workflowPreviewDesign/);
 });
 
 test("direction brief shows tone and A4 label, not paper millimetre aspect", async () => {

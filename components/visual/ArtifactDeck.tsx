@@ -5,6 +5,7 @@ import type { Workflow } from "@/lib/server/workflows";
 import type { Artifact } from "@/lib/server/artifacts";
 import ArtifactStage from "./ArtifactStage";
 import { isDirectionBriefPack } from "@/lib/direction-brief";
+import { workflowPreviewDesign } from "@/lib/client/workflow-state";
 export default function ArtifactDeck({
   items,
   artifacts = [],
@@ -33,7 +34,7 @@ export default function ArtifactDeck({
       .filter((w) => !!w.design || isDirectionBriefPack(w.directionBrief))
       .map((w) => ({
         key: w.id,
-        design: w.design || { ...w.directionBrief! },
+        design: workflowPreviewDesign(w) || { ...w.directionBrief! },
         workflowId: w.id,
         artifact: artifacts.find(
           (item) => item.id === w.artifactId || item.workflowId === w.id,
