@@ -223,6 +223,6 @@ export function liveGalleyStatus() {
   return galleyStatus({
     reachable: entry.status === "failed" ? false : undefined,
     tools: entry.tools,
-    verifiedRead: entry.status === "verified",
+    verifiedRead: entry.status === "available" || entry.status === "verified",
   });
 }
