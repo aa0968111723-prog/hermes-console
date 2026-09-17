@@ -69,6 +69,7 @@ import ComposerTaskStatus, {
   OFFLINE_PILL_LABEL,
   composerTaskPillAction,
   isWorkspaceResultTool,
+  rewriteStoredTaskError,
   shortTaskError,
   showComposerTask,
 } from "./visual/ComposerTaskStatus";
@@ -3026,7 +3027,9 @@ export default function HermesConsole() {
                     {inspectDeveloper && e.toolName && <code>{e.toolName}</code>}
                   </small>
                   {inspectDeveloper && e.summary && (
-                    <p className="event-raw-summary">{e.summary}</p>
+                    <p className="event-raw-summary">
+                      {rewriteStoredTaskError(e.summary)}
+                    </p>
                   )}
                   {inspectDeveloper && e.result !== null && (
                     <details>

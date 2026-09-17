@@ -445,6 +445,32 @@ export async function verifyVisualStates(
   await page.screenshot({ path: join(output, "task-access-stale.png") });
   await audit("task-access-stale-mobile");
   task.observationError = null;
+  task.state = "failed";
+  task.error = "Hermes 回報任務失敗；請檢查工具授權與服務日誌。";
+  task.output = "";
+  await page.reload();
+  await expect(page.locator(".message.assistant .error")).toHaveText(
+    "現在沒辦法連到 Hermes。",
+  );
+  await expect(page.locator("body")).not.toContainText("服務日誌");
+  await expect(page.locator("body")).not.toContainText("請檢查工具授權");
+  await expect(page.locator(".visual-message")).toHaveCount(0);
+  await page.locator(".composer-task-status").click();
+  const storedLogDialog = page.getByRole("dialog", { name: "任務詳情" });
+  await expect(storedLogDialog).toContainText("現在沒辦法連到 Hermes。");
+  await expect(storedLogDialog).not.toContainText("服務日誌");
+  await page.keyboard.press("Escape");
+  task.error =
+    "任務輸入估計 15613 tokens，超過上限 12000。已裁切歷史與指示後仍超限，請開新對話或縮短內容。";
+  await page.reload();
+  await expect(page.locator(".message.assistant .error")).toHaveText(
+    "這次內容太長。請開新對話再試一次。",
+  );
+  await expect(page.locator("body")).not.toContainText("15613");
+  await expect(page.locator("body")).not.toContainText("12000");
+  task.state = "running";
+  task.error = null;
+  task.events[0].status = "running";
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole("textbox", { name: "訊息", exact: true }).fill("");

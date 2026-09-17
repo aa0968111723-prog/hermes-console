@@ -319,6 +319,11 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   );
   assert.match(tasks, /studentHermesError\(error\.message, error\.code\)/);
   assert.doesNotMatch(tasks, /服務日誌|原始會話|請至 Hermes|請檢查 Agent/);
+  const taskRoute = await readFile(
+    new URL("../app/api/tasks/route.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(taskRoute, /studentFacingTask/);
   const eventUi = await readFile(
     new URL("../components/visual/TaskEventSummary.tsx", import.meta.url),
     "utf8",
@@ -461,6 +466,7 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
     "utf8",
   );
   assert.match(visualMessage, /showVisualProcessSummary\(task\)/);
+  assert.doesNotMatch(visualMessage, /task\.error|服務日誌|工具授權/);
   const entry = await readFile(new URL("./verify-entry.ts", import.meta.url), "utf8");
   assert.match(entry, /過程完成/);
   assert.match(entry, /顏色改暖一點/);

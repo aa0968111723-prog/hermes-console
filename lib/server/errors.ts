@@ -136,4 +136,30 @@ export function studentHermesError(message: string, code?: string): string {
   return message;
 }
 
+/** Rewrite stored rows for student APIs. Does not mutate the store. */
+export function studentFacingTask<
+  T extends {
+    error: string | null;
+    observationError: string | null;
+    events: Array<{ error: string | null; summary: string }>;
+  },
+>(task: T): T {
+  return {
+    ...task,
+    error: task.error ? studentHermesError(task.error) : null,
+    observationError: task.observationError
+      ? studentHermesError(task.observationError)
+      : null,
+    events: Array.isArray(task.events)
+      ? task.events.map((event) => ({
+          ...event,
+          error: event.error ? studentHermesError(event.error) : null,
+          summary: event.summary
+            ? studentHermesError(event.summary)
+            : event.summary,
+        }))
+      : task.events,
+  };
+}
+
 export { isEmptyToolResult } from "./tool-result";

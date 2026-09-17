@@ -18,7 +18,7 @@ delete process.env.DATABASE_URL;
 delete process.env.HERMES_API_URL;
 delete process.env.HERMES_API_KEY;
 
-const { resetStoreForTests } = await import("../lib/server/store");
+const { resetStoreForTests, put } = await import("../lib/server/store");
 const healthRoute = await import("../app/api/health/route");
 const workspaceRoute = await import("../app/api/workspace/route");
 const conversationsRoute = await import("../app/api/conversations/route");
@@ -390,6 +390,73 @@ test("workspace settings keep DATABASE_URL off the student tab", async () => {
   assert.match(text, /connection-label sr-only/);
   assert.match(text, /shortTaskError\(currentTask\.error\)/);
   assert.match(text, /shortTaskError\(currentTask\.observationError\)/);
+  assert.match(text, /rewriteStoredTaskError\(e\.summary\)/);
+  assert.match(text, /shortTaskError\(chosenTask\.error\)/);
+  assert.doesNotMatch(text, /\{e\.summary\}/);
   assert.match(text, /不會假裝已看過圖片/);
   assert.doesNotMatch(text, /部署端尚未驗證圖片輸入/);
+});
+
+test("GET /api/tasks rewrites stored 服務日誌 and token-budget errors", async () => {
+  resetStoreForTests();
+  const storedLog = "Hermes 回報任務失敗；請檢查工具授權與服務日誌。";
+  const storedTokens =
+    "任務輸入估計 15613 tokens，超過上限 12000。已裁切歷史與指示後仍超限，請開新對話或縮短內容。";
+  const id = randomUUID();
+  put("task", "workspace", {
+    id,
+    conversationId: randomUUID(),
+    requestKey: randomUUID(),
+    payloadHash: "stored-error-fixture",
+    state: "failed",
+    transport: "chat",
+    remoteId: null,
+    input: "契約任務",
+    attachments: [],
+    output: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    endedAt: new Date().toISOString(),
+    error: storedLog,
+    observationError: storedTokens,
+    events: [
+      {
+        id: randomUUID(),
+        taskId: id,
+        toolName: null,
+        status: "failed",
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        summary: storedLog,
+        result: null,
+        sources: [],
+        error: storedLog,
+        usage: null,
+      },
+    ],
+    usage: {
+      model: null,
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      durationMs: null,
+      providerCost: null,
+      toolCost: null,
+    },
+    stopSupported: false,
+  });
+  const response = await tasksRoute.GET(request("tasks"));
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  const shown = (body.tasks as Array<Record<string, unknown>>).find(
+    (task) => task.id === id,
+  );
+  assert.ok(shown);
+  assert.equal(shown.error, "現在沒辦法連到 Hermes。");
+  assert.equal(shown.observationError, "這次內容太長。請開新對話再試一次。");
+  assert.equal(
+    (shown.events as Array<{ summary: string; error: string }>)[0].summary,
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.doesNotMatch(JSON.stringify(shown), /服務日誌|工具授權|15613|12000|tokens/);
 });

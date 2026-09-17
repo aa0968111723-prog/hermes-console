@@ -33,6 +33,19 @@ export function recoveryOnReconnectAction(): "refresh_only" {
   return "refresh_only";
 }
 
+/** Rewrite stored Hermes engineering copy without truncating honest text. */
+export function rewriteStoredTaskError(text: string): string {
+  if (/tokens，超過上限|已裁切歷史/.test(text))
+    return "這次內容太長。請開新對話再試一次。";
+  if (
+    /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i.test(
+      text,
+    )
+  )
+    return "現在沒辦法連到 Hermes。";
+  return text;
+}
+
 /** Short user-facing error; strip stacks, env-var wording, and hard-cap length. */
 export function shortTaskError(text: string | null | undefined, max = 240): string | null {
   if (!text) return null;
@@ -41,14 +54,8 @@ export function shortTaskError(text: string | null | undefined, max = 240): stri
     .replace(/\s+/g, " ")
     .trim();
   if (!cutStack) return null;
-  if (/tokens，超過上限|已裁切歷史/.test(cutStack))
-    return "這次內容太長。請開新對話再試一次。";
-  if (
-    /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i.test(
-      cutStack,
-    )
-  )
-    return "現在沒辦法連到 Hermes。";
+  const rewritten = rewriteStoredTaskError(cutStack);
+  if (rewritten !== cutStack) return rewritten;
   return cutStack.length > max ? cutStack.slice(0, max - 1) + "…" : cutStack;
 }
 

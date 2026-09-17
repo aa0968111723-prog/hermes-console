@@ -7,6 +7,7 @@ import {
   composerTaskPillAction,
   composerTaskStatus,
   recoveryOnReconnectAction,
+  rewriteStoredTaskError,
   shortTaskError,
   showComposerTask,
 } from "../components/visual/ComposerTaskStatus";
@@ -174,6 +175,20 @@ test("shortTaskError hides long stacks", () => {
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
   assert.equal(shortTaskError(""), null);
   assert.equal(shortTaskError(null), null);
+  assert.equal(
+    rewriteStoredTaskError("Hermes 回報任務失敗；請檢查工具授權與服務日誌。"),
+    "現在沒辦法連到 Hermes。",
+  );
+  assert.equal(
+    rewriteStoredTaskError(
+      "任務輸入估計 15613 tokens，超過上限 12000。已裁切歷史與指示後仍超限，請開新對話或縮短內容。",
+    ),
+    "這次內容太長。請開新對話再試一次。",
+  );
+  assert.equal(
+    rewriteStoredTaskError("工作區社團索引沒有誠實標示快照；沒有用假資料補上。"),
+    "工作區社團索引沒有誠實標示快照；沒有用假資料補上。",
+  );
 });
 
 test("workspace visual results hide the completed composer pill", () => {
