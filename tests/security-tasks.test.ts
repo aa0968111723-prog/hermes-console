@@ -116,6 +116,7 @@ const authRoute = await import("../app/api/auth/route");
 const taskRoute = await import("../app/api/tasks/route");
 const healthRoute = await import("../app/api/health/route");
 const { saveUpload, attachmentParts } = await import("../lib/server/materials");
+const { saveMemory } = await import("../lib/server/memory");
 const { integrations } = await import("../lib/server/integrations");
 const cookie = seedSession().cookie;
 function request(
@@ -483,6 +484,75 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       ),
     );
   });
+  await t.test(
+    "short 茶會 prompt with bloated historySummary still fits default budget",
+    async () => {
+      const previous = process.env.CONSOLE_TASK_TOKEN_BUDGET;
+      delete process.env.CONSOLE_TASK_TOKEN_BUDGET;
+      try {
+        mode = "chat";
+        await health("owner", true);
+        const conversationId = conv();
+        const seeded = get<{
+          id: string;
+          title: string;
+          projectId: string;
+          messages: Array<{
+            id: string;
+            role: "user" | "assistant";
+            content: string;
+            createdAt: string;
+          }>;
+          hermesSessionId: string | null;
+          historySummary?: string | null;
+          createdAt: string;
+          updatedAt: string;
+        }>("conversation", "owner", conversationId)!;
+        seeded.historySummary =
+          "舊工作區脈絡、社團紀錄與未裁的活動備註。".repeat(800);
+        for (let i = 0; i < 24; i++) {
+          seeded.messages.push({
+            id: randomUUID(),
+            role: i % 2 === 0 ? "user" : "assistant",
+            content: "歷史脈絡 " + i + " " + "工作區紀錄。".repeat(80),
+            createdAt: new Date().toISOString(),
+          });
+        }
+        put("conversation", "owner", seeded);
+        for (let i = 0; i < 6; i++) {
+          saveMemory("owner", {
+            kind: "note",
+            title: "茶會脈絡 " + i,
+            content: "工作區記憶不得把短句撐破上限。".repeat(40),
+            scope: "personal",
+            conversationId,
+            layer: "project",
+          });
+        }
+        const task = await submit("owner", {
+          conversationId,
+          requestKey: randomUUID(),
+          input: "我想辦茶會",
+          attachments: [],
+        });
+        const done = await settle(task.id);
+        assert.notEqual(done.state, "failed");
+        assert.equal(done.state, "completed");
+        assert.equal(done.error, null);
+        const student = [
+          done.error,
+          done.observationError,
+          done.output,
+          ...done.events.map((event) => event.summary),
+          ...done.events.map((event) => event.error),
+        ].join("\n");
+        assert.doesNotMatch(student, /tokens|12000|15613|token_budget/);
+      } finally {
+        if (previous === undefined) delete process.env.CONSOLE_TASK_TOKEN_BUDGET;
+        else process.env.CONSOLE_TASK_TOKEN_BUDGET = previous;
+      }
+    },
+  );
   await t.test("over-budget task fails visibly after trim", async () => {
     const previous = process.env.CONSOLE_TASK_TOKEN_BUDGET;
     process.env.CONSOLE_TASK_TOKEN_BUDGET = "30";
