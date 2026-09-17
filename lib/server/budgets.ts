@@ -11,7 +11,7 @@ export interface TaskBudget {
 }
 
 export const DEFAULT_BUDGET: TaskBudget = {
-  tokens: 12_000,
+  tokens: 128_000,
   toolCalls: 40,
   sources: 30,
   durationMs: 900_000,
