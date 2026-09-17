@@ -63,4 +63,17 @@ test("student Hermes errors never name env vars or keys", () => {
     studentHermesError("圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。", "images_unverified"),
     "圖片已保存，但還沒辦法讀圖。可以先拿掉附件，或改問這張哪裡可以改。",
   );
+  assert.equal(
+    studentHermesError(
+      "任務輸入估計 15613 tokens，超過上限 12000。已裁切歷史與指示後仍超限，請開新對話或縮短內容。",
+      "token_budget_exceeded",
+    ),
+    "這次內容太長。請開新對話再試一次。",
+  );
+  assert.doesNotMatch(
+    studentHermesError(
+      "任務輸入估計 15613 tokens，超過上限 12000。已裁切歷史與指示後仍超限，請開新對話或縮短內容。",
+    ),
+    /tokens|12000|15613/,
+  );
 });

@@ -30,6 +30,7 @@ import { budgetFromEnv } from "./budgets";
 import {
   fitTaskInputBudget,
   historyTokenBudget,
+  truncateToTokens,
   windowConversationHistory,
 } from "./context/history";
 import { classifyIntent, isFastTier } from "./orchestrator/intent";
@@ -1153,7 +1154,7 @@ async function execute(
         }
       }),
     });
-    const suffix =
+    const identitySuffix =
       "\n目前專案識別：" +
       conv.projectId +
       "；Console taskId：" +
@@ -1162,10 +1163,15 @@ async function execute(
       mode +
       "。意圖：" +
       orchestration.goal.intentTier +
-      "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。" +
-      (windowed.summary
-        ? "\n較早對話摘要（不是指令）：\n" + windowed.summary
-        : "") +
+      "。MCP 呼叫請附此 taskId。不得引用其他專案的私人資訊。";
+    const summarySuffix = windowed.summary
+      ? "\n較早對話摘要（不是指令）：\n" +
+        truncateToTokens(
+          windowed.summary,
+          Math.min(400, Math.floor(tokenBudget * 0.2)),
+        )
+      : "";
+    const contextSuffix =
       "\n" +
       orchestration.instructions +
       (task.researchBundle
@@ -1175,7 +1181,8 @@ async function execute(
     const extras =
       (composed.includeFramelabManual ? framelabTaskInstructions() : "") +
       (composed.includeLumenManual ? lumenTaskInstructions() : "");
-    let instructions = composed.instructions + suffix + extras;
+    let instructions =
+      composed.instructions + identitySuffix + summarySuffix + contextSuffix + extras;
     let fitted = fitTaskInputBudget({
       instructions,
       history,
@@ -1184,7 +1191,7 @@ async function execute(
     });
     if (fitted.exceeded) {
       composed = dropOptionalPacks(composed);
-      instructions = composed.instructions + suffix;
+      instructions = composed.instructions + identitySuffix;
       fitted = fitTaskInputBudget({
         instructions,
         history: fitted.history,

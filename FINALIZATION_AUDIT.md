@@ -119,6 +119,7 @@
 74. 選方向規格來自 `POST /api/inspiration`（`readSelectedDirectionWorkflow` + 本地 `upsertWorkflow`），不等待、也不被空的或失敗的 `GET /api/workflows` 蓋掉（`mergeWorkflows` 保留已有 `directionBrief`）
 75. 出圖／改暖規格來自任務 POST 的 `workspace_continue_direction_spec`／`workspace_revise_direction_spec` 事件（`applyDirectionBriefFromTask`），立刻更新對話尾端規格。後續較舊的 GET 不得把較高 `revision` 蓋回 V1。規格已存在時，失敗 refresh 不得用「工作區讀取失敗」取代「Hermes 尚未連線，沒有出圖」
 76. 任務頁「任務與成果」預覽跟對話規格同一 `revision`。select POST 寫在 `workflow.design` 的 V1 不得在改暖／出圖後把舞台留在舊稿；`workflowPreviewDesign` 與 `withPreferredSpec` 讓 deck 跟 `directionBrief` 走較新的 pack
+77. Hermes 已連線時，裁切不得只丟對話歷史。指示／摘要過長時縮到預算內，短句「我想辦茶會」仍可送出。真的超限才失敗，學生文案「這次內容太長。請開新對話再試一次。」，不出現 tokens／上限數字
 
 ## 口語主路徑（契約，非正式真機）
 

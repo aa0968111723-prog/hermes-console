@@ -83,6 +83,20 @@ export function estimateTaskInputTokens(
   );
 }
 
+/** Keep a CJK-aware prefix that still fits `limit` tokens. */
+export function truncateToTokens(text: string, limit: number) {
+  if (limit <= 0) return "";
+  if (estimateTokens(text) <= limit) return text;
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (estimateTokens(text.slice(0, mid)) <= limit) lo = mid;
+    else hi = mid - 1;
+  }
+  return text.slice(0, lo);
+}
+
 export function fitTaskInputBudget<T extends { content?: unknown }>(args: {
   instructions: string;
   history: T[];
@@ -90,23 +104,25 @@ export function fitTaskInputBudget<T extends { content?: unknown }>(args: {
   limit: number;
 }) {
   let history = args.history;
-  let estimated = estimateTaskInputTokens(
-    args.instructions,
-    history,
-    args.input,
-  );
+  let instructions = args.instructions;
+  let estimated = estimateTaskInputTokens(instructions, history, args.input);
   let trimmed = false;
   while (estimated > args.limit && history.length > 0) {
     history = history.slice(1);
     trimmed = true;
-    estimated = estimateTaskInputTokens(
-      args.instructions,
-      history,
-      args.input,
-    );
+    estimated = estimateTaskInputTokens(instructions, history, args.input);
+  }
+  if (estimated > args.limit) {
+    const room = Math.max(0, args.limit - estimateTokens(args.input));
+    const next = truncateToTokens(instructions, room);
+    if (next !== instructions) {
+      instructions = next;
+      trimmed = true;
+      estimated = estimateTaskInputTokens(instructions, history, args.input);
+    }
   }
   return {
-    instructions: args.instructions,
+    instructions,
     history,
     estimated,
     trimmed,

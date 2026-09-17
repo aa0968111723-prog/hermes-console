@@ -202,6 +202,19 @@ test("P0 task token budget is a non-null default; trim then fail visibly", () =>
   assert.equal(over.exceeded, true);
   assert.equal(over.history.length, 0);
   assert.ok(over.estimated > 50);
+
+  const bloated = fitTaskInputBudget({
+    instructions: "工作區脈絡。".repeat(800),
+    history: messages(6, "舊對話。".repeat(20)).map((item) => ({
+      role: item.role,
+      content: item.content,
+    })),
+    input: "我想辦茶會",
+    limit: 120,
+  });
+  assert.equal(bloated.exceeded, false);
+  assert.ok(bloated.trimmed);
+  assert.ok(bloated.estimated <= 120);
 });
 
 test("P1 instruction packs omit Lumen/FrameLab manuals unless mentioned", () => {

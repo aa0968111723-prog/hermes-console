@@ -492,13 +492,13 @@ test("security, honest health, durable tasks, uploads and ownership", async (t) 
       const task = await submit("owner", {
         conversationId: conv(),
         requestKey: randomUUID(),
-        input: "把語氣改軟一點",
+        input: "把語氣改軟一點".repeat(80),
         attachments: [],
       });
       const done = await settle(task.id);
       assert.equal(done.state, "failed");
-      assert.match(done.error || "", /超過上限/);
-      assert.match(done.error || "", /30/);
+      assert.equal(done.error, "這次內容太長。請開新對話再試一次。");
+      assert.doesNotMatch(done.error || "", /tokens|30/);
     } finally {
       if (previous === undefined)
         delete process.env.CONSOLE_TASK_TOKEN_BUDGET;
