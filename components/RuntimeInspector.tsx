@@ -247,15 +247,15 @@ export default function RuntimeInspector({
       ? "stale"
       : snapshot?.status || "unknown";
   const availableTools =
-    snapshot?.tools.filter(
+    (snapshot?.tools || []).filter(
       (tool) => tool.enabled && tool.status === "available",
     ).length || 0;
   const mcpAvailable =
-    snapshot?.mcpServers.filter(
+    (snapshot?.mcpServers || []).filter(
       (server) => server.enabled && server.status === "available",
     ).length || 0;
   const mcpEnabled =
-    snapshot?.mcpServers.filter((server) => server.enabled).length || 0;
+    (snapshot?.mcpServers || []).filter((server) => server.enabled).length || 0;
   return (
     <section className="runtime-inspector" aria-label="Hermes Runtime 狀態">
       <header>

@@ -312,6 +312,22 @@ test("binding blocks actual MCP execution and cannot claim unsupported native en
   );
 });
 
+test("SSE emits a first byte immediately even without a cached snapshot", async () => {
+  const response = runtimeStream(
+    new Request("http://console.test"),
+    "unseen-owner-" + randomUUID(),
+    () => {},
+    30_000,
+  );
+  const reader = response.body!.getReader();
+  try {
+    const first = new TextDecoder().decode((await reader.read()).value);
+    assert.match(first, /: connected|event: heartbeat/);
+  } finally {
+    await reader.cancel();
+  }
+});
+
 test("SSE shares discovery across clients, recovers missed IDs, heartbeats and closes on authorization loss", async () => {
   await sync();
   const n = modelRequests,
@@ -330,6 +346,10 @@ test("SSE shares discovery across clients, recovers missed IDs, heartbeats and c
         30,
       );
       readers.push(response.body!.getReader());
+      assert.match(
+        new TextDecoder().decode((await readers[i].read()).value),
+        /: connected/,
+      );
       assert.match(
         new TextDecoder().decode((await readers[i].read()).value),
         /runtime.reset/,

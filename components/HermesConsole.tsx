@@ -140,6 +140,21 @@ const EMPTY: Workspace = {
     synced: false,
   },
 };
+function asWorkspace(value: unknown): Workspace {
+  const raw = value && typeof value === "object" ? (value as Partial<Workspace>) : {};
+  const memory = raw.memory && typeof raw.memory === "object" ? raw.memory : EMPTY.memory;
+  return {
+    conversations: Array.isArray(raw.conversations) ? raw.conversations : [],
+    projects: Array.isArray(raw.projects) ? raw.projects : [],
+    materials: Array.isArray(raw.materials) ? raw.materials : [],
+    imageInput: !!raw.imageInput,
+    memory: {
+      status: String(memory.status || EMPTY.memory.status),
+      scope: String(memory.scope || EMPTY.memory.scope),
+      synced: !!memory.synced,
+    },
+  };
+}
 const taskLabels: Record<string, string> = {
   queued: "準備提交",
   running: "執行中",
@@ -289,7 +304,7 @@ export default function HermesConsole() {
   const activeConv = data.conversations.find((c) => c.id === activeId);
   const currentTasks = tasks
     .filter((t) => t.conversationId === activeId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
   const currentTask = currentTasks[0];
   const pending = currentTasks.find(isActive);
   const uncertain = currentTasks.find((t) => t.state === "uncertain");
@@ -300,7 +315,7 @@ export default function HermesConsole() {
   const hasActiveTask = tasks.some(isActive);
   const directionWorkflow = [...workflows]
     .filter((item) => item.projectId === project && item.directionBrief)
-    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+    .sort((a, b) => String(a.updatedAt || "").localeCompare(String(b.updatedAt || "")))
     .at(-1);
   const rawBrief = directionWorkflow?.directionBrief;
   const directionBrief = isDirectionBriefPack(rawBrief) ? rawBrief : null;
@@ -319,7 +334,7 @@ export default function HermesConsole() {
       : chatDirectionBrief?.selected || null);
 
   const loadWorkspace = useCallback(async () => {
-    const result = await api<Workspace>("workspace");
+    const result = asWorkspace(await api<Workspace>("workspace"));
     setData(result);
     return result;
   }, []);
@@ -329,9 +344,9 @@ export default function HermesConsole() {
       api<{ tasks: Task[] }>("tasks"),
       api<{ workflows: Workflow[]; artifacts?: Artifact[] }>("workflows"),
     ]);
-    setData(workspace);
-    setTasks(taskResult.tasks);
-    setWorkflows(workflowResult.workflows);
+    setData(asWorkspace(workspace));
+    setTasks(Array.isArray(taskResult.tasks) ? taskResult.tasks : []);
+    setWorkflows(Array.isArray(workflowResult.workflows) ? workflowResult.workflows : []);
     setArtifacts(workflowResult.artifacts || []);
     setOffline(false);
   }, []);
@@ -1055,7 +1070,7 @@ export default function HermesConsole() {
       <div className="history">
         {data.conversations
           .filter((c) => c.projectId === project)
-          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+          .sort((a, b) => String(b.updatedAt || "").localeCompare(String(a.updatedAt || "")))
           .map((c) => (
             <button
               key={c.id}
@@ -1458,7 +1473,7 @@ export default function HermesConsole() {
                             onClick={() => openTask(currentTask)}
                           >
                             <ListTodo size={16} />
-                            {studentTaskCaption(currentTask)}
+                            {currentTask ? studentTaskCaption(currentTask) : ""}
                             <ChevronDown size={16} />
                           </button>
                           {["failed", "cancelled", "uncertain"].includes(
@@ -1905,7 +1920,7 @@ export default function HermesConsole() {
                 ]);
                 setInspiration(updated.items);
                 setInspirationPack(updated.pack || null);
-                setData(workspace);
+                setData(asWorkspace(workspace));
               }}
               notice="不能搜尋完整 Instagram 或 Pinterest。貼連結、上傳或讓 Hermes 依真實能力研究。"
             />

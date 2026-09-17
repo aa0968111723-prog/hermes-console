@@ -71,6 +71,11 @@ export function runtimeStream(
       });
       request.signal.addEventListener("abort", finish, { once: true });
       if (request.signal.aborted) return finish();
+      try {
+        controller.enqueue(encoder.encode(": connected\n\n"));
+      } catch {
+        return finish();
+      }
       const snapshot = runtimeSnapshot(owner);
       // There is no durable event log. Explicit snapshot resync on a missed revision.
       // Full state is also sent for a matching ID, so a newly mounted client can initialize.
@@ -78,21 +83,26 @@ export function runtimeStream(
       if (lastId && lastId !== snapshot?.hash)
         send("runtime.reset", { reason: "snapshot_resync" });
       if (snapshot) sendSnapshot(snapshot);
+      else
+        send("heartbeat", {
+          at: new Date().toISOString(),
+          snapshotHash: null,
+          expired: true,
+        });
       void syncRuntime(owner)
         .then(sendSnapshot)
         .catch(() =>
           send("runtime.error", { message: "同步失敗，舊資料僅供參考。" }),
         );
       heartbeat = setInterval(() => {
-        // Do not insert heartbeat while a sync is publishing added/removed tools,
-        // and do not pile unread heartbeats in front of those events.
-        if (runtimeSyncInflight(owner) || (controller.desiredSize ?? 0) <= 0)
-          return;
+        // Keep the stream alive even while discovery is inflight; skip only when
+        // the consumer is not reading. Do not republish a full snapshot mid-sync.
+        if ((controller.desiredSize ?? 0) <= 0) return;
         const current = runtimeSnapshot(owner);
-        if (current) sendSnapshot(current);
+        if (current && !runtimeSyncInflight(owner)) sendSnapshot(current);
         send("heartbeat", {
           at: new Date().toISOString(),
-          snapshotHash: current?.hash,
+          snapshotHash: current?.hash ?? null,
           fetchedAt: current?.fetchedAt,
           lastSyncedAt: current?.lastSyncedAt,
           diagnostics: current

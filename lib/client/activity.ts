@@ -10,9 +10,13 @@ export const SPEC_ONLY_DESIGN_LABEL = "規格已保留";
 export const RESEARCH_WITHOUT_SOURCES_LABEL = "還沒找到來源";
 export const IMAGE_WITHOUT_VISION_LABEL = "還沒看圖";
 
+export function taskEvents(task?: Task | null): TaskEvent[] {
+  return Array.isArray(task?.events) ? task.events : [];
+}
+
 export function taskKeptSpecOnly(task?: Task | null): boolean {
   if (!task || task.state !== "completed") return false;
-  return task.events.some(
+  return taskEvents(task).some(
     (event) =>
       typeof event.summary === "string" &&
       (event.summary === DESIGN_WITHOUT_PREVIEW ||
@@ -22,7 +26,7 @@ export function taskKeptSpecOnly(task?: Task | null): boolean {
 
 export function taskMissingSources(task?: Task | null): boolean {
   if (!task || task.state !== "completed") return false;
-  return task.events.some(
+  return taskEvents(task).some(
     (event) =>
       typeof event.summary === "string" &&
       (event.summary === RESEARCH_WITHOUT_SOURCES ||
@@ -32,7 +36,7 @@ export function taskMissingSources(task?: Task | null): boolean {
 
 export function taskUnverifiedVision(task?: Task | null): boolean {
   if (!task || task.state !== "completed") return false;
-  return task.events.some(
+  return taskEvents(task).some(
     (event) =>
       typeof event.summary === "string" &&
       (event.summary === IMAGE_WITHOUT_VISION ||
@@ -101,10 +105,11 @@ export function toolDisplayLabel(name: string | null): string | null {
   return activityLabels[activityKind(name)];
 }
 export function highLevelProgress(task: {
-  events: Array<{ toolName: string | null }>;
+  events?: Array<{ toolName: string | null }> | null;
 }) {
+  const events = Array.isArray(task?.events) ? task.events : [];
   const kinds = new Set(
-    task.events
+    events
       .map((event) => event.toolName)
       .filter((name): name is string => Boolean(name))
       .map(activityKind),
@@ -136,7 +141,7 @@ export function eventStateLabel(event: TaskEvent): string {
 export function workingEvent(task?: Task | null): TaskEvent | undefined {
   if (!task || !["running", "queued"].includes(task.state)) return;
   const calls = new Map<string, TaskEvent>();
-  for (const event of task.events) {
+  for (const event of taskEvents(task)) {
     if (event.toolName) calls.set(event.toolCallId || event.toolName, event);
   }
   return [...calls.values()]
@@ -219,7 +224,7 @@ export function studentEventCaption(
 
 /** In-chat task button: never render Hermes preview / tool dump. */
 export function studentTaskCaption(task: Task): string {
-  const current = workingEvent(task) || task.events.at(-1);
+  const current = workingEvent(task) || taskEvents(task).at(-1);
   if (!current) return "查看任務進度";
   const honesty = studentHonestyLabel(task);
   if (honesty) return `${eventPhaseLabel(current, task)} · ${honesty}`;
@@ -259,7 +264,7 @@ function applyEventProgress(task: Task, phases: ProgressStep[]) {
   const activeLabel = current ? eventPhaseLabel(current, task) : null;
   const failed = new Set<string>();
   const completed = new Set<string>();
-  for (const event of task.events) {
+  for (const event of taskEvents(task)) {
     if (!event.toolName) continue;
     const label = eventPhaseLabel(event, task);
     const state = eventState(event);
@@ -329,7 +334,7 @@ export function progressSteps(task: Task): ProgressStep[] {
     return phases;
   }
   const calls = new Map<string, TaskEvent>();
-  for (const event of task.events)
+  for (const event of taskEvents(task))
     if (event.toolName) calls.set(event.toolCallId || event.toolName, event);
   const current = workingEvent(task);
   const specOnly = taskKeptSpecOnly(task);
@@ -400,7 +405,7 @@ export function isWorkspaceResultTool(name: string | null | undefined) {
 }
 
 export function taskHasWorkspaceResult(task?: Task | null): boolean {
-  return !!task?.events.some((event) => isWorkspaceResultTool(event.toolName));
+  return taskEvents(task).some((event) => isWorkspaceResultTool(event.toolName));
 }
 
 export function showVisualProcessSummary(task: Task): boolean {
@@ -455,7 +460,7 @@ export function designsFromTask(
 ): Record<string, unknown>[] {
   const designs: Record<string, unknown>[] = [];
   const seen = new Set<string>();
-  for (const event of task?.events || []) {
+  for (const event of taskEvents(task)) {
     const result = event.result;
     const candidates: unknown[] = [result];
     if (result && typeof result === "object" && "design" in result)
@@ -474,9 +479,9 @@ export function designsFromTask(
 export function isCreativeTask(task?: Task | null): boolean {
   if (!task) return false;
   if (task.goal?.requiresDesign) return true;
-  if (task.plan?.steps.some((step) => /Canva|創作|視覺/.test(step.title)))
+  if (task.plan?.steps?.some((step) => /Canva|創作|視覺/.test(step.title)))
     return true;
-  return task.events.some(
+  return taskEvents(task).some(
     (event) => activityKind(event.toolName) === "creative",
   );
 }

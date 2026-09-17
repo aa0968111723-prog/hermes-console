@@ -562,9 +562,10 @@ function isPlanformEvent(event: TaskEvent): boolean {
 
 export function layoutFromTask(task?: Task | null): PlanformLayout | null {
   if (!task) return null;
+  const events = Array.isArray(task.events) ? task.events : [];
   let found: PlanformLayout | null = null;
   const status = emptyLayout();
-  for (const event of task.events) {
+  for (const event of events) {
     if (!isPlanformEvent(event)) continue;
     const parsed = parsePlanformLayout(event.result);
     if (!parsed) continue;

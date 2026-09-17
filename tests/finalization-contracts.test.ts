@@ -382,11 +382,13 @@ test("spoken lookup pins club facts above the trailing spec", async () => {
   assert.match(activity, /showComposerTask/);
   assert.match(activity, /showVisualProcessSummary/);
   assert.match(activity, /taskHasWorkspaceResult/);
+  assert.match(activity, /function taskEvents/);
+  assert.doesNotMatch(activity, /task\?\.events\.some/);
   const visualMessage = await readFile(
     new URL("../components/visual/VisualMessage.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(visualMessage, /showVisualProcessSummary\(task\)/);
+  assert.match(visualMessage, /showVisualProcessSummary\(taskView\)/);
   const entry = await readFile(new URL("./verify-entry.ts", import.meta.url), "utf8");
   assert.match(entry, /過程完成/);
   assert.match(entry, /顏色改暖一點/);

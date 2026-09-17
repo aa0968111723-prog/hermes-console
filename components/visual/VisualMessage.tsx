@@ -51,20 +51,22 @@ export default function VisualMessage({
   onContinue?: (text: string, focus?: TaskFocus) => void;
 }) {
   if (!task) return null;
-  const layout = layoutFromTask(task);
-  const sources = [...new Set(task.events.flatMap((event) => event.sources))]
+  const events = Array.isArray(task.events) ? task.events : [];
+  const taskView = { ...task, events };
+  const layout = layoutFromTask(taskView);
+  const sources = [...new Set(events.flatMap((event) => event.sources || []))]
     .map(safeSource)
     .filter((value): value is string => !!value);
-  const steps = progressSteps(task);
-  const results = task.events.map((event) => event.result);
+  const steps = progressSteps(taskView);
+  const results = events.map((event) => event.result);
   const twinPanel = twinPanelFromResults(results);
   const imageReview = results.find(isImageReviewPack);
   const knowledge = results.find(isClubKnowledgePack);
-  const inspiration = task.events
+  const inspiration = events
     .map((event) => event.result)
     .find(isInspirationSearchPack);
   const artifacts = artifactsForConversation(
-    task,
+    taskView,
     workflows,
     projectId || "",
   );
@@ -73,7 +75,7 @@ export default function VisualMessage({
     !inspiration &&
     !imageReview &&
     !knowledge &&
-    showVisualProcessSummary(task);
+    showVisualProcessSummary(taskView);
   if (
     !sources.length &&
     !artifacts.length &&
@@ -85,8 +87,8 @@ export default function VisualMessage({
     !knowledge
   )
     return null;
-  const honesty = studentHonestyLabel(task);
-  const done = studentProcessDone(task, steps);
+  const honesty = studentHonestyLabel(taskView);
+  const done = studentProcessDone(taskView, steps);
   return (
     <div className="visual-message">
       {layout && <PlanformStage layout={layout} />}
@@ -113,7 +115,7 @@ export default function VisualMessage({
           ) : (
             <Circle size={15} />
           )}
-          {visualProcessCaption(task, steps)}
+          {visualProcessCaption(taskView, steps)}
         </button>
       )}
       {artifacts.map((item) => (
