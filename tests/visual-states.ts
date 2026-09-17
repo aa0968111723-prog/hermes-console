@@ -29,15 +29,25 @@ export async function verifyVisualStates(
   const composer = page.getByRole("textbox", { name: "訊息", exact: true });
   await expect(composer).toBeVisible();
   await expect(composer).toBeEnabled();
-  const fileInput = page.locator('#composer input[type="file"]');
-  await expect(fileInput).toBeEnabled();
+  // Hidden setInputFiles after Escape does not always fire change in CI
+  // (6e84990: no chip after 30s). Same student path as mobile-spatial:
+  // 加入內容 → 圖片 → filechooser. Do not change product upload.
+  await page.getByRole("button", { name: "加入內容", exact: true }).click();
+  await expect(page.getByRole("group", { name: "加入內容選項" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "圖片", exact: true }),
+  ).toBeEnabled();
+  const choosing = page.waitForEvent("filechooser");
   const uploaded = page.waitForResponse(
     (response) =>
       response.url().includes("/api/materials") &&
       response.request().method() === "POST" &&
       response.ok(),
   );
-  await fileInput.setInputFiles({
+  await page.getByRole("button", { name: "圖片", exact: true }).click();
+  await (
+    await choosing
+  ).setFiles({
     name: "龜龜參考.png",
     mimeType: "image/png",
     buffer: image,
