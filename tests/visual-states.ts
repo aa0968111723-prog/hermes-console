@@ -321,8 +321,8 @@ export async function verifyVisualStates(
     await expect(detail).not.toContainText("12000 tokens");
     await expect(page.locator(".composer-task-status")).not.toContainText("任務輸入估計");
     await expect(page.locator(".composer-task-status")).not.toContainText("tokens");
-    await expect(page.locator(".message")).not.toContainText("任務輸入估計");
-    await expect(page.locator(".message")).not.toContainText("12000 tokens");
+    await expect(page.locator(".conversation")).not.toContainText("任務輸入估計");
+    await expect(page.locator(".conversation")).not.toContainText("12000 tokens");
     await expect(detail.getByRole("heading", { name: "接下來" })).toBeVisible();
     await expect(detail.locator(".task-plan")).toContainText("研究");
     await expect(detail.locator(".task-plan")).not.toContainText("galley");
