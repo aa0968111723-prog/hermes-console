@@ -116,6 +116,13 @@ export const STUDENT_TOKEN_BUDGET = "這次內容太長。請開新對話再試�
 const HERMES_ENGINEERING =
   /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具|tokens，超過上限|已裁切歷史/i;
 
+export const STUDENT_BUDGET_TRACE =
+  "內容較長，已整理成這次能送出的範圍。";
+export const STUDENT_PLAN_TRACE = "已整理目標與可見執行計畫。";
+
+const STORED_BUDGET_TRACE = /任務輸入估計|\d+\s*\/\s*\d+\s*tokens\b/i;
+const STORED_INTENT_TRACE = /budgetMode=|意圖 continue/;
+
 /** Chat and member APIs never name env vars, keys, or vault internals. */
 export function studentHermesError(message: string, code?: string): string {
   if (
@@ -136,6 +143,15 @@ export function studentHermesError(message: string, code?: string): string {
   return message;
 }
 
+/** Stored event summaries: same student rewrite as errors, plus leftover budget traces. */
+export function studentFacingSummary(summary: string): string {
+  const asError = studentHermesError(summary);
+  if (asError !== summary) return asError;
+  if (STORED_BUDGET_TRACE.test(summary)) return STUDENT_BUDGET_TRACE;
+  if (STORED_INTENT_TRACE.test(summary)) return STUDENT_PLAN_TRACE;
+  return summary;
+}
+
 /** Rewrite stored rows for student APIs. Does not mutate the store. */
 export function studentFacingTask<
   T extends {
@@ -146,16 +162,16 @@ export function studentFacingTask<
 >(task: T): T {
   return {
     ...task,
-    error: task.error ? studentHermesError(task.error) : null,
+    error: task.error ? studentFacingSummary(task.error) : null,
     observationError: task.observationError
-      ? studentHermesError(task.observationError)
+      ? studentFacingSummary(task.observationError)
       : null,
     events: Array.isArray(task.events)
       ? task.events.map((event) => ({
           ...event,
-          error: event.error ? studentHermesError(event.error) : null,
+          error: event.error ? studentFacingSummary(event.error) : null,
           summary: event.summary
-            ? studentHermesError(event.summary)
+            ? studentFacingSummary(event.summary)
             : event.summary,
         }))
       : task.events,

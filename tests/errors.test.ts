@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   isEmptyToolResult,
+  studentFacingSummary,
   studentFacingTask,
   studentHermesError,
   taxonomyFor,
@@ -110,4 +111,23 @@ test("studentFacingTask rewrites stored 服務日誌 and token-budget rows", () 
   assert.equal(shown.events[1].summary, "這次內容太長。請開新對話再試一次。");
   assert.equal(shown.events[2].summary, honest);
   assert.doesNotMatch(JSON.stringify(shown), /服務日誌|工具授權|15613|12000|tokens/);
+});
+
+test("studentFacingTask rewrites stored budget-estimate event summaries", () => {
+  const estimate = "任務輸入估計 265/12000 tokens。";
+  const intent = "意圖 continue；budgetMode=fast；歷史 0 則（省略 0）。";
+  const shown = studentFacingTask({
+    error: null,
+    observationError: null,
+    events: [
+      { error: null, summary: estimate },
+      { error: null, summary: intent },
+      { error: null, summary: "正在向 Hermes 提交請求。" },
+    ],
+  });
+  assert.equal(shown.events[0].summary, "內容較長，已整理成這次能送出的範圍。");
+  assert.equal(shown.events[1].summary, "已整理目標與可見執行計畫。");
+  assert.equal(shown.events[2].summary, "正在向 Hermes 提交請求。");
+  assert.equal(studentFacingSummary(estimate), shown.events[0].summary);
+  assert.doesNotMatch(JSON.stringify(shown), /任務輸入估計|12000|tokens|budgetMode/);
 });

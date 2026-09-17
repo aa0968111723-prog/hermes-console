@@ -189,6 +189,18 @@ test("shortTaskError hides long stacks", () => {
     rewriteStoredTaskError("工作區社團索引沒有誠實標示快照；沒有用假資料補上。"),
     "工作區社團索引沒有誠實標示快照；沒有用假資料補上。",
   );
+  assert.equal(
+    rewriteStoredTaskError("任務輸入估計 265/12000 tokens。"),
+    "內容較長，已整理成這次能送出的範圍。",
+  );
+  assert.equal(
+    rewriteStoredTaskError("意圖 continue；budgetMode=fast；歷史 0 則（省略 0）。"),
+    "已整理目標與可見執行計畫。",
+  );
+  assert.doesNotMatch(
+    rewriteStoredTaskError("任務輸入估計 268/12000 tokens。"),
+    /tokens|12000|任務輸入估計/,
+  );
 });
 
 test("workspace visual results hide the completed composer pill", () => {

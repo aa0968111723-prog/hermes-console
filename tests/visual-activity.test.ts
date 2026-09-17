@@ -116,6 +116,13 @@ test("student captions never use Hermes preview text", () => {
   assert.equal(studentEventCaption(running.events[0], running), "研究 · 執行中");
   assert.equal(studentTaskCaption(running), "研究 · 執行中");
   assert.doesNotMatch(studentTaskCaption(running), /schema|galley_research|GET \//);
+  const budget = {
+    ...event("b", "budget", ""),
+    toolName: null,
+    summary: "任務輸入估計 265/12000 tokens。",
+  };
+  assert.equal(studentEventCaption(budget), "理解 · 狀態未知");
+  assert.doesNotMatch(studentEventCaption(budget), /tokens|12000|任務輸入估計/);
   const empty = task("running", []);
   assert.equal(studentTaskCaption(empty), "查看任務進度");
 });

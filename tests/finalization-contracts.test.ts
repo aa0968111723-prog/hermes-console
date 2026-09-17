@@ -313,6 +313,8 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   );
   assert.match(errors, /可以先找靈感/);
   assert.doesNotMatch(errors, /請到設定的連線頁/);
+  assert.match(errors, /studentFacingSummary/);
+  assert.match(errors, /任務輸入估計/);
   const tasks = await readFile(
     new URL("../lib/server/tasks.ts", import.meta.url),
     "utf8",

@@ -397,7 +397,7 @@ test("workspace settings keep DATABASE_URL off the student tab", async () => {
   assert.doesNotMatch(text, /部署端尚未驗證圖片輸入/);
 });
 
-test("GET /api/tasks rewrites stored 服務日誌 and token-budget errors", async () => {
+test("GET /api/tasks rewrites stored 服務日誌, token-budget, and estimate traces", async () => {
   resetStoreForTests();
   const storedLog = "Hermes 回報任務失敗；請檢查工具授權與服務日誌。";
   const storedTokens =
@@ -433,6 +433,32 @@ test("GET /api/tasks rewrites stored 服務日誌 and token-budget errors", asyn
         error: storedLog,
         usage: null,
       },
+      {
+        id: randomUUID(),
+        taskId: id,
+        toolName: null,
+        status: "budget",
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        summary: "任務輸入估計 265/12000 tokens。",
+        result: null,
+        sources: [],
+        error: null,
+        usage: null,
+      },
+      {
+        id: randomUUID(),
+        taskId: id,
+        toolName: null,
+        status: "plan",
+        startedAt: new Date().toISOString(),
+        endedAt: new Date().toISOString(),
+        summary: "意圖 continue；budgetMode=fast；歷史 0 則（省略 0）。",
+        result: null,
+        sources: [],
+        error: null,
+        usage: null,
+      },
     ],
     usage: {
       model: null,
@@ -458,5 +484,16 @@ test("GET /api/tasks rewrites stored 服務日誌 and token-budget errors", asyn
     (shown.events as Array<{ summary: string; error: string }>)[0].summary,
     "現在沒辦法連到 Hermes。",
   );
-  assert.doesNotMatch(JSON.stringify(shown), /服務日誌|工具授權|15613|12000|tokens/);
+  assert.equal(
+    (shown.events as Array<{ summary: string }>)[1].summary,
+    "內容較長，已整理成這次能送出的範圍。",
+  );
+  assert.equal(
+    (shown.events as Array<{ summary: string }>)[2].summary,
+    "已整理目標與可見執行計畫。",
+  );
+  assert.doesNotMatch(
+    JSON.stringify(shown),
+    /服務日誌|工具授權|15613|12000|tokens|budgetMode|任務輸入估計/,
+  );
 });

@@ -43,6 +43,10 @@ export function rewriteStoredTaskError(text: string): string {
     )
   )
     return "現在沒辦法連到 Hermes。";
+  if (/任務輸入估計|\d+\s*\/\s*\d+\s*tokens\b/i.test(text))
+    return "內容較長，已整理成這次能送出的範圍。";
+  if (/budgetMode=|意圖 continue/.test(text))
+    return "已整理目標與可見執行計畫。";
   return text;
 }
 

@@ -177,6 +177,20 @@ export async function verifyVisualStates(
         error: null,
         usage: null,
       },
+      {
+        id: "event-budget",
+        taskId: "ui-fixture-task",
+        toolCallId: null,
+        toolName: null,
+        status: "budget",
+        startedAt: now,
+        endedAt: now,
+        summary: "任務輸入估計 265/12000 tokens。",
+        result: null,
+        sources: [],
+        error: null,
+        usage: null,
+      },
     ],
   };
   await page.route("**/api/tasks", (route) =>
@@ -302,6 +316,13 @@ export async function verifyVisualStates(
     await expect(technical).not.toHaveAttribute("open", "");
     await expect(technicalSummary).toContainText("維運檢視");
     await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
+    await expect(detail.locator(".event-raw-summary")).toHaveCount(0);
+    await expect(detail).not.toContainText("任務輸入估計");
+    await expect(detail).not.toContainText("12000 tokens");
+    await expect(page.locator(".composer-task-status")).not.toContainText("任務輸入估計");
+    await expect(page.locator(".composer-task-status")).not.toContainText("tokens");
+    await expect(page.locator(".message")).not.toContainText("任務輸入估計");
+    await expect(page.locator(".message")).not.toContainText("12000 tokens");
     await expect(detail.getByRole("heading", { name: "接下來" })).toBeVisible();
     await expect(detail.locator(".task-plan")).toContainText("研究");
     await expect(detail.locator(".task-plan")).not.toContainText("galley");
@@ -337,11 +358,18 @@ export async function verifyVisualStates(
     await expect(eventDetails.locator(".event-raw-summary")).toHaveText(
       "[介面測試事件] 研究來源",
     );
+    await expect(detail).not.toContainText("任務輸入估計");
+    await expect(detail).not.toContainText("12000 tokens");
+    await expect(
+      detail.locator(".event").nth(1).locator(".event-raw-summary"),
+    ).toHaveText("內容較長，已整理成這次能送出的範圍。");
     await expect(detail.locator(".event-meta code").first()).toBeVisible();
     await expect(detail.locator(".event-meta code").first()).toHaveText("galley_research");
     await technicalSummary.click();
     await expect(technical).not.toHaveAttribute("open", "");
     await expect(technical.locator("code").filter({ hasText: task.id })).toBeHidden();
+    await expect(detail.locator(".event-raw-summary")).toHaveCount(0);
+    await expect(detail).not.toContainText("任務輸入估計");
     await expect(eventDetails.getByRole("link", { name: "example.com", exact: true })).toBeVisible();
     await expect(eventDetails.getByRole("link", { name: "https://example.com/reference" })).toHaveCount(0);
     await expect(detail).not.toContainText("編譯視覺規格");
