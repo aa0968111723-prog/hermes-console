@@ -20,6 +20,8 @@ export function historyWindowK() {
 export function historyTokenBudget(taskBudget?: number | null) {
   const raw = Number(process.env.CONSOLE_HISTORY_TOKEN_BUDGET);
   if (Number.isFinite(raw) && raw > 0) return Math.floor(raw);
+  if (taskBudget != null && (!Number.isFinite(taskBudget) || taskBudget <= 0))
+    return Number.MAX_SAFE_INTEGER;
   if (taskBudget && taskBudget > 0)
     return Math.min(DEFAULT_HISTORY_TOKEN_BUDGET, Math.floor(taskBudget * 0.4));
   return DEFAULT_HISTORY_TOKEN_BUDGET;
@@ -96,7 +98,11 @@ export function fitTaskInputBudget<T extends { content?: unknown }>(args: {
     args.input,
   );
   let trimmed = false;
-  while (estimated > args.limit && history.length > 0) {
+  const limit =
+    !Number.isFinite(args.limit) || args.limit <= 0
+      ? Number.MAX_SAFE_INTEGER
+      : args.limit;
+  while (estimated > limit && history.length > 0) {
     history = history.slice(1);
     trimmed = true;
     estimated = estimateTaskInputTokens(
@@ -110,6 +116,6 @@ export function fitTaskInputBudget<T extends { content?: unknown }>(args: {
     history,
     estimated,
     trimmed,
-    exceeded: estimated > args.limit,
+    exceeded: estimated > limit,
   };
 }

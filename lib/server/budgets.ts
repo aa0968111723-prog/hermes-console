@@ -11,7 +11,7 @@ export interface TaskBudget {
 }
 
 export const DEFAULT_BUDGET: TaskBudget = {
-  tokens: 128_000,
+  tokens: 0,
   toolCalls: 40,
   sources: 30,
   durationMs: 900_000,
@@ -22,13 +22,44 @@ export const DEFAULT_BUDGET: TaskBudget = {
   maxSubtasks: 8,
 };
 
+export function envNumber(
+  name: string,
+  fallback: number,
+  allowZero = false,
+) {
+  const raw = process.env[name];
+  if (raw == null || raw.trim() === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return fallback;
+  if (value === 0) return allowZero ? 0 : fallback;
+  return value;
+}
+
+export function isUnlimited(limit: number) {
+  return !Number.isFinite(limit) || limit <= 0;
+}
+
+export function effectiveLimit(limit: number) {
+  return isUnlimited(limit) ? Number.MAX_SAFE_INTEGER : limit;
+}
+
+export function uploadByteLimit() {
+  return envNumber("CONSOLE_MAX_UPLOAD_BYTES", 0, true);
+}
+
+export function storageByteLimit() {
+  return envNumber("CONSOLE_MAX_STORAGE_BYTES", 0, true);
+}
+
 export function budgetFromEnv(): TaskBudget {
-  const number = (name: string, fallback: number) => {
-    const value = Number(process.env[name]);
-    return Number.isFinite(value) && value > 0 ? value : fallback;
-  };
+  const number = (name: string, fallback: number) =>
+    envNumber(name, fallback, false);
   return {
-    tokens: number("CONSOLE_TASK_TOKEN_BUDGET", DEFAULT_BUDGET.tokens),
+    tokens: envNumber(
+      "CONSOLE_TASK_TOKEN_BUDGET",
+      DEFAULT_BUDGET.tokens,
+      true,
+    ),
     toolCalls: number("CONSOLE_MAX_TOOL_CALLS", DEFAULT_BUDGET.toolCalls),
     sources: number("CONSOLE_MAX_SOURCES", DEFAULT_BUDGET.sources),
     durationMs: number("HERMES_TASK_TIMEOUT_MS", DEFAULT_BUDGET.durationMs),
@@ -56,6 +87,7 @@ export function withinBudget(
   if ((used.revisionRounds || 0) > budget.revisionRounds)
     return "revisionRounds";
   if ((used.toolCalls || 0) > budget.toolCalls) return "toolCalls";
-  if ((used.tokens || 0) > budget.tokens) return "tokens";
+  if (!isUnlimited(budget.tokens) && (used.tokens || 0) > budget.tokens)
+    return "tokens";
   return null;
 }
