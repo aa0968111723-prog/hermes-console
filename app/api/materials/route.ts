@@ -15,11 +15,16 @@ import {
   saveReference,
   saveUpload,
 } from "@/lib/server/materials";
+import { isUnlimited, uploadByteLimit } from "@/lib/server/budgets";
 export const runtime = "nodejs";
 const projectSchema = z.string().regex(/^[a-zA-Z0-9_-]{1,100}$/);
 function verifyProject(owner: string, id: string) {
   if (id !== "personal" && !get("project", owner, id))
     throw new ApiError(404, "project_not_found", "專案不存在。");
+}
+function overUploadLimit(bytes: number) {
+  const max = uploadByteLimit();
+  return !isUnlimited(max) && bytes > max;
 }
 export const GET = route(async (req) => {
   const owner = authenticate(req);
@@ -73,7 +78,6 @@ export const POST = route(async (req) => {
         "unsafe_link",
         "請貼上不含帳密的 HTTPS 來源連結。",
       );
-    // Save a reference, never fetch an arbitrary user-supplied URL on this server.
     return respond({ material: saveReference(owner, body) }, 201);
   }
   const projectId = projectSchema.parse(
@@ -90,9 +94,8 @@ export const POST = route(async (req) => {
       "unsupported_file",
       "支援 PNG、JPEG、WebP、TXT 與 PDF。",
     );
-  const max = 8_000_000;
-  if (Number(req.headers.get("content-length")) > max)
-    throw new ApiError(413, "upload_limit", "檔案上限 8 MB。");
+  if (overUploadLimit(Number(req.headers.get("content-length"))))
+    throw new ApiError(413, "upload_limit", "檔案超過上傳上限。");
   const reader = req.body?.getReader();
   if (!reader) throw new ApiError(400, "empty_file", "檔案沒有內容。");
   const parts: Uint8Array[] = [];
@@ -101,9 +104,9 @@ export const POST = route(async (req) => {
     const { done, value } = await reader.read();
     if (done) break;
     total += value.length;
-    if (total > max) {
+    if (overUploadLimit(total)) {
       await reader.cancel();
-      throw new ApiError(413, "upload_limit", "檔案上限 8 MB。");
+      throw new ApiError(413, "upload_limit", "檔案超過上傳上限。");
     }
     parts.push(value);
   }
