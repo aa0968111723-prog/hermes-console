@@ -29,7 +29,7 @@ function StatusPill({
   developer: boolean;
 }) {
   return (
-    <span aria-label={label + " " + detail}>
+    <span aria-label={developer ? label + " " + detail : label}>
       <i className={good ? "good" : "unknown"} aria-hidden="true" />
       {label}
       {developer ? " " + detail : null}

@@ -631,13 +631,13 @@ export const WORKSPACE_INSTRUCTION_PACK = [
 ].join("\n");
 
 export const PLANFORM_INSTRUCTION_PACK =
-  "場佈、教室、攤位、門口淨空、人數排座時，經 Workspace MCP 先呼叫 planform_describe 或 planform_get_venue，再用繁體中文 planform_run_agent。變更只在草稿；需使用者確認後才 planform_apply_layout（confirm true）與 planform_confirm_preview。找不到物件時回 unresolved，不可猜最近物件。GitHub 倉庫網址不是 MCP。尚未設定 PLANFORM_MCP_URL 時明確說未連接，不要假裝已排版。";
+  "場佈、教室、攤位、門口淨空、人數排座時，經 Workspace MCP 先呼叫 planform_describe 或 planform_get_venue，再用繁體中文 planform_run_agent。變更只在草稿；需使用者確認後才 planform_apply_layout（confirm true）與 planform_confirm_preview。找不到物件時回 unresolved，不可猜最近物件。GitHub 倉庫網址不是 MCP。未連線時明確說還沒接上場佈工具，不要假裝已排版，也不要請使用者貼權杖或打開設定頁。";
 
 export const LUMEN_INSTRUCTION_PACK =
-  "提到 Lumen、創作台、海報、文宣、招新、茶會、畫板、三個方向、Style DNA 時：若工作區已有 lumen_* 或 Runtime 有 mcp.lumen.*，必須呼叫那些工具，不要用文字假裝已開畫板。先 lumen_list_tools 或 lumen_health，口語一律 lumen_utter。不要叫使用者填 prompt 表單。整理好的三到五個方向用 lumen_save_directions 放到畫板，等待使用者選定。不要呼叫不存在的 choose_direction。讀畫板走 lumen_get_session／lumen_list_board。校色未核到就標未確認。GitHub 倉庫網址不是 MCP。未設定時請使用者到 Lumen 創作台產生權杖，貼到「設定 → 連線」。";
+  "提到 Lumen、創作台、海報、文宣、招新、茶會、畫板、三個方向、Style DNA 時：若工作區已有 lumen_* 或 Runtime 有 mcp.lumen.*，必須呼叫那些工具，不要用文字假裝已開畫板。先 lumen_list_tools 或 lumen_health，口語一律 lumen_utter。不要叫使用者填 prompt 表單。整理好的三到五個方向用 lumen_save_directions 放到畫板，等待使用者選定。不要呼叫不存在的 choose_direction。讀畫板走 lumen_get_session／lumen_list_board。校色未核到就標未確認。GitHub 倉庫網址不是 MCP。未連線時不要請使用者貼權杖或打開設定頁；改用 workspace_search_inspiration 整理方向，並誠實說畫板還沒接上。";
 
 export const FRAMELAB_INSTRUCTION_PACK =
-  "提到 FrameLab、動畫、時間軸、中間張、修壞格、RIFE、影格時：若工作區已有 framelab_* 或 Runtime 有 mcp.framelab.*，必須呼叫那些工具，不要用文字假裝已改像素。先 framelab_list_projects → framelab_get_timeline → framelab_get_frame_window。分析走 job，用 framelab_get_job 輪詢。寫入／生成需 confirmed=true。linear-blend 是快速預覽，不是 AI 中間張。GitHub 倉庫網址不是 MCP。未設定時請使用者到 FrameLab 首頁產生權杖，貼到「設定 → 連線」。";
+  "提到 FrameLab、動畫、時間軸、中間張、修壞格、RIFE、影格時：若工作區已有 framelab_* 或 Runtime 有 mcp.framelab.*，必須呼叫那些工具，不要用文字假裝已改像素。先 framelab_list_projects → framelab_get_timeline → framelab_get_frame_window。分析走 job，用 framelab_get_job 輪詢。寫入／生成需 confirmed=true。linear-blend 是快速預覽，不是 AI 中間張。GitHub 倉庫網址不是 MCP。未連線時不要請使用者貼權杖或打開設定頁，也不要假裝已改像素。";
 
 export const creativeInstructions = [
   BASE_CREATIVE_INSTRUCTIONS,

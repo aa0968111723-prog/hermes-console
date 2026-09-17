@@ -35,16 +35,22 @@ export function recoveryOnReconnectAction(): "refresh_only" {
 
 /** Rewrite stored Hermes engineering copy without truncating honest text. */
 export function rewriteStoredTaskError(text: string): string {
-  if (/tokens，超過上限|已裁切歷史/.test(text))
+  if (
+    /tokens，超過上限|已裁切歷史|token_budget|context length|maximum context/i.test(
+      text,
+    )
+  )
     return "這次內容太長。請開新對話再試一次。";
   if (
-    /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具/i.test(
+    /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具|產生權杖|設定 → 連線/i.test(
       text,
     )
   )
     return "現在沒辦法連到 Hermes。";
   if (/任務輸入估計|\d+\s*\/\s*\d+\s*tokens\b/i.test(text))
     return "內容較長，已整理成這次能送出的範圍。";
+  if (/\b\d[\d,]*\s*tokens\b/i.test(text))
+    return "這次內容太長。請開新對話再試一次。";
   if (/budgetMode=|意圖 continue/.test(text))
     return "已整理目標與可見執行計畫。";
   return text;

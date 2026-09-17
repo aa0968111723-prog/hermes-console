@@ -162,6 +162,18 @@ test("P0 full create / lookup path still opens packs and research", () => {
   });
   assert.match(createInstructions.instructions, /lumen_utter/);
   assert.equal(createInstructions.includeLumenManual, true);
+  assert.doesNotMatch(
+    createInstructions.instructions,
+    /產生權杖|設定 → 連線|PLANFORM_MCP_URL/,
+  );
+
+  const tea = composeTaskInstructions({
+    mode: "creative",
+    text: "我想辦茶會",
+    goal: interpretGoal("我想辦茶會"),
+  });
+  assert.equal(tea.includeLumenManual, true);
+  assert.doesNotMatch(tea.instructions, /產生權杖|設定 → 連線|貼到/);
 
   const lookup = interpretGoal("研究 2026 年校園永續發展議題與國際案例");
   assert.equal(lookup.intentTier, "lookup");

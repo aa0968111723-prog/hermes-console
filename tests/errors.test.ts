@@ -78,6 +78,18 @@ test("student Hermes errors never name env vars or keys", () => {
     ),
     /tokens|12000|15613/,
   );
+  assert.equal(
+    studentHermesError("This model's maximum context length is 12000 tokens."),
+    "這次內容太長。請開新對話再試一次。",
+  );
+  assert.doesNotMatch(
+    studentHermesError("prompt too long: 15613 tokens"),
+    /tokens|15613/,
+  );
+  assert.equal(
+    studentHermesError("請到設定 → 連線貼上 Lumen 權杖。"),
+    "現在沒辦法連到 Hermes。",
+  );
 });
 
 test("studentFacingTask rewrites stored 服務日誌 and token-budget rows", () => {

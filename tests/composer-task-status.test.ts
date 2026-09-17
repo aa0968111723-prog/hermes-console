@@ -201,6 +201,14 @@ test("shortTaskError hides long stacks", () => {
     rewriteStoredTaskError("任務輸入估計 268/12000 tokens。"),
     /tokens|12000|任務輸入估計/,
   );
+  assert.equal(
+    rewriteStoredTaskError("This model's maximum context length is 12000 tokens."),
+    "這次內容太長。請開新對話再試一次。",
+  );
+  assert.doesNotMatch(
+    rewriteStoredTaskError("請到設定 → 連線產生權杖。"),
+    /設定 → 連線|產生權杖/,
+  );
 });
 
 test("workspace visual results hide the completed composer pill", () => {

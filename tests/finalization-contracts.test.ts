@@ -337,6 +337,19 @@ test("student Agent dock is status, not Runtime or authorization copy", async ()
   );
   assert.match(orbit, /developer && chosen\.detail/);
   assert.match(orbit, /developer && \(/);
+  const hermesPacks = await readFile(
+    new URL("../lib/server/hermes.ts", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    hermesPacks,
+    /產生權杖，貼到「設定 → 連線」|PLANFORM_MCP_URL 時明確說/,
+  );
+  const inspector = await readFile(
+    new URL("../components/RuntimeInspector.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(inspector, /developer \? label \+ " " \+ detail : label/);
 });
 
 test("student copy hides channel ids, provenance enums, and covers spoken lookup", async () => {

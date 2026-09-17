@@ -114,7 +114,7 @@ export const STUDENT_IMAGE_UNVERIFIED =
 export const STUDENT_TOKEN_BUDGET = "這次內容太長。請開新對話再試一次。";
 
 const HERMES_ENGINEERING =
-  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具|tokens，超過上限|已裁切歷史/i;
+  /環境變數|HERMES_API|憑證參照|請在後端|金鑰無效|vault\.key|Bearer |Authorization|部署服務|部署端|圖片輸入|服務日誌|工具授權|原始會話|請至 Hermes|Agent／|權限與 profile|客戶端執行工具|tokens，超過上限|已裁切歷史|產生權杖|設定 → 連線|PLANFORM_MCP|LUMEN_MCP|FRAMELAB_MCP/i;
 
 export const STUDENT_BUDGET_TRACE =
   "內容較長，已整理成這次能送出的範圍。";
@@ -134,6 +134,11 @@ export function studentHermesError(message: string, code?: string): string {
   if (code === "images_unverified") return STUDENT_IMAGE_UNVERIFIED;
   if (code === "token_budget_exceeded") return STUDENT_TOKEN_BUDGET;
   if (/tokens，超過上限|已裁切歷史/.test(message)) return STUDENT_TOKEN_BUDGET;
+  if (
+    /token_budget|context length|maximum context/i.test(message) ||
+    (/\b\d[\d,]*\s*tokens\b/i.test(message) && !/任務輸入估計/.test(message))
+  )
+    return STUDENT_TOKEN_BUDGET;
   if (
     code &&
     /^(connect_timeout|network_error|interrupted|upstream_)/.test(code)

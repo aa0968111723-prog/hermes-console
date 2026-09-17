@@ -123,6 +123,18 @@ test("student-safe workspace notice never echoes secrets", () => {
     "請稍後再試，請求次數已達限制。",
   );
   assert.equal(
+    studentSafeApiMessage("Hermes 回報任務失敗；請檢查工具授權與服務日誌。"),
+    WORKSPACE_LOAD_NOTICE,
+  );
+  assert.equal(
+    studentSafeApiMessage("This model's maximum context length is 12000 tokens."),
+    "這次內容太長。請開新對話再試一次。",
+  );
+  assert.doesNotMatch(
+    studentSafeApiMessage("請到設定 → 連線產生權杖。"),
+    /產生權杖|設定 → 連線/,
+  );
+  assert.equal(
     studentNoticeBarText(
       WORKSPACE_LOAD_NOTICE,
       "Hermes 尚未連線，沒有出圖。",

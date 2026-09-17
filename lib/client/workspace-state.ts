@@ -22,7 +22,7 @@ export function shouldShowWorkspaceLoadNotice(hasDirectionSpec: boolean): boolea
 }
 
 const SECRETISH =
-  /HERMES_API|Bearer\s|sk-[a-zA-Z0-9_-]{8,}|postgres(?:ql)?:\/\/|vault\.key|環境變數|CONSOLE_GATEWAY|x-console-gateway/i;
+  /HERMES_API|Bearer\s|sk-[a-zA-Z0-9_-]{8,}|postgres(?:ql)?:\/\/|vault\.key|環境變數|CONSOLE_GATEWAY|x-console-gateway|服務日誌|產生權杖|設定 → 連線/i;
 
 export type WorkspaceSnapshot = {
   conversations: Conversation[];
@@ -55,6 +55,12 @@ export function studentSafeApiMessage(
   fallback = WORKSPACE_LOAD_NOTICE,
 ) {
   if (!message.trim() || SECRETISH.test(message)) return fallback;
+  if (
+    /任務輸入估計|tokens，超過上限|token_budget|context length|maximum context|\b\d[\d,]*\s*tokens\b/i.test(
+      message,
+    )
+  )
+    return "這次內容太長。請開新對話再試一次。";
   return message;
 }
 

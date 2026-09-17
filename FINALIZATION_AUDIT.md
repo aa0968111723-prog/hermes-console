@@ -1,6 +1,6 @@
 # Hermes Console 正式產品化盤點
 
-基準：`cursor/workspace-load-keep-chat-cf7e`（已含 `origin/main`；產品接續已合併的 #108）。這不是新 App，也不是第二套 Dashboard。狀態以程式與測試為準，不以文件宣稱為準。#106／#107 保持關閉。in-repo 口語主路徑以 `tests/verify-entry.ts` 為契約證據；live Google／淡江 IdP／實體 Android Chrome 仍未證明。公開站 https://344.zeabur.app `/` 免登入，但送出「我想辦茶會」目前仍 token overflow，要等本分支部署；倉庫 SHA `9bc9c14` 已縮指示。
+基準：`cursor/workspace-load-keep-chat-cf7e`（已含 `origin/main`；產品接續已合併的 #108）。這不是新 App，也不是第二套 Dashboard。狀態以程式與測試為準，不以文件宣稱為準。#106／#107 保持關閉。in-repo 口語主路徑以 `tests/verify-entry.ts` 為契約證據；live Google／淡江 IdP／實體 Android Chrome 仍未證明。公開站 https://344.zeabur.app `/` 免登入，但送出「我想辦茶會」目前仍 token overflow，要等本分支部署；倉庫已縮指示，且不得叫學生貼權杖。
 
 ## 總覽
 
@@ -120,6 +120,7 @@
 75. 出圖／改暖規格來自任務 POST 的 `workspace_continue_direction_spec`／`workspace_revise_direction_spec` 事件（`applyDirectionBriefFromTask`），立刻更新對話尾端規格。後續較舊的 GET 不得把較高 `revision` 蓋回 V1。規格已存在時，失敗 refresh 不得用「工作區讀取失敗」取代「Hermes 尚未連線，沒有出圖」
 76. 任務頁「任務與成果」預覽跟對話規格同一 `revision`。select POST 寫在 `workflow.design` 的 V1 不得在改暖／出圖後把舞台留在舊稿；`workflowPreviewDesign` 與 `withPreferredSpec` 讓 deck 跟 `directionBrief` 走較新的 pack
 77. 本分支契約（非正式站）：Hermes 已連線時，裁切不得只丟對話歷史。指示／摘要過長時縮到預算內，短句「我想辦茶會」仍可送出。真的超限才失敗，學生文案「這次內容太長。請開新對話再試一次。」，不出現 tokens／上限數字
+78. Hermes 指示不得叫學生到「設定 → 連線」貼 Lumen／FrameLab 權杖；口語「我想辦茶會」走工作區靈感或 Hermes 工具，不露出 PLANFORM_MCP_URL。英語 context-length／N tokens 與 服務日誌 在任務 API、composer 與工作區錯誤橫幅同樣改寫。一般檢視 Runtime 狀態點的 accessible name 不含 0/300 工具數
 
 ## 口語主路徑（契約，非正式真機）
 
@@ -134,7 +135,7 @@
 
 ## 本輪不宣稱
 
-- 公開站 https://344.zeabur.app `/` 免登入；送出「我想辦茶會」目前仍 token overflow，要等本分支部署。倉庫 SHA `9bc9c14` 已縮指示。本輪不部署。
+- 公開站 https://344.zeabur.app `/` 免登入；送出「我想辦茶會」目前仍 token overflow，要等本分支部署。倉庫已縮指示並禁止叫學生貼權杖。本輪不部署。
 - 未做 Google OAuth／淡江校方 IdP 實機登入
 - 未在實體 Android Chrome 驗證語音與鍵盤
 - 未重開或改寫 #106／#107
