@@ -159,6 +159,18 @@ test("shortTaskError hides long stacks", () => {
     shortTaskError("圖片已保存，但部署端尚未驗證圖片輸入。請完成設定後重新傳送。"),
     "現在沒辦法連到 Hermes。",
   );
+  assert.equal(
+    shortTaskError(
+      "任務輸入估計 15613 tokens，超過上限 12000。已裁切歷史與指示後仍超限，請開新對話或縮短內容。",
+    ),
+    "這次內容太長。請開新對話再試一次。",
+  );
+  assert.doesNotMatch(
+    shortTaskError(
+      "任務輸入估計 15613 tokens，超過上限 12000。已裁切歷史與指示後仍超限，請開新對話或縮短內容。",
+    ) || "",
+    /tokens|12000|15613/,
+  );
   assert.equal(shortTaskError("x".repeat(300))?.endsWith("…"), true);
   assert.equal(shortTaskError(""), null);
   assert.equal(shortTaskError(null), null);
