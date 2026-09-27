@@ -1,0 +1,6 @@
+# Copied by install-profile.sh. Not a live config.
+# Apply with: hermes config set model.provider xai-oauth
+model:
+  default: grok-4.6
+  provider: xai-oauth
+  base_url: https://api.x.ai/v1

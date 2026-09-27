@@ -4,8 +4,8 @@ import "./globals.css";
 import "./mobile-spatial.css";
 
 export const metadata: Metadata = {
-  title: "Hermes",
-  description: "與 Hermes 一起，把活動想法整理成有來源、可接續的創作。",
+  title: "TKU AI",
+  description: "TKU AI 由 Hermes 執行。把活動想法整理成有來源、可接續的創作。",
 };
 export const viewport: Viewport = {
   width: "device-width",

@@ -1,3 +1,7 @@
+# TKU AI
+
+淡江大學領袖禪學社與淡江大學禪學社的工作區。執行層是 Hermes，模型走 xAI Grok OAuth。見 [TKU AI](docs/TKU_AI.md)。
+
 # Hermes Creative Intelligence
 
 明亮的免登入單一工作區。開啟 `/` 即進入 Hermes Console，不必先登入。InvitationGate 與 AuthGate 登入模組仍休眠，不得擋工作區。`CONSOLE_AUTH_REQUIRED=true` 才開啟登入閘。Hermes 執行工具；Console 保存會話、任務、活動、文案版本與學習請求，不另建模板大腦。
