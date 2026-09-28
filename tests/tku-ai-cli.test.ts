@@ -11,9 +11,11 @@ const execFileAsync = promisify(execFile);
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const cli = join(repoRoot, "runtime/tku-ai/bin/tku-ai");
 
+type CliEnv = Record<string, string | undefined>;
+
 async function run(
   args: string[],
-  env: NodeJS.ProcessEnv = {},
+  env: CliEnv = {},
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   try {
     const result = await execFileAsync("sh", [cli, ...args], {
