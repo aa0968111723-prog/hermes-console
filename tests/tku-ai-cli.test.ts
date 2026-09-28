@@ -35,6 +35,10 @@ async function run(
   }
 }
 
+function hermesShim(): string {
+  return ["#!/bin/sh", "printf 'HERMES_ARGS:%s\\n' \"$*\"", ""].join("\n");
+}
+
 test("help explains the wrapper and does not need hermes", async () => {
   const { code, stdout, stderr } = await run(["--help"], {
     PATH: "/usr/bin:/bin",
@@ -79,8 +83,8 @@ test("doctor reports missing hermes and missing profile without printing .env se
   });
 
   assert.notEqual(code, 0);
-  assert.match(stdout, /未安裝/);
-  assert.match(stdout, /末四碼 9876/);
+  assert.match(stdout, /hermes: 未安裝/);
+  assert.match(stdout, /API_SERVER_KEY: 已設定（末四碼 9876）/);
   assert.doesNotMatch(stdout, /super-secret-key-xyz-9876/);
   assert.doesNotMatch(stderr, /super-secret-key-xyz-9876/);
 });
@@ -88,11 +92,7 @@ test("doctor reports missing hermes and missing profile without printing .env se
 test("unknown commands pass through to hermes", async () => {
   const bin = await mkdtemp(join(tmpdir(), "tku-ai-path-"));
   const fakeHermes = join(bin, "hermes");
-  await writeFile(
-    fakeHermes,
-    `#!/bin/sh\nprintf 'HERMES_ARGS:%s\\n' "$*"\n`,
-    { mode: 0o755 },
-  );
+  await writeFile(fakeHermes, hermesShim(), { mode: 0o755 });
   await chmod(fakeHermes, 0o755);
 
   const { code, stdout } = await run(["tools"], {
@@ -105,11 +105,7 @@ test("unknown commands pass through to hermes", async () => {
 test("chat subcommand execs hermes chat", async () => {
   const bin = await mkdtemp(join(tmpdir(), "tku-ai-chat-"));
   const fakeHermes = join(bin, "hermes");
-  await writeFile(
-    fakeHermes,
-    `#!/bin/sh\nprintf 'HERMES_ARGS:%s\\n' "$*"\n`,
-    { mode: 0o755 },
-  );
+  await writeFile(fakeHermes, hermesShim(), { mode: 0o755 });
   await chmod(fakeHermes, 0o755);
 
   const { code, stdout } = await run(["chat", "-q", "ping"], {
