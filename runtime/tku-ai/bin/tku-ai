@@ -1,0 +1,222 @@
+#!/bin/sh
+# TKU AI CLI — thin wrapper around official Hermes.
+# Not a second brain. Does not print tokens.
+set -eu
+
+VERSION=0.1.0
+ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+HOME_DIR=${HERMES_HOME:-"$HOME/.hermes"}
+INSTALL_PROFILE="$ROOT/scripts/install-profile.sh"
+
+usage() {
+  cat <<'EOF'
+TKU AI CLI  ·  淡江大學領袖禪學社／禪學社
+執行層只有官方 hermes。這是薄封裝，不是第二個大腦。
+
+用法：
+tku-ai                 TTY 時開 hermes --tui；否則走 hermes
+tku-ai tui             hermes --tui
+tku-ai chat [args]     hermes chat [args]
+tku-ai setup           安裝 tku-zenclub 技能與 API server 設定
+tku-ai auth [args]     預設 hermes auth add xai-oauth --no-browser
+tku-ai doctor          檢查主機狀態，不印出金鑰
+tku-ai gateway         hermes gateway
+tku-ai serve           同 gateway（API server 由 ~/.hermes/.env 啟動）
+tku-ai version         封裝版本
+tku-ai --help          本說明
+
+其他參數直接交給 hermes。
+不要把金鑰寫進 Git。不要在瀏覽器 Console 開終端。
+EOF
+}
+
+banner() {
+  printf '%s
+' "TKU AI  ·  淡江大學領袖禪學社／禪學社"
+  printf '%s
+' "執行層：Hermes    模型：xAI Grok OAuth"
+  printf '%s
+' "薄封裝，不是第二個大腦。"
+}
+
+need_hermes() {
+  if ! command -v hermes >/dev/null 2>&1; then
+    echo "找不到 hermes。請先安裝 Hermes Agent，再跑 tku-ai setup。" >&2
+    echo "參見 https://github.com/NousResearch/hermes-agent" >&2
+    exit 1
+  fi
+}
+
+mask_last4() {
+  # stdin: secret value. stdout: last 4 chars only.
+  value=$(cat)
+  if [ -z "$value" ]; then
+    printf '%s
+' "未設定"
+    return
+  fi
+  last=$(printf '%s' "$value" | awk '{print substr($0, length($0)-3)}')
+  printf '已設定（末四碼 %s）
+' "$last"
+}
+
+env_value() {
+  key=$1
+  file=$2
+  if [ ! -f "$file" ]; then
+    return 0
+  fi
+  awk -F= -v k="$key" '
+    $1 == k {
+      sub(/^[^=]+=/, "")
+      gsub(/\r$/, "")
+      print
+    }
+  ' "$file" | tail -n 1
+}
+
+doctor() {
+  status=0
+  printf '%s
+' "TKU AI doctor"
+  printf '%s
+' "HERMES_HOME=$HOME_DIR"
+
+  if command -v hermes >/dev/null 2>&1; then
+    printf '%s
+' "hermes: 已安裝 ($(command -v hermes))"
+  else
+    printf '%s
+' "hermes: 未安裝"
+    status=1
+  fi
+
+  skill="$HOME_DIR/skills/tku-zenclub/SKILL.md"
+  if [ -f "$skill" ]; then
+    printf '%s
+' "skill tku-zenclub: 已安裝"
+  else
+    printf '%s
+' "skill tku-zenclub: 未安裝（跑 tku-ai setup）"
+    status=1
+  fi
+
+  envf="$HOME_DIR/.env"
+  if [ -f "$envf" ]; then
+    printf '%s
+' ".env: 存在"
+    enabled=$(env_value API_SERVER_ENABLED "$envf")
+    host=$(env_value API_SERVER_HOST "$envf")
+    port=$(env_value API_SERVER_PORT "$envf")
+    key=$(env_value API_SERVER_KEY "$envf")
+    model=$(env_value API_SERVER_MODEL_NAME "$envf")
+    printf '%s
+' "API_SERVER_ENABLED: ${enabled:-unset}"
+    printf '%s
+' "API_SERVER_HOST: ${host:-unset}"
+    printf '%s
+' "API_SERVER_PORT: ${port:-unset}"
+    printf '%s
+' "API_SERVER_MODEL_NAME: ${model:-unset}"
+    printf 'API_SERVER_KEY: %s
+' "$(printf '%s' "$key" | mask_last4)"
+    case "$enabled" in
+      true|1|yes) ;;
+      *) status=1 ;;
+    esac
+    if [ -z "$key" ]; then
+      status=1
+    fi
+  else
+    printf '%s
+' ".env: 不存在（跑 tku-ai setup）"
+    status=1
+  fi
+
+  probe_host=${host:-127.0.0.1}
+  if [ "$probe_host" = "0.0.0.0" ] || [ "$probe_host" = "::" ]; then
+    probe_host=127.0.0.1
+  fi
+  probe_port=${port:-8642}
+  if command -v curl >/dev/null 2>&1; then
+    if curl -sS -m 2 --connect-to "$probe_host:$probe_port:127.0.0.1:$probe_port" "http://127.0.0.1:$probe_port/" >/dev/null 2>&1; then
+      printf '%s
+' "API server: 本機 $probe_port 可達（未驗證為 LIVE）"
+    else
+      printf '%s
+' "API server: 本機 $probe_port 尚未可達"
+      status=1
+    fi
+  else
+    printf '%s
+' "API server: 未探測（沒有 curl）"
+  fi
+
+  printf '%s
+' "這不是 LIVE_EXTERNAL 驗證。Console 連線仍要新的 HERMES_API_URL / HERMES_API_KEY。"
+  exit "$status"
+}
+
+cmd=${1:-}
+case "$cmd" in
+  "" )
+    banner
+    need_hermes
+    if [ -t 0 ] && [ -t 1 ]; then
+      exec hermes --tui
+    fi
+    exec hermes
+    ;;
+  -h|--help|help)
+    usage
+    exit 0
+    ;;
+  -v|--version|version)
+    printf 'tku-ai %s
+' "$VERSION"
+    if command -v hermes >/dev/null 2>&1; then
+      hermes version 2>/dev/null || hermes --version 2>/dev/null || true
+    fi
+    exit 0
+    ;;
+  tui|--tui)
+    shift
+    need_hermes
+    exec hermes --tui "$@"
+    ;;
+  chat)
+    shift
+    need_hermes
+    exec hermes chat "$@"
+    ;;
+  setup)
+    if [ ! -x "$INSTALL_PROFILE" ] && [ ! -f "$INSTALL_PROFILE" ]; then
+      echo "找不到 $INSTALL_PROFILE" >&2
+      exit 1
+    fi
+    sh "$INSTALL_PROFILE"
+    echo "接下來：tku-ai auth"
+    echo "然後：tku-ai gateway"
+    exit 0
+    ;;
+  auth)
+    shift
+    need_hermes
+    if [ "$#" -eq 0 ]; then
+      exec hermes auth add xai-oauth --no-browser
+    fi
+    exec hermes auth "$@"
+    ;;
+  doctor)
+    doctor
+    ;;
+  gateway|serve)
+    shift
+    need_hermes
+    exec hermes gateway "$@"
+    ;;
+  *)
+    need_hermes
+    exec hermes "$@"
+    ;;
+esac
