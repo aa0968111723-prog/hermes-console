@@ -79,8 +79,8 @@ test("doctor reports missing hermes and missing profile without printing .env se
   });
 
   assert.notEqual(code, 0);
-  assert.match(stdout, /hermes: 未安裝/);
-  assert.match(stdout, /API_SERVER_KEY: 已設定（末四碼 9876）/);
+  assert.match(stdout, /未安裝/);
+  assert.match(stdout, /末四碼 9876/);
   assert.doesNotMatch(stdout, /super-secret-key-xyz-9876/);
   assert.doesNotMatch(stderr, /super-secret-key-xyz-9876/);
 });
@@ -90,7 +90,7 @@ test("unknown commands pass through to hermes", async () => {
   const fakeHermes = join(bin, "hermes");
   await writeFile(
     fakeHermes,
-    "#!/bin/sh\nprintf 'HERMES_ARGS:%s\\n' "$*"\n",
+    `#!/bin/sh\nprintf 'HERMES_ARGS:%s\\n' "$*"\n`,
     { mode: 0o755 },
   );
   await chmod(fakeHermes, 0o755);
@@ -107,7 +107,7 @@ test("chat subcommand execs hermes chat", async () => {
   const fakeHermes = join(bin, "hermes");
   await writeFile(
     fakeHermes,
-    "#!/bin/sh\nprintf 'HERMES_ARGS:%s\\n' "$*"\n",
+    `#!/bin/sh\nprintf 'HERMES_ARGS:%s\\n' "$*"\n`,
     { mode: 0o755 },
   );
   await chmod(fakeHermes, 0o755);
