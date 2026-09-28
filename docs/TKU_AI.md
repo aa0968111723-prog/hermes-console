@@ -43,6 +43,18 @@ sh runtime/tku-ai/scripts/install-profile.sh
 
 腳本會複製禪學社技能、設定 `xai-oauth`，並在缺少時產生 API server 金鑰。金鑰不會印出來。
 
+也可以跑薄封裝：
+
+```
+chmod +x runtime/tku-ai/bin/tku-ai
+runtime/tku-ai/bin/tku-ai setup
+runtime/tku-ai/bin/tku-ai auth
+runtime/tku-ai/bin/tku-ai doctor
+runtime/tku-ai/bin/tku-ai          # TTY 時開 hermes --tui
+```
+
+`tku-ai` 只 exec 官方 `hermes`。不要當成瀏覽器終端 App。
+
 ## 不做的事
 
 - 不把 `tku-zen-agent` 的 Python 編排器再塞進 Console 當第二個大腦
